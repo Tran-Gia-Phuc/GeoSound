@@ -14,6 +14,7 @@ Git details are in [CONTRIBUTING.md](../../CONTRIBUTING.md). This file is only w
 - Do not commit secrets. List variables in `.env.example` without real values.
 - One branch, one task; open PRs into `develop`.
 - Code folders and files: English, kebab-case, or the chosen stack's default.
+- One service = one folder under `backend/services/<name>/`. Tests for that service stay inside it; only contract and e2e tests go in root `tests/`.
 
 ## Phase numbers
 

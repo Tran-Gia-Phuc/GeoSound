@@ -4,9 +4,10 @@
 
 ## In scope — initialization (now)
 
-- Standard folders for docs, frontend, backend, and tests.
+- Standard folders for docs, frontend, backend services, and tests.
 - Baseline docs: vision, scope, conventions, docs index.
 - Branch / commit / pull-request conventions.
+- Backend shape recorded: microservices, monolith per service; test layers documented.
 
 ## In scope — version 1 (planned, not locked)
 

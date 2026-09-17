@@ -1,11 +1,20 @@
 # 03 — Testing
 
-Folder for test strategy and test cases.
+Automated tests follow **microservices + monolith per service**. Strategy and folder rules: [strategy.md](strategy.md).
 
-Expected later:
+| File | Content |
+| --- | --- |
+| [strategy.md](strategy.md) | Layers, locations, what not to do |
 
-- Test plan
-- Cases for the main flows
+Expected later (not written in init):
+
+- Test plan and cases for the main flows
 - Result / bug notes
 
-Not written during init. Automated test code goes in `tests/` or next to the source — record the choice here once it is decided.
+| Code location | Kind of test |
+| --- | --- |
+| `backend/services/<name>/tests/unit` | Fast tests inside one service |
+| `backend/services/<name>/tests/integration` | That service + its own DB |
+| `tests/contract` | Agreements between services |
+| `tests/e2e` | Cross-service / UI journeys |
+| `frontend/` (next to UI) | Component / unit tests for the client |

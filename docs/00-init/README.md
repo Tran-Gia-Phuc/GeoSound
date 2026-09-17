@@ -9,4 +9,6 @@ This phase locks the **working frame**: how the repo is laid out, where the team
 | [directory-structure.md](directory-structure.md) | What each folder is for |
 | [conventions.md](conventions.md) | Short rules for docs and source |
 
+Backend test layers (unit / integration / contract / e2e): [../03-testing/strategy.md](../03-testing/strategy.md).
+
 Next step: write the specification in `docs/01-requirements/` on a separate branch (for example `docs/requirements` or `feature/srs`).

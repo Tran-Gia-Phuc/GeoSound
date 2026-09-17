@@ -14,8 +14,18 @@ GeoSound/
 │   └── 04-guides/
 ├── frontend/
 ├── backend/
+│   └── services/
+│       └── <name>/              # one deployable monolith per service
+│           ├── src/
+│           └── tests/
+│               ├── unit/
+│               └── integration/
 └── tests/
+    ├── contract/                # cross-service contracts only
+    └── e2e/                     # journeys across more than one service
 ```
+
+`<name>` is a placeholder. Add real service folders when bounded contexts are named in design.
 
 ## Repository root
 
@@ -31,18 +41,31 @@ One folder per phase, numbered so the reading order stays clear. Each folder's `
 
 Do not put source code in `docs/`. Do not scatter design or specification files at the repo root.
 
-## `frontend/` and `backend/`
+## `frontend/`
 
-Homes for the client and server once the stack is chosen. They are empty on purpose (`.gitkeep` keeps the folders in Git).
+Client application. Unit and component tests live next to the UI once the stack is chosen.
 
-When scaffolding:
+## `backend/` — microservices, monolith per service
 
-- All client dependencies and config live in `frontend/`.
-- All APIs, business logic, and server-side data live in `backend/`.
-- Update the root README with install, run, and environment-variable commands.
+The backend is **several services**, not one process. Each service is still a **monolith**: one codebase, one process, one database, internal modules. It is not split into smaller deployables.
 
-If the team later picks a different monorepo layout (for example `apps/web`, `apps/api`), update this file and the README so only one layout exists.
+| Path | Role |
+| --- | --- |
+| `backend/services/<name>/src` | That service's API, domain, and adapters |
+| `backend/services/<name>/tests/unit` | Fast tests with no I/O |
+| `backend/services/<name>/tests/integration` | That service + **its** database; other services mocked |
 
-## `tests/`
+Do not share a database across services. Shared libraries (if any) belong under `backend/shared/` and stay free of business rules that belong to one service.
 
-Shared or integration tests. Unit tests may live next to the code (`frontend/…`, `backend/…`) depending on the tooling; note that choice in `docs/03-testing/`.
+When scaffolding a service, keep install/run/env notes in that service and link them from the root README.
+
+## `tests/` — cross-service only
+
+| Path | Role |
+| --- | --- |
+| `tests/contract` | Provider/consumer or schema checks between services |
+| `tests/e2e` | Full flows (often through the frontend or an API gateway) |
+
+Unit and single-service integration tests do **not** go here. See [docs/03-testing/strategy.md](../03-testing/strategy.md).
+
+If the team later picks a different monorepo layout, update this file and the README so only one layout exists.
