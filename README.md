@@ -48,7 +48,7 @@ The repo keeps three long-lived branches:
 | `staging` | Integration before `main` |
 | `develop` | Shared team development line |
 
-This initialization work lives on `feature/init-project` (branched from `develop`). Branch names, commits, and pull requests: [CONTRIBUTING.md](CONTRIBUTING.md).
+This initialization work lives on `feature/init-setup-project` (branched from `develop`). Branch names, commits, and pull requests: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Backend shape
 

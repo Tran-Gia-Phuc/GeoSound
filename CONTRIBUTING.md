@@ -21,7 +21,7 @@ main
 
 | Prefix | Use when | Example |
 | --- | --- | --- |
-| `feature/` | A scoped feature or init task | `feature/init-project` |
+| `feature/` | A scoped feature or init task | `feature/init-setup-project` |
 | `docs/` | Documentation only | `docs/srs-login` |
 | `fix/` | A bug fix | `fix/auth-token-expired` |
 | `chore/` | Housekeeping (gitignore, format) | `chore/add-editorconfig` |
