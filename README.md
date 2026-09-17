@@ -1,56 +1,56 @@
 # GeoSound
 
-Đồ án môn **Công nghệ phần mềm 2** — Đại học Sài Gòn.
+Course project for **Software Engineering 2** — Saigon University.
 
-Repo này chứa mã nguồn, tài liệu và quy ước làm việc của nhóm. Bước hiện tại: **khởi tạo dự án** (cấu trúc thư mục + tài liệu nền).
+This repository holds the team's source code, documentation, and working conventions. Current step: **project initialization** (directory layout + baseline docs).
 
-## Cấu trúc thư mục
+## Directory layout
 
 ```text
 GeoSound/
-├── docs/                 # Tài liệu dự án theo từng giai đoạn
-│   ├── 00-khoi-tao/      # Tầm nhìn, phạm vi, quy ước
-│   ├── 01-yeu-cau/       # Đặc tả yêu cầu (bổ sung sau)
-│   ├── 02-thiet-ke/      # Thiết kế hệ thống (bổ sung sau)
-│   ├── 03-kiem-thu/      # Kế hoạch & ca kiểm thử (bổ sung sau)
-│   └── 04-huong-dan/     # Hướng dẫn cài đặt / sử dụng (bổ sung sau)
-├── frontend/             # Ứng dụng phía client
-├── backend/              # Dịch vụ phía server
-├── tests/                # Kiểm thử tự động
-├── CONTRIBUTING.md       # Quy ước nhánh, commit, review
+├── docs/                 # Project docs, one folder per phase
+│   ├── 00-init/          # Vision, scope, conventions
+│   ├── 01-requirements/  # Requirements spec (later)
+│   ├── 02-design/        # System design (later)
+│   ├── 03-testing/       # Test plan and cases (later)
+│   └── 04-guides/        # Setup / usage guides (later)
+├── frontend/             # Client application
+├── backend/              # Server-side services
+├── tests/                # Automated tests
+├── CONTRIBUTING.md       # Branch, commit, and review rules
 └── README.md
 ```
 
-Chi tiết từng thư mục: [docs/00-khoi-tao/cau-truc-thu-muc.md](docs/00-khoi-tao/cau-truc-thu-muc.md).
+Folder-by-folder notes: [docs/00-init/directory-structure.md](docs/00-init/directory-structure.md).
 
-## Tài liệu
+## Documentation
 
-| Giai đoạn | Mục đích | Trạng thái |
+| Phase | Purpose | Status |
 | --- | --- | --- |
-| [Khởi tạo](docs/00-khoi-tao/) | Tầm nhìn, phạm vi, quy ước làm việc | Đang soạn |
-| [Yêu cầu](docs/01-yeu-cau/) | Đặc tả chức năng / phi chức năng | Chưa bắt đầu |
-| [Thiết kế](docs/02-thiet-ke/) | Kiến trúc, CSDL, giao diện | Chưa bắt đầu |
-| [Kiểm thử](docs/03-kiem-thu/) | Chiến lược và ca kiểm thử | Chưa bắt đầu |
-| [Hướng dẫn](docs/04-huong-dan/) | Cài đặt, triển khai, sử dụng | Chưa bắt đầu |
+| [Init](docs/00-init/) | Vision, scope, working conventions | In progress |
+| [Requirements](docs/01-requirements/) | Functional / non-functional spec | Not started |
+| [Design](docs/02-design/) | Architecture, data model, UI | Not started |
+| [Testing](docs/03-testing/) | Strategy and test cases | Not started |
+| [Guides](docs/04-guides/) | Install, deploy, usage | Not started |
 
-Chỉ mục đầy đủ: [docs/README.md](docs/README.md).
+Full index: [docs/README.md](docs/README.md).
 
-## Nhánh Git
+## Git branches
 
-Repo dùng 3 nhánh dài hạn:
+The repo keeps three long-lived branches:
 
-| Nhánh | Vai trò |
+| Branch | Role |
 | --- | --- |
-| `main` | Bản ổn định, sẵn sàng nộp / demo |
-| `staging` | Tích hợp trước khi lên `main` |
-| `develop` | Phát triển chung của nhóm |
+| `main` | Stable build, ready to submit or demo |
+| `staging` | Integration before `main` |
+| `develop` | Shared team development line |
 
-Việc khởi tạo này nằm trên `feature/init-project` (tách từ `develop`). Cách đặt tên nhánh, commit và mở pull request: [CONTRIBUTING.md](CONTRIBUTING.md).
+This initialization work lives on `feature/init-project` (branched from `develop`). Branch names, commits, and pull requests: [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Công nghệ
+## Tech stack
 
-Chưa chốt stack. Sẽ cập nhật README và `docs/00-khoi-tao/` ngay khi nhóm thống nhất frontend, backend và CSDL.
+Not decided yet. Update this README and `docs/00-init/` once the team agrees on frontend, backend, and database.
 
-## Liên hệ repo
+## Repository
 
 - Remote: [Tran-Gia-Phuc/GeoSound](https://github.com/Tran-Gia-Phuc/GeoSound)

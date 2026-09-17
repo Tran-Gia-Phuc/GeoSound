@@ -1,64 +1,65 @@
-# Quy ước làm việc
+# Contributing
 
-Tài liệu này mô tả cách nhóm cộng tác trên Git. Mục tiêu: mỗi bước (khởi tạo, yêu cầu, thiết kế, triển khai, kiểm thử) có nhánh riêng, dễ review và dễ gộp về `develop`.
+How the team works on Git. Each step (init, requirements, design, implementation, testing) should have its own branch so reviews stay small and merges into `develop` stay clean.
 
-## Mô hình nhánh
+## Branch model
 
 ```text
 main
   └── staging
         └── develop
-              └── feature/<ten-viec>
-              └── docs/<ten-tai-lieu>
-              └── fix/<ten-loi>
+              └── feature/<short-name>
+              └── docs/<doc-name>
+              └── fix/<bug-name>
 ```
 
-- Tách nhánh tính năng / tài liệu **từ `develop`**.
-- Không commit trực tiếp lên `main`, `staging`, `develop` trừ khi nhóm thống nhất.
-- Một nhánh = một mục đích. Không trộn docs với code không liên quan.
+- Branch features and docs **from `develop`**.
+- Do not commit directly to `main`, `staging`, or `develop` unless the team agrees.
+- One branch, one purpose. Do not mix unrelated docs and code.
 
-## Đặt tên nhánh
+## Branch names
 
-| Tiền tố | Khi nào dùng | Ví dụ |
+| Prefix | Use when | Example |
 | --- | --- | --- |
-| `feature/` | Tính năng hoặc khởi tạo có phạm vi rõ | `feature/init-project` |
-| `docs/` | Chỉ chỉnh tài liệu | `docs/srs-login` |
-| `fix/` | Sửa lỗi | `fix/auth-token-expired` |
-| `chore/` | Việc lặt vặt (gitignore, format) | `chore/add-editorconfig` |
+| `feature/` | A scoped feature or init task | `feature/init-project` |
+| `docs/` | Documentation only | `docs/srs-login` |
+| `fix/` | A bug fix | `fix/auth-token-expired` |
+| `chore/` | Housekeeping (gitignore, format) | `chore/add-editorconfig` |
 
-Tên viết thường, dùng dấu `-`, ngắn và nói được việc đang làm.
+Use lowercase, hyphens, and a short name that describes the work.
 
-## Commit
+## Commits
 
-- Một commit làm một việc, message bằng tiếng Việt hoặc tiếng Anh — thống nhất trong một nhánh.
-- Dạng gợi ý: `<type>: <mô tả ngắn>`
+- One commit, one change. Write messages in **English**. Keep the style consistent on a branch.
+- Suggested form: `<type>: <short description>`
 
-| Type | Ý nghĩa |
+| Type | Meaning |
 | --- | --- |
-| `feat` | Thêm chức năng |
-| `docs` | Tài liệu |
-| `fix` | Sửa lỗi |
-| `chore` | Cấu hình, dọn dẹp |
-| `test` | Thêm / sửa kiểm thử |
-| `refactor` | Đổi code, không đổi hành vi |
+| `feat` | New behavior |
+| `docs` | Documentation |
+| `fix` | Bug fix |
+| `chore` | Config or cleanup |
+| `test` | Add or update tests |
+| `refactor` | Change structure, not behavior |
 
-Ví dụ: `docs: thêm cấu trúc thư mục và quy ước khởi tạo`.
+Example: `docs: add directory layout and init conventions`.
 
-## Luồng làm việc gợi ý
+## Suggested workflow
 
 1. `git checkout develop && git pull`
-2. `git checkout -b feature/<ten-viec>`
-3. Làm việc, commit nhỏ, rõ ràng
-4. Đẩy nhánh: `git push -u origin HEAD`
-5. Mở pull request **vào `develop`**
-6. Review xong mới gộp; xóa nhánh feature sau khi gộp
+2. `git checkout -b feature/<short-name>`
+3. Work in small, clear commits
+4. Push: `git push -u origin HEAD`
+5. Open a pull request **into `develop`**
+6. Merge after review; delete the feature branch
 
-## Tài liệu
+## Documentation
 
-- Thêm hoặc sửa file trong `docs/` theo đúng giai đoạn (`00` → `04`).
-- Mỗi thư mục giai đoạn có `README.md` làm mục lục.
-- Không xóa tài liệu cũ khi cập nhật: ghi chú phiên bản / ngày trong đầu file nếu nội dung đổi lớn.
+- Write docs in **English**.
+- Add or edit files under `docs/` in the matching phase folder (`00` → `04`).
+- Each phase folder has a `README.md` index.
+- Do not delete old docs when updating: note the version or date at the top if the content changes substantially.
 
-## Những thứ không đưa vào Git
+## Do not commit
 
-Bí mật (`.env`, khóa), `node_modules/`, thư mục build, file IDE. Xem `.gitignore`.
+Secrets (`.env`, keys), `node_modules/`, build output, IDE junk. See `.gitignore`.

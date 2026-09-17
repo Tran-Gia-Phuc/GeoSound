@@ -1,13 +1,13 @@
-# Tài liệu GeoSound
+# GeoSound documentation
 
-Tài liệu được chia theo giai đoạn đồ án, khớp với thứ tự làm việc của nhóm.
+Docs are split by project phase so they match the team's working order.
 
-| Thư mục | Giai đoạn | Nội dung chính |
+| Folder | Phase | Main content |
 | --- | --- | --- |
-| [00-khoi-tao](00-khoi-tao/) | Khởi tạo | Tầm nhìn, phạm vi, cấu trúc repo, quy ước |
-| [01-yeu-cau](01-yeu-cau/) | Yêu cầu | Đặc tả chức năng, phi chức năng, use case |
-| [02-thiet-ke](02-thiet-ke/) | Thiết kế | Kiến trúc, CSDL, API, giao diện |
-| [03-kiem-thu](03-kiem-thu/) | Kiểm thử | Chiến lược, ca kiểm thử, báo cáo |
-| [04-huong-dan](04-huong-dan/) | Hướng dẫn | Cài đặt, chạy local, triển khai, sử dụng |
+| [00-init](00-init/) | Init | Vision, scope, repo layout, conventions |
+| [01-requirements](01-requirements/) | Requirements | Functional / non-functional spec, use cases |
+| [02-design](02-design/) | Design | Architecture, data model, API, UI |
+| [03-testing](03-testing/) | Testing | Strategy, test cases, reports |
+| [04-guides](04-guides/) | Guides | Install, local run, deploy, usage |
 
-Quy ước cộng tác (nhánh, commit, PR) nằm ở [CONTRIBUTING.md](../CONTRIBUTING.md), không lặp lại trong từng file docs.
+Git workflow (branches, commits, PRs) lives in [CONTRIBUTING.md](../CONTRIBUTING.md). Do not repeat it in every doc file.
