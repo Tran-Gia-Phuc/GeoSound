@@ -1,0 +1,24 @@
+{
+  "name": "@geosound/tour",
+  "version": "0.1.0",
+  "description": "Tour service — UC02,03,07-11,13,17,18: CRUD tour/điểm/route/vùng kích hoạt (PostGIS).",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.18.0",
+    "amqplib": "^0.10.4",
+    "express": "^4.19.2",
+    "ioredis": "^5.4.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "prisma": "^5.18.0"
+  }
+}

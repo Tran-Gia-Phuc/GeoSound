@@ -1,0 +1,199 @@
+flowchart TB
+  %% Các cạnh "xếp tầng" (pwa -> gwRow -> svcRow -> workerRow -> infraRow, sys -> extBox)
+  %% chỉ để ép thứ tự trên/dưới, đã ẩn bằng linkStyle.
+  classDef comp fill:#FFFFFF,stroke:#1A1A1A,stroke-width:1.5px,color:#1A1A1A
+  classDef iface fill:#FFFFFF,stroke:#1A1A1A,stroke-width:2px,color:#1A1A1A
+  classDef db fill:#E7F6EC,stroke:#1E7A46,stroke-width:2px,color:#1A1A1A
+  classDef ext fill:#FFF7E6,stroke:#B7791F,stroke-width:1.5px,color:#1A1A1A
+  classDef req fill:#FFFFFF,stroke:#666666,stroke-dasharray:4 3,color:#333333
+
+  pwa["«component»<br/>React PWA<br/>(Tourist · Contributor · Admin)"]
+
+  pwa --> gwRow
+  gwRow --> svcRow
+  svcRow --> workerRow
+  workerRow --> infraRow
+  sys --> extBox
+  linkStyle 0,1,2,3,4 stroke:transparent,stroke-width:0px
+
+  subgraph sys["«subsystem» Hệ thống GeoSound"]
+    direction TB
+
+    subgraph gwRow[" "]
+      direction LR
+      subgraph gateway["«component» API Gateway"]
+        direction TB
+        gwMod["Route · verify JWT · rate-limit"]
+        iGw((" "))
+        gwMod ---|IGateway| iGw
+        gwReq["«requires»<br/>IAuth, ITour, IModeration, ICache"]
+      end
+    end
+
+    subgraph svcRow[" "]
+      direction LR
+
+      subgraph authWrap[" "]
+        direction TB
+        subgraph auth["«component» Auth Service"]
+          direction TB
+          authMod["Đăng ký/đăng nhập · OTP · JWT<br/>phân quyền · ban tài khoản"]
+          iAuth((" "))
+          authMod ---|IAuth| iAuth
+          authReq["«requires»<br/>ICache, IEmail, IDatabase"]
+        end
+      end
+
+      subgraph tourWrap[" "]
+        direction TB
+        subgraph tour["«component» Tour Service (PostGIS)"]
+          direction TB
+          tourMod["CRUD tour/điểm/route/vùng kích hoạt<br/>tìm kiếm · đóng gói offline · trang tác giả"]
+          iTour((" "))
+          tourMod ---|ITour| iTour
+          tourReq["«requires»<br/>IModeration, ICache, IObjectStore,<br/>IMessageBus, IDatabase"]
+        end
+      end
+
+      subgraph modWrap[" "]
+        direction TB
+        subgraph moderation["«component» Moderation Service"]
+          direction TB
+          modMod["Kiểm duyệt 3 tầng · hàng chờ Admin<br/>state machine trạng thái tour · ghi log"]
+          iMod((" "))
+          modMod ---|IModeration| iMod
+          modReq["«requires»<br/>ITour, IGenAI, IMessageBus, IDatabase"]
+        end
+      end
+    end
+
+    subgraph workerRow[" "]
+      direction LR
+
+      subgraph media["«component» Media/TTS Worker"]
+        direction TB
+        mediaMod["Consumer RabbitMQ:<br/>dịch + Google TTS → .mp3 → S3"]
+        mediaReq["«requires»<br/>ITTS, IObjectStore,<br/>IMessageBus, IDatabase"]
+      end
+
+      subgraph notif["«component» Notification Service"]
+        direction TB
+        notifMod["Consumer event →<br/>báo contributor (in-app / email)"]
+        notifReq["«requires»<br/>IEmail, IMessageBus, IDatabase"]
+      end
+    end
+
+    subgraph infraRow[" "]
+      direction LR
+
+      subgraph mq["«component» RabbitMQ"]
+        direction TB
+        mqMod["Event / job async (pub/sub)"]
+        iBus((" "))
+        mqMod ---|IMessageBus| iBus
+      end
+
+      subgraph redis["«component» Redis"]
+        direction TB
+        redisMod["Cache đọc nóng · OTP TTL<br/>rate-limit · JWT blacklist"]
+        iCache((" "))
+        redisMod ---|ICache| iCache
+      end
+
+      pg[("PostgreSQL @ Supabase + PostGIS<br/>schema: auth · tour · moderation · media · notification")]
+    end
+  end
+
+  subgraph extBox["«external» Dịch vụ bên ngoài"]
+    direction LR
+
+    subgraph gemini["«external» Gemini API"]
+      direction TB
+      geminiMod["Kiểm duyệt text (Tầng 1)"]
+      iGenAI((" "))
+      geminiMod ---|IGenAI| iGenAI
+    end
+
+    subgraph gtts["«external» Google Cloud TTS + Translate"]
+      direction TB
+      gttsMod["Dịch + TTS → .mp3"]
+      iTTS((" "))
+      gttsMod ---|ITTS| iTTS
+    end
+
+    subgraph s3["«external» AWS S3"]
+      direction TB
+      s3Mod["Ảnh · audio người thật · audio TTS"]
+      iObj((" "))
+      s3Mod ---|IObjectStore| iObj
+    end
+
+    subgraph smtp["«external» Email / SMTP (Nodemailer)"]
+      direction TB
+      smtpMod["Gửi OTP & thông báo"]
+      iEmail((" "))
+      smtpMod ---|IEmail| iEmail
+    end
+  end
+
+  %% ----- Mối nối REST/đồng bộ: consumer (nét đứt) cắm vào ổ cắm interface -----
+  pwa -.->|IGateway| iGw
+
+  gateway -.->|IAuth| iAuth
+  gateway -.->|ITour| iTour
+  gateway -.->|IModeration| iMod
+  gateway -.->|ICache| iCache
+
+  auth -.->|ICache| iCache
+  auth -.->|IEmail| iEmail
+
+  tour -.->|IModeration| iMod
+  tour -.->|ICache| iCache
+  tour -.->|IObjectStore| iObj
+  tour -.->|IMessageBus| iBus
+
+  moderation -.->|ITour| iTour
+  moderation -.->|IGenAI| iGenAI
+  moderation -.->|IMessageBus| iBus
+
+  media -.->|ITTS| iTTS
+  media -.->|IObjectStore| iObj
+  media -.->|IMessageBus| iBus
+
+  notif -.->|IEmail| iEmail
+  notif -.->|IMessageBus| iBus
+
+  %% ----- Sở hữu dữ liệu: mỗi service sở hữu 1 schema trong Postgres dùng chung -----
+  auth -->|schema auth| pg
+  tour -->|schema tour| pg
+  moderation -->|schema moderation| pg
+  media -->|schema media| pg
+  notif -->|schema notification| pg
+
+  class pwa,gwMod,authMod,tourMod,modMod,mediaMod,notifMod,mqMod,redisMod comp
+  class geminiMod,gttsMod,s3Mod,smtpMod ext
+  class iGw,iAuth,iTour,iMod,iBus,iCache,iGenAI,iTTS,iObj,iEmail iface
+  class pg db
+  class gwReq,authReq,tourReq,modReq,mediaReq,notifReq req
+
+  style sys fill:#F7F7F7,stroke:#1A1A1A,stroke-width:1.5px
+  style extBox fill:#FFF7E6,stroke:#B7791F,stroke-width:1.5px
+  style gwRow fill:none,stroke:none
+  style svcRow fill:none,stroke:none
+  style workerRow fill:none,stroke:none
+  style infraRow fill:none,stroke:none
+  style authWrap fill:none,stroke:none
+  style tourWrap fill:none,stroke:none
+  style modWrap fill:none,stroke:none
+  style gateway fill:#FFFFFF,stroke:#1A1A1A,stroke-width:1.5px
+  style auth fill:#FFFFFF,stroke:#1A1A1A,stroke-width:1.5px
+  style tour fill:#FFFFFF,stroke:#1A1A1A,stroke-width:1.5px
+  style moderation fill:#FFFFFF,stroke:#1A1A1A,stroke-width:1.5px
+  style media fill:#FFFFFF,stroke:#1A1A1A,stroke-width:1.5px
+  style notif fill:#FFFFFF,stroke:#1A1A1A,stroke-width:1.5px
+  style mq fill:#FFFFFF,stroke:#1A1A1A,stroke-width:1.5px
+  style redis fill:#FFFFFF,stroke:#1A1A1A,stroke-width:1.5px
+  style gemini fill:#FFFFFF,stroke:#B7791F,stroke-width:1.5px
+  style gtts fill:#FFFFFF,stroke:#B7791F,stroke-width:1.5px
+  style s3 fill:#FFFFFF,stroke:#B7791F,stroke-width:1.5px
+  style smtp fill:#FFFFFF,stroke:#B7791F,stroke-width:1.5px

@@ -1,0 +1,41 @@
+# =========================================================
+# Override DEV: mount source để hot reload (nodemon), chạy npm run dev.
+# Dùng kèm:  docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# =========================================================
+
+services:
+  gateway:
+    command: npm run dev
+    volumes:
+      - ./gateway/src:/app/src
+      - ./shared:/app/shared
+
+  auth:
+    command: npm run dev
+    volumes:
+      - ./services/auth/src:/app/src
+      - ./shared:/app/shared
+
+  tour:
+    command: npm run dev
+    volumes:
+      - ./services/tour/src:/app/src
+      - ./shared:/app/shared
+
+  moderation:
+    command: npm run dev
+    volumes:
+      - ./services/moderation/src:/app/src
+      - ./shared:/app/shared
+
+  media:
+    command: npm run dev
+    volumes:
+      - ./services/media/src:/app/src
+      - ./shared:/app/shared
+
+  notification:
+    command: npm run dev
+    volumes:
+      - ./services/notification/src:/app/src
+      - ./shared:/app/shared

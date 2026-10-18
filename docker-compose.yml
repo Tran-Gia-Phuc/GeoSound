@@ -1,0 +1,126 @@
+# =========================================================
+# GeoSound — stack chính: gateway + 5 service + rabbitmq + redis + postgres(dev)
+# Chạy:  docker compose up -d
+# Dev (hot reload): docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# =========================================================
+
+services:
+  gateway:
+    build: ./gateway
+    env_file: [.env]
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    depends_on:
+      redis: { condition: service_healthy }
+      auth: { condition: service_started }
+      tour: { condition: service_started }
+      moderation: { condition: service_started }
+    restart: unless-stopped
+
+  auth:
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile
+    env_file: [.env]
+    environment:
+      PORT: 3001
+      DATABASE_URL: ${DATABASE_URL_AUTH}
+    depends_on:
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+
+  tour:
+    build:
+      context: .
+      dockerfile: services/tour/Dockerfile
+    env_file: [.env]
+    environment:
+      PORT: 3002
+      DATABASE_URL: ${DATABASE_URL_TOUR}
+    depends_on:
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+
+  moderation:
+    build:
+      context: .
+      dockerfile: services/moderation/Dockerfile
+    env_file: [.env]
+    environment:
+      PORT: 3003
+      DATABASE_URL: ${DATABASE_URL_MODERATION}
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+
+  media: # worker, KHÔNG expose port
+    build:
+      context: .
+      dockerfile: services/media/Dockerfile
+    env_file: [.env]
+    environment:
+      DATABASE_URL: ${DATABASE_URL_MEDIA}
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    restart: unless-stopped
+
+  notification: # worker, KHÔNG expose port
+    build:
+      context: .
+      dockerfile: services/notification/Dockerfile
+    env_file: [.env]
+    environment:
+      DATABASE_URL: ${DATABASE_URL_NOTIFICATION}
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI (http://localhost:15672, guest/guest)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  postgres: # CHỈ dev local; team chung trỏ Supabase qua .env
+    image: postgis/postgis:16-3.4
+    env_file: [.env]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-geosound}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-geosound}
+      POSTGRES_DB: ${POSTGRES_DB:-geosound}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-geosound} -d ${POSTGRES_DB:-geosound}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:

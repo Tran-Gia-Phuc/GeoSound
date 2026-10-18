@@ -1,0 +1,23 @@
+// Moderation service — schema "moderation". State machine trạng thái tour + log.
+// Data model chi tiết: tech-stack.md §11.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // ...?schema=moderation
+}
+
+// --- Placeholder (sẽ thay khi chốt data model) ---
+model ModerationLog {
+  id        String   @id @default(uuid())
+  tourId    String
+  stage     String // ai | admin | community
+  result    String // pass | warning | reject
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@map("moderation_logs")
+}

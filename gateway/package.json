@@ -1,0 +1,19 @@
+{
+  "name": "@geosound/gateway",
+  "version": "0.1.0",
+  "description": "API Gateway: 1 cửa vào, rate-limit (Redis), route tới service.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "http-proxy-middleware": "^3.0.0",
+    "ioredis": "^5.4.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
