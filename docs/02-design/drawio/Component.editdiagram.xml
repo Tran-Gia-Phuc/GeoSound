@@ -1,0 +1,158 @@
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2560" pageHeight="1480" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Consumer ngoài subsystem -->
+        <mxCell id="pwa" parent="1" value="«component» React PWA&lt;br&gt;(Tourist · Contributor · Admin)" style="shape=component;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fillColor=#FFFFFF;strokeColor=#1A1A1A;strokeWidth=1.5;fontFamily=Segoe UI;" vertex="1">
+          <mxGeometry x="550" y="30" width="420" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Subsystem -->
+        <mxCell id="sys" parent="1" value="«subsystem» Hệ thống GeoSound" style="swimlane;html=1;startSize=34;horizontal=1;collapsible=0;rounded=0;fillColor=#F7F7F7;strokeColor=#1A1A1A;strokeWidth=1.5;fontStyle=1;fontSize=15;align=center;fontFamily=Segoe UI;whiteSpace=wrap;" vertex="1">
+          <mxGeometry x="40" y="140" width="2400" height="1120" as="geometry"/>
+        </mxCell>
+
+        <!-- Gateway -->
+        <mxCell id="gateway" parent="sys" value="«component» API Gateway&lt;br&gt;&lt;font color=#666666&gt;Route · verify JWT · rate-limit&lt;/font&gt;&lt;br&gt;&lt;b&gt;⊸ IGateway&lt;/b&gt;" style="shape=component;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontSize=12;fillColor=#FFFFFF;strokeColor=#1A1A1A;strokeWidth=1.5;fontFamily=Segoe UI;" vertex="1">
+          <mxGeometry x="500" y="40" width="440" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Hàng service -->
+        <mxCell id="auth" parent="sys" value="«component» Auth Service&lt;br&gt;&lt;font color=#666666&gt;Đăng ký/đăng nhập · OTP · JWT&lt;br&gt;phân quyền · ban tài khoản&lt;/font&gt;&lt;br&gt;&lt;b&gt;⊸ IAuth&lt;/b&gt;" style="shape=component;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontSize=12;fillColor=#FFFFFF;strokeColor=#1A1A1A;strokeWidth=1.5;fontFamily=Segoe UI;" vertex="1">
+          <mxGeometry x="40" y="220" width="400" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="tour" parent="sys" value="«component» Tour Service (PostGIS)&lt;br&gt;&lt;font color=#666666&gt;CRUD tour/điểm/route/vùng kích hoạt&lt;br&gt;tìm kiếm · đóng gói offline · trang tác giả&lt;/font&gt;&lt;br&gt;&lt;b&gt;⊸ ITour&lt;/b&gt;" style="shape=component;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontSize=12;fillColor=#FFFFFF;strokeColor=#1A1A1A;strokeWidth=1.5;fontFamily=Segoe UI;" vertex="1">
+          <mxGeometry x="500" y="220" width="440" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="moderation" parent="sys" value="«component» Moderation Service&lt;br&gt;&lt;font color=#666666&gt;Kiểm duyệt 3 tầng · hàng chờ Admin&lt;br&gt;state machine · ghi log&lt;/font&gt;&lt;br&gt;&lt;b&gt;⊸ IModeration&lt;/b&gt;" style="shape=component;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontSize=12;fillColor=#FFFFFF;strokeColor=#1A1A1A;strokeWidth=1.5;fontFamily=Segoe UI;" vertex="1">
+          <mxGeometry x="1000" y="220" width="430" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="media" parent="sys" value="«component» Media/TTS Worker&lt;br&gt;&lt;font color=#666666&gt;Consumer RabbitMQ:&lt;br&gt;dịch + Google TTS → .mp3 → S3&lt;/font&gt;&lt;br&gt;&lt;font color=#999999&gt;(worker — không cung cấp REST)&lt;/font&gt;" style="shape=component;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontSize=12;fillColor=#FFFFFF;strokeColor=#1A1A1A;strokeWidth=1.5;fontFamily=Segoe UI;" vertex="1">
+          <mxGeometry x="1490" y="220" width="420" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="notif" parent="sys" value="«component» Notification Service&lt;br&gt;&lt;font color=#666666&gt;Consumer event →&lt;br&gt;báo contributor (in-app / email)&lt;/font&gt;&lt;br&gt;&lt;font color=#999999&gt;(worker — không cung cấp REST)&lt;/font&gt;" style="shape=component;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontSize=12;fillColor=#FFFFFF;strokeColor=#1A1A1A;strokeWidth=1.5;fontFamily=Segoe UI;" vertex="1">
+          <mxGeometry x="1970" y="220" width="400" height="180" as="geometry"/>
+        </mxCell>
+
+        <!-- Hàng hạ tầng dùng chung -->
+        <mxCell id="redis" parent="sys" value="Redis&amp;nbsp;&amp;nbsp;&amp;nbsp;⊸ ICache&lt;br&gt;&lt;font color=#666666&gt;Cache đọc nóng · OTP TTL · rate-limit · JWT blacklist&lt;/font&gt;" style="rounded=1;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fillColor=#EEF3FB;strokeColor=#2B4B7E;strokeWidth=1.5;fontFamily=Segoe UI;" vertex="1">
+          <mxGeometry x="120" y="620" width="460" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="mq" parent="sys" value="RabbitMQ&amp;nbsp;&amp;nbsp;&amp;nbsp;⊸ IMessageBus&lt;br&gt;&lt;font color=#666666&gt;Event / job bất đồng bộ (pub/sub)&lt;/font&gt;" style="rounded=1;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fillColor=#EEF3FB;strokeColor=#2B4B7E;strokeWidth=1.5;fontFamily=Segoe UI;" vertex="1">
+          <mxGeometry x="840" y="620" width="520" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="pg" parent="sys" value="PostgreSQL @ Supabase + PostGIS&amp;nbsp;&amp;nbsp;&amp;nbsp;⊸ IDatabase&lt;br&gt;&lt;font color=#666666&gt;schema-per-service: auth · tour · moderation · media · notification&lt;/font&gt;" style="shape=cylinder3;html=1;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=14;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fillColor=#E7F6EC;strokeColor=#1E7A46;strokeWidth=1.5;fontFamily=Segoe UI;" vertex="1">
+          <mxGeometry x="1560" y="620" width="560" height="150" as="geometry"/>
+        </mxCell>
+
+        <!-- Hàng dịch vụ bên ngoài -->
+        <mxCell id="smtp" parent="sys" value="«external» Email / SMTP&lt;br&gt;&lt;font color=#666666&gt;Nodemailer — gửi OTP &amp;amp; thông báo&lt;/font&gt;&lt;br&gt;&lt;b&gt;⊸ IEmail&lt;/b&gt;" style="shape=component;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontSize=12;fillColor=#FFF7E6;strokeColor=#B7791F;strokeWidth=1.5;fontFamily=Segoe UI;" vertex="1">
+          <mxGeometry x="40" y="900" width="380" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3" parent="sys" value="«external» AWS S3&lt;br&gt;&lt;font color=#666666&gt;Ảnh · audio người thật · audio TTS&lt;/font&gt;&lt;br&gt;&lt;b&gt;⊸ IObjectStore&lt;/b&gt;" style="shape=component;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontSize=12;fillColor=#FFF7E6;strokeColor=#B7791F;strokeWidth=1.5;fontFamily=Segoe UI;" vertex="1">
+          <mxGeometry x="470" y="900" width="430" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="gemini" parent="sys" value="«external» Gemini API&lt;br&gt;&lt;font color=#666666&gt;Kiểm duyệt text (Tầng 1)&lt;/font&gt;&lt;br&gt;&lt;b&gt;⊸ IGenAI&lt;/b&gt;" style="shape=component;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontSize=12;fillColor=#FFF7E6;strokeColor=#B7791F;strokeWidth=1.5;fontFamily=Segoe UI;" vertex="1">
+          <mxGeometry x="960" y="900" width="430" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="tts" parent="sys" value="«external» Google Cloud TTS + Translate&lt;br&gt;&lt;font color=#666666&gt;Dịch + TTS → .mp3&lt;/font&gt;&lt;br&gt;&lt;b&gt;⊸ ITTS&lt;/b&gt;" style="shape=component;html=1;whiteSpace=wrap;align=center;verticalAlign=middle;fontSize=12;fillColor=#FFF7E6;strokeColor=#B7791F;strokeWidth=1.5;fontFamily=Segoe UI;" vertex="1">
+          <mxGeometry x="1450" y="900" width="420" height="150" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== PWA → Gateway ===== -->
+        <mxCell id="ePwaGw" parent="1" value="IGateway" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;fontSize=10;fontFamily=Segoe UI;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="pwa" target="gateway">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Gateway → Auth / Tour / Moderation / Redis ===== -->
+        <mxCell id="eGwAuth" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.2;exitY=1;entryX=0.5;entryY=0;" edge="1" source="gateway" target="auth">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="588" y="184"/><mxPoint x="240" y="184"/></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="eGwTour" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="gateway" target="tour">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="eGwMod" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.8;exitY=1;entryX=0.5;entryY=0;" edge="1" source="gateway" target="moderation">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="852" y="190"/><mxPoint x="1215" y="190"/></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="eGwRedis" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.3;exitY=1;entryX=0.5;entryY=0;" edge="1" source="gateway" target="redis">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="632" y="196"/><mxPoint x="470" y="196"/><mxPoint x="470" y="416"/><mxPoint x="350" y="416"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- ===== Tour ↔ Moderation ===== -->
+        <mxCell id="eTourMod" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=1;exitY=0.33;entryX=0;entryY=0.33;" edge="1" source="tour" target="moderation">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="eModTour" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0;exitY=0.66;entryX=1;entryY=0.66;" edge="1" source="moderation" target="tour">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Auth → Redis / SMTP ===== -->
+        <mxCell id="eAuthRedis" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.45;exitY=1;entryX=0.22;entryY=0;" edge="1" source="auth" target="redis">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="eAuthSmtp" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.1;exitY=1;entryX=0.4;entryY=0;" edge="1" source="auth" target="smtp">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="80" y="416"/><mxPoint x="60" y="416"/><mxPoint x="60" y="806"/><mxPoint x="192" y="806"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- ===== Tour → Redis / MQ / S3 ===== -->
+        <mxCell id="eTourRedis" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.1;exitY=1;entryX=0.92;entryY=0;" edge="1" source="tour" target="redis">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="eTourMq" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.9;exitY=1;entryX=0.11;entryY=0;" edge="1" source="tour" target="mq">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="eTourS3" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.2;exitY=1;entryX=0.53;entryY=0;" edge="1" source="tour" target="s3">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="588" y="560"/><mxPoint x="700" y="560"/><mxPoint x="700" y="806"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- ===== Moderation → MQ / Gemini ===== -->
+        <mxCell id="eModMq" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.2;exitY=1;entryX=0.47;entryY=0;" edge="1" source="moderation" target="mq">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="eModGemini" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.85;exitY=1;entryX=0.94;entryY=0;" edge="1" source="moderation" target="gemini">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Media → MQ / TTS / S3 ===== -->
+        <mxCell id="eMediaMq" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.1;exitY=1;entryX=0.96;entryY=0;" edge="1" source="media" target="mq">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1532" y="464"/><mxPoint x="1340" y="464"/></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="eMediaTts" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.08;exitY=1;entryX=0.18;entryY=0;" edge="1" source="media" target="tts">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="eMediaS3" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.02;exitY=1;entryX=0.67;entryY=0;" edge="1" source="media" target="s3">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1498" y="576"/><mxPoint x="1440" y="576"/><mxPoint x="1440" y="822"/><mxPoint x="760" y="822"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- ===== Notification → MQ / SMTP ===== -->
+        <mxCell id="eNotifMq" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.1;exitY=1;entryX=0.92;entryY=0;" edge="1" source="notif" target="mq">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="2010" y="480"/><mxPoint x="1320" y="480"/></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="eNotifSmtp" parent="sys" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=open;endSize=8;dashed=1;dashPattern=6 4;strokeColor=#3A3A3A;strokeWidth=1.3;exitX=0.05;exitY=1;entryX=0.7;entryY=0;" edge="1" source="notif" target="smtp">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1990" y="544"/><mxPoint x="1480" y="544"/><mxPoint x="1480" y="838"/><mxPoint x="306" y="838"/></Array></mxGeometry>
+        </mxCell>
+
+        <!-- ===== Sở hữu dữ liệu: service → schema trong Postgres (mũi tên đặc) ===== -->
+        <mxCell id="oAuth" parent="sys" value="schema auth" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;endSize=8;strokeColor=#1E6B3A;strokeWidth=1.4;fontSize=10;fontFamily=Segoe UI;fontColor=#1E6B3A;labelBackgroundColor=#FFFFFF;exitX=0.7;exitY=1;entryX=0.07;entryY=0;" edge="1" source="auth" target="pg">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="320" y="496"/><mxPoint x="1600" y="496"/></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="oTour" parent="sys" value="schema tour" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;endSize=8;strokeColor=#1E6B3A;strokeWidth=1.4;fontSize=10;fontFamily=Segoe UI;fontColor=#1E6B3A;labelBackgroundColor=#FFFFFF;exitX=0.6;exitY=1;entryX=0.18;entryY=0;" edge="1" source="tour" target="pg">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="764" y="512"/><mxPoint x="1660" y="512"/></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="oMod" parent="sys" value="schema moderation" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;endSize=8;strokeColor=#1E6B3A;strokeWidth=1.4;fontSize=10;fontFamily=Segoe UI;fontColor=#1E6B3A;labelBackgroundColor=#FFFFFF;exitX=0.7;exitY=1;entryX=0.36;entryY=0;" edge="1" source="moderation" target="pg">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1301" y="528"/><mxPoint x="1760" y="528"/></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="oMedia" parent="sys" value="schema media" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;endSize=8;strokeColor=#1E6B3A;strokeWidth=1.4;fontSize=10;fontFamily=Segoe UI;fontColor=#1E6B3A;labelBackgroundColor=#FFFFFF;exitX=0.7;exitY=1;entryX=0.4;entryY=0;" edge="1" source="media" target="pg">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="oNotif" parent="sys" value="schema notification" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;jumpStyle=arc;jumpSize=10;endArrow=block;endFill=1;endSize=8;strokeColor=#1E6B3A;strokeWidth=1.4;fontSize=10;fontFamily=Segoe UI;fontColor=#1E6B3A;labelBackgroundColor=#FFFFFF;exitX=0.3;exitY=1;entryX=0.95;entryY=0;" edge="1" source="notif" target="pg">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Chú thích ===== -->
+        <mxCell id="legend" parent="1" value="Cách đọc&lt;br&gt;• ⊸ IName = interface mà component đó CUNG CẤP&lt;br&gt;• Đường nét đứt + mũi tên = component GỌI/DÙNG interface (REST đồng bộ hoặc RabbitMQ bất đồng bộ)&lt;br&gt;• &lt;font color=#1E6B3A&gt;Mũi tên đặc + “schema x”&lt;/font&gt; = service SỞ HỮU schema đó trong Postgres dùng chung&lt;br&gt;• Hàng giữa = hạ tầng dùng chung · Hàng dưới (cam) = dịch vụ bên ngoài (SaaS)&lt;br&gt;• Mỗi đường chạy trong một làn riêng; chỗ bắc cầu (hình vòng cung) là 2 đường cắt nhau, KHÔNG nối." style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=12;verticalAlign=middle;fillColor=#FFFFFF;strokeColor=#1A1A1A;fontSize=12;fontFamily=Segoe UI;" vertex="1">
+          <mxGeometry x="2000" y="1000" width="540" height="190" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
