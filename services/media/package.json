@@ -1,0 +1,25 @@
+{
+  "name": "@geosound/media",
+  "version": "0.1.0",
+  "description": "Media worker — UC12 + TTS của UC03: dịch + Google TTS -> .mp3 -> S3.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.637.0",
+    "@google-cloud/text-to-speech": "^5.3.0",
+    "@google-cloud/translate": "^8.3.0",
+    "@prisma/client": "^5.18.0",
+    "amqplib": "^0.10.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "prisma": "^5.18.0"
+  }
+}

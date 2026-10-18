@@ -2,29 +2,40 @@
 
 Course project for **Software Engineering 2** — Saigon University.
 
-This repository holds the team's source code, documentation, and working conventions. Current step: **project initialization** (directory layout + baseline docs).
+This repository holds the team's source code, documentation, and working conventions. Current step: **infrastructure + service skeletons scaffolded** (per [docs/tech-stack.md](docs/tech-stack.md)).
 
 ## Directory layout
 
 ```text
 GeoSound/
-├── docs/                          # Project docs, one folder per phase
-│   ├── 00-init/
-│   ├── 01-requirements/
-│   ├── 02-design/
-│   ├── 03-testing/
-│   └── 04-guides/
-├── frontend/                      # Client (unit/component tests live here)
-├── backend/services/<name>/       # One monolith per microservice
-│   ├── src/
-│   └── tests/{unit,integration}
-├── tests/contract                 # Cross-service contracts
-├── tests/e2e                      # Multi-service / UI journeys
-├── CONTRIBUTING.md
-└── README.md
+├── docker-compose.yml             # gateway + 5 service + rabbitmq + redis + postgres(dev)
+├── docker-compose.dev.yml         # override dev (hot reload, volume)
+├── .env.example                   # mẫu biến môi trường
+├── gateway/                       # API Gateway (Express) — route, rate-limit
+├── services/
+│   ├── auth/                      # UC01, UC21
+│   ├── tour/                      # UC02,03,07-11,13,17,18 (PostGIS)
+│   ├── moderation/                # UC15,19,06,20,22 (Gemini, state machine)
+│   ├── media/                     # worker TTS/translate -> S3
+│   └── notification/              # UC16 (worker)
+├── shared/                        # events (zod) + middleware + helper rabbitmq
+├── client/                        # React PWA (Tourist + Contributor + Admin)
+├── infra/postgres/init/           # bật PostGIS + tạo schema mỗi service
+├── docs/                          # tài liệu dự án theo phase
+└── tests/{contract,e2e}           # test xuyên service
 ```
 
 Folder-by-folder notes: [docs/00-init/directory-structure.md](docs/00-init/directory-structure.md).
+Architecture & công nghệ: [docs/tech-stack.md](docs/tech-stack.md).
+
+## Chạy thử (dev)
+
+```bash
+cp .env.example .env         # rồi điền secret khi cần
+docker compose up -d         # dựng hạ tầng + service
+# Kiểm tra: http://localhost:8080/health  (gateway)
+#           http://localhost:15672          (RabbitMQ UI, guest/guest)
+```
 
 ## Documentation
 
@@ -56,7 +67,7 @@ Microservices, **monolith per service**: each service is independently deployabl
 
 ## Tech stack
 
-Not decided yet. Update this README and `docs/00-init/` once the team agrees on frontend, backend, and database.
+React (Vite) PWA · Node.js + Express (microservice) · Prisma · PostgreSQL + PostGIS (Supabase host) · Redis · RabbitMQ · AWS S3 · Gemini · Google Cloud TTS/Translate · Docker Compose. Chi tiết & lý do chọn: [docs/tech-stack.md](docs/tech-stack.md).
 
 ## Repository
 

@@ -1,0 +1,22 @@
+// Auth service — schema "auth". Mỗi service 1 schema riêng (schema-per-service).
+// Data model chi tiết sẽ chốt sau (tech-stack.md §11). Model dưới là placeholder.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // ...?schema=auth
+}
+
+// --- Placeholder (sẽ thay khi chốt data model) ---
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String // bcrypt hash
+  role      String   @default("tourist") // tourist | contributor | admin
+  createdAt DateTime @default(now())
+
+  @@map("users")
+}

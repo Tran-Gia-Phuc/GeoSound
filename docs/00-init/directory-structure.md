@@ -1,71 +1,56 @@
 # Directory structure
 
+> Layout được chốt theo [tech-stack.md §8](../tech-stack.md). Đây là layout **duy nhất** của repo.
+
 ```text
 GeoSound/
-├── .gitignore
-├── README.md
-├── CONTRIBUTING.md
-├── docs/
-│   ├── README.md
-│   ├── 00-init/
-│   ├── 01-requirements/
-│   ├── 02-design/
-│   ├── 03-testing/
-│   └── 04-guides/
-├── frontend/
-├── backend/
-│   └── services/
-│       └── <name>/              # one deployable monolith per service
-│           ├── src/
-│           └── tests/
-│               ├── unit/
-│               └── integration/
+├── docker-compose.yml            # gateway + 5 service + rabbitmq + redis + postgres(dev)
+├── docker-compose.dev.yml        # override dev (hot reload, volume)
+├── .env.example                  # mẫu biến môi trường (không commit .env thật)
+├── package.json                  # npm workspaces (gateway, services/*, shared, client)
+├── gateway/                      # API Gateway (Express): route, rate-limit (Redis)
+│   ├── src/  ├── Dockerfile  └── package.json
+├── services/
+│   ├── auth/                     # UC01, UC21
+│   │   ├── src/{routes,controllers,services,repositories,events}
+│   │   ├── prisma/schema.prisma  # schema "auth"
+│   │   ├── Dockerfile  └── package.json
+│   ├── tour/                     # UC02,03,07-11,13,17,18 (PostGIS)
+│   ├── moderation/               # UC15,19,06,20,22 (Gemini, state machine)
+│   ├── media/                    # worker TTS/translate -> S3 (src/consumers)
+│   └── notification/             # UC16 (worker, src/consumers)
+├── shared/
+│   ├── events/                   # tên event + payload schema (zod)
+│   ├── middleware/               # verifyJwt, errorHandler, logger
+│   └── rabbitmq/                 # helper connect/publish/consume
+├── client/                       # React PWA (Tourist + Contributor + Admin)
+├── infra/
+│   └── postgres/init/            # bật PostGIS + tạo schema auth/tour/...
+├── docs/                         # tài liệu, mỗi phase 1 folder
 └── tests/
-    ├── contract/                # cross-service contracts only
-    └── e2e/                     # journeys across more than one service
+    ├── contract/                 # contract xuyên service
+    └── e2e/                      # journey qua nhiều service / UI
 ```
 
-`<name>` is a placeholder. Add real service folders when bounded contexts are named in design.
+## Nguyên tắc
 
-## Repository root
-
-| Path | Role |
+| Vùng | Vai trò |
 | --- | --- |
-| `README.md` | Entry point: what the project is, tree, doc links |
-| `CONTRIBUTING.md` | How to branch, commit, and open a PR |
-| `.gitignore` | Files that must not be pushed |
+| `gateway/` | 1 cửa vào public, verify JWT + rate-limit (Redis), route tới service |
+| `services/<name>/` | Một microservice độc lập: 1 codebase, 1 process, **1 schema DB riêng** |
+| `shared/` | Code dùng chung **không chứa business rule riêng của 1 service** |
+| `client/` | React PWA; unit/component test nằm cạnh UI |
+| `infra/` | Script hạ tầng (init Postgres/PostGIS) |
+| `tests/` | **Chỉ** contract & e2e xuyên service; unit/integration ở trong từng service |
 
-## `docs/`
+## Service nội bộ
 
-One folder per phase, numbered so the reading order stays clear. Each folder's `README.md` is that phase's index.
+- HTTP service (`auth`, `tour`, `moderation`): `src/{routes,controllers,services,repositories,events}`.
+- Worker (`media`, `notification`): `src/{consumers,services,events}` — tiêu thụ event RabbitMQ, không mở port.
+- **Schema-per-service**: service không truy cập bảng của nhau, chỉ qua API (REST) hoặc event (RabbitMQ). Xem [tech-stack.md §5](../tech-stack.md).
 
-Do not put source code in `docs/`. Do not scatter design or specification files at the repo root.
+## Build Docker
 
-## `frontend/`
+Mỗi service build với **context = repo root** (xem `docker-compose.yml`) để Dockerfile copy được `shared/`. Dev dùng `docker-compose.dev.yml` mount `src/` và `shared/` để hot reload.
 
-Client application. Unit and component tests live next to the UI once the stack is chosen.
-
-## `backend/` — microservices, monolith per service
-
-The backend is **several services**, not one process. Each service is still a **monolith**: one codebase, one process, one database, internal modules. It is not split into smaller deployables.
-
-| Path | Role |
-| --- | --- |
-| `backend/services/<name>/src` | That service's API, domain, and adapters |
-| `backend/services/<name>/tests/unit` | Fast tests with no I/O |
-| `backend/services/<name>/tests/integration` | That service + **its** database; other services mocked |
-
-Do not share a database across services. Shared libraries (if any) belong under `backend/shared/` and stay free of business rules that belong to one service.
-
-When scaffolding a service, keep install/run/env notes in that service and link them from the root README.
-
-## `tests/` — cross-service only
-
-| Path | Role |
-| --- | --- |
-| `tests/contract` | Provider/consumer or schema checks between services |
-| `tests/e2e` | Full flows (often through the frontend or an API gateway) |
-
-Unit and single-service integration tests do **not** go here. See [docs/03-testing/strategy.md](../03-testing/strategy.md).
-
-If the team later picks a different monorepo layout, update this file and the README so only one layout exists.
+Nếu team đổi layout sau này, cập nhật **file này + README + tech-stack.md** để chỉ tồn tại một layout.
