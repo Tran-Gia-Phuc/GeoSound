@@ -1,0 +1,23 @@
+{
+  "name": "@geosound/notification",
+  "version": "0.1.0",
+  "description": "Notification worker — UC16: consume event -> báo contributor (in-app/email).",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.18.0",
+    "amqplib": "^0.10.4",
+    "nodemailer": "^6.9.14",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "prisma": "^5.18.0"
+  }
+}

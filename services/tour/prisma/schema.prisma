@@ -1,0 +1,24 @@
+// Tour service — schema "tour". PostGIS bật từ migration đầu.
+// Cột kiểu geometry sẽ khai bằng migration SQL thủ công (Prisma chưa hỗ trợ geometry
+// native) hoặc Unsupported("geometry(...)"). Data model chi tiết: tech-stack.md §11.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // ...?schema=tour
+}
+
+// --- Placeholder (sẽ thay khi chốt data model) ---
+model Tour {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  status      String   @default("draft") // draft|submitted|ai_passed|approved|...
+  authorId    String
+  createdAt   DateTime @default(now())
+
+  @@map("tours")
+}

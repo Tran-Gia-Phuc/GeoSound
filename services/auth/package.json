@@ -1,0 +1,27 @@
+{
+  "name": "@geosound/auth",
+  "version": "0.1.0",
+  "description": "Auth service — UC01, UC21: đăng ký/đăng nhập/OTP/JWT/bcrypt, phân quyền.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.18.0",
+    "amqplib": "^0.10.4",
+    "bcryptjs": "^2.4.3",
+    "express": "^4.19.2",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.9.14",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "prisma": "^5.18.0"
+  }
+}
