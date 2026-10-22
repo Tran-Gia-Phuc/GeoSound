@@ -36,3 +36,22 @@ export class NotTourOwnerError extends AppError {
     super(message, { status: 403, code: 'not_tour_owner' });
   }
 }
+
+// UC10 — không tìm thấy điểm dừng (đã xóa / id sai / không thuộc tour).
+export class PlaceNotFoundError extends AppError {
+  constructor(message = 'Không tìm thấy địa điểm') {
+    super(message, { status: 404, code: 'place_not_found' });
+  }
+}
+
+// UC10 / E2 — vị trí nằm trong vùng cấm (quân sự, trường học, bệnh viện...).
+export class ForbiddenZoneError extends AppError {
+  /** @param {string} [zone] tên vùng cấm, nếu biết */
+  constructor(zone) {
+    super('Vị trí nằm trong vùng cấm, vui lòng điều chỉnh', {
+      status: 422,
+      code: 'forbidden_zone',
+    });
+    if (zone) this.zone = zone;
+  }
+}

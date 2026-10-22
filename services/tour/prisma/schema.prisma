@@ -25,7 +25,32 @@ model Tour {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
+  places Place[]
+
   @@index([authorId])
   @@index([status])
   @@map("tours")
+}
+
+// UC10 — Điểm dừng trên tour. lat/lng lưu Float; cột geometry(Point) + chỉ mục
+// không gian (UC11 "tour gần tôi" / vùng kích hoạt) sẽ thêm bằng migration SQL.
+model Place {
+  id          String   @id @default(uuid())
+  tourId      String   @map("tour_id")
+  name        String
+  type        String   @default("other")
+  description String
+  lat         Float
+  lng         Float
+  sequence    Int      @default(0)
+  images      Json     @default("[]") // [{ url, caption }]
+  audioUrl    String?  @map("audio_url")
+  audioSource String   @default("tts") @map("audio_source") // human | tts
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@index([tourId, sequence])
+  @@map("places")
 }
