@@ -1,5 +1,8 @@
 // Auth service — schema "auth". Mỗi service 1 schema riêng (schema-per-service).
-// Data model chi tiết sẽ chốt sau (tech-stack.md §11). Model dưới là placeholder.
+// Phục vụ UC01 (đăng ký/đăng nhập/OTP/quên mật khẩu) và UC21 (ban tài khoản).
+//
+// Lưu ý: OTP và "đăng ký đang chờ xác thực" KHÔNG nằm ở DB mà ở Redis (TTL 2 phút)
+// — xem infrastructure/cache/redis-challenge-store.js.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,13 +13,18 @@ datasource db {
   url      = env("DATABASE_URL") // ...?schema=auth
 }
 
-// --- Placeholder (sẽ thay khi chốt data model) ---
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String // bcrypt hash
-  role      String   @default("tourist") // tourist | contributor | admin
-  createdAt DateTime @default(now())
+  id             String    @id @default(uuid())
+  email          String    @unique
+  passwordHash   String    @map("password_hash") // bcrypt hash
+  fullName       String    @map("full_name")
+  role           String    @default("tourist") // tourist | contributor | admin
+  status         String    @default("active") // active | banned  (UC21)
+  banReason      String?   @map("ban_reason")
+  failedAttempts Int       @default(0) @map("failed_attempts") // sai mật khẩu liên tiếp (E2)
+  lockedUntil    DateTime? @map("locked_until") // tạm khóa đăng nhập tới thời điểm này
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   @@map("users")
 }
