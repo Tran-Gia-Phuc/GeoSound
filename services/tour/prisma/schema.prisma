@@ -25,7 +25,8 @@ model Tour {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  places Place[]
+  places      Place[]
+  routeConfig RouteConfig?
 
   @@index([authorId])
   @@index([status])
@@ -70,4 +71,27 @@ model ForbiddenZone {
 
   @@index([active])
   @@map("forbidden_zones")
+}
+
+// UC11 — Cấu hình route & kích hoạt audio của MỘT tour (1-1 với Tour).
+// Lưu cả cụm bằng Json (giống images của Place / geometry vùng cấm):
+//   path      = polyline route nối các điểm: [{ lat, lng }, ...]
+//   triggers  = vùng kích hoạt theo điểm: [{ placeId, zone, priority, nextHint }]
+//               zone = { shape:'circle', center:{lat,lng}, radiusMeters } |
+//                      { shape:'polygon', geometry: GeoJSON Polygon }
+//   navAudios = audio chỉ đường (ngã rẽ): [{ id, label, audioUrl, zone }]
+// Có thể tách cột geometry(LineString/Polygon) + PostGIS khi cần truy vấn
+// không gian lúc khách đi tour (UC04).
+model RouteConfig {
+  id        String   @id @default(uuid())
+  tourId    String   @unique @map("tour_id")
+  path      Json     @default("[]")
+  triggers  Json     @default("[]")
+  navAudios Json     @default("[]") @map("nav_audios")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@map("route_configs")
 }
