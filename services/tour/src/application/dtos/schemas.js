@@ -18,6 +18,9 @@ const originalLanguage = z
   .trim()
   .min(1, 'Vui lòng chọn ngôn ngữ gốc');
 const type = z.enum(TOUR_TYPES, { errorMap: () => ({ message: 'Loại tour không hợp lệ' }) });
+// UC02 — thành phố (lọc tìm kiếm) & thời lượng ước tính (phút).
+const city = z.string().trim().min(1, 'Thành phố không hợp lệ').max(120, 'Tên thành phố quá dài');
+const duration = z.number().int('Thời lượng phải là số nguyên (phút)').positive().max(100000);
 
 // Bước 4–7: tạo tour (tên + ngôn ngữ gốc bắt buộc).
 export const createTourSchema = z.object({
@@ -26,6 +29,8 @@ export const createTourSchema = z.object({
   coverImageUrl: coverImageUrl.optional(),
   originalLanguage,
   type: type.optional(),
+  city: city.optional(),
+  duration: duration.optional(),
 });
 
 // A1: sửa tour — mọi trường tùy chọn, nhưng phải có ít nhất một thay đổi.
@@ -36,6 +41,8 @@ export const updateTourSchema = z
     coverImageUrl: coverImageUrl.optional(),
     originalLanguage: originalLanguage.optional(),
     type: type.optional(),
+    city: city.optional(),
+    duration: duration.optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'Không có thay đổi nào để lưu',

@@ -21,12 +21,15 @@ export const TOUR_STATUS = Object.freeze({
 export const TOUR_TYPES = Object.freeze(['walking', 'driving', 'cycling', 'indoor']);
 
 // Các trường contributor được sửa ở UC09 (nội dung mô tả tour).
+// city/duration dùng cho tìm kiếm & hiển thị ở UC02.
 export const EDITABLE_FIELDS = Object.freeze([
   'title',
   'description',
   'coverImageUrl',
   'originalLanguage',
   'type',
+  'city',
+  'duration',
 ]);
 
 // Trạng thái "đang hiển thị với khách" — sửa nội dung thì phải gửi duyệt lại.
@@ -49,6 +52,12 @@ export class Tour {
     this.type = props.type ?? 'walking';
     this.status = props.status ?? TOUR_STATUS.DRAFT;
     this.authorId = props.authorId;
+    // UC02 — thành phố (lọc), thời lượng ước tính (phút), điểm đánh giá.
+    this.city = props.city ?? null;
+    this.duration = props.duration ?? null;
+    // Hệ thống duy trì (UC05 cập nhật); mặc định 0 khi chưa có đánh giá.
+    this.averageRating = props.averageRating ?? 0;
+    this.ratingCount = props.ratingCount ?? 0;
     this.createdAt = props.createdAt ?? null;
     this.updatedAt = props.updatedAt ?? null;
   }
@@ -61,6 +70,11 @@ export class Tour {
   /** Tour đang hiển thị với khách du lịch (công khai / truy cập hạn chế). */
   isLive() {
     return LIVE_STATUSES.has(this.status);
+  }
+
+  /** UC02 — chỉ tour công khai (đã duyệt) mới hiện trong tìm kiếm công khai. */
+  isPublic() {
+    return this.status === TOUR_STATUS.PUBLIC;
   }
 
   /**
@@ -90,6 +104,10 @@ export class Tour {
       type: this.type,
       status: this.status,
       authorId: this.authorId,
+      city: this.city,
+      duration: this.duration,
+      averageRating: this.averageRating,
+      ratingCount: this.ratingCount,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };
@@ -104,6 +122,7 @@ export class Tour {
       originalLanguage: this.originalLanguage,
       type: this.type,
       status: this.status,
+      city: this.city,
       updatedAt: this.updatedAt,
     };
   }

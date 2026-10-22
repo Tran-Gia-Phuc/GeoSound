@@ -24,6 +24,10 @@ export class PrismaTourRepository {
       type: row.type,
       status: row.status,
       authorId: row.authorId,
+      city: row.city,
+      duration: row.duration,
+      averageRating: row.averageRating,
+      ratingCount: row.ratingCount,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
@@ -39,6 +43,8 @@ export class PrismaTourRepository {
         type: tour.type,
         status: tour.status,
         authorId: tour.authorId,
+        city: tour.city,
+        duration: tour.duration,
       },
     });
     return PrismaTourRepository.toEntity(row);
@@ -67,6 +73,8 @@ export class PrismaTourRepository {
         originalLanguage: tour.originalLanguage,
         type: tour.type,
         status: tour.status,
+        city: tour.city,
+        duration: tour.duration,
       },
     });
     return PrismaTourRepository.toEntity(row);
@@ -74,5 +82,71 @@ export class PrismaTourRepository {
 
   async delete(id) {
     await this.prisma.tour.delete({ where: { id } });
+  }
+
+  // ---------- UC02 — đọc công khai (chỉ tour status=public) ----------
+
+  /** WHERE lọc tìm kiếm công khai. */
+  static publicWhere({ q, city, language, type } = {}) {
+    const where = { status: 'public' };
+    if (q) {
+      where.OR = [
+        { title: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+    if (city) where.city = { equals: city, mode: 'insensitive' };
+    if (language) where.originalLanguage = language;
+    if (type) where.type = type;
+    return where;
+  }
+
+  static orderBy(sort) {
+    switch (sort) {
+      case 'rating':
+        return [{ averageRating: 'desc' }, { ratingCount: 'desc' }];
+      case 'recent':
+        return [{ createdAt: 'desc' }];
+      case 'popular':
+      default:
+        return [{ ratingCount: 'desc' }, { averageRating: 'desc' }, { createdAt: 'desc' }];
+    }
+  }
+
+  async countPublic(filters) {
+    return this.prisma.tour.count({ where: PrismaTourRepository.publicWhere(filters) });
+  }
+
+  async searchPublicPage(filters, { skip, take, sort }) {
+    const rows = await this.prisma.tour.findMany({
+      where: PrismaTourRepository.publicWhere(filters),
+      orderBy: PrismaTourRepository.orderBy(sort),
+      skip,
+      take,
+    });
+    return rows.map(PrismaTourRepository.toEntity);
+  }
+
+  /** Mọi id tour công khai khớp lọc (phục vụ sắp xếp "gần tôi" trong app). */
+  async listPublicIds(filters) {
+    const rows = await this.prisma.tour.findMany({
+      where: PrismaTourRepository.publicWhere(filters),
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
+  }
+
+  async findManyByIds(ids) {
+    if (!ids.length) return [];
+    const rows = await this.prisma.tour.findMany({
+      where: { id: { in: ids }, status: 'public' },
+    });
+    return rows.map(PrismaTourRepository.toEntity);
+  }
+
+  /** Chi tiết tour công khai (UC02 bước 7) — null nếu không tồn tại/không công khai (E3). */
+  async findPublicById(id) {
+    const row = await this.prisma.tour.findFirst({ where: { id, status: 'public' } });
+    return PrismaTourRepository.toEntity(row);
   }
 }

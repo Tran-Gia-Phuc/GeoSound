@@ -37,3 +37,16 @@ export function validateParams(schema) {
     next();
   };
 }
+
+export function validateQuery(schema) {
+  return (req, _res, next) => {
+    const result = schema.safeParse(req.query ?? {});
+    if (!result.success) {
+      const { first, details } = collect(result.error);
+      return next(new ValidationError(first, details));
+    }
+    // Không ghi đè req.query (Express 5 chỉ đọc) — gắn bản đã parse riêng.
+    req.validatedQuery = result.data;
+    next();
+  };
+}
