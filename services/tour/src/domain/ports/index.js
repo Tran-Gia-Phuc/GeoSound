@@ -26,9 +26,15 @@
 
 /**
  * Kiểm tra vị trí có nằm trong vùng cấm không (E2 — UC10).
- * Impl mặc định cho phép mọi vị trí; impl thật (PostGIS/turf) ở feature sau.
  * @typedef {Object} ForbiddenZoneChecker
  * @property {(coords: { lat: number, lng: number }) => Promise<void>} assertAllowed  // ném ForbiddenZoneError nếu trong vùng cấm
+ */
+
+/**
+ * Nguồn dữ liệu vùng cấm cho ForbiddenZoneChecker.
+ * geometry = GeoJSON Polygon: { type:'Polygon', coordinates:[[[lng,lat],...]] }.
+ * @typedef {Object} ForbiddenZoneRepository
+ * @property {() => Promise<Array<{ id: string, name: string, type: string, geometry: object }>>} listActive
  */
 
 export {};
