@@ -1,0 +1,73 @@
+# =========================================================
+# CI — chạy trên mỗi push nhánh feature/* và mỗi Pull Request vào main.
+# Mục tiêu: bắt lỗi sớm mà KHÔNG cần hạ tầng (DB/Redis/RabbitMQ):
+#   1) syntax-check toàn bộ JS (chưa có ESLint)
+#   2) validate các Prisma schema
+#   3) chạy test của các workspace có script "test" (auth: test fake in-memory)
+#   4) build client (Vite) để chắc frontend còn compile
+# Monorepo npm workspaces, Node 20 (khớp Dockerfile node:20-alpine).
+# =========================================================
+name: CI
+
+on:
+  push:
+    branches: ['main', 'feature/**', 'ci/**']
+  pull_request:
+    branches: ['main']
+
+# Huỷ run cũ khi có commit mới trên cùng nhánh/PR.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — syntax, prisma, tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies (workspaces)
+        run: npm install
+
+      - name: Syntax check (node --check)
+        run: |
+          set -e
+          files=$(find gateway services shared -name '*.js' -not -path '*/node_modules/*')
+          for f in $files; do node --check "$f"; done
+          echo "Syntax OK: $(echo "$files" | wc -l) file(s)"
+
+      - name: Validate Prisma schemas
+        # DATABASE_URL giả: prisma validate chỉ kiểm schema, KHÔNG kết nối DB,
+        # nhưng cần biến env mà schema tham chiếu phải tồn tại.
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+        run: |
+          set -e
+          for schema in services/*/prisma/schema.prisma; do
+            echo "prisma validate -> $schema"
+            npx prisma validate --schema "$schema"
+          done
+
+      - name: Run workspace tests
+        run: npm test --workspaces --if-present
+
+  client:
+    name: Client — build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies (workspaces)
+        run: npm install
+
+      - name: Build client (Vite)
+        run: npm run build --workspace client
