@@ -16,7 +16,11 @@ import { PrismaTourRepository } from './infrastructure/persistence/prisma-tour-r
 import { PrismaPlaceRepository } from './infrastructure/persistence/prisma-place-repository.js';
 import { PrismaForbiddenZoneRepository } from './infrastructure/persistence/prisma-forbidden-zone-repository.js';
 import { PrismaRouteConfigRepository } from './infrastructure/persistence/prisma-route-config-repository.js';
+import { PrismaTourLanguageRepository } from './infrastructure/persistence/prisma-tour-language-repository.js';
+import { PrismaPlaceTranslationRepository } from './infrastructure/persistence/prisma-place-translation-repository.js';
 import { PolygonZoneChecker } from './infrastructure/zone/polygon-zone-checker.js';
+import { EchoTranslator } from './infrastructure/i18n/echo-translator.js';
+import { PlaceholderTtsSynthesizer } from './infrastructure/i18n/placeholder-tts.js';
 
 import { CreateTour } from './application/use-cases/create-tour.js';
 import { ListMyTours } from './application/use-cases/list-my-tours.js';
@@ -36,6 +40,11 @@ import { SaveRouteConfig } from './application/use-cases/save-route-config.js';
 import { SearchTours } from './application/use-cases/search-tours.js';
 import { GetPublicTour } from './application/use-cases/get-public-tour.js';
 
+import { GetLanguageConfig } from './application/use-cases/get-language-config.js';
+import { SetTourLanguages } from './application/use-cases/set-tour-languages.js';
+import { PreviewTts } from './application/use-cases/preview-tts.js';
+import { UpdateTranslation } from './application/use-cases/update-translation.js';
+
 import { TourController } from './interfaces/http/controllers/tour-controller.js';
 import { buildTourRouter } from './interfaces/http/routes/tour-routes.js';
 import { PlaceController } from './interfaces/http/controllers/place-controller.js';
@@ -44,6 +53,8 @@ import { RouteConfigController } from './interfaces/http/controllers/route-confi
 import { buildRouteConfigRouter } from './interfaces/http/routes/route-config-routes.js';
 import { PublicTourController } from './interfaces/http/controllers/public-tour-controller.js';
 import { buildPublicTourRouter } from './interfaces/http/routes/public-tour-routes.js';
+import { LanguageController } from './interfaces/http/controllers/language-controller.js';
+import { buildLanguageRouter } from './interfaces/http/routes/language-routes.js';
 
 export function buildContainer(/* env = process.env */) {
   // --- infrastructure (impl của domain/ports) ---
@@ -54,6 +65,12 @@ export function buildContainer(/* env = process.env */) {
   const zoneChecker = new PolygonZoneChecker({ zoneRepo });
   // Cấu hình route & kích hoạt (UC11).
   const routeConfigRepo = new PrismaRouteConfigRepository(prisma);
+  // Đa ngôn ngữ & TTS (UC12). Adapter dịch/TTS là placeholder dev — đổi sang
+  // Gemini / dịch vụ TTS thật ở đây, không chạm use-case.
+  const tourLanguageRepo = new PrismaTourLanguageRepository(prisma);
+  const placeTranslationRepo = new PrismaPlaceTranslationRepository(prisma);
+  const translator = new EchoTranslator();
+  const ttsSynthesizer = new PlaceholderTtsSynthesizer();
 
   // --- application (use-cases) ---
   const useCases = {
@@ -78,9 +95,22 @@ export function buildContainer(/* env = process.env */) {
     saveRouteConfig: new SaveRouteConfig({ tourRepo, placeRepo, routeConfigRepo }),
   };
   const publicUseCases = {
-    // UC02 — tìm & xem tour công khai
+    // UC02 — tìm & xem tour công khai (ngôn ngữ/nhãn giọng lấy từ cấu hình UC12)
     searchTours: new SearchTours({ tourRepo, placeRepo }),
-    getPublicTour: new GetPublicTour({ tourRepo, placeRepo, routeConfigRepo }),
+    getPublicTour: new GetPublicTour({
+      tourRepo,
+      placeRepo,
+      routeConfigRepo,
+      tourLanguageRepo,
+      placeTranslationRepo,
+    }),
+  };
+  const languageUseCases = {
+    // UC12 — đa ngôn ngữ & TTS
+    getLanguageConfig: new GetLanguageConfig({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo }),
+    setTourLanguages: new SetTourLanguages({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, translator, ttsSynthesizer }),
+    previewTts: new PreviewTts({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, ttsSynthesizer }),
+    updateTranslation: new UpdateTranslation({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, ttsSynthesizer }),
   };
 
   // --- interfaces (controller + router) ---
@@ -92,6 +122,15 @@ export function buildContainer(/* env = process.env */) {
   const routeConfigRouter = buildRouteConfigRouter({ routeConfigController });
   const publicTourController = new PublicTourController(publicUseCases);
   const publicTourRouter = buildPublicTourRouter({ publicTourController });
+  const languageController = new LanguageController(languageUseCases);
+  const languageRouter = buildLanguageRouter({ languageController });
 
-  return { tourRouter, placeRouter, routeConfigRouter, publicTourRouter, prisma };
+  return {
+    tourRouter,
+    placeRouter,
+    routeConfigRouter,
+    publicTourRouter,
+    languageRouter,
+    prisma,
+  };
 }

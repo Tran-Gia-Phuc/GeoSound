@@ -53,4 +53,33 @@
  * @property {(config: import('../entities/route-config.js').RouteConfig) => Promise<import('../entities/route-config.js').RouteConfig>} upsert
  */
 
+/**
+ * Dịch text sang ngôn ngữ khác (UC12). Lỗi → ném TranslationError (E1).
+ * @typedef {Object} Translator
+ * @property {(p: { text: string, from: string, to: string }) => Promise<string>} translate
+ */
+
+/**
+ * Tổng hợp giọng đọc TTS (UC12). Lỗi → ném TtsError (E1).
+ * @typedef {Object} TtsSynthesizer
+ * @property {(p: { text: string, language: string, voice: { gender: string, region: string|null } }) => Promise<{ url: string, prerendered: boolean }>} synthesize
+ */
+
+/**
+ * Ngôn ngữ của tour (UC12).
+ * @typedef {Object} TourLanguageRepository
+ * @property {(tourId: string) => Promise<import('../entities/tour-language.js').TourLanguage[]>} listByTour
+ * @property {(tourId: string, langs: import('../entities/tour-language.js').TourLanguage[]) => Promise<void>} upsertMany
+ * @property {(tourId: string, codes: string[]) => Promise<void>} deleteLanguages
+ */
+
+/**
+ * Bản dịch + TTS của điểm theo ngôn ngữ (UC12).
+ * @typedef {Object} PlaceTranslationRepository
+ * @property {(tourId: string) => Promise<import('../entities/place-translation.js').PlaceTranslation[]>} listByTour
+ * @property {(placeId: string, languageCode: string) => Promise<import('../entities/place-translation.js').PlaceTranslation|null>} findByPlaceLang
+ * @property {(tx: import('../entities/place-translation.js').PlaceTranslation) => Promise<import('../entities/place-translation.js').PlaceTranslation>} upsert
+ * @property {(tourId: string, codes: string[]) => Promise<void>} deleteByLanguages
+ */
+
 export {};
