@@ -13,6 +13,10 @@ Git details are in [CONTRIBUTING.md](../../CONTRIBUTING.md). This file is only w
 
 - Do not commit secrets. List variables in `.env.example` without real values.
 - One branch, one task; open PRs into `develop`.
+- Name branches by **feature/capability**, not by UC number (for example
+  `feature/tour-management`, not `feature/uc09-...`). One UC may split into
+  several feature branches when its parts are separable; note the UC in the PR
+  description. See [CONTRIBUTING.md](../../CONTRIBUTING.md#branch-names).
 - Code folders and files: English, kebab-case, or the chosen stack's default.
 - One service = one folder under `backend/services/<name>/`. Tests for that service stay inside it; only contract and e2e tests go in root `tests/`.
 
