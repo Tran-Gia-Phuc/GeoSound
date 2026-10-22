@@ -14,7 +14,8 @@
 import { prisma } from './infrastructure/persistence/prisma-client.js';
 import { PrismaTourRepository } from './infrastructure/persistence/prisma-tour-repository.js';
 import { PrismaPlaceRepository } from './infrastructure/persistence/prisma-place-repository.js';
-import { AllowAllZoneChecker } from './infrastructure/zone/allow-all-zone-checker.js';
+import { PrismaForbiddenZoneRepository } from './infrastructure/persistence/prisma-forbidden-zone-repository.js';
+import { PolygonZoneChecker } from './infrastructure/zone/polygon-zone-checker.js';
 
 import { CreateTour } from './application/use-cases/create-tour.js';
 import { ListMyTours } from './application/use-cases/list-my-tours.js';
@@ -37,8 +38,9 @@ export function buildContainer(/* env = process.env */) {
   // --- infrastructure (impl của domain/ports) ---
   const tourRepo = new PrismaTourRepository(prisma);
   const placeRepo = new PrismaPlaceRepository(prisma);
-  // Vùng cấm: impl mặc định cho phép mọi vị trí (feature/forbidden-zone-check thay sau).
-  const zoneChecker = new AllowAllZoneChecker();
+  // Vùng cấm (E2): kiểm điểm trong polygon vùng cấm đang bật.
+  const zoneRepo = new PrismaForbiddenZoneRepository(prisma);
+  const zoneChecker = new PolygonZoneChecker({ zoneRepo });
 
   // --- application (use-cases) ---
   const useCases = {

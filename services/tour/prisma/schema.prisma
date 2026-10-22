@@ -54,3 +54,20 @@ model Place {
   @@index([tourId, sequence])
   @@map("places")
 }
+
+// UC10 / E2 — Vùng cấm (quân sự, trường học, bệnh viện, lãnh sự quán...).
+// geometry = GeoJSON Polygon { type:'Polygon', coordinates:[[[lng,lat],...]] }.
+// Dùng Json để kiểm bằng ray casting (point-in-polygon.js). Có thể chuyển sang
+// cột geometry(Polygon) + PostGIS ST_Contains khi cần truy vấn không gian quy mô lớn.
+model ForbiddenZone {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   @default("other") // military | school | hospital | consulate | other
+  geometry  Json
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([active])
+  @@map("forbidden_zones")
+}
