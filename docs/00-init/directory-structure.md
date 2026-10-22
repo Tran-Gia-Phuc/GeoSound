@@ -11,14 +11,15 @@ GeoSound/
 ├── gateway/                      # API Gateway (Express): route, rate-limit (Redis)
 │   ├── src/  ├── Dockerfile  └── package.json
 ├── services/
-│   ├── auth/                     # UC01, UC21
-│   │   ├── src/{routes,controllers,services,repositories,events}
+│   ├── auth/                     # UC01, UC21 — Clean Architecture
+│   │   ├── src/{domain,application,infrastructure,interfaces}
+│   │   ├── src/container.js      # composition root (DI thủ công)
 │   │   ├── prisma/schema.prisma  # schema "auth"
 │   │   ├── Dockerfile  └── package.json
-│   ├── tour/                     # UC02,03,07-11,13,17,18 (PostGIS)
-│   ├── moderation/               # UC15,19,06,20,22 (Gemini, state machine)
-│   ├── media/                    # worker TTS/translate -> S3 (src/consumers)
-│   └── notification/             # UC16 (worker, src/consumers)
+│   ├── tour/                     # UC02,03,07-11,13,17,18 (PostGIS) — Clean
+│   ├── moderation/               # UC15,19,06,20,22 (Gemini, state machine) — Clean
+│   ├── media/                    # worker TTS/translate -> S3 — Clean (worker)
+│   └── notification/             # UC16 (worker) — layered (src/consumers)
 ├── shared/
 │   ├── events/                   # tên event + payload schema (zod)
 │   ├── middleware/               # verifyJwt, errorHandler, logger
@@ -45,8 +46,35 @@ GeoSound/
 
 ## Service nội bộ
 
-- HTTP service (`auth`, `tour`, `moderation`): `src/{routes,controllers,services,repositories,events}`.
-- Worker (`media`, `notification`): `src/{consumers,services,events}` — tiêu thụ event RabbitMQ, không mở port.
+Có **hai layout** được chốt (ghi rõ để tránh trôi dạt):
+
+### 1) Clean Architecture — `auth`, `tour`, `moderation`, `media`
+
+Phụ thuộc chỉ hướng **vào trong**: `interfaces` / `infrastructure` → `application` → `domain`. Lõi `domain` không import framework (Express/Prisma/RabbitMQ).
+
+```text
+src/
+├── domain/            # LÕI thuần JS — entities, value-objects, errors, ports (interface)
+├── application/       # use-cases + dtos (zod) — điều phối domain qua ports
+├── infrastructure/    # IMPL của ports: persistence (Prisma), messaging, + riêng từng service
+│                      #   auth: security, cache, mail | tour: cache
+│                      #   moderation: ai (Gemini)     | media: storage, tts, translate
+├── interfaces/        # presentation:
+│                      #   HTTP service → interfaces/http/{routes,controllers,middleware,presenters}
+│                      #   media worker → interfaces/messaging/consumers
+└── container.js       # composition root — ráp impl vào ports (DI thủ công)
+```
+
+- `domain/ports` = **interface** (hợp đồng). `infrastructure` cung cấp implementation. Nhờ vậy test use-case bằng fake ports trong RAM, không cần DB.
+- Lý do chọn Clean cho 4 service này (nhiều business rule / state machine / job): xem ADR trong [docs/02-design](../02-design/).
+
+### 2) Layered (worker) — `notification`
+
+`src/{consumers,services,events}` — tiêu thụ event RabbitMQ, không mở port. Giữ gọn vì logic mỏng (chỉ map event → gửi thông báo), chưa cần tách tầng Clean.
+
+### Chung cho cả hai
+
+- **Cross-cutting middleware** (verifyJwt, errorHandler, logger) ở [`shared/middleware`](../../shared/middleware/) — không lặp trong từng service.
 - **Schema-per-service**: service không truy cập bảng của nhau, chỉ qua API (REST) hoặc event (RabbitMQ). Xem [tech-stack.md §5](../tech-stack.md).
 
 ## Build Docker
