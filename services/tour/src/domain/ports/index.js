@@ -13,4 +13,22 @@
  * @property {(id: string) => Promise<void>} delete
  */
 
+/**
+ * @typedef {Object} PlaceRepository
+ * @property {(place: import('../entities/place.js').Place) => Promise<import('../entities/place.js').Place>} create
+ * @property {(id: string) => Promise<import('../entities/place.js').Place|null>} findById
+ * @property {(tourId: string) => Promise<import('../entities/place.js').Place[]>} listByTour  // theo sequence tăng dần
+ * @property {(place: import('../entities/place.js').Place) => Promise<import('../entities/place.js').Place>} save
+ * @property {(id: string) => Promise<void>} delete
+ * @property {(tourId: string) => Promise<number>} nextSequence  // sequence kế tiếp để thêm cuối
+ * @property {(tourId: string, orderedIds: string[]) => Promise<void>} reorder  // đặt lại thứ tự
+ */
+
+/**
+ * Kiểm tra vị trí có nằm trong vùng cấm không (E2 — UC10).
+ * Impl mặc định cho phép mọi vị trí; impl thật (PostGIS/turf) ở feature sau.
+ * @typedef {Object} ForbiddenZoneChecker
+ * @property {(coords: { lat: number, lng: number }) => Promise<void>} assertAllowed  // ném ForbiddenZoneError nếu trong vùng cấm
+ */
+
 export {};
