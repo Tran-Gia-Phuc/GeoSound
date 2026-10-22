@@ -15,6 +15,7 @@ import { prisma } from './infrastructure/persistence/prisma-client.js';
 import { PrismaTourRepository } from './infrastructure/persistence/prisma-tour-repository.js';
 import { PrismaPlaceRepository } from './infrastructure/persistence/prisma-place-repository.js';
 import { PrismaForbiddenZoneRepository } from './infrastructure/persistence/prisma-forbidden-zone-repository.js';
+import { PrismaRouteConfigRepository } from './infrastructure/persistence/prisma-route-config-repository.js';
 import { PolygonZoneChecker } from './infrastructure/zone/polygon-zone-checker.js';
 
 import { CreateTour } from './application/use-cases/create-tour.js';
@@ -29,10 +30,15 @@ import { UpdatePlace } from './application/use-cases/update-place.js';
 import { DeletePlace } from './application/use-cases/delete-place.js';
 import { ReorderPlaces } from './application/use-cases/reorder-places.js';
 
+import { GetRouteConfig } from './application/use-cases/get-route-config.js';
+import { SaveRouteConfig } from './application/use-cases/save-route-config.js';
+
 import { TourController } from './interfaces/http/controllers/tour-controller.js';
 import { buildTourRouter } from './interfaces/http/routes/tour-routes.js';
 import { PlaceController } from './interfaces/http/controllers/place-controller.js';
 import { buildPlaceRouter } from './interfaces/http/routes/place-routes.js';
+import { RouteConfigController } from './interfaces/http/controllers/route-config-controller.js';
+import { buildRouteConfigRouter } from './interfaces/http/routes/route-config-routes.js';
 
 export function buildContainer(/* env = process.env */) {
   // --- infrastructure (impl của domain/ports) ---
@@ -41,6 +47,8 @@ export function buildContainer(/* env = process.env */) {
   // Vùng cấm (E2): kiểm điểm trong polygon vùng cấm đang bật.
   const zoneRepo = new PrismaForbiddenZoneRepository(prisma);
   const zoneChecker = new PolygonZoneChecker({ zoneRepo });
+  // Cấu hình route & kích hoạt (UC11).
+  const routeConfigRepo = new PrismaRouteConfigRepository(prisma);
 
   // --- application (use-cases) ---
   const useCases = {
@@ -59,12 +67,19 @@ export function buildContainer(/* env = process.env */) {
     deletePlace: new DeletePlace({ tourRepo, placeRepo }),
     reorderPlaces: new ReorderPlaces({ tourRepo, placeRepo }),
   };
+  const routeConfigUseCases = {
+    // UC11 — route & vùng kích hoạt
+    getRouteConfig: new GetRouteConfig({ tourRepo, routeConfigRepo }),
+    saveRouteConfig: new SaveRouteConfig({ tourRepo, placeRepo, routeConfigRepo }),
+  };
 
   // --- interfaces (controller + router) ---
   const tourController = new TourController(useCases);
   const tourRouter = buildTourRouter({ tourController });
   const placeController = new PlaceController(placeUseCases);
   const placeRouter = buildPlaceRouter({ placeController });
+  const routeConfigController = new RouteConfigController(routeConfigUseCases);
+  const routeConfigRouter = buildRouteConfigRouter({ routeConfigController });
 
-  return { tourRouter, placeRouter, prisma };
+  return { tourRouter, placeRouter, routeConfigRouter, prisma };
 }

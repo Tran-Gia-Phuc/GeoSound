@@ -37,4 +37,11 @@
  * @property {() => Promise<Array<{ id: string, name: string, type: string, geometry: object }>>} listActive
  */
 
+/**
+ * Cấu hình route & kích hoạt của một tour (UC11) — lưu/đọc cả cụm.
+ * @typedef {Object} RouteConfigRepository
+ * @property {(tourId: string) => Promise<import('../entities/route-config.js').RouteConfig|null>} findByTour
+ * @property {(config: import('../entities/route-config.js').RouteConfig) => Promise<import('../entities/route-config.js').RouteConfig>} upsert
+ */
+
 export {};
