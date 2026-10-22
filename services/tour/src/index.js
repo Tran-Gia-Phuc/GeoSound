@@ -19,9 +19,9 @@ app.use(logger);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'tour' }));
 
-// UC02: tìm kiếm công khai (GET /) — MOUNT TRƯỚC router contributor để GET /
-// công khai không bị chặn bởi verifyJwt; /:id (chi tiết) ràng buộc UUID nên
-// không nuốt /mine. (Chi tiết tour thêm ở feature/tour-detail.)
+// UC02: tìm kiếm (GET /) + chi tiết (GET /:id) công khai — MOUNT TRƯỚC router
+// contributor để GET công khai không bị chặn bởi verifyJwt; :id ràng buộc UUID
+// nên /mine... rơi xuống các router sau (vẫn giữ verifyJwt của chúng).
 app.use('/', publicTourRouter);
 
 // UC09: POST / | GET /mine | GET /mine/:id | PATCH /mine/:id | DELETE /mine/:id
@@ -31,8 +31,7 @@ app.use('/', placeRouter);
 // UC11: /mine/:tourId/route-config (GET | PUT)
 app.use('/', routeConfigRouter);
 
-// TODO: UC02 chi tiết công khai (GET /:id — feature/tour-detail);
-//       publish tour.submitted (UC15).
+// TODO: publish tour.submitted (UC15); "tour gần tôi" chuyển PostGIS khi cần.
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
