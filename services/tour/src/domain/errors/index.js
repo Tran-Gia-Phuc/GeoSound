@@ -55,3 +55,17 @@ export class ForbiddenZoneError extends AppError {
     if (zone) this.zone = zone;
   }
 }
+
+// UC12 / E1 — dịch vụ dịch không phản hồi (cho thử lại).
+export class TranslationError extends AppError {
+  constructor(message = 'Dịch tự động thất bại, vui lòng thử lại') {
+    super(message, { status: 503, code: 'translation_unavailable' });
+  }
+}
+
+// UC12 / E1 — dịch vụ TTS không phản hồi (cho thử lại).
+export class TtsError extends AppError {
+  constructor(message = 'Tạo giọng đọc TTS thất bại, vui lòng thử lại') {
+    super(message, { status: 503, code: 'tts_unavailable' });
+  }
+}

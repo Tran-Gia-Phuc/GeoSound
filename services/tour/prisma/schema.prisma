@@ -32,6 +32,7 @@ model Tour {
 
   places      Place[]
   routeConfig RouteConfig?
+  languages   TourLanguage[]
 
   @@index([authorId])
   @@index([status])
@@ -57,7 +58,8 @@ model Place {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  tour         Tour               @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  translations PlaceTranslation[]
 
   @@index([tourId, sequence])
   @@map("places")
@@ -101,4 +103,43 @@ model RouteConfig {
   tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
 
   @@map("route_configs")
+}
+
+// UC12 — Ngôn ngữ của tour: gốc (is_source) + phụ (tự dịch + TTS). Mang giọng
+// TTS (nam/nữ, vùng miền) áp cho ngôn ngữ đó. Data model: ERD TOUR_LANGUAGES.
+model TourLanguage {
+  id             String   @id @default(uuid())
+  tourId         String   @map("tour_id")
+  languageCode   String   @map("language_code")
+  isSource       Boolean  @default(false) @map("is_source")
+  ttsVoiceGender String?  @map("tts_voice_gender") // male | female
+  ttsVoiceRegion String?  @map("tts_voice_region")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@unique([tourId, languageCode])
+  @@map("tour_languages")
+}
+
+// UC12 — Bản dịch + TTS của một điểm theo một ngôn ngữ.
+//   text_source: source (text gốc = mô tả điểm) | machine (tự dịch) | edited (chỉnh tay)
+//   tts_prerendered: đã pre-render & cache cho offline (UC03) hay chưa.
+model PlaceTranslation {
+  id             String   @id @default(uuid())
+  placeId        String   @map("place_id")
+  languageCode   String   @map("language_code")
+  text           String
+  textSource     String   @default("machine") @map("text_source")
+  ttsUrl         String?  @map("tts_url")
+  ttsPrerendered Boolean  @default(false) @map("tts_prerendered")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([placeId, languageCode])
+  @@index([languageCode])
+  @@map("place_translations")
 }
