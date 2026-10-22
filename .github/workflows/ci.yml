@@ -11,9 +11,9 @@ name: CI
 
 on:
   push:
-    branches: ['main', 'feature/**', 'ci/**']
+    branches: ['develop', 'staging', 'main', 'feature/**', 'ci/**']
   pull_request:
-    branches: ['main']
+    branches: ['develop', 'staging', 'main']
 
 # Huỷ run cũ khi có commit mới trên cùng nhánh/PR.
 concurrency:
