@@ -34,6 +34,7 @@ import { GetRouteConfig } from './application/use-cases/get-route-config.js';
 import { SaveRouteConfig } from './application/use-cases/save-route-config.js';
 
 import { SearchTours } from './application/use-cases/search-tours.js';
+import { GetPublicTour } from './application/use-cases/get-public-tour.js';
 
 import { TourController } from './interfaces/http/controllers/tour-controller.js';
 import { buildTourRouter } from './interfaces/http/routes/tour-routes.js';
@@ -79,6 +80,7 @@ export function buildContainer(/* env = process.env */) {
   const publicUseCases = {
     // UC02 — tìm & xem tour công khai
     searchTours: new SearchTours({ tourRepo, placeRepo }),
+    getPublicTour: new GetPublicTour({ tourRepo, placeRepo, routeConfigRepo }),
   };
 
   // --- interfaces (controller + router) ---

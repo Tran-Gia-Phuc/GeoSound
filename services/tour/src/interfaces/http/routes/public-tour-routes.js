@@ -7,8 +7,9 @@
 // (những path đó rơi xuống router sau).
 // =========================================================
 import { Router } from 'express';
-import { validateQuery } from '../middleware/validate.js';
+import { validateQuery, validateParams } from '../middleware/validate.js';
 import { searchQuerySchema } from '../../../application/dtos/search-schemas.js';
+import { detailParamSchema, detailQuerySchema } from '../../../application/dtos/detail-schemas.js';
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -21,6 +22,14 @@ export function buildPublicTourRouter({ publicTourController }) {
 
   // Bước 1–5 — tìm kiếm công khai.
   r.get('/', validateQuery(searchQuerySchema), wrap(publicTourController.search));
+
+  // Bước 6–9 — chi tiết. Ràng buộc :id dạng UUID để /mine... rơi xuống router sau.
+  r.get(
+    `/:id(${UUID})`,
+    validateParams(detailParamSchema),
+    validateQuery(detailQuerySchema),
+    wrap(publicTourController.detail)
+  );
 
   return r;
 }
