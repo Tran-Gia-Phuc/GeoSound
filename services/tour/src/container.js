@@ -33,12 +33,16 @@ import { ReorderPlaces } from './application/use-cases/reorder-places.js';
 import { GetRouteConfig } from './application/use-cases/get-route-config.js';
 import { SaveRouteConfig } from './application/use-cases/save-route-config.js';
 
+import { SearchTours } from './application/use-cases/search-tours.js';
+
 import { TourController } from './interfaces/http/controllers/tour-controller.js';
 import { buildTourRouter } from './interfaces/http/routes/tour-routes.js';
 import { PlaceController } from './interfaces/http/controllers/place-controller.js';
 import { buildPlaceRouter } from './interfaces/http/routes/place-routes.js';
 import { RouteConfigController } from './interfaces/http/controllers/route-config-controller.js';
 import { buildRouteConfigRouter } from './interfaces/http/routes/route-config-routes.js';
+import { PublicTourController } from './interfaces/http/controllers/public-tour-controller.js';
+import { buildPublicTourRouter } from './interfaces/http/routes/public-tour-routes.js';
 
 export function buildContainer(/* env = process.env */) {
   // --- infrastructure (impl của domain/ports) ---
@@ -72,6 +76,10 @@ export function buildContainer(/* env = process.env */) {
     getRouteConfig: new GetRouteConfig({ tourRepo, routeConfigRepo }),
     saveRouteConfig: new SaveRouteConfig({ tourRepo, placeRepo, routeConfigRepo }),
   };
+  const publicUseCases = {
+    // UC02 — tìm & xem tour công khai
+    searchTours: new SearchTours({ tourRepo, placeRepo }),
+  };
 
   // --- interfaces (controller + router) ---
   const tourController = new TourController(useCases);
@@ -80,6 +88,8 @@ export function buildContainer(/* env = process.env */) {
   const placeRouter = buildPlaceRouter({ placeController });
   const routeConfigController = new RouteConfigController(routeConfigUseCases);
   const routeConfigRouter = buildRouteConfigRouter({ routeConfigController });
+  const publicTourController = new PublicTourController(publicUseCases);
+  const publicTourRouter = buildPublicTourRouter({ publicTourController });
 
-  return { tourRouter, placeRouter, routeConfigRouter, prisma };
+  return { tourRouter, placeRouter, routeConfigRouter, publicTourRouter, prisma };
 }

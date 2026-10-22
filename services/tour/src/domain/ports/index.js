@@ -11,6 +11,12 @@
  * @property {(authorId: string) => Promise<import('../entities/tour.js').Tour[]>} listByAuthor
  * @property {(tour: import('../entities/tour.js').Tour) => Promise<import('../entities/tour.js').Tour>} save  // cập nhật nội dung/trạng thái
  * @property {(id: string) => Promise<void>} delete
+ * // --- UC02 đọc công khai (chỉ status=public) ---
+ * @property {(filters: object) => Promise<number>} countPublic
+ * @property {(filters: object, page: { skip: number, take: number, sort: string }) => Promise<import('../entities/tour.js').Tour[]>} searchPublicPage
+ * @property {(filters: object) => Promise<string[]>} listPublicIds
+ * @property {(ids: string[]) => Promise<import('../entities/tour.js').Tour[]>} findManyByIds
+ * @property {(id: string) => Promise<import('../entities/tour.js').Tour|null>} findPublicById
  */
 
 /**
@@ -22,6 +28,9 @@
  * @property {(id: string) => Promise<void>} delete
  * @property {(tourId: string) => Promise<number>} nextSequence  // sequence kế tiếp để thêm cuối
  * @property {(tourId: string, orderedIds: string[]) => Promise<void>} reorder  // đặt lại thứ tự
+ * // --- UC02 ---
+ * @property {(tourIds: string[]) => Promise<Map<string, { count: number, humanCount: number }>>} statsByTours
+ * @property {(tourIds: string[]) => Promise<Map<string, { lat: number, lng: number }>>} anchorsByTours
  */
 
 /**

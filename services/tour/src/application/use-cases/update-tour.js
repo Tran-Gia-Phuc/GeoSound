@@ -23,6 +23,7 @@ export class UpdateTour {
     }
     if (fields.title !== undefined) fields.title = fields.title.trim();
     if (fields.description !== undefined) fields.description = fields.description.trim();
+    if (fields.city !== undefined) fields.city = fields.city.trim();
 
     const requiresResubmit = tour.applyEdits(fields);
     const saved = await this.tourRepo.save(tour);

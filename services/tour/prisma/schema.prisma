@@ -22,14 +22,21 @@ model Tour {
   type             String   @default("walking")
   status           String   @default("draft")
   authorId         String   @map("author_id")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  // UC02 — tìm kiếm & hiển thị.
+  city          String?
+  duration      Int? // thời lượng ước tính (phút)
+  averageRating Float    @default(0) @map("average_rating") // UC05 cập nhật
+  ratingCount   Int      @default(0) @map("rating_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   places      Place[]
   routeConfig RouteConfig?
 
   @@index([authorId])
   @@index([status])
+  // UC02 — lọc tour công khai theo thành phố.
+  @@index([status, city])
   @@map("tours")
 }
 

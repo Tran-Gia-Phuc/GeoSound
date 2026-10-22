@@ -96,4 +96,43 @@ export class PrismaPlaceRepository {
       )
     );
   }
+
+  // ---------- UC02 — thống kê cho thẻ kết quả / sắp xếp gần tôi ----------
+
+  /** Số điểm + số điểm có audio người thật, theo từng tour. */
+  async statsByTours(tourIds) {
+    const stats = new Map(tourIds.map((id) => [id, { count: 0, humanCount: 0 }]));
+    if (!tourIds.length) return stats;
+
+    const [all, human] = await Promise.all([
+      this.prisma.place.groupBy({
+        by: ['tourId'],
+        where: { tourId: { in: tourIds } },
+        _count: { _all: true },
+      }),
+      this.prisma.place.groupBy({
+        by: ['tourId'],
+        where: { tourId: { in: tourIds }, audioSource: 'human' },
+        _count: { _all: true },
+      }),
+    ]);
+    for (const r of all) stats.get(r.tourId).count = r._count._all;
+    for (const r of human) stats.get(r.tourId).humanCount = r._count._all;
+    return stats;
+  }
+
+  /** Tọa độ điểm ĐẦU (sequence nhỏ nhất) của mỗi tour — mốc tính "gần tôi". */
+  async anchorsByTours(tourIds) {
+    const anchors = new Map();
+    if (!tourIds.length) return anchors;
+    const rows = await this.prisma.place.findMany({
+      where: { tourId: { in: tourIds } },
+      orderBy: { sequence: 'asc' },
+      select: { tourId: true, lat: true, lng: true },
+    });
+    for (const r of rows) {
+      if (!anchors.has(r.tourId)) anchors.set(r.tourId, { lat: r.lat, lng: r.lng });
+    }
+    return anchors;
+  }
 }

@@ -11,8 +11,8 @@ export class CreateTour {
     this.tourRepo = tourRepo;
   }
 
-  /** @param {{ authorId: string, title: string, description?: string, coverImageUrl?: string, originalLanguage: string, type?: string }} input */
-  async execute({ authorId, title, description, coverImageUrl, originalLanguage, type }) {
+  /** @param {{ authorId: string, title: string, description?: string, coverImageUrl?: string, originalLanguage: string, type?: string, city?: string, duration?: number }} input */
+  async execute({ authorId, title, description, coverImageUrl, originalLanguage, type, city, duration }) {
     const language = new Language(originalLanguage); // E2 — ngôn ngữ gốc bắt buộc/hợp lệ
 
     const tour = new Tour({
@@ -23,6 +23,8 @@ export class CreateTour {
       type,
       status: TOUR_STATUS.DRAFT,
       authorId,
+      city: city?.trim() ?? null,
+      duration: duration ?? null,
     });
 
     const created = await this.tourRepo.create(tour);
