@@ -39,3 +39,8 @@ services:
     volumes:
       - ./services/notification/src:/app/src
       - ./shared:/app/shared
+
+  ai:
+    command: uvicorn app.main:app --host 0.0.0.0 --port 3004 --reload
+    volumes:
+      - ./services/ai/app:/app/app
