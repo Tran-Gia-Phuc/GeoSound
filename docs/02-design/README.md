@@ -9,4 +9,7 @@ Expected later:
 - API design
 - UI sketches
 
-Not written during init.
+
+## Documents
+
+- [AI Service Specification](ai-service-spec.md)
