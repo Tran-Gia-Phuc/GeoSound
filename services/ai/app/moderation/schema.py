@@ -1,6 +1,7 @@
 from enum import StrEnum
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 MAX_ID_LENGTH = 100
 MAX_TITLE_LENGTH = 200
@@ -44,3 +45,25 @@ class ModerationRequest(_Base):
     description: str = Field(default="", max_length=MAX_DESCRIPTION_LENGTH)
     language: Language = Language.VI
     stops: list[StopInput] = Field(default_factory=list, max_length=MAX_STOPS)
+
+
+FIELD_PATTERN = r"^(title|description|stops\[\d+\]\.description)$"
+
+
+class Reason(_Base):
+    # "title", "description" or "stops[<index>].description"
+    field: str = Field(pattern=FIELD_PATTERN)
+    category: Category
+    message: str = Field(min_length=1, max_length=500)
+
+
+class ModerationResponse(_Base):
+    tour_id: str
+    verdict: Verdict
+    reasons: list[Reason] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _non_pass_needs_reason(self) -> Self:
+        if self.verdict != Verdict.PASS and not self.reasons:
+            raise ValueError("Warning and Reject verdicts require at least one reason")
+        return self
