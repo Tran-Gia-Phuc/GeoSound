@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
     groq_api_key: str = ""
+    groq_model: str = "openai/gpt-oss-20b"
     llm_timeout_seconds: float = 10.0
 
     rabbitmq_url: str = "amqp://guest:guest@rabbitmq:5672"
