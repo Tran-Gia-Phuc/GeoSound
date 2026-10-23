@@ -80,6 +80,19 @@ services:
       rabbitmq: { condition: service_healthy }
     restart: unless-stopped
 
+  ai:
+    build:
+      context: .
+      dockerfile: services/ai/Dockerfile
+    env_file: [.env]
+    environment:
+      PORT: 3004
+      DATABASE_URL: ${DATABASE_URL_AI:-}
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+
   rabbitmq:
     image: rabbitmq:3-management
     ports:
