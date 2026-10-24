@@ -6,6 +6,9 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "test": "node --test test/*.test.js",
+    "email:preview": "node scripts/preview-otp-email.js",
+    "email:test": "node --env-file=../../.env scripts/send-test-email.js",
     "dev": "nodemon src/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
