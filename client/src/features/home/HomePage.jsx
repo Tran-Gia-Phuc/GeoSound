@@ -52,9 +52,17 @@ export default function HomePage() {
       <main className="home__main">
         <h1 className="home__h1">Nghe tour bằng audio theo bước chân</h1>
         <p className="home__sub">
-          Mở một tour, bắt đầu đi theo GPS để tự động nghe thuyết minh tại mỗi điểm — hoặc nghe thử từ xa, không cần GPS.
+          Tìm tour theo thành phố hoặc từ khoá, rồi đi theo GPS để tự động nghe thuyết minh tại mỗi điểm — hoặc nghe thử từ xa, không cần GPS.
         </p>
 
+        <Link className="home__searchcta" to="/tours">
+          <Icon name="search" size={18} />
+          <span>Tìm tour theo thành phố, từ khoá…</span>
+          <Icon name="chevron-left" size={16} className="recent__chev" />
+        </Link>
+
+        <details className="home__dev">
+          <summary>Mở nhanh bằng mã tour</summary>
         <form
           className="home__open"
           onSubmit={(e) => {
@@ -77,6 +85,7 @@ export default function HomePage() {
             Mở tour
           </button>
         </form>
+        </details>
 
         <nav className="home__nav" aria-label="Lịch trình cá nhân">
           <Link className="home__navcard" to="/itineraries">

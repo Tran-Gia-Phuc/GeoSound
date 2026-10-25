@@ -137,6 +137,15 @@ const P = {
       <path d="M16 9a3 3 0 010 6M18.5 7a6 6 0 010 10" />
     </>
   ),
+  sliders: (
+    <>
+      <path d="M4 6h8M16 6h4M4 12h4M12 12h8M4 18h10M18 18h2" />
+      <circle cx="14" cy="6" r="2" />
+      <circle cx="10" cy="12" r="2" />
+      <circle cx="16" cy="18" r="2" />
+    </>
+  ),
+  download: <path d="M12 3v12M7 10l5 5 5-5M5 20h14" />,
 };
 
 // Icon tô đặc (hình khối) thay vì nét.
