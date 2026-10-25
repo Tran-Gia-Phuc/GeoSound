@@ -37,6 +37,12 @@ class Settings(BaseSettings):
     event_retry_delay_seconds: float = 2.0
     event_prefetch: int = 2
 
+    # Shared secret for service-to-service calls (header x-internal-token).
+    internal_service_token: str = ""
+
+    # Set to false to run the API without the RabbitMQ consumer.
+    events_enabled: bool = True
+
 
 @lru_cache
 def get_settings() -> Settings:
