@@ -87,3 +87,40 @@ export async function saveRouteConfig(tourId, config) {
   const b = await api.put(`/api/tours/mine/${encodeURIComponent(tourId)}/route-config`, config, { auth: true });
   return b.config;
 }
+
+// ---- UC12: đa ngôn ngữ & TTS ----
+export const TTS_GENDER_OPTIONS = [
+  { value: 'female', label: 'Giọng nữ' },
+  { value: 'male', label: 'Giọng nam' },
+];
+// Nhãn nguồn bản dịch (textSource) để hiển thị cho tác giả.
+export const TEXT_SOURCE_LABELS = {
+  source: 'Ngôn ngữ gốc',
+  machine: 'Dịch tự động',
+  edited: 'Đã chỉnh tay',
+};
+
+export async function getLanguageConfig(tourId) {
+  const b = await api.get(`/api/tours/mine/${encodeURIComponent(tourId)}/languages`, { auth: true });
+  return b.config;
+}
+export async function setTourLanguages(tourId, { secondary, voice }) {
+  const b = await api.put(`/api/tours/mine/${encodeURIComponent(tourId)}/languages`, { secondary, voice }, { auth: true });
+  return b.config;
+}
+export async function previewTts(tourId, placeId, lang) {
+  // { placeId, language, url, prerendered }
+  return api.post(
+    `/api/tours/mine/${encodeURIComponent(tourId)}/places/${encodeURIComponent(placeId)}/tts-preview`,
+    { lang },
+    { auth: true },
+  );
+}
+export async function updateTranslation(tourId, placeId, lang, text) {
+  const b = await api.patch(
+    `/api/tours/mine/${encodeURIComponent(tourId)}/places/${encodeURIComponent(placeId)}/translations/${encodeURIComponent(lang)}`,
+    { text },
+    { auth: true },
+  );
+  return b.translation;
+}
