@@ -11,9 +11,11 @@
 // infrastructure/persistence (repository), KHÔNG rò rỉ ra domain.
 // Nhờ chỗ này, test use-case bằng fake ports trong RAM (không cần DB).
 // =========================================================
+import crypto from 'node:crypto';
 import { prisma } from './infrastructure/persistence/prisma-client.js';
 import { PrismaTourRepository } from './infrastructure/persistence/prisma-tour-repository.js';
 import { PrismaPlaceRepository } from './infrastructure/persistence/prisma-place-repository.js';
+import { PrismaItineraryRepository } from './infrastructure/persistence/prisma-itinerary-repository.js';
 import { PrismaForbiddenZoneRepository } from './infrastructure/persistence/prisma-forbidden-zone-repository.js';
 import { PrismaRouteConfigRepository } from './infrastructure/persistence/prisma-route-config-repository.js';
 import { PrismaTourLanguageRepository } from './infrastructure/persistence/prisma-tour-language-repository.js';
@@ -46,6 +48,18 @@ import { SetTourLanguages } from './application/use-cases/set-tour-languages.js'
 import { PreviewTts } from './application/use-cases/preview-tts.js';
 import { UpdateTranslation } from './application/use-cases/update-translation.js';
 
+import { CreateItinerary } from './application/use-cases/create-itinerary.js';
+import { ListMyItineraries } from './application/use-cases/list-my-itineraries.js';
+import { GetItinerary } from './application/use-cases/get-itinerary.js';
+import { RenameItinerary } from './application/use-cases/rename-itinerary.js';
+import { DeleteItinerary } from './application/use-cases/delete-itinerary.js';
+import { AddItineraryItem } from './application/use-cases/add-itinerary-item.js';
+import { RemoveItineraryItem } from './application/use-cases/remove-itinerary-item.js';
+import { ReorderItineraryItems } from './application/use-cases/reorder-itinerary-items.js';
+import { ShareItinerary } from './application/use-cases/share-itinerary.js';
+import { GetSharedItinerary } from './application/use-cases/get-shared-itinerary.js';
+import { ExplorePlaces } from './application/use-cases/explore-places.js';
+
 import { TourController } from './interfaces/http/controllers/tour-controller.js';
 import { buildTourRouter } from './interfaces/http/routes/tour-routes.js';
 import { PlaceController } from './interfaces/http/controllers/place-controller.js';
@@ -58,6 +72,11 @@ import { LanguageController } from './interfaces/http/controllers/language-contr
 import { buildLanguageRouter } from './interfaces/http/routes/language-routes.js';
 import { PreviewController } from './interfaces/http/controllers/preview-controller.js';
 import { buildPreviewRouter } from './interfaces/http/routes/preview-routes.js';
+import { ItineraryController } from './interfaces/http/controllers/itinerary-controller.js';
+import { buildItineraryRouter } from './interfaces/http/routes/itinerary-routes.js';
+import { ExploreController } from './interfaces/http/controllers/explore-controller.js';
+import { buildExploreRouter } from './interfaces/http/routes/explore-routes.js';
+import { buildPublicItineraryRouter } from './interfaces/http/routes/public-itinerary-routes.js';
 
 export function buildContainer(/* env = process.env */) {
   // --- infrastructure (impl của domain/ports) ---
@@ -74,6 +93,9 @@ export function buildContainer(/* env = process.env */) {
   const placeTranslationRepo = new PrismaPlaceTranslationRepository(prisma);
   const translator = new EchoTranslator();
   const ttsSynthesizer = new PlaceholderTtsSynthesizer();
+  // Lịch trình cá nhân (UC07).
+  const itineraryRepo = new PrismaItineraryRepository(prisma);
+  const generateShareToken = () => crypto.randomBytes(12).toString('base64url');
 
   // --- application (use-cases) ---
   const useCases = {
@@ -126,6 +148,24 @@ export function buildContainer(/* env = process.env */) {
     updateTranslation: new UpdateTranslation({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, ttsSynthesizer }),
   };
 
+  const itineraryUseCases = {
+    // UC07 — lịch trình cá nhân (gắn tài khoản)
+    createItinerary: new CreateItinerary({ itineraryRepo }),
+    listMyItineraries: new ListMyItineraries({ itineraryRepo }),
+    getItinerary: new GetItinerary({ itineraryRepo }),
+    renameItinerary: new RenameItinerary({ itineraryRepo }),
+    deleteItinerary: new DeleteItinerary({ itineraryRepo }),
+    addItineraryItem: new AddItineraryItem({ itineraryRepo, placeRepo, tourRepo, tourLanguageRepo, placeTranslationRepo }),
+    removeItineraryItem: new RemoveItineraryItem({ itineraryRepo }),
+    reorderItineraryItems: new ReorderItineraryItems({ itineraryRepo }),
+    shareItinerary: new ShareItinerary({ itineraryRepo, generateToken: generateShareToken }),
+  };
+  const exploreUseCases = {
+    // UC07 — khám phá địa điểm lẻ + xem lịch trình chia sẻ (công khai)
+    explorePlaces: new ExplorePlaces({ placeRepo }),
+    getSharedItinerary: new GetSharedItinerary({ itineraryRepo }),
+  };
+
   // --- interfaces (controller + router) ---
   const tourController = new TourController(useCases);
   const tourRouter = buildTourRouter({ tourController });
@@ -139,6 +179,11 @@ export function buildContainer(/* env = process.env */) {
   const languageRouter = buildLanguageRouter({ languageController });
   const previewController = new PreviewController(previewUseCases);
   const previewRouter = buildPreviewRouter({ previewController });
+  const itineraryController = new ItineraryController(itineraryUseCases);
+  const itineraryRouter = buildItineraryRouter({ itineraryController });
+  const exploreController = new ExploreController(exploreUseCases);
+  const exploreRouter = buildExploreRouter({ exploreController });
+  const publicItineraryRouter = buildPublicItineraryRouter({ exploreController });
 
   return {
     tourRouter,
@@ -147,6 +192,9 @@ export function buildContainer(/* env = process.env */) {
     publicTourRouter,
     languageRouter,
     previewRouter,
+    itineraryRouter,
+    exploreRouter,
+    publicItineraryRouter,
     prisma,
   };
 }

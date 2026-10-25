@@ -12,8 +12,17 @@ import { buildContainer } from './container.js';
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-const { tourRouter, placeRouter, routeConfigRouter, publicTourRouter, languageRouter, previewRouter } =
-  buildContainer(process.env);
+const {
+  tourRouter,
+  placeRouter,
+  routeConfigRouter,
+  publicTourRouter,
+  languageRouter,
+  previewRouter,
+  itineraryRouter,
+  exploreRouter,
+  publicItineraryRouter,
+} = buildContainer(process.env);
 
 app.use(express.json());
 app.use(logger);
@@ -36,6 +45,14 @@ app.use('/', routeConfigRouter);
 app.use('/', languageRouter);
 // UC13: /mine/:tourId/preview (GET) — xem thử tour của chính tác giả
 app.use('/', previewRouter);
+
+// UC07: khám phá địa điểm lẻ (công khai) — /places
+app.use('/places', exploreRouter);
+// UC07/A4: lịch trình chia sẻ công khai — /itineraries/shared/:token (MOUNT TRƯỚC
+// router có auth để không bị verifyJwt chặn).
+app.use('/itineraries', publicItineraryRouter);
+// UC07: lịch trình cá nhân (cần đăng nhập) — /itineraries/*
+app.use('/itineraries', itineraryRouter);
 
 // TODO: publish tour.submitted (UC15); "tour gần tôi" chuyển PostGIS khi cần.
 

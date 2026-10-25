@@ -36,13 +36,28 @@ const mount = (path, target) =>
     })
   );
 
+// Giữ nguyên segment sau /api (vd /api/itineraries -> /itineraries) để tour
+// service phân tách namespace với /api/tours (tránh đụng route /:id công khai).
+const mountKeep = (path, target) =>
+  app.use(
+    path,
+    createProxyMiddleware({
+      target,
+      changeOrigin: true,
+      pathRewrite: (p) => p.replace('/api', '') || '/',
+    })
+  );
+
 mount('/api/auth', TARGETS.auth);
 mount('/api/tours', TARGETS.tour);
+// UC07 — lịch trình cá nhân + khám phá địa điểm lẻ (cùng tour service).
+mountKeep('/api/itineraries', TARGETS.tour);
+mountKeep('/api/places', TARGETS.tour);
 mount('/api/moderation', TARGETS.moderation);
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 
 app.listen(PORT, () => {
   console.log(`[gateway] listening on :${PORT}`);
-  console.log('[gateway] routes: /api/auth /api/tours /api/moderation');
+  console.log('[gateway] routes: /api/auth /api/tours /api/itineraries /api/places /api/moderation');
 });

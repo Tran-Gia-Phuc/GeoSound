@@ -15,6 +15,15 @@ export function formatDistance(m) {
   return `${(m / 1000).toFixed(1).replace('.', ',')} km`;
 }
 
+/** Số phút -> chuỗi gọn tiếng Việt ("25 phút" / "1 giờ 10 phút"). */
+export function formatMinutes(min) {
+  if (!Number.isFinite(min) || min <= 0) return '0 phút';
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  if (!h) return `${m} phút`;
+  return m ? `${h} giờ ${m} phút` : `${h} giờ`;
+}
+
 const LANG_LABELS = {
   vi: 'Tiếng Việt',
   en: 'English',

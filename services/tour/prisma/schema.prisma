@@ -123,6 +123,51 @@ model TourLanguage {
   @@map("tour_languages")
 }
 
+// UC07 — Lịch trình cá nhân của khách du lịch (gắn tài khoản ownerId = user.sub).
+// shareToken: mã chia sẻ công khai (A4), null nếu chưa chia sẻ.
+model Itinerary {
+  id         String   @id @default(uuid())
+  ownerId    String   @map("owner_id")
+  name       String
+  shareToken String?  @unique @map("share_token")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  items ItineraryItem[]
+
+  @@index([ownerId])
+  @@map("itineraries")
+}
+
+// UC07 — Một điểm trong lịch trình. SNAPSHOT dữ liệu hiển thị/phát của địa điểm
+// tại thời điểm thêm (toạ độ, ảnh, audio đa ngữ, bán kính kích hoạt) để:
+//   - chia sẻ (A4) & phát lại (UC08) ổn định, không vỡ khi tác giả sửa tour gốc;
+//   - sẵn sàng tải offline (A3) về sau.
+//   audioByLang = { "<lang>": { text, audioUrl, audioSource } }
+//   availableLanguages = ["vi","en",...]
+model ItineraryItem {
+  id                 String   @id @default(uuid())
+  itineraryId        String   @map("itinerary_id")
+  placeId            String   @map("place_id") // nguồn gốc (tham chiếu mềm)
+  tourId             String   @map("tour_id")
+  name               String
+  type               String   @default("other")
+  lat                Float
+  lng                Float
+  images             Json     @default("[]")
+  radiusMeters       Int      @default(50) @map("radius_meters") // vùng kích hoạt UC08
+  sourceLanguage     String   @map("source_language")
+  availableLanguages Json     @default("[]") @map("available_languages")
+  audioByLang        Json     @default("{}") @map("audio_by_lang")
+  sequence           Int      @default(0)
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@index([itineraryId, sequence])
+  @@map("itinerary_items")
+}
+
 // UC12 — Bản dịch + TTS của một điểm theo một ngôn ngữ.
 //   text_source: source (text gốc = mô tả điểm) | machine (tự dịch) | edited (chỉnh tay)
 //   tts_prerendered: đã pre-render & cache cho offline (UC03) hay chưa.

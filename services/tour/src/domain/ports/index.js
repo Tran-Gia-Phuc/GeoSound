@@ -31,6 +31,22 @@
  * // --- UC02 ---
  * @property {(tourIds: string[]) => Promise<Map<string, { count: number, humanCount: number }>>} statsByTours
  * @property {(tourIds: string[]) => Promise<Map<string, { lat: number, lng: number }>>} anchorsByTours
+ * // --- UC07 khám phá địa điểm lẻ (chỉ địa điểm thuộc tour công khai) ---
+ * @property {(filters: object) => Promise<number>} countPublicPlaces
+ * @property {(filters: object, page: { skip: number, take: number }) => Promise<Array<object>>} searchPublicPlaces
+ */
+
+/**
+ * Lịch trình cá nhân (UC07) — aggregate gồm các điểm snapshot. Repo nạp/ghi CẢ
+ * cụm (items đi kèm). save() đồng bộ items: thêm mới (id=null), xoá item không
+ * còn, cập nhật thứ tự.
+ * @typedef {Object} ItineraryRepository
+ * @property {(it: import('../entities/itinerary.js').Itinerary) => Promise<import('../entities/itinerary.js').Itinerary>} create
+ * @property {(id: string) => Promise<import('../entities/itinerary.js').Itinerary|null>} findById
+ * @property {(token: string) => Promise<import('../entities/itinerary.js').Itinerary|null>} findByShareToken
+ * @property {(ownerId: string) => Promise<import('../entities/itinerary.js').Itinerary[]>} listByOwner
+ * @property {(it: import('../entities/itinerary.js').Itinerary) => Promise<import('../entities/itinerary.js').Itinerary>} save
+ * @property {(id: string) => Promise<void>} delete
  */
 
 /**

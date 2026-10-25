@@ -135,4 +135,56 @@ export class PrismaPlaceRepository {
     }
     return anchors;
   }
+
+  // ---------- UC07 — khám phá địa điểm lẻ (chỉ tour công khai) ----------
+
+  /** Dựng where: điểm thuộc tour public + lọc q/city/type. */
+  static publicPlaceWhere({ q, city, type } = {}) {
+    const where = { tour: { is: { status: 'public' } } };
+    if (type) where.type = type;
+    if (city) where.tour.is.city = { equals: city, mode: 'insensitive' };
+    if (q) {
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+    return where;
+  }
+
+  async countPublicPlaces(filters) {
+    return this.prisma.place.count({ where: PrismaPlaceRepository.publicPlaceWhere(filters) });
+  }
+
+  async searchPublicPlaces(filters, { skip, take }) {
+    const rows = await this.prisma.place.findMany({
+      where: PrismaPlaceRepository.publicPlaceWhere(filters),
+      orderBy: { updatedAt: 'desc' },
+      skip,
+      take,
+      select: {
+        id: true,
+        tourId: true,
+        name: true,
+        type: true,
+        lat: true,
+        lng: true,
+        images: true,
+        audioSource: true,
+        tour: { select: { title: true, city: true } },
+      },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      tourId: r.tourId,
+      name: r.name,
+      type: r.type,
+      lat: r.lat,
+      lng: r.lng,
+      images: Array.isArray(r.images) ? r.images : [],
+      audioSource: r.audioSource,
+      tourTitle: r.tour?.title ?? null,
+      city: r.tour?.city ?? null,
+    }));
+  }
 }

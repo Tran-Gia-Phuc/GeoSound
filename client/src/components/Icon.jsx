@@ -90,6 +90,47 @@ const P = {
   ),
   moon: <path d="M21 12.8A8.5 8.5 0 1111.2 3 6.5 6.5 0 0021 12.8z" />,
   'wifi-off': <path d="M2 4l20 20M8.5 16.5a5 5 0 017 0M5 12.5a10 10 0 015-2.6M1.5 9A15 15 0 018 6.3M16 10a10 10 0 013.5 2.2M22.5 9a15 15 0 00-6-3.6M12 20h.01" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  trash: (
+    <>
+      <path d="M4 7h16M10 11v6M14 11v6" />
+      <path d="M6 7l1 13h10l1-13M9 7V4h6v3" />
+    </>
+  ),
+  share: (
+    <>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <path d="M8.6 10.6l6.8-4.2M8.6 13.4l6.8 4.2" />
+    </>
+  ),
+  search: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="9" y="9" width="12" height="12" rx="2" />
+      <path d="M5 15V5a2 2 0 012-2h10" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
+  edit: <path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" />,
+  route: (
+    <>
+      <circle cx="6" cy="19" r="2.5" />
+      <circle cx="18" cy="5" r="2.5" />
+      <path d="M8.5 19H15a3.5 3.5 0 000-7H9a3.5 3.5 0 010-7h6.5" />
+    </>
+  ),
   volume: (
     <>
       <path d="M4 9v6h4l5 4V5L8 9H4z" />
