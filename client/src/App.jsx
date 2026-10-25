@@ -6,6 +6,8 @@
 //   /itineraries        — lịch trình của tôi (UC07, cần đăng nhập)
 //   /itineraries/:id    — chỉnh sửa lịch trình (UC07, cần đăng nhập)
 //   /shared/:token      — xem lịch trình được chia sẻ (UC07/A4, công khai)
+//   /itinerary/:id/go   — đi theo lịch trình của tôi (UC08, cần đăng nhập)
+//   /shared/:token/go   — đi theo lịch trình được chia sẻ (UC08, công khai)
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import HomePage from './features/home/HomePage.jsx';
 import TourPlayerPage from './features/player/TourPlayerPage.jsx';
@@ -14,6 +16,8 @@ import ExplorePage from './features/explore/ExplorePage.jsx';
 import ItinerariesPage from './features/itineraries/ItinerariesPage.jsx';
 import ItineraryEditorPage from './features/itineraries/ItineraryEditorPage.jsx';
 import SharedItineraryPage from './features/itineraries/SharedItineraryPage.jsx';
+import ItineraryPlayerPage from './features/itineraries/ItineraryPlayerPage.jsx';
+import SharedItineraryPlayerPage from './features/itineraries/SharedItineraryPlayerPage.jsx';
 import RequireAuth from './auth/RequireAuth.jsx';
 
 export default function App() {
@@ -26,7 +30,9 @@ export default function App() {
         <Route path="/explore" element={<ExplorePage />} />
         <Route path="/itineraries" element={<RequireAuth><ItinerariesPage /></RequireAuth>} />
         <Route path="/itineraries/:id" element={<RequireAuth><ItineraryEditorPage /></RequireAuth>} />
+        <Route path="/itinerary/:id/go" element={<RequireAuth><ItineraryPlayerPage /></RequireAuth>} />
         <Route path="/shared/:token" element={<SharedItineraryPage />} />
+        <Route path="/shared/:token/go" element={<SharedItineraryPlayerPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

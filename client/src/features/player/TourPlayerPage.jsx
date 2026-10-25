@@ -41,13 +41,25 @@ function rememberRecent(id, title) {
   }
 }
 
-export default function TourPlayerPage() {
+/**
+ * Trình phát dùng chung cho UC04 (nghe tour) và UC08 (đi theo lịch trình).
+ * Nguồn dữ liệu tiêm qua props; mặc định = chi tiết tour công khai (UC04).
+ * @param {{
+ *   loadDetail?: (lang: string|undefined, opts?: { signal?: AbortSignal }) => Promise<object>,
+ *   progressKey?: string,   // khoá lưu tiến độ/ngôn ngữ (mặc định tourId)
+ *   backTo?: string,        // nơi quay về khi thoát (mặc định '/')
+ *   remember?: boolean,     // ghi "mở gần đây" cho HomePage (chỉ UC04)
+ *   modeLabels?: { gps: string, remote: string }, // nhãn chế độ trên topbar
+ * }} [props]
+ */
+export default function TourPlayerPage({ loadDetail, progressKey, backTo = '/', remember = true, modeLabels } = {}) {
   const { tourId } = useParams();
   const [sp, setSp] = useSearchParams();
   const navigate = useNavigate();
   const { isDark, toggle: toggleTheme } = useTheme();
 
-  const { progress, markVisited, setLang } = useTourProgress(tourId);
+  const pkey = progressKey ?? tourId;
+  const { progress, markVisited, setLang } = useTourProgress(pkey);
   const initialLang = sp.get('lang') || progress.lang || undefined;
 
   const [lang, setLangState] = useState(initialLang);
@@ -71,13 +83,13 @@ export default function TourPlayerPage() {
 
   const geo = useGeolocation();
 
-  // ---- Tải tour ----
+  // ---- Tải dữ liệu (tour hoặc lịch trình) ----
   const load = useCallback(
     async (useLang, { signal } = {}) => {
-      const t = await fetchTourDetail(tourId, useLang, { signal });
-      return t;
+      if (loadDetail) return loadDetail(useLang, { signal });
+      return fetchTourDetail(tourId, useLang, { signal });
     },
-    [tourId],
+    [loadDetail, tourId],
   );
 
   useEffect(() => {
@@ -89,7 +101,7 @@ export default function TourPlayerPage() {
         setTour(t);
         setLangState(t.selectedLanguage);
         setLang(t.selectedLanguage);
-        rememberRecent(tourId, t.title);
+        if (remember && tourId) rememberRecent(tourId, t.title);
       })
       .catch((e) => {
         if (e.name === 'AbortError') return;
@@ -179,8 +191,8 @@ export default function TourPlayerPage() {
     engine.stop();
     geo.stop();
     stopWalk();
-    navigate('/');
-  }, [engine, geo, stopWalk, navigate]);
+    navigate(backTo);
+  }, [engine, geo, stopWalk, navigate, backTo]);
 
   // ---- Đổi ngôn ngữ (UC12): tải lại nội dung đã bản địa hóa ----
   const changeLang = useCallback(
@@ -246,7 +258,7 @@ export default function TourPlayerPage() {
                 : 'Đã có lỗi khi tải tour.'}
           </p>
           <div className="row">
-            <button className="btn btn--ghost" onClick={() => navigate('/')}>
+            <button className="btn btn--ghost" onClick={() => navigate(backTo)}>
               <Icon name="arrow-left" size={16} /> Về trang chủ
             </button>
             <button className="btn btn--primary" onClick={() => window.location.reload()}>
@@ -266,7 +278,7 @@ export default function TourPlayerPage() {
       <div className="screen intro">
         <div className="intro__cover" style={tour.coverImageUrl ? { backgroundImage: `url(${tour.coverImageUrl})` } : undefined}>
           <div className="intro__cover-grad" />
-          <button className="iconbtn intro__back" onClick={() => navigate('/')} aria-label="Quay lại">
+          <button className="iconbtn intro__back" onClick={() => navigate(backTo)} aria-label="Quay lại">
             <Icon name="arrow-left" size={20} />
           </button>
           <button className="iconbtn intro__theme" onClick={toggleTheme} aria-label="Đổi giao diện sáng/tối">
@@ -327,7 +339,7 @@ export default function TourPlayerPage() {
         </button>
         <div className="topbar__title">
           <span className="topbar__name" title={tour.title}>{tour.title}</span>
-          <span className="topbar__mode">{mode === 'gps' ? 'Đi theo GPS' : 'Nghe thử từ xa'}</span>
+          <span className="topbar__mode">{mode === 'gps' ? modeLabels?.gps ?? 'Đi theo GPS' : modeLabels?.remote ?? 'Nghe thử từ xa'}</span>
         </div>
         <div className="topbar__actions">
           <LanguageMenu
