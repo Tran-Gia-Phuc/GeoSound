@@ -39,6 +39,7 @@ import { SaveRouteConfig } from './application/use-cases/save-route-config.js';
 
 import { SearchTours } from './application/use-cases/search-tours.js';
 import { GetPublicTour } from './application/use-cases/get-public-tour.js';
+import { PreviewTour } from './application/use-cases/preview-tour.js';
 
 import { GetLanguageConfig } from './application/use-cases/get-language-config.js';
 import { SetTourLanguages } from './application/use-cases/set-tour-languages.js';
@@ -55,6 +56,8 @@ import { PublicTourController } from './interfaces/http/controllers/public-tour-
 import { buildPublicTourRouter } from './interfaces/http/routes/public-tour-routes.js';
 import { LanguageController } from './interfaces/http/controllers/language-controller.js';
 import { buildLanguageRouter } from './interfaces/http/routes/language-routes.js';
+import { PreviewController } from './interfaces/http/controllers/preview-controller.js';
+import { buildPreviewRouter } from './interfaces/http/routes/preview-routes.js';
 
 export function buildContainer(/* env = process.env */) {
   // --- infrastructure (impl của domain/ports) ---
@@ -105,6 +108,16 @@ export function buildContainer(/* env = process.env */) {
       placeTranslationRepo,
     }),
   };
+  const previewUseCases = {
+    // UC13 — xem thử tour (tác giả, mọi trạng thái; tái dùng view chi tiết UC02)
+    previewTour: new PreviewTour({
+      tourRepo,
+      placeRepo,
+      routeConfigRepo,
+      tourLanguageRepo,
+      placeTranslationRepo,
+    }),
+  };
   const languageUseCases = {
     // UC12 — đa ngôn ngữ & TTS
     getLanguageConfig: new GetLanguageConfig({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo }),
@@ -124,6 +137,8 @@ export function buildContainer(/* env = process.env */) {
   const publicTourRouter = buildPublicTourRouter({ publicTourController });
   const languageController = new LanguageController(languageUseCases);
   const languageRouter = buildLanguageRouter({ languageController });
+  const previewController = new PreviewController(previewUseCases);
+  const previewRouter = buildPreviewRouter({ previewController });
 
   return {
     tourRouter,
@@ -131,6 +146,7 @@ export function buildContainer(/* env = process.env */) {
     routeConfigRouter,
     publicTourRouter,
     languageRouter,
+    previewRouter,
     prisma,
   };
 }
