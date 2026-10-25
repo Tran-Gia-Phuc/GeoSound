@@ -41,3 +41,39 @@ export async function updateTour(id, patch) {
 export async function deleteTour(id) {
   return api.del(`/api/tours/mine/${encodeURIComponent(id)}`, { auth: true });
 }
+
+// ---- UC10: điểm dừng của tour ----
+// Nhãn loại địa điểm (khớp PLACE_TYPES ở backend).
+export const PLACE_TYPE_OPTIONS = [
+  { value: 'landmark', label: 'Địa danh' },
+  { value: 'museum', label: 'Bảo tàng' },
+  { value: 'historical', label: 'Di tích lịch sử' },
+  { value: 'nature', label: 'Thiên nhiên' },
+  { value: 'food', label: 'Ẩm thực' },
+  { value: 'shopping', label: 'Mua sắm' },
+  { value: 'entertainment', label: 'Giải trí' },
+  { value: 'other', label: 'Khác' },
+];
+export const PLACE_TYPE_LABELS = Object.fromEntries(PLACE_TYPE_OPTIONS.map((o) => [o.value, o.label]));
+
+const placesBase = (tourId) => `/api/tours/mine/${encodeURIComponent(tourId)}/places`;
+
+export async function listPlaces(tourId) {
+  const b = await api.get(placesBase(tourId), { auth: true });
+  return b.places;
+}
+export async function addPlace(tourId, data) {
+  const b = await api.post(placesBase(tourId), data, { auth: true });
+  return b.place;
+}
+export async function updatePlace(tourId, placeId, patch) {
+  const b = await api.patch(`${placesBase(tourId)}/${encodeURIComponent(placeId)}`, patch, { auth: true });
+  return b.place;
+}
+export async function deletePlace(tourId, placeId) {
+  return api.del(`${placesBase(tourId)}/${encodeURIComponent(placeId)}`, { auth: true });
+}
+export async function reorderPlaces(tourId, order) {
+  const b = await api.patch(`${placesBase(tourId)}/reorder`, { order }, { auth: true });
+  return b.places;
+}
