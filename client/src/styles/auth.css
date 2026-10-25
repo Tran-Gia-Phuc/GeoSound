@@ -1,0 +1,214 @@
+/* =========================================================
+   GeoSound — màn Đăng nhập/Đăng ký (UC01) + widget tài khoản.
+   Dùng lại token & lớp .btn/.input của hệ thống (app.css).
+   ========================================================= */
+
+.auth {
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+  padding: calc(var(--sat) + var(--sp-4)) var(--sp-4) var(--sp-6);
+}
+.auth__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-6);
+}
+.brand__name {
+  letter-spacing: -0.01em;
+}
+.auth__main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+.auth__card {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-md);
+  padding: var(--sp-5);
+}
+
+/* Tabs đăng nhập / đăng ký */
+.auth__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-1);
+  padding: var(--sp-1);
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  margin-bottom: var(--sp-5);
+}
+.auth__tab {
+  min-height: 40px;
+  border: none;
+  border-radius: calc(var(--r-md) - 4px);
+  background: transparent;
+  color: var(--fg-muted);
+  font-weight: 600;
+  font-size: 14.5px;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.auth__tab.is-active {
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--shadow-sm);
+}
+
+.auth__h1 {
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  margin-bottom: var(--sp-1);
+}
+.auth__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  margin-top: var(--sp-5);
+}
+
+/* Trường nhập có nhãn + lỗi/gợi ý ngay dưới */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field__label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+.field .input {
+  width: 100%;
+}
+.field__err {
+  font-size: 12.5px;
+  color: var(--danger);
+  font-weight: 600;
+}
+.field__hint {
+  font-size: 12.5px;
+  color: var(--fg-subtle);
+}
+.field .input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.auth__notice {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-top: var(--sp-3);
+}
+.auth__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: var(--sp-3);
+}
+.auth__resend {
+  margin: var(--sp-4) auto 0;
+  display: block;
+}
+
+/* OTP: canh giữa, dãn chữ cho dễ đọc */
+#otp {
+  text-align: center;
+  letter-spacing: 0.4em;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* ---------- Widget tài khoản (header) ---------- */
+.home__topright {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.account {
+  position: relative;
+}
+.account__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  height: var(--tap);
+  padding: 0 var(--sp-3) 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+  font-size: 14px;
+  max-width: 180px;
+}
+.account__avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-fg);
+  font-size: 13px;
+  font-weight: 700;
+  flex: none;
+}
+.account__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account__menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 200px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--sp-2);
+  z-index: 40;
+}
+.account__meta {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--sp-1);
+}
+.account__meta b {
+  display: block;
+  font-size: 14px;
+}
+.account__meta span {
+  font-size: 12.5px;
+  color: var(--fg-subtle);
+}
+.account__item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  min-height: 40px;
+  padding: 0 var(--sp-3);
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--fg);
+  font-size: 14px;
+  text-align: left;
+}
+.account__item:hover {
+  background: var(--surface-2);
+}
+.account__item--danger {
+  color: var(--danger);
+}

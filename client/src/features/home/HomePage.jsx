@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import { useTheme } from '../../hooks/useTheme.js';
+import AccountMenu from '../../auth/AccountMenu.jsx';
 
 const RECENT_KEY = 'geosound:recent-tours';
 
@@ -39,9 +40,12 @@ export default function HomePage() {
           <span className="brand__logo"><Icon name="headphones" size={20} /></span>
           <span className="brand__name">GeoSound</span>
         </div>
-        <button className="iconbtn" onClick={toggle} aria-label="Đổi giao diện sáng/tối">
-          <Icon name={isDark ? 'sun' : 'moon'} size={18} />
-        </button>
+        <div className="home__topright">
+          <AccountMenu />
+          <button className="iconbtn" onClick={toggle} aria-label="Đổi giao diện sáng/tối">
+            <Icon name={isDark ? 'sun' : 'moon'} size={18} />
+          </button>
+        </div>
       </header>
 
       <main className="home__main">
