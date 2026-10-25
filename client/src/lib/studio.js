@@ -77,3 +77,13 @@ export async function reorderPlaces(tourId, order) {
   const b = await api.patch(`${placesBase(tourId)}/reorder`, { order }, { auth: true });
   return b.places;
 }
+
+// ---- UC11: cấu hình route & vùng kích hoạt ----
+export async function getRouteConfig(tourId) {
+  const b = await api.get(`/api/tours/mine/${encodeURIComponent(tourId)}/route-config`, { auth: true });
+  return b.config;
+}
+export async function saveRouteConfig(tourId, config) {
+  const b = await api.put(`/api/tours/mine/${encodeURIComponent(tourId)}/route-config`, config, { auth: true });
+  return b.config;
+}
