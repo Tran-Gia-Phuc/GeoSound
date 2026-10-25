@@ -18,7 +18,7 @@ const AREAS = [
   { key: 'places', to: 'places', icon: 'map-pin', title: 'Điểm dừng', desc: 'Thêm & sắp xếp các điểm trên tour', enabled: true },
   { key: 'route', to: 'route', icon: 'route', title: 'Route & vùng kích hoạt', desc: 'Vẽ lộ trình, đặt vùng tự phát audio', enabled: true },
   { key: 'languages', to: 'languages', icon: 'languages', title: 'Ngôn ngữ & giọng đọc', desc: 'Ngôn ngữ phụ, bản dịch, giọng TTS', enabled: true },
-  { key: 'preview', to: 'preview', icon: 'play', title: 'Xem thử', desc: 'Trải nghiệm tour như một khách', enabled: false },
+  { key: 'preview', to: 'preview', icon: 'play', title: 'Xem thử', desc: 'Trải nghiệm tour như một khách', enabled: true },
 ];
 
 export default function TourEditorPage() {
