@@ -5,6 +5,7 @@
 // =========================================================
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import { useTheme } from '../../hooks/useTheme.js';
 import AccountMenu from '../../auth/AccountMenu.jsx';
@@ -76,6 +77,25 @@ export default function HomePage() {
             Mở tour
           </button>
         </form>
+
+        <nav className="home__nav" aria-label="Lịch trình cá nhân">
+          <Link className="home__navcard" to="/itineraries">
+            <span className="home__navicon"><Icon name="route" size={20} /></span>
+            <span className="home__navtext">
+              <b>Lịch trình của tôi</b>
+              <span className="muted small">Tự lên kế hoạch chuyến đi</span>
+            </span>
+            <Icon name="chevron-left" size={16} className="recent__chev" />
+          </Link>
+          <Link className="home__navcard" to="/explore">
+            <span className="home__navicon"><Icon name="search" size={20} /></span>
+            <span className="home__navtext">
+              <b>Khám phá địa điểm</b>
+              <span className="muted small">Tìm điểm lẻ để thêm vào lịch trình</span>
+            </span>
+            <Icon name="chevron-left" size={16} className="recent__chev" />
+          </Link>
+        </nav>
 
         {recent.length ? (
           <section className="home__recent">
