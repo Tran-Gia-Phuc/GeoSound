@@ -24,16 +24,24 @@ const base = z.object({
   at: z.string().datetime().optional(),
 });
 
+// Thông tin người nhận để service notification gửi email/in-app (UC16).
+// Optional: publisher cấp khi có; thiếu thì notification bỏ qua việc gửi email.
+const recipient = {
+  contributorId: z.string().min(1).optional(),
+  contributorEmail: z.string().email().optional(),
+  tourTitle: z.string().min(1).optional(),
+};
+
 export const schemas = {
   [EVENTS.TOUR_SUBMITTED]: base.extend({ contributorId: z.string().min(1) }),
   [EVENTS.TOUR_AI_PASSED]: base,
-  [EVENTS.TOUR_AI_REJECTED]: base.extend({ reason: z.string() }),
-  [EVENTS.TOUR_APPROVED]: base.extend({ adminId: z.string().min(1) }),
-  [EVENTS.TOUR_REJECTED]: base.extend({ reason: z.string() }),
+  [EVENTS.TOUR_AI_REJECTED]: base.extend({ reason: z.string(), ...recipient }),
+  [EVENTS.TOUR_APPROVED]: base.extend({ adminId: z.string().min(1), ...recipient }),
+  [EVENTS.TOUR_REJECTED]: base.extend({ reason: z.string(), ...recipient }),
   [EVENTS.TOUR_REPORTED]: base.extend({ count: z.number().int().nonnegative() }),
-  [EVENTS.TOUR_HIDDEN]: base.extend({ reason: z.string() }),
+  [EVENTS.TOUR_HIDDEN]: base.extend({ reason: z.string(), ...recipient }),
   [EVENTS.TTS_RENDER_REQUESTED]: base.extend({ languages: z.array(z.string()).nonempty() }),
-  [EVENTS.TTS_RENDER_COMPLETED]: base.extend({ assets: z.array(z.object({ lang: z.string(), url: z.string().url() })) }),
+  [EVENTS.TTS_RENDER_COMPLETED]: base.extend({ assets: z.array(z.object({ lang: z.string(), url: z.string().url() })), ...recipient }),
 };
 
 /** Validate payload theo tên event; ném lỗi nếu sai schema. */

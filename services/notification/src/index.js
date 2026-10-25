@@ -1,12 +1,15 @@
 // =========================================================
 // Notification worker (UC16). KHÔNG mở port.
-// Skeleton: consume các event kết quả -> (sẽ) báo contributor (in-app/email).
+// Consume event kết quả -> gửi email báo contributor (kèm lý do nếu có).
 // =========================================================
 import { connect, consume } from '../shared/rabbitmq/index.js';
 import { EVENTS } from '../shared/events/index.js';
+import { createMailer } from './services/mailer.js';
+import { handleEvent } from './notify.js';
 
 async function main() {
   await connect();
+  const mailer = createMailer();
   await consume(
     'notification.events',
     [
@@ -17,10 +20,7 @@ async function main() {
       EVENTS.TOUR_HIDDEN,
       EVENTS.TTS_RENDER_COMPLETED,
     ],
-    async (event, payload) => {
-      console.log(`[notification] got ${event}:`, payload);
-      // TODO(UC16): tạo thông báo in-app + gửi email (Nodemailer) kèm lý do.
-    }
+    (event, payload) => handleEvent(mailer, event, payload),
   );
   console.log('[notification] worker started');
 }
