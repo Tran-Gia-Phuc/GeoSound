@@ -55,7 +55,7 @@ class GeminiClient:
         *,
         system: str | None = None,
         temperature: float = 0.3,
-        max_tokens: int = 2048,
+        max_tokens: int = 4096,
     ) -> str:
         return await self._generate(
             prompt,
