@@ -1,7 +1,8 @@
 // =========================================================
 // Tour service (UC02,03,07-11,13,17,18). Dùng PostGIS nhiều nhất.
 // Hiện có: UC09 CRUD tour; UC10 điểm dừng; UC11 route & vùng kích hoạt;
-// UC02 tìm & xem tour công khai; UC12 đa ngôn ngữ & TTS. Ráp router từ container.js.
+// UC02 tìm & xem tour công khai; UC12 đa ngôn ngữ & TTS; UC13 xem thử tour.
+// Ráp router từ container.js.
 // Qua gateway: /api/tours/* -> ở đây là /* (vd /api/tours/mine -> /mine).
 // =========================================================
 import express from 'express';
@@ -11,7 +12,7 @@ import { buildContainer } from './container.js';
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-const { tourRouter, placeRouter, routeConfigRouter, publicTourRouter, languageRouter } =
+const { tourRouter, placeRouter, routeConfigRouter, publicTourRouter, languageRouter, previewRouter } =
   buildContainer(process.env);
 
 app.use(express.json());
@@ -33,6 +34,8 @@ app.use('/', routeConfigRouter);
 // UC12: /mine/:tourId/languages (GET | PUT) + .../places/:placeId/tts-preview,
 //       .../places/:placeId/translations/:lang
 app.use('/', languageRouter);
+// UC13: /mine/:tourId/preview (GET) — xem thử tour của chính tác giả
+app.use('/', previewRouter);
 
 // TODO: publish tour.submitted (UC15); "tour gần tôi" chuyển PostGIS khi cần.
 

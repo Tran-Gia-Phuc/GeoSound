@@ -56,6 +56,18 @@ export class ForbiddenZoneError extends AppError {
   }
 }
 
+// UC13 / E1 — tour thiếu dữ liệu để xem thử (chưa có điểm hoặc route).
+export class TourNotPreviewableError extends AppError {
+  /** @param {{ places?: boolean, route?: boolean }} [missing] cái còn thiếu */
+  constructor(missing) {
+    super('Chưa thể xem thử: tour cần có ít nhất một điểm và route', {
+      status: 422,
+      code: 'tour_not_previewable',
+    });
+    if (missing) this.missing = missing;
+  }
+}
+
 // UC12 / E1 — dịch vụ dịch không phản hồi (cho thử lại).
 export class TranslationError extends AppError {
   constructor(message = 'Dịch tự động thất bại, vui lòng thử lại') {
