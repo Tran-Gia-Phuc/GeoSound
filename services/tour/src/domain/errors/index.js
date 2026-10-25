@@ -68,6 +68,28 @@ export class TourNotPreviewableError extends AppError {
   }
 }
 
+// UC07 — không tìm thấy lịch trình (đã xoá / id sai / mã chia sẻ sai).
+export class ItineraryNotFoundError extends AppError {
+  constructor(message = 'Không tìm thấy lịch trình') {
+    super(message, { status: 404, code: 'itinerary_not_found' });
+  }
+}
+
+// UC07 — chỉ chủ sở hữu thao tác lịch trình của mình.
+export class NotItineraryOwnerError extends AppError {
+  constructor(message = 'Bạn không có quyền thao tác lịch trình này') {
+    super(message, { status: 403, code: 'not_itinerary_owner' });
+  }
+}
+
+// UC07 — địa điểm không thể thêm (không tồn tại hoặc không thuộc tour công khai).
+// BR: chỉ hiển thị/ thêm địa điểm thuộc tour công khai.
+export class PlaceNotAddableError extends AppError {
+  constructor(message = 'Địa điểm không khả dụng để thêm vào lịch trình') {
+    super(message, { status: 404, code: 'place_not_addable' });
+  }
+}
+
 // UC12 / E1 — dịch vụ dịch không phản hồi (cho thử lại).
 export class TranslationError extends AppError {
   constructor(message = 'Dịch tự động thất bại, vui lòng thử lại') {
