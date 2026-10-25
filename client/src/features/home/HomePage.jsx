@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import { useTheme } from '../../hooks/useTheme.js';
 import AccountMenu from '../../auth/AccountMenu.jsx';
+import { useAuth } from '../../auth/AuthContext.jsx';
 
 const RECENT_KEY = 'geosound:recent-tours';
 
@@ -23,6 +24,7 @@ function readRecent() {
 export default function HomePage() {
   const navigate = useNavigate();
   const { isDark, toggle } = useTheme();
+  const { isContributor } = useAuth();
   const [id, setId] = useState('');
   const [recent, setRecent] = useState([]);
 
@@ -88,6 +90,16 @@ export default function HomePage() {
         </details>
 
         <nav className="home__nav" aria-label="Lịch trình cá nhân">
+          {isContributor ? (
+            <Link className="home__navcard" to="/studio">
+              <span className="home__navicon"><Icon name="map-pin" size={20} /></span>
+              <span className="home__navtext">
+                <b>Studio — Tour của tôi</b>
+                <span className="muted small">Tạo & quản lý tour audio bạn đóng góp</span>
+              </span>
+              <Icon name="chevron-left" size={16} className="recent__chev" />
+            </Link>
+          ) : null}
           <Link className="home__navcard" to="/itineraries">
             <span className="home__navicon"><Icon name="route" size={20} /></span>
             <span className="home__navtext">

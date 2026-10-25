@@ -1,0 +1,297 @@
+/* =========================================================
+   GeoSound — khu "Studio" của người đóng góp (UC09–UC13). Mobile-first,
+   tái dùng token & lớp .btn/.input/.alert/.chip của app.css.
+   ========================================================= */
+
+.studio {
+  max-width: 760px;
+  margin: 0 auto;
+  width: 100%;
+  padding: calc(var(--sat) + var(--sp-4)) var(--sp-4) calc(var(--sab) + var(--sp-6));
+}
+
+/* ---- Thanh đầu ---- */
+.studio__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+.studio__topleft {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.studio__heading {
+  min-width: 0;
+}
+.studio__title {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 48vw;
+}
+.studio__subtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 48vw;
+}
+
+.studio__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.studio__main--narrow {
+  max-width: 560px;
+  width: 100%;
+  margin: 0 auto;
+}
+.studio__pagehead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.studio__h1 {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.studio__h2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: var(--sp-2);
+}
+.studio__loading {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.studio__empty {
+  margin: var(--sp-6) auto;
+  text-align: center;
+}
+
+/* ---- Danh sách tour (thẻ) ---- */
+.studio-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.studio-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  color: inherit;
+  text-decoration: none;
+  transition: transform var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.studio-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+.studio-card__cover {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--r-md);
+  background: var(--surface-2) center / cover no-repeat;
+  display: grid;
+  place-items: center;
+  color: var(--fg-subtle);
+}
+.studio-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.studio-card__titlerow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+.studio-card__title {
+  font-weight: 700;
+  font-size: 15.5px;
+}
+.studio-card__meta {
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.studio-card__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.studio-card__chev {
+  flex: 0 0 auto;
+  color: var(--fg-subtle);
+  transform: rotate(180deg); /* chevron-left -> trỏ phải */
+}
+
+/* ---- Chip trạng thái ---- */
+.statuschip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.statuschip--neutral { background: var(--surface-2); color: var(--fg-muted); border-color: var(--border); }
+.statuschip--muted { background: var(--surface-2); color: var(--fg-subtle); border-color: var(--border); }
+.statuschip--info { background: var(--primary-soft); color: var(--primary); }
+.statuschip--live { background: var(--primary-soft); color: var(--primary); }
+.statuschip--warn { background: var(--accent-soft); color: var(--accent); }
+.statuschip--danger { background: var(--danger-soft); color: var(--danger); }
+
+/* ---- Biểu mẫu ---- */
+.studio-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.studio-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+.studio-form select.input {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--fg-muted) 50%),
+    linear-gradient(135deg, var(--fg-muted) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: var(--sp-6);
+}
+.studio-form__textarea {
+  min-height: 112px;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.5;
+  resize: vertical;
+  font-family: inherit;
+}
+.studio-form__actions {
+  display: flex;
+  gap: var(--sp-3);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* ---- Trình chỉnh sửa: trạng thái + khu điều hướng ---- */
+.studio-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.studio-areas {
+  display: grid;
+  gap: var(--sp-2);
+}
+.studio-area {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.studio-area:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+.studio-area--soon {
+  opacity: 0.72;
+  cursor: default;
+}
+.studio-area__icon {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  display: grid;
+  place-items: center;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.studio-area__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.studio-area__chev {
+  color: var(--fg-subtle);
+  transform: rotate(180deg);
+}
+
+/* ---- Thông báo thành công ---- */
+.studio-notice {
+  background: var(--primary-soft);
+  border-color: transparent;
+}
+.studio-notice .alert__icon {
+  color: var(--primary);
+}
+
+/* ---- Nút & vùng nguy hiểm ---- */
+/* Đỏ cố định (không dùng token --danger vì token đổi sang đỏ nhạt ở chế độ tối,
+   làm chữ trắng mất tương phản). #b3261e + chữ trắng đạt >=4.5:1 cả 2 nền. */
+.btn--danger {
+  background: #b3261e;
+  color: #fff;
+}
+.btn--danger:hover {
+  filter: brightness(1.08);
+}
+.studio-danger {
+  margin-top: var(--sp-4);
+  padding: var(--sp-4);
+  border: 1px solid var(--danger-soft);
+  border-radius: var(--r-lg);
+  background: var(--danger-soft);
+}
+.studio-danger__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .studio-form__row {
+    grid-template-columns: 1fr;
+  }
+  .studio__title { max-width: 40vw; }
+  .studio__subtitle { max-width: 40vw; }
+}
