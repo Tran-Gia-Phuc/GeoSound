@@ -29,6 +29,13 @@ class Settings(BaseSettings):
 
     moderation_reject_threshold: float = 0.8
     moderation_warning_threshold: float = 0.4
+    # Hard cap for scanning one whole tour (the spec target is 15 s).
+    moderation_timeout_seconds: float = 30.0
+
+    # RabbitMQ consumer: attempts per message, base delay, unacked messages in flight.
+    event_max_attempts: int = 3
+    event_retry_delay_seconds: float = 2.0
+    event_prefetch: int = 2
 
 
 @lru_cache
