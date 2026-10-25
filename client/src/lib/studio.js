@@ -124,3 +124,13 @@ export async function updateTranslation(tourId, placeId, lang, text) {
   );
   return b.translation;
 }
+
+// ---- UC13: xem thử tour (tác giả) ----
+// Trả view giống chi tiết tour công khai (buildTourDetailView) để tái dùng trình
+// phát UC04; chạy với MỌI trạng thái. E1 (thiếu điểm/route) → API ném lỗi 422.
+// Chữ ký (lang, opts) để khớp prop loadDetail của TourPlayerPage.
+export async function previewTour(tourId, lang, opts) {
+  const q = lang ? `?lang=${encodeURIComponent(lang)}` : '';
+  const b = await api.get(`/api/tours/mine/${encodeURIComponent(tourId)}/preview${q}`, { ...opts, auth: true });
+  return b.tour;
+}

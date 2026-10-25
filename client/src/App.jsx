@@ -16,6 +16,7 @@
 //   /studio/tours/:id/places — quản lý điểm dừng (UC10)
 //   /studio/tours/:id/route  — route & vùng kích hoạt (UC11)
 //   /studio/tours/:id/languages — ngôn ngữ & TTS (UC12)
+//   /studio/tours/:tourId/preview — xem thử tour (UC13)
 import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import HomePage from './features/home/HomePage.jsx';
 import ToursPage from './features/tours/ToursPage.jsx';
@@ -36,11 +37,27 @@ import TourEditorPage from './features/studio/TourEditorPage.jsx';
 import PlacesManagerPage from './features/studio/PlacesManagerPage.jsx';
 import RouteConfigPage from './features/studio/RouteConfigPage.jsx';
 import LanguagesPage from './features/studio/LanguagesPage.jsx';
+import { previewTour } from './lib/studio.js';
 
 // UC04 mở từ chi tiết tour (UC02) — thoát thì quay về chi tiết tour.
 function PlayTourRoute() {
   const { tourId } = useParams();
   return <TourPlayerPage backTo={`/tour/${tourId}`} />;
+}
+
+// UC13 — xem thử tour của chính tác giả: tái dùng trình phát UC04 nhưng nguồn là
+// endpoint preview (mọi trạng thái); thoát quay về trình chỉnh sửa tour.
+function PreviewTourRoute() {
+  const { tourId } = useParams();
+  return (
+    <TourPlayerPage
+      loadDetail={(lang, opts) => previewTour(tourId, lang, opts)}
+      progressKey={`studio-preview:${tourId}`}
+      backTo={`/studio/tours/${tourId}`}
+      remember={false}
+      modeLabels={{ gps: 'Xem thử (GPS)', remote: 'Xem thử từ xa' }}
+    />
+  );
 }
 
 export default function App() {
@@ -64,6 +81,7 @@ export default function App() {
         <Route path="/studio/tours/:id/places" element={<RequireContributor><PlacesManagerPage /></RequireContributor>} />
         <Route path="/studio/tours/:id/route" element={<RequireContributor><RouteConfigPage /></RequireContributor>} />
         <Route path="/studio/tours/:id/languages" element={<RequireContributor><LanguagesPage /></RequireContributor>} />
+        <Route path="/studio/tours/:tourId/preview" element={<RequireContributor><PreviewTourRoute /></RequireContributor>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
