@@ -288,10 +288,81 @@
   flex-wrap: wrap;
 }
 
+/* ---- UC10: quản lý điểm dừng ---- */
+.studio-map {
+  position: relative;
+  height: 300px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.studio-map .gs-map {
+  height: 100%;
+  width: 100%;
+}
+.studio-map__hint {
+  position: absolute;
+  left: 50%;
+  bottom: var(--sp-3);
+  transform: translateX(-50%);
+  z-index: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: var(--shadow-md);
+}
+.studio-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.studio-stops {
+  margin-top: var(--sp-2);
+}
+.place-form__coordhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.place-form__coordhead .btn.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.place-form__image {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--sp-2);
+  align-items: center;
+  margin-bottom: var(--sp-2);
+}
+.place-form__imgfields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.place-form__addimg {
+  align-self: flex-start;
+}
+
 @media (max-width: 480px) {
   .studio-form__row {
     grid-template-columns: 1fr;
   }
   .studio__title { max-width: 40vw; }
   .studio__subtitle { max-width: 40vw; }
+  .place-form__imgfields {
+    grid-template-columns: 1fr;
+  }
 }

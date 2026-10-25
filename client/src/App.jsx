@@ -13,6 +13,7 @@
 //   /studio             — tour của tôi (UC09, chỉ người đóng góp)
 //   /studio/tours/new   — tạo tour (UC09)
 //   /studio/tours/:id   — chỉnh sửa tour (UC09)
+//   /studio/tours/:id/places — quản lý điểm dừng (UC10)
 import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import HomePage from './features/home/HomePage.jsx';
 import ToursPage from './features/tours/ToursPage.jsx';
@@ -30,6 +31,7 @@ import RequireContributor from './auth/RequireContributor.jsx';
 import StudioToursPage from './features/studio/StudioToursPage.jsx';
 import TourCreatePage from './features/studio/TourCreatePage.jsx';
 import TourEditorPage from './features/studio/TourEditorPage.jsx';
+import PlacesManagerPage from './features/studio/PlacesManagerPage.jsx';
 
 // UC04 mở từ chi tiết tour (UC02) — thoát thì quay về chi tiết tour.
 function PlayTourRoute() {
@@ -55,6 +57,7 @@ export default function App() {
         <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />
         <Route path="/studio/tours/new" element={<RequireContributor><TourCreatePage /></RequireContributor>} />
         <Route path="/studio/tours/:id" element={<RequireContributor><TourEditorPage /></RequireContributor>} />
+        <Route path="/studio/tours/:id/places" element={<RequireContributor><PlacesManagerPage /></RequireContributor>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
