@@ -1,0 +1,406 @@
+/* =========================================================
+   GeoSound — Tìm & xem tour (UC02). Dùng chung token ở app.css.
+   Mobile-first; thẻ tour 1 cột, từ 640px chuyển 2 cột.
+   ========================================================= */
+
+.tours {
+  max-width: 820px;
+  margin: 0 auto;
+  width: 100%;
+  padding: calc(var(--sat) + var(--sp-4)) var(--sp-4) calc(var(--sab) + var(--sp-6));
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.tours__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+.tours__topright {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.brand {
+  color: inherit;
+  text-decoration: none;
+}
+.tours__h1 {
+  font-size: 24px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+.tours__lead {
+  color: var(--fg-muted);
+  line-height: 1.5;
+}
+
+/* ---------- Ô tìm kiếm + bộ lọc ---------- */
+.searchbar {
+  display: flex;
+  gap: var(--sp-2);
+}
+.searchbar__box {
+  position: relative;
+  flex: 1;
+  display: flex;
+}
+.searchbar__icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--fg-subtle);
+  pointer-events: none;
+}
+.searchbar__box .input {
+  padding-left: 40px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+.filters .field {
+  flex: 1 1 150px;
+  min-width: 140px;
+}
+/* select dùng chung .input nhưng thêm mũi tên gọn */
+select.input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--fg-subtle) 50%),
+    linear-gradient(135deg, var(--fg-subtle) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 34px;
+}
+
+/* ---------- Sắp xếp (chip) ---------- */
+.sorts {
+  display: flex;
+  gap: var(--sp-2);
+  overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.sorts::-webkit-scrollbar {
+  display: none;
+}
+.sortchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  min-height: 38px;
+  padding: 0 var(--sp-3);
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--fg-muted);
+  font-weight: 600;
+  font-size: 13.5px;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+}
+.sortchip:hover {
+  background: var(--surface-2);
+}
+.sortchip--on {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-color: transparent;
+}
+
+.tours__count {
+  color: var(--fg-subtle);
+  font-size: 13px;
+  margin-top: calc(-1 * var(--sp-2));
+}
+
+/* ---------- Danh sách thẻ tour ---------- */
+.tourlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-3);
+}
+@media (min-width: 640px) {
+  .tourlist {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.tour-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  color: var(--fg);
+  text-decoration: none;
+  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+}
+.tour-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
+}
+.tour-card__cover {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, var(--teal-700), var(--teal-500));
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.85);
+}
+.tour-card__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* Nhãn giọng trên ảnh — nền đặc để luôn đủ tương phản trên mọi ảnh bìa */
+.tour-card__voice {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  background: rgba(2, 6, 23, 0.68);
+  color: #fff;
+  border-color: transparent;
+  backdrop-filter: blur(2px);
+}
+.tour-card__body {
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  flex: 1;
+}
+.tour-card__title {
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tour-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+}
+.tour-card__meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.tour-card__city {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tour-card__foot {
+  margin-top: auto;
+  padding-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.tour-card__go {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 14px;
+}
+.tour-card__chev {
+  transform: rotate(180deg);
+}
+
+/* ---------- Điểm đánh giá ---------- */
+.rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+}
+.rating__star {
+  color: var(--amber-500);
+}
+
+/* ---------- Khung rỗng / tải ---------- */
+.tours__empty {
+  margin: var(--sp-5) auto;
+  text-align: center;
+}
+.loadmore {
+  align-self: center;
+  min-width: 160px;
+}
+
+/* ---------- Khung xương (skeleton) khi tải ---------- */
+.skel-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--surface);
+}
+.skel {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+}
+.skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.22), transparent);
+  animation: shimmer 1.3s infinite;
+}
+.skel-card__cover {
+  aspect-ratio: 16 / 9;
+  border-radius: 0;
+}
+.skel-line {
+  height: 12px;
+  margin: var(--sp-3) var(--sp-3) 0;
+}
+.skel-line:last-child {
+  margin-bottom: var(--sp-3);
+}
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ---------- Trang chủ: lối vào tìm tour ---------- */
+.home__searchcta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: 52px;
+  padding: 0 var(--sp-4);
+  margin-bottom: var(--sp-4);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--fg-muted);
+  font-weight: 500;
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.home__searchcta:hover {
+  background: var(--surface-2);
+  border-color: var(--primary);
+}
+.home__searchcta > span {
+  flex: 1;
+}
+.home__dev {
+  margin-bottom: var(--sp-5);
+}
+.home__dev > summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--fg-subtle);
+  margin-bottom: var(--sp-3);
+  list-style-position: inside;
+}
+
+/* ---------- Chi tiết tour ---------- */
+.detail__rating {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.detail__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.detail__h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-subtle);
+}
+.detail__map {
+  height: 260px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  position: relative;
+}
+.detail__map .gs-map {
+  height: 100%;
+  width: 100%;
+}
+
+.langpick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.langchip {
+  min-height: 40px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--fg);
+  font-weight: 600;
+  font-size: 14px;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
+}
+.langchip:hover {
+  background: var(--surface-2);
+}
+.langchip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.langchip--on {
+  background: var(--primary);
+  color: var(--primary-fg);
+  border-color: transparent;
+}
+.detail__voice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg-muted);
+  font-size: 13px;
+}
+.detail__stops {
+  margin-top: var(--sp-1);
+}
+.detail__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+}

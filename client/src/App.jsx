@@ -1,15 +1,19 @@
 // Định tuyến client.
 //   /                   — trang chủ
 //   /login              — đăng nhập / đăng ký (UC01)
-//   /tour/:id           — trình nghe tour (UC04)
+//   /tours              — tìm & duyệt tour (UC02)
+//   /tour/:id           — chi tiết tour (UC02)
+//   /tour/:id/play      — trình nghe tour (UC04)
 //   /explore            — khám phá địa điểm lẻ (UC07)
 //   /itineraries        — lịch trình của tôi (UC07, cần đăng nhập)
 //   /itineraries/:id    — chỉnh sửa lịch trình (UC07, cần đăng nhập)
 //   /shared/:token      — xem lịch trình được chia sẻ (UC07/A4, công khai)
 //   /itinerary/:id/go   — đi theo lịch trình của tôi (UC08, cần đăng nhập)
 //   /shared/:token/go   — đi theo lịch trình được chia sẻ (UC08, công khai)
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import HomePage from './features/home/HomePage.jsx';
+import ToursPage from './features/tours/ToursPage.jsx';
+import TourDetailPage from './features/tours/TourDetailPage.jsx';
 import TourPlayerPage from './features/player/TourPlayerPage.jsx';
 import LoginPage from './features/auth/LoginPage.jsx';
 import ExplorePage from './features/explore/ExplorePage.jsx';
@@ -20,13 +24,21 @@ import ItineraryPlayerPage from './features/itineraries/ItineraryPlayerPage.jsx'
 import SharedItineraryPlayerPage from './features/itineraries/SharedItineraryPlayerPage.jsx';
 import RequireAuth from './auth/RequireAuth.jsx';
 
+// UC04 mở từ chi tiết tour (UC02) — thoát thì quay về chi tiết tour.
+function PlayTourRoute() {
+  const { tourId } = useParams();
+  return <TourPlayerPage backTo={`/tour/${tourId}`} />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/tour/:tourId" element={<TourPlayerPage />} />
+        <Route path="/tours" element={<ToursPage />} />
+        <Route path="/tour/:tourId" element={<TourDetailPage />} />
+        <Route path="/tour/:tourId/play" element={<PlayTourRoute />} />
         <Route path="/explore" element={<ExplorePage />} />
         <Route path="/itineraries" element={<RequireAuth><ItinerariesPage /></RequireAuth>} />
         <Route path="/itineraries/:id" element={<RequireAuth><ItineraryEditorPage /></RequireAuth>} />
