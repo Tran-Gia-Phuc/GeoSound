@@ -1,0 +1,209 @@
+// =========================================================
+// TourForm — biểu mẫu nội dung tour dùng chung cho tạo (UC09 bước 4–7) và
+// sửa (A1). Kiểm tra tại chỗ theo từng trường (tên + ngôn ngữ gốc bắt buộc — E2;
+// ảnh bìa phải là URL — E3). Lỗi hiển thị ngay dưới ô nhập.
+// Trả về `onSubmit(values)` đã chuẩn hoá (bỏ ô rỗng, duration là số).
+// =========================================================
+import { useState } from 'react';
+import Icon from '../../components/Icon.jsx';
+import { TOUR_TYPE_OPTIONS, LANGUAGE_OPTIONS } from '../../lib/tours.js';
+
+const isHttpUrl = (s) => {
+  try {
+    const u = new URL(s);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const emptyForm = {
+  title: '',
+  originalLanguage: 'vi',
+  type: 'walking',
+  city: '',
+  duration: '',
+  description: '',
+  coverImageUrl: '',
+};
+
+/**
+ * @param {{
+ *   initial?: object, submitLabel: string, busy?: boolean, serverError?: string,
+ *   onSubmit: (values: object) => void, onCancel?: () => void,
+ * }} props
+ */
+export default function TourForm({ initial, submitLabel, busy, serverError, onSubmit, onCancel }) {
+  const [f, setF] = useState(() => ({
+    ...emptyForm,
+    ...(initial
+      ? {
+          title: initial.title ?? '',
+          originalLanguage: initial.originalLanguage ?? 'vi',
+          type: initial.type ?? 'walking',
+          city: initial.city ?? '',
+          duration: initial.duration != null ? String(initial.duration) : '',
+          description: initial.description ?? '',
+          coverImageUrl: initial.coverImageUrl ?? '',
+        }
+      : {}),
+  }));
+  const [errs, setErrs] = useState({});
+  const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
+
+  function validate() {
+    const next = {};
+    if (!f.title.trim()) next.title = 'Vui lòng nhập tên tour';
+    else if (f.title.trim().length > 200) next.title = 'Tên tour tối đa 200 ký tự';
+    if (!f.originalLanguage) next.originalLanguage = 'Vui lòng chọn ngôn ngữ gốc';
+    if (f.description.length > 2000) next.description = 'Mô tả tối đa 2000 ký tự';
+    if (f.coverImageUrl.trim() && !isHttpUrl(f.coverImageUrl.trim()))
+      next.coverImageUrl = 'Ảnh bìa phải là đường dẫn http(s) hợp lệ';
+    if (f.duration.trim()) {
+      const n = Number(f.duration);
+      if (!Number.isInteger(n) || n <= 0) next.duration = 'Thời lượng là số phút nguyên dương';
+    }
+    setErrs(next);
+    return Object.keys(next).length === 0;
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    if (busy) return;
+    if (!validate()) return;
+    const v = {
+      title: f.title.trim(),
+      originalLanguage: f.originalLanguage,
+      type: f.type,
+    };
+    if (f.city.trim()) v.city = f.city.trim();
+    if (f.duration.trim()) v.duration = Number(f.duration);
+    // description cho phép rỗng (xoá mô tả); coverImageUrl rỗng thì bỏ qua (API cần URL).
+    v.description = f.description.trim();
+    if (f.coverImageUrl.trim()) v.coverImageUrl = f.coverImageUrl.trim();
+    onSubmit(v);
+  }
+
+  return (
+    <form className="studio-form" onSubmit={submit} noValidate>
+      {serverError ? (
+        <div className="alert alert--warn" role="alert">
+          <Icon name="alert-triangle" size={18} className="alert__icon" />
+          <div>{serverError}</div>
+        </div>
+      ) : null}
+
+      <div className="field">
+        <label className="field__label" htmlFor="tf-title">Tên tour *</label>
+        <input
+          id="tf-title"
+          className="input"
+          value={f.title}
+          onChange={set('title')}
+          maxLength={200}
+          aria-invalid={!!errs.title}
+          aria-describedby={errs.title ? 'tf-title-err' : undefined}
+          placeholder="Ví dụ: Dạo quanh phố cổ Hội An"
+        />
+        {errs.title ? <span id="tf-title-err" className="field__err">{errs.title}</span> : null}
+      </div>
+
+      <div className="studio-form__row">
+        <div className="field">
+          <label className="field__label" htmlFor="tf-lang">Ngôn ngữ gốc *</label>
+          <select
+            id="tf-lang"
+            className="input"
+            value={f.originalLanguage}
+            onChange={set('originalLanguage')}
+            aria-invalid={!!errs.originalLanguage}
+          >
+            {LANGUAGE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+          {errs.originalLanguage ? <span className="field__err">{errs.originalLanguage}</span> : null}
+        </div>
+
+        <div className="field">
+          <label className="field__label" htmlFor="tf-type">Loại tour</label>
+          <select id="tf-type" className="input" value={f.type} onChange={set('type')}>
+            {TOUR_TYPE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="studio-form__row">
+        <div className="field">
+          <label className="field__label" htmlFor="tf-city">Thành phố</label>
+          <input
+            id="tf-city"
+            className="input"
+            value={f.city}
+            onChange={set('city')}
+            maxLength={120}
+            placeholder="Ví dụ: Hội An"
+          />
+        </div>
+        <div className="field">
+          <label className="field__label" htmlFor="tf-duration">Thời lượng (phút)</label>
+          <input
+            id="tf-duration"
+            className="input"
+            value={f.duration}
+            onChange={set('duration')}
+            inputMode="numeric"
+            placeholder="Ví dụ: 90"
+            aria-invalid={!!errs.duration}
+          />
+          {errs.duration ? <span className="field__err">{errs.duration}</span> : null}
+        </div>
+      </div>
+
+      <div className="field">
+        <label className="field__label" htmlFor="tf-cover">Ảnh bìa (URL)</label>
+        <input
+          id="tf-cover"
+          className="input"
+          value={f.coverImageUrl}
+          onChange={set('coverImageUrl')}
+          placeholder="https://…"
+          aria-invalid={!!errs.coverImageUrl}
+          aria-describedby={errs.coverImageUrl ? 'tf-cover-err' : undefined}
+        />
+        {errs.coverImageUrl ? <span id="tf-cover-err" className="field__err">{errs.coverImageUrl}</span> : (
+          <span className="field__hint">Dán link ảnh công khai. Có thể bỏ trống.</span>
+        )}
+      </div>
+
+      <div className="field">
+        <label className="field__label" htmlFor="tf-desc">Mô tả</label>
+        <textarea
+          id="tf-desc"
+          className="input studio-form__textarea"
+          value={f.description}
+          onChange={set('description')}
+          maxLength={2000}
+          rows={4}
+          placeholder="Giới thiệu ngắn về tour…"
+          aria-invalid={!!errs.description}
+        />
+        {errs.description ? <span className="field__err">{errs.description}</span> : (
+          <span className="field__hint">{f.description.length}/2000 ký tự</span>
+        )}
+      </div>
+
+      <div className="studio-form__actions">
+        {onCancel ? (
+          <button type="button" className="btn" onClick={onCancel} disabled={busy}>Huỷ</button>
+        ) : null}
+        <button type="submit" className="btn btn--primary" disabled={busy}>
+          {busy ? <Icon name="loader" size={18} className="spin" /> : <Icon name="check-circle" size={18} />}
+          {submitLabel}
+        </button>
+      </div>
+    </form>
+  );
+}

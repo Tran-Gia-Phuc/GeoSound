@@ -23,6 +23,7 @@ export function AuthProvider({ children }) {
       user,
       authenticated,
       isTourist: user?.role === 'tourist',
+      isContributor: user?.role === 'contributor',
       async login(creds) {
         const u = await authApi.login(creds);
         return u;

@@ -10,6 +10,9 @@
 //   /shared/:token      — xem lịch trình được chia sẻ (UC07/A4, công khai)
 //   /itinerary/:id/go   — đi theo lịch trình của tôi (UC08, cần đăng nhập)
 //   /shared/:token/go   — đi theo lịch trình được chia sẻ (UC08, công khai)
+//   /studio             — tour của tôi (UC09, chỉ người đóng góp)
+//   /studio/tours/new   — tạo tour (UC09)
+//   /studio/tours/:id   — chỉnh sửa tour (UC09)
 import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import HomePage from './features/home/HomePage.jsx';
 import ToursPage from './features/tours/ToursPage.jsx';
@@ -23,6 +26,10 @@ import SharedItineraryPage from './features/itineraries/SharedItineraryPage.jsx'
 import ItineraryPlayerPage from './features/itineraries/ItineraryPlayerPage.jsx';
 import SharedItineraryPlayerPage from './features/itineraries/SharedItineraryPlayerPage.jsx';
 import RequireAuth from './auth/RequireAuth.jsx';
+import RequireContributor from './auth/RequireContributor.jsx';
+import StudioToursPage from './features/studio/StudioToursPage.jsx';
+import TourCreatePage from './features/studio/TourCreatePage.jsx';
+import TourEditorPage from './features/studio/TourEditorPage.jsx';
 
 // UC04 mở từ chi tiết tour (UC02) — thoát thì quay về chi tiết tour.
 function PlayTourRoute() {
@@ -45,6 +52,9 @@ export default function App() {
         <Route path="/itinerary/:id/go" element={<RequireAuth><ItineraryPlayerPage /></RequireAuth>} />
         <Route path="/shared/:token" element={<SharedItineraryPage />} />
         <Route path="/shared/:token/go" element={<SharedItineraryPlayerPage />} />
+        <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />
+        <Route path="/studio/tours/new" element={<RequireContributor><TourCreatePage /></RequireContributor>} />
+        <Route path="/studio/tours/:id" element={<RequireContributor><TourEditorPage /></RequireContributor>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

@@ -13,7 +13,7 @@ function initials(user) {
 }
 
 export default function AccountMenu() {
-  const { authenticated, user, logout } = useAuth();
+  const { authenticated, user, logout, isContributor } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -57,6 +57,11 @@ export default function AccountMenu() {
             <b>{user?.fullName || 'Khách du lịch'}</b>
             <span>{user?.email}</span>
           </div>
+          {isContributor ? (
+            <Link to="/studio" className="account__item" role="menuitem" onClick={() => setOpen(false)}>
+              <Icon name="map-pin" size={16} /> Studio — Tour của tôi
+            </Link>
+          ) : null}
           <Link to="/itineraries" className="account__item" role="menuitem" onClick={() => setOpen(false)}>
             <Icon name="list" size={16} /> Lịch trình của tôi
           </Link>

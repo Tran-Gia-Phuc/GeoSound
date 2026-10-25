@@ -6,6 +6,7 @@ import './styles/player.css';
 import './styles/auth.css';
 import './styles/itinerary.css';
 import './styles/tours.css';
+import './styles/studio.css';
 import App from './App.jsx';
 import { AuthProvider } from './auth/AuthContext.jsx';
 
