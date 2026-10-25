@@ -22,6 +22,7 @@ class Category(StrEnum):
     SEXUAL = "sexual"
     SCAM = "scam"
     MISLEADING = "misleading"
+    OTHER = "other"  # provider refused the text, no finer category
 
 
 class Language(StrEnum):

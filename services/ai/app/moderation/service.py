@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
-from app.llm.errors import LLMError, LLMResponseError
+from app.llm.errors import LLMBlockedError, LLMError, LLMResponseError
 from app.llm.fallback import FallbackLLM
 from app.llm.gemini_client import GeminiClient
 from app.moderation.schema import Category, ModerationRequest
@@ -19,7 +19,9 @@ MAX_MESSAGE_LENGTH = 500
 
 _LANGUAGE_NAMES = {"vi": "Vietnamese", "en": "English"}
 
+BLOCKED_MESSAGE = "The AI provider refused to process this text (content policy block)."
 
+#xác định cấu trúc mà AI phải trả về.
 class RawFinding(BaseModel):
     category: Category
     severity: float = Field(ge=0.0, le=1.0)
@@ -36,14 +38,14 @@ class RawFinding(BaseModel):
 class RawScan(BaseModel):
     findings: list[RawFinding] = Field(default_factory=list)
 
-
+# xác định cấu trúc kết quả mà ứng dụng cần sử dụng.
 class Finding(BaseModel):
     field: str
     category: Category
     severity: float
     message: str
 
-
+# build prompt để gửi cho LLM, bao gồm field, text và language.
 def build_prompt(field: str, text: str, language: str) -> str:
     # Remove the closing tag so the text cannot break out of its delimiter.
     safe_text = text.replace("</content>", "")
@@ -54,7 +56,10 @@ def build_prompt(field: str, text: str, language: str) -> str:
         f"<content>\n{safe_text}\n</content>"
     )
 
-
+# đảm nhiệm ba nhiệm vụ:
+# 1. Chuẩn bị LLM và system prompt.
+# 2. Quét từng trường văn bản.
+# 3. Quét toàn bộ tour và tổng hợp kết quả.
 class TextModerator:
     """Scans each text field of a tour with the LLM and returns raw findings.
 
@@ -83,6 +88,18 @@ class TextModerator:
                 )
             except LLMResponseError as exc:
                 last_error = exc
+            except LLMBlockedError as exc:
+                # Text so harmful that the provider refuses to read it: reject it
+                # instead of failing with a retryable infrastructure error.
+                logger.warning("moderation field=%s blocked by provider: %s", field, exc)
+                return [
+                    Finding(
+                        field=field,
+                        category=Category.OTHER,
+                        severity=1.0,
+                        message=BLOCKED_MESSAGE,
+                    )
+                ]
             except LLMError as exc:
                 if not exc.fallback_eligible:
                     raise
