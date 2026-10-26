@@ -129,3 +129,12 @@ test('E1 — không có tour khớp → danh sách rỗng', async () => {
   assert.equal(total, 0);
   assert.deepEqual(cards, []);
 });
+
+test('SearchTours: mỗi thẻ kèm toạ độ điểm đầu (anchor) để hiện trên bản đồ', async () => {
+  const r = await uc.execute({ sort: 'popular', page: 1, limit: 10 });
+  const withAnchor = r.tours.filter((t) => t.anchor);
+  assert.ok(withAnchor.length > 0);
+  for (const t of withAnchor) {
+    assert.ok(Number.isFinite(t.anchor.lat) && Number.isFinite(t.anchor.lng));
+  }
+});
