@@ -182,3 +182,27 @@ test('GetRouteConfig: không phải tác giả → 403', async () => {
   const get = new GetRouteConfig(deps());
   await assert.rejects(() => get.execute({ authorId: 'uX', tourId: 'tour1' }), (e) => e.status === 403);
 });
+
+test('SaveRouteConfig: audio chỉ đường không có file → lưu lời nhắc để giọng máy đọc', async () => {
+  const uc = new SaveRouteConfig(deps());
+  const config = await uc.execute({
+    authorId: 'u1', tourId: 'tour1',
+    navAudios: [
+      { label: 'Ngã tư Trần Phú', text: '  Rẽ phải về phía chợ  ', zone: { shape: 'circle', center: { lat: 15.85, lng: 108.3 }, radiusMeters: 20 } },
+    ],
+  });
+  assert.equal(config.navAudios[0].audioUrl, null);
+  assert.equal(config.navAudios[0].text, 'Rẽ phải về phía chợ');
+});
+
+test('saveRouteConfigSchema: audio chỉ đường chỉ cần nhãn + vùng (audioUrl tuỳ chọn)', async () => {
+  const { saveRouteConfigSchema } = await import('../src/application/dtos/route-config-schemas.js');
+  const ok = saveRouteConfigSchema.safeParse({
+    navAudios: [{ label: 'Rẽ trái', zone: { shape: 'circle', center: { lat: 1, lng: 1 }, radiusMeters: 10 } }],
+  });
+  assert.equal(ok.success, true);
+  const bad = saveRouteConfigSchema.safeParse({
+    navAudios: [{ label: 'Rẽ trái', audioUrl: 'not-a-url', zone: { shape: 'circle', center: { lat: 1, lng: 1 }, radiusMeters: 10 } }],
+  });
+  assert.equal(bad.success, false);
+});

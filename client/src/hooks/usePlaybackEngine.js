@@ -87,7 +87,7 @@ export function usePlaybackEngine({ tour, mode, position, selectedLanguage, visi
       setCurrent('nav');
       audio.playTrack({
         src: nav.audioUrl,
-        text: nav.label,
+        text: nav.text || nav.label,
         lang: langRef.current,
         title: nav.label || 'Chỉ đường',
         id: `nav:${nav.id}`,

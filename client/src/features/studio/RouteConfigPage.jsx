@@ -1,77 +1,85 @@
 // =========================================================
-// RouteConfigPage (UC11) — cấu hình lộ trình & vùng kích hoạt của tour.
-//   - Lộ trình (path): tạo nhanh theo thứ tự điểm dừng; xem trên bản đồ.
-//   - Vùng kích hoạt từng điểm: vùng TRÒN quanh điểm (chỉnh bán kính). Điểm nào
-//     cũng có vùng (mặc định 50 m, máy chủ tự sinh khi chưa lưu), độ ưu tiên khi chồng lấn, gợi ý "đi tiếp" (text/audio). Vùng đa giác đã lưu
-//     được giữ nguyên.
-//   - Audio chỉ đường (nav): nhãn + audio + vùng tròn riêng (chọn tâm trên bản đồ).
+// RouteConfigPage (UC11) — bước "Vùng kích hoạt" của Studio. Mặc định đã có sẵn
+// (lộ trình nối các điểm, vùng tròn 50 m); màn này để TUỲ CHỈNH ngay trên bản đồ:
+//   - chọn một điểm (chạm ghim / danh sách) → kéo thanh bán kính, vòng tròn trên
+//     bản đồ đổi theo; ưu tiên khi chồng vùng: Bình thường / Cao / Rất cao;
+//     gợi ý "đi tiếp" (lời nhắc + audio tuỳ chọn). Vùng đa giác đã lưu được giữ.
+//   - audio chỉ đường (ngã rẽ): chạm bản đồ đặt tâm (ghim kéo được), lời nhắc đọc
+//     bằng giọng máy hoặc tải file audio.
+//   - thanh Lưu dính đáy chỉ hiện khi có thay đổi; rời màn khi chưa lưu → hỏi lại.
 // Lưu TOÀN BỘ cấu hình một lần (PUT) — bước 8.
 // =========================================================
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
+import FileDrop from '../../components/media/FileDrop.jsx';
 import TourMap from '../player/TourMap.jsx';
+import { useDirtyGuard } from '../../hooks/useDirtyGuard.jsx';
 import { getRouteConfig, saveRouteConfig, listPlaces } from '../../lib/studio.js';
 
 const DEFAULT_RADIUS = 50;
-const isHttpUrl = (s) => {
-  try {
-    const u = new URL(s);
-    return u.protocol === 'http:' || u.protocol === 'https:';
-  } catch {
-    return false;
+const PRIORITY_LEVELS = [
+  { value: 0, label: 'Bình thường' },
+  { value: 10, label: 'Cao' },
+  { value: 20, label: 'Rất cao' },
+];
+// Giá trị ưu tiên cũ bất kỳ → mức gần nhất để hiển thị.
+const levelOf = (p) => PRIORITY_LEVELS.reduce((best, l) => (Math.abs(l.value - p) < Math.abs(best.value - p) ? l : best));
+
+function fromConfig(cfg, places) {
+  const byPlace = new Map((cfg.triggers || []).map((t) => [t.placeId, t]));
+  const triggers = {};
+  for (const p of places) {
+    const t = byPlace.get(p.id);
+    triggers[p.id] = {
+      radius: t?.zone?.shape === 'circle' ? t.zone.radiusMeters : DEFAULT_RADIUS,
+      priority: t?.priority ?? 0,
+      hintText: t?.nextHint?.text ?? '',
+      hintAudio: t?.nextHint?.audioUrl ?? '',
+      poly: t?.zone?.shape === 'polygon' ? t.zone.geometry : null,
+    };
   }
-};
+  const navAudios = (cfg.navAudios || []).map((n, i) => ({
+    key: `n${i}-${n.id || ''}`,
+    id: n.id,
+    label: n.label || '',
+    text: n.text || '',
+    audioUrl: n.audioUrl || '',
+    lat: n.zone?.shape === 'circle' ? n.zone.center.lat : null,
+    lng: n.zone?.shape === 'circle' ? n.zone.center.lng : null,
+    radius: n.zone?.shape === 'circle' ? n.zone.radiusMeters : DEFAULT_RADIUS,
+    poly: n.zone?.shape === 'polygon' ? n.zone.geometry : null,
+  }));
+  return { path: cfg.path || [], triggers, navAudios };
+}
+
+const orderPath = (places) =>
+  places.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)).map((p) => ({ lat: p.lat, lng: p.lng }));
 
 export default function RouteConfigPage() {
   const { id } = useParams();
   const [places, setPlaces] = useState(null);
-  const [path, setPath] = useState([]);
-  const [triggers, setTriggers] = useState({}); // placeId -> { enabled, radius, priority, hintText, hintAudio, poly }
-  const [navAudios, setNavAudios] = useState([]); // { key, id?, label, audioUrl, lat, lng, radius, poly? }
-  const [isDefault, setIsDefault] = useState(false); // chưa từng lưu → đang dùng mặc định
+  const [state, setState] = useState(null); // { path, triggers, navAudios }
+  const [baseline, setBaseline] = useState('');
+  const [isDefault, setIsDefault] = useState(false);
+  const [selected, setSelected] = useState(null); // { kind:'place', id } | { kind:'nav', key }
   const [loadError, setLoadError] = useState('');
   const [saveError, setSaveError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
-  const [picking, setPicking] = useState(null); // navAudio key đang chọn tâm, hoặc null
   const keySeq = useRef(0);
 
   const load = useCallback(async () => {
     setLoadError('');
     try {
       const [cfg, pls] = await Promise.all([getRouteConfig(id), listPlaces(id)]);
+      const s = fromConfig(cfg, pls);
       setPlaces(pls);
+      setState(s);
+      setBaseline(JSON.stringify(s));
       setIsDefault(!!cfg.isDefault);
-      setPath(cfg.path || []);
-      const byPlace = new Map((cfg.triggers || []).map((t) => [t.placeId, t]));
-      const tState = {};
-      for (const p of pls) {
-        const t = byPlace.get(p.id);
-        tState[p.id] = {
-          enabled: true, // điểm nào cũng có vùng kích hoạt
-          radius: t?.zone?.shape === 'circle' ? t.zone.radiusMeters : DEFAULT_RADIUS,
-          priority: t?.priority ?? 0,
-          hintText: t?.nextHint?.text ?? '',
-          hintAudio: t?.nextHint?.audioUrl ?? '',
-          poly: t?.zone?.shape === 'polygon' ? t.zone.geometry : null,
-        };
-      }
-      setTriggers(tState);
-      setNavAudios(
-        (cfg.navAudios || []).map((n) => ({
-          key: `n${(keySeq.current += 1)}`,
-          id: n.id,
-          label: n.label || '',
-          audioUrl: n.audioUrl || '',
-          lat: n.zone?.shape === 'circle' ? String(n.zone.center.lat) : '',
-          lng: n.zone?.shape === 'circle' ? String(n.zone.center.lng) : '',
-          radius: n.zone?.shape === 'circle' ? n.zone.radiusMeters : DEFAULT_RADIUS,
-          poly: n.zone?.shape === 'polygon' ? n.zone.geometry : null,
-        })),
-      );
     } catch (e) {
-      setLoadError(e.message || 'Không tải được cấu hình route');
+      setLoadError(e.message || 'Không tải được cấu hình vùng kích hoạt');
       setPlaces([]);
     }
   }, [id]);
@@ -79,94 +87,67 @@ export default function RouteConfigPage() {
     load();
   }, [load]);
 
-  const placeById = useCallback((pid) => places?.find((p) => p.id === pid), [places]);
-  const setTrig = (pid, patch) => setTriggers((s) => ({ ...s, [pid]: { ...s[pid], ...patch } }));
-  const setNav = (key, patch) => setNavAudios((s) => s.map((n) => (n.key === key ? { ...n, ...patch } : n)));
+  const dirty = !!state && JSON.stringify(state) !== baseline;
+  const guard = useDirtyGuard(dirty && !busy);
 
-  const generatePath = () => {
-    const pts = (places || [])
-      .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
-      .map((p) => ({ lat: p.lat, lng: p.lng }));
-    setPath(pts);
-    setNotice('');
-  };
+  const setTrig = (pid, patch) =>
+    setState((s) => ({ ...s, triggers: { ...s.triggers, [pid]: { ...s.triggers[pid], ...patch } } }));
+  const setNav = (key, patch) =>
+    setState((s) => ({ ...s, navAudios: s.navAudios.map((n) => (n.key === key ? { ...n, ...patch } : n)) }));
 
-  const addNav = () =>
-    setNavAudios((s) => [
+  const addNav = () => {
+    keySeq.current += 1;
+    const key = `new${keySeq.current}`;
+    setState((s) => ({
       ...s,
-      { key: `n${(keySeq.current += 1)}`, label: '', audioUrl: '', lat: '', lng: '', radius: DEFAULT_RADIUS, poly: null },
-    ]);
-  const removeNav = (key) => setNavAudios((s) => s.filter((n) => n.key !== key));
-
-  const onSimPick = (c) => {
-    if (!picking) return;
-    setNav(picking, { lat: c.lat.toFixed(6), lng: c.lng.toFixed(6) });
-    setPicking(null);
+      navAudios: [...s.navAudios, { key, label: '', text: '', audioUrl: '', lat: null, lng: null, radius: 30, poly: null }],
+    }));
+    setSelected({ kind: 'nav', key });
+  };
+  const removeNav = (key) => {
+    setState((s) => ({ ...s, navAudios: s.navAudios.filter((n) => n.key !== key) }));
+    setSelected(null);
   };
 
-  // ---- Dựng cấu hình để lưu + để xem trước trên bản đồ ----
-  function buildZoneForPlace(pid) {
-    const t = triggers[pid];
+  // ---- Dựng cấu hình (xem trước trên bản đồ + lưu) ----
+  const placeById = useMemo(() => new Map((places || []).map((p) => [p.id, p])), [places]);
+  const zoneFor = (pid) => {
+    const t = state.triggers[pid];
     if (t?.poly) return { shape: 'polygon', geometry: t.poly };
-    const p = placeById(pid);
-    if (!p) return null;
-    return { shape: 'circle', center: { lat: p.lat, lng: p.lng }, radiusMeters: Number(t.radius) || DEFAULT_RADIUS };
-  }
-  function buildNavZone(n) {
+    const p = placeById.get(pid);
+    return { shape: 'circle', center: { lat: p.lat, lng: p.lng }, radiusMeters: Number(t?.radius) || DEFAULT_RADIUS };
+  };
+  const navZone = (n) => {
     if (n.poly) return { shape: 'polygon', geometry: n.poly };
-    const lat = Number(n.lat);
-    const lng = Number(n.lng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-    return { shape: 'circle', center: { lat, lng }, radiusMeters: Number(n.radius) || DEFAULT_RADIUS };
-  }
-
-  const previewTriggers = (places || [])
-    .filter((p) => triggers[p.id]?.enabled)
-    .map((p) => ({ placeId: p.id, zone: buildZoneForPlace(p.id) }))
-    .filter((t) => t.zone);
-  const previewNav = navAudios.map((n, i) => ({ id: n.id || `nav${i}`, zone: buildNavZone(n) })).filter((n) => n.zone);
-  const mapTour = { places: places || [], route: { path, triggers: previewTriggers, navAudios: previewNav } };
+    if (!Number.isFinite(n.lat) || !Number.isFinite(n.lng)) return null;
+    return { shape: 'circle', center: { lat: n.lat, lng: n.lng }, radiusMeters: Number(n.radius) || DEFAULT_RADIUS };
+  };
 
   function validateAndBuild() {
-    for (const p of places || []) {
-      const t = triggers[p.id];
-      if (!t?.enabled) continue;
-      if (!t.poly) {
-        const r = Number(t.radius);
-        if (!Number.isFinite(r) || r <= 0) return { error: `Bán kính vùng kích hoạt của “${p.name}” phải lớn hơn 0` };
-      }
-      const pr = Number(t.priority);
-      if (!Number.isInteger(pr) || pr < 0 || pr > 1000) return { error: `Độ ưu tiên của “${p.name}” phải là số nguyên 0–1000` };
-      if (t.hintAudio.trim() && !isHttpUrl(t.hintAudio.trim())) return { error: `URL audio gợi ý của “${p.name}” không hợp lệ` };
-    }
-    for (const n of navAudios) {
-      const filled = n.label.trim() || n.audioUrl.trim() || n.lat || n.lng;
-      if (!filled) continue;
-      if (!n.label.trim()) return { error: 'Audio chỉ đường cần có nhãn' };
-      if (!isHttpUrl(n.audioUrl.trim())) return { error: `Audio chỉ đường “${n.label}” cần URL hợp lệ` };
-      if (!buildNavZone(n)) return { error: `Audio chỉ đường “${n.label}” cần chọn tâm vùng kích hoạt` };
-    }
-
-    const outTriggers = [];
-    for (const p of places || []) {
-      const t = triggers[p.id];
-      if (!t?.enabled) continue;
-      const zone = buildZoneForPlace(p.id);
-      if (!zone) continue;
-      const trig = { placeId: p.id, zone, priority: Number(t.priority) || 0 };
+    const triggers = [];
+    for (const p of places) {
+      const t = state.triggers[p.id];
+      if (!t.poly && !(Number(t.radius) > 0)) return { error: `Bán kính vùng của “${p.name}” phải lớn hơn 0` };
+      const trig = { placeId: p.id, zone: zoneFor(p.id), priority: Number(t.priority) || 0 };
       const text = t.hintText.trim();
       const audio = t.hintAudio.trim();
       if (text || audio) trig.nextHint = { ...(text ? { text } : {}), ...(audio ? { audioUrl: audio } : {}) };
-      outTriggers.push(trig);
+      triggers.push(trig);
     }
-    const outNav = [];
-    for (const n of navAudios) {
-      if (!n.label.trim() || !n.audioUrl.trim()) continue;
-      const zone = buildNavZone(n);
-      if (!zone) continue;
-      outNav.push({ ...(n.id ? { id: n.id } : {}), label: n.label.trim(), audioUrl: n.audioUrl.trim(), zone });
+    const navAudios = [];
+    for (const n of state.navAudios) {
+      const zone = navZone(n);
+      if (!n.label.trim()) return { error: 'Mỗi audio chỉ đường cần có nhãn (vd: Ngã tư Trần Phú)' };
+      if (!zone) return { error: `Hãy chạm bản đồ để đặt vị trí cho “${n.label}”` };
+      navAudios.push({
+        ...(n.id ? { id: n.id } : {}),
+        label: n.label.trim(),
+        ...(n.audioUrl ? { audioUrl: n.audioUrl } : {}),
+        ...(n.text.trim() ? { text: n.text.trim() } : {}),
+        zone,
+      });
     }
-    return { config: { path, triggers: outTriggers, navAudios: outNav } };
+    return { config: { path: state.path, triggers, navAudios } };
   }
 
   async function onSave() {
@@ -180,204 +161,252 @@ export default function RouteConfigPage() {
     setBusy(true);
     try {
       await saveRouteConfig(id, config);
+      setBaseline(JSON.stringify(state));
       setIsDefault(false);
-      setNotice('Đã lưu cấu hình route & vùng kích hoạt.');
+      setNotice('Đã lưu vùng kích hoạt.');
     } catch (e) {
-      setSaveError(e.message || 'Lưu cấu hình thất bại');
+      setSaveError(e.message || 'Lưu thất bại');
     } finally {
       setBusy(false);
     }
   }
 
-  if (places === null && !loadError) {
+  if (places === null || (!state && !loadError)) {
     return (
       <div className="studio-step">
-        <main className="studio__main"><p className="muted studio__loading"><Icon name="loader" size={20} className="spin" /> Đang tải…</p></main>
+        <p className="muted studio__loading"><Icon name="loader" size={20} className="spin" /> Đang tải…</p>
       </div>
     );
   }
 
+  if (!places.length) {
+    return (
+      <div className="studio-step">
+        {loadError ? <div className="alert alert--warn" role="alert"><Icon name="alert-triangle" size={18} className="alert__icon" /><div>{loadError}</div></div> : null}
+        <div className="emptybox studio__empty">
+          <Icon name="route" size={40} />
+          <h2>Chưa có điểm dừng</h2>
+          <p>Vùng kích hoạt được tạo tự động khi bạn thêm điểm dừng.</p>
+          <Link to={`/studio/tours/${id}/places`} className="btn btn--primary"><Icon name="map-pin" size={18} /> Thêm điểm dừng</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const selPlace = selected?.kind === 'place' ? placeById.get(selected.id) : null;
+  const selTrig = selPlace ? state.triggers[selPlace.id] : null;
+  const selNav = selected?.kind === 'nav' ? state.navAudios.find((n) => n.key === selected.key) : null;
+
+  const mapTour = {
+    places,
+    route: {
+      path: state.path,
+      triggers: places.map((p) => ({ placeId: p.id, zone: zoneFor(p.id) })),
+      navAudios: state.navAudios.map((n) => ({ id: n.key, zone: navZone(n) })).filter((n) => n.zone),
+    },
+  };
+
   return (
-    <div className="studio-step">
+    <div className="studio-step zoneseditor">
+      {isDefault ? (
+        <div className="alert" role="status">
+          <Icon name="info" size={18} className="alert__icon" />
+          <div>Đang dùng mặc định: mỗi điểm có vùng tròn 50 m, lộ trình nối các điểm theo thứ tự. Chỉ cần chỉnh nếu muốn khác.</div>
+        </div>
+      ) : null}
+      {loadError ? <div className="alert alert--warn" role="alert"><Icon name="alert-triangle" size={18} className="alert__icon" /><div>{loadError}</div></div> : null}
 
-      <main className="studio__main">
-        {loadError ? (
-          <div className="alert alert--warn" role="alert">
-            <Icon name="alert-triangle" size={18} className="alert__icon" />
-            <div>{loadError}</div>
+      <div className="placeseditor__grid">
+        <div className="placeseditor__map">
+          <TourMap
+            tour={mapTour}
+            activePlaceId={selPlace?.id}
+            onSelectPlace={(pid) => setSelected({ kind: 'place', id: pid })}
+            simulate={!!selNav}
+            onSimPick={(c) => selNav && setNav(selNav.key, { lat: c.lat, lng: c.lng, poly: null })}
+            editPin={selNav && Number.isFinite(selNav.lat) ? { lat: selNav.lat, lng: selNav.lng } : null}
+            onEditPinMove={(c) => selNav && setNav(selNav.key, { lat: c.lat, lng: c.lng, poly: null })}
+          />
+          <div className="studio-map__hint" role="status">
+            <Icon name="crosshair" size={16} />
+            {selNav
+              ? Number.isFinite(selNav.lat) ? 'Kéo ghim để dời vị trí chỉ đường' : 'Chạm bản đồ để đặt vị trí chỉ đường'
+              : selPlace ? 'Kéo thanh bán kính — vòng tròn đổi theo' : 'Chạm một điểm để chỉnh vùng của nó'}
           </div>
-        ) : null}
+        </div>
 
-        {isDefault && (places || []).length ? (
-          <div className="alert" role="status">
-            <Icon name="info" size={18} className="alert__icon" />
-            <div>
-              Đang dùng cấu hình mặc định: lộ trình nối các điểm theo thứ tự, mỗi điểm có vùng tròn 50 m.
-              Tour đã nghe theo GPS và xem thử được — chỉ cần chỉnh nếu muốn khác.
-            </div>
-          </div>
-        ) : null}
-
-        {(places || []).length === 0 ? (
-          <div className="emptybox studio__empty">
-            <Icon name="route" size={40} />
-            <h2>Chưa có điểm dừng</h2>
-            <p>Hãy thêm điểm dừng trước, rồi quay lại cấu hình route & vùng kích hoạt.</p>
-            <Link to={`/studio/tours/${id}/places`} className="btn btn--primary"><Icon name="map-pin" size={18} /> Quản lý điểm dừng</Link>
-          </div>
-        ) : (
-          <>
-            <div className="studio-map">
-              <TourMap
-                tour={mapTour}
-                simulate={!!picking}
-                onSimPick={onSimPick}
-              />
-              {picking ? (
-                <div className="studio-map__hint" role="status"><Icon name="crosshair" size={16} /> Chạm bản đồ để đặt tâm audio chỉ đường</div>
-              ) : null}
-            </div>
-
-            {/* Lộ trình */}
-            <section className="studio-section">
-              <div className="studio-section__head">
-                <h2 className="studio__h2"><Icon name="route" size={16} /> Lộ trình</h2>
-                <span className="muted small">{path.length} điểm trên đường</span>
+        <div className="placeseditor__side">
+          {selPlace ? (
+            <section className="studio-panel zonepanel">
+              <div className="studio-panel__head">
+                <h2 className="studio__h2">{places.indexOf(selPlace) + 1}. {selPlace.name}</h2>
+                <button className="iconbtn iconbtn--sm" onClick={() => setSelected(null)} aria-label="Đóng"><Icon name="x" size={16} /></button>
               </div>
-              <p className="muted small">Đường nối các điểm hiển thị trên bản đồ. Để trống thì hệ thống tự nối các điểm theo thứ tự.</p>
-              <div className="studio-section__actions">
-                <button className="btn btn--ghost btn--sm" onClick={generatePath}><Icon name="route" size={16} /> Tạo theo thứ tự điểm dừng</button>
-                {path.length ? <button className="btn btn--sm" onClick={() => setPath([])}><Icon name="x" size={16} /> Xoá lộ trình</button> : null}
-              </div>
-            </section>
 
-            {/* Vùng kích hoạt từng điểm */}
-            <section className="studio-section">
-              <h2 className="studio__h2"><Icon name="map-pin" size={16} /> Vùng kích hoạt theo điểm</h2>
-              <p className="muted small">Khi khách vào vùng của một điểm, audio điểm đó tự phát. Vùng tròn lấy tâm tại vị trí điểm.</p>
-              <ul className="trigger-list">
-                {places.map((p, i) => {
-                  const t = triggers[p.id] || {};
-                  return (
-                    <li key={p.id} className="trigger">
-                      <div className="trigger__head">
-                        <span className="trigger__name">{i + 1}. {p.name}</span>
-                        {t.poly ? <span className="chip">Vùng đa giác</span> : null}
-                      </div>
-                      {t.enabled ? (
-                        <div className="trigger__body">
-                          {!t.poly ? (
-                            <div className="field trigger__radius">
-                              <label className="field__label small" htmlFor={`r-${p.id}`}>Bán kính (m): <b>{t.radius}</b></label>
-                              <div className="trigger__radiusrow">
-                                <input type="range" min="10" max="500" step="5" value={t.radius}
-                                  onChange={(e) => setTrig(p.id, { radius: Number(e.target.value) })} aria-label={`Bán kính vùng ${p.name}`} />
-                                <input id={`r-${p.id}`} className="input trigger__radiusnum" value={t.radius} inputMode="numeric"
-                                  onChange={(e) => setTrig(p.id, { radius: e.target.value })} />
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="muted small">Giữ nguyên vùng đa giác đã lưu. <button className="linkbtn" onClick={() => setTrig(p.id, { poly: null })}>Chuyển sang vùng tròn</button></p>
-                          )}
-                          <div className="field trigger__prio">
-                            <label className="field__label small" htmlFor={`pr-${p.id}`}>Độ ưu tiên (khi chồng vùng)</label>
-                            <input id={`pr-${p.id}`} className="input" value={t.priority} inputMode="numeric"
-                              onChange={(e) => setTrig(p.id, { priority: e.target.value })} />
-                          </div>
-                          <details className="trigger__hint">
-                            <summary>Gợi ý “đi tiếp” (tuỳ chọn)</summary>
-                            <div className="field">
-                              <label className="field__label small" htmlFor={`ht-${p.id}`}>Lời nhắc</label>
-                              <input id={`ht-${p.id}`} className="input" value={t.hintText} maxLength={500}
-                                onChange={(e) => setTrig(p.id, { hintText: e.target.value })} placeholder="Ví dụ: Rẽ trái đến điểm tiếp theo" />
-                            </div>
-                            <div className="field">
-                              <label className="field__label small" htmlFor={`ha-${p.id}`}>Audio gợi ý (URL)</label>
-                              <input id={`ha-${p.id}`} className="input" value={t.hintAudio}
-                                onChange={(e) => setTrig(p.id, { hintAudio: e.target.value })} placeholder="https://… (tuỳ chọn)" />
-                            </div>
-                          </details>
-                        </div>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-
-            {/* Audio chỉ đường */}
-            <section className="studio-section">
-              <div className="studio-section__head">
-                <h2 className="studio__h2"><Icon name="navigation" size={16} /> Audio chỉ đường</h2>
-              </div>
-              <p className="muted small">Audio phát tại ngã rẽ/đoạn nối, có vùng kích hoạt riêng. Tuỳ chọn.</p>
-              {navAudios.map((n) => (
-                <div key={n.key} className="navaudio">
-                  <div className="field">
-                    <label className="field__label small">Nhãn</label>
-                    <input className="input" value={n.label} maxLength={200}
-                      onChange={(e) => setNav(n.key, { label: e.target.value })} placeholder="Ví dụ: Ngã tư Trần Phú" />
-                  </div>
-                  <div className="field">
-                    <label className="field__label small">Audio (URL)</label>
-                    <input className="input" value={n.audioUrl}
-                      onChange={(e) => setNav(n.key, { audioUrl: e.target.value })} placeholder="https://… (.mp3)" />
-                  </div>
-                  {!n.poly ? (
-                    <div className="navaudio__zone">
-                      <div className="studio-form__row">
-                        <div className="field">
-                          <label className="field__label small">Vĩ độ</label>
-                          <input className="input" value={n.lat} inputMode="decimal" onChange={(e) => setNav(n.key, { lat: e.target.value })} />
-                        </div>
-                        <div className="field">
-                          <label className="field__label small">Kinh độ</label>
-                          <input className="input" value={n.lng} inputMode="decimal" onChange={(e) => setNav(n.key, { lng: e.target.value })} />
-                        </div>
-                      </div>
-                      <div className="navaudio__zonerow">
-                        <button type="button" className={`btn btn--ghost btn--sm ${picking === n.key ? 'is-active' : ''}`}
-                          onClick={() => setPicking((k) => (k === n.key ? null : n.key))}>
-                          <Icon name="crosshair" size={16} /> {picking === n.key ? 'Chạm bản đồ…' : 'Chọn tâm trên bản đồ'}
-                        </button>
-                        <label className="field__label small navaudio__radius">Bán kính (m)
-                          <input className="input" value={n.radius} inputMode="numeric" onChange={(e) => setNav(n.key, { radius: e.target.value })} />
-                        </label>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="muted small">Giữ nguyên vùng đa giác đã lưu. <button className="linkbtn" onClick={() => setNav(n.key, { poly: null })}>Chuyển sang vùng tròn</button></p>
-                  )}
-                  <button type="button" className="btn btn--sm btn--danger navaudio__del" onClick={() => removeNav(n.key)}>
-                    <Icon name="trash" size={16} /> Xoá
-                  </button>
+              {selTrig.poly ? (
+                <p className="muted small">
+                  Điểm này dùng vùng đa giác đã lưu.{' '}
+                  <button className="linkbtn" onClick={() => setTrig(selPlace.id, { poly: null, radius: DEFAULT_RADIUS })}>Chuyển sang vùng tròn</button>
+                </p>
+              ) : (
+                <div className="field">
+                  <label className="field__label" htmlFor="z-radius">Bán kính vùng tự phát: <b>{selTrig.radius} m</b></label>
+                  <input id="z-radius" type="range" min="10" max="300" step="5" value={selTrig.radius}
+                    onChange={(e) => setTrig(selPlace.id, { radius: Number(e.target.value) })} />
+                  <span className="field__hint">Khách đi vào vòng tròn này thì audio của điểm tự phát. Nơi đông, nhiều điểm gần nhau nên để nhỏ (20–40 m).</span>
                 </div>
-              ))}
-              <button className="btn btn--ghost btn--sm" onClick={addNav}><Icon name="plus" size={16} /> Thêm audio chỉ đường</button>
+              )}
+
+              <div className="field">
+                <span className="field__label" id="z-prio">Ưu tiên khi vùng chồng nhau</span>
+                <div className="segmented" role="radiogroup" aria-labelledby="z-prio">
+                  {PRIORITY_LEVELS.map((l) => {
+                    const on = levelOf(selTrig.priority).value === l.value;
+                    return (
+                      <button key={l.value} type="button" role="radio" aria-checked={on}
+                        className={`segmented__item ${on ? 'is-active' : ''}`}
+                        onClick={() => setTrig(selPlace.id, { priority: l.value })}>
+                        {l.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <span className="field__hint">Đứng trong vùng của nhiều điểm cùng lúc, điểm ưu tiên cao hơn phát trước.</span>
+              </div>
+
+              <details className="zonepanel__hint" open={!!(selTrig.hintText || selTrig.hintAudio)}>
+                <summary>Gợi ý “đi tiếp” sau khi nghe xong (tuỳ chọn)</summary>
+                <div className="field">
+                  <label className="field__label small" htmlFor="z-hint">Lời nhắc (giọng máy đọc nếu không có audio)</label>
+                  <input id="z-hint" className="input" value={selTrig.hintText} maxLength={500}
+                    onChange={(e) => setTrig(selPlace.id, { hintText: e.target.value })}
+                    placeholder="Ví dụ: Đi thẳng 100 m, rẽ trái tới Hội quán Phúc Kiến" />
+                </div>
+                <FileDrop kind="audio" label="Audio gợi ý" value={selTrig.hintAudio}
+                  onChange={(url) => setTrig(selPlace.id, { hintAudio: url })} />
+              </details>
+
+              {!selTrig.poly && selTrig.radius !== DEFAULT_RADIUS ? (
+                <button className="btn btn--ghost btn--sm" onClick={() => setTrig(selPlace.id, { radius: DEFAULT_RADIUS })}>
+                  Đặt lại 50 m
+                </button>
+              ) : null}
             </section>
-
-            {saveError ? (
-              <div className="alert alert--warn" role="alert">
-                <Icon name="alert-triangle" size={18} className="alert__icon" />
-                <div>{saveError}</div>
+          ) : selNav ? (
+            <section className="studio-panel zonepanel">
+              <div className="studio-panel__head">
+                <h2 className="studio__h2">Audio chỉ đường</h2>
+                <button className="iconbtn iconbtn--sm" onClick={() => setSelected(null)} aria-label="Đóng"><Icon name="x" size={16} /></button>
               </div>
-            ) : null}
-            {notice ? (
-              <div className="alert studio-notice" role="status">
-                <Icon name="check-circle" size={18} className="alert__icon" />
-                <div>{notice}</div>
+              <div className="field">
+                <label className="field__label" htmlFor="n-label">Nhãn *</label>
+                <input id="n-label" className="input" value={selNav.label} maxLength={200}
+                  onChange={(e) => setNav(selNav.key, { label: e.target.value })} placeholder="Ví dụ: Ngã tư Trần Phú" />
               </div>
-            ) : null}
-
-            <div className="studio-form__actions studio-save">
-              <button className="btn btn--primary" onClick={onSave} disabled={busy}>
-                {busy ? <Icon name="loader" size={18} className="spin" /> : <Icon name="check-circle" size={18} />}
-                Lưu cấu hình
+              <div className="field">
+                <label className="field__label" htmlFor="n-text">Lời nhắc (giọng máy đọc)</label>
+                <input id="n-text" className="input" value={selNav.text} maxLength={500}
+                  onChange={(e) => setNav(selNav.key, { text: e.target.value })} placeholder="Ví dụ: Rẽ phải, đi tiếp về phía bờ sông" />
+                <span className="field__hint">Để trống thì đọc nhãn. Có file audio thì phát file.</span>
+              </div>
+              <FileDrop kind="audio" label="Audio (tuỳ chọn)" value={selNav.audioUrl}
+                onChange={(url) => setNav(selNav.key, { audioUrl: url })} />
+              {!selNav.poly ? (
+                <div className="field">
+                  <label className="field__label" htmlFor="n-radius">Bán kính: <b>{selNav.radius} m</b></label>
+                  <input id="n-radius" type="range" min="10" max="150" step="5" value={selNav.radius}
+                    onChange={(e) => setNav(selNav.key, { radius: Number(e.target.value) })} />
+                </div>
+              ) : null}
+              <p className={`place-form__coords ${Number.isFinite(selNav.lat) ? '' : 'place-form__coords--empty'}`}>
+                <Icon name="map-pin" size={16} />
+                {Number.isFinite(selNav.lat) ? `${selNav.lat.toFixed(5)}, ${selNav.lng.toFixed(5)}` : 'Chưa đặt vị trí — chạm bản đồ'}
+              </p>
+              <button className="btn btn--ghost btn--sm btn--dangertext" onClick={() => removeNav(selNav.key)}>
+                <Icon name="trash" size={16} /> Xoá audio chỉ đường
               </button>
-            </div>
-          </>
-        )}
-      </main>
+            </section>
+          ) : (
+            <>
+              <section className="studio-section">
+                <h2 className="studio__h2"><Icon name="map-pin" size={16} /> Vùng theo điểm</h2>
+                <ul className="zonelist">
+                  {places.map((p, i) => {
+                    const t = state.triggers[p.id];
+                    return (
+                      <li key={p.id}>
+                        <button className="zonelist__item" onClick={() => setSelected({ kind: 'place', id: p.id })}>
+                          <span className="stop__seq">{i + 1}</span>
+                          <span className="zonelist__name">{p.name}</span>
+                          <span className="chip">{t.poly ? 'Đa giác' : `${t.radius} m`}</span>
+                          {t.priority ? <span className="chip chip--ok">{levelOf(t.priority).label}</span> : null}
+                          {t.hintText || t.hintAudio ? <Icon name="navigation" size={14} className="muted" /> : null}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+
+              <section className="studio-section">
+                <div className="studio-section__head">
+                  <h2 className="studio__h2"><Icon name="route" size={16} /> Lộ trình</h2>
+                  <span className="muted small">{state.path.length} điểm trên đường</span>
+                </div>
+                <p className="muted small">Đường nối các điểm hiển thị trên bản đồ. Đổi thứ tự điểm thì bấm nối lại.</p>
+                <button className="btn btn--ghost btn--sm" onClick={() => setState((s) => ({ ...s, path: orderPath(places) }))}>
+                  <Icon name="route" size={16} /> Nối lại theo thứ tự điểm
+                </button>
+              </section>
+
+              <section className="studio-section">
+                <div className="studio-section__head">
+                  <h2 className="studio__h2"><Icon name="navigation" size={16} /> Audio chỉ đường</h2>
+                </div>
+                <p className="muted small">Lời nhắc phát tại ngã rẽ / đoạn nối, có vùng riêng. Tuỳ chọn.</p>
+                {state.navAudios.length ? (
+                  <ul className="zonelist">
+                    {state.navAudios.map((n) => (
+                      <li key={n.key}>
+                        <button className="zonelist__item" onClick={() => setSelected({ kind: 'nav', key: n.key })}>
+                          <Icon name="navigation" size={16} />
+                          <span className="zonelist__name">{n.label || 'Chưa đặt tên'}</span>
+                          <span className="chip">{n.audioUrl ? 'Audio' : 'Giọng máy'}</span>
+                          {!Number.isFinite(n.lat) && !n.poly ? <span className="chip">Chưa đặt vị trí</span> : null}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <button className="btn btn--ghost btn--sm" onClick={addNav}><Icon name="plus" size={16} /> Thêm chỉ đường</button>
+              </section>
+            </>
+          )}
+        </div>
+      </div>
+
+      {notice && !dirty ? (
+        <div className="alert studio-notice" role="status"><Icon name="check-circle" size={18} className="alert__icon" /><div>{notice}</div></div>
+      ) : null}
+
+      {/* Thanh lưu dính đáy — chỉ hiện khi có thay đổi */}
+      {dirty ? (
+        <div className="savebar" role="region" aria-label="Lưu thay đổi">
+          {saveError ? <span className="savebar__err" role="alert">{saveError}</span> : <span className="savebar__msg">Có thay đổi chưa lưu</span>}
+          <button className="btn btn--ghost btn--sm" onClick={() => setState(JSON.parse(baseline))} disabled={busy}>Huỷ</button>
+          <button className="btn btn--primary btn--sm" onClick={onSave} disabled={busy}>
+            {busy ? <Icon name="loader" size={16} className="spin" /> : <Icon name="check-circle" size={16} />} Lưu
+          </button>
+        </div>
+      ) : (
+        <div className="studio-nextstep">
+          <span className="muted small">Ngôn ngữ phụ là tuỳ chọn.</span>
+          <Link className="btn btn--primary" to={`/studio/tours/${id}/publish`}>
+            Tiếp: Xuất bản <Icon name="chevron-left" size={16} className="flip" />
+          </Link>
+        </div>
+      )}
+      {guard}
     </div>
   );
 }
