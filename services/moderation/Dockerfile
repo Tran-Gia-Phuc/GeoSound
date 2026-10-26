@@ -8,6 +8,8 @@ RUN npm install --omit=dev
 COPY services/moderation/src ./src
 COPY services/moderation/prisma ./prisma
 COPY shared ./shared
+# Monorepo: cài deps riêng của shared (jsonwebtoken, amqplib, zod) vào ảnh.
+RUN npm install --omit=dev --prefix ./shared
 
 EXPOSE 3003
 CMD ["npm", "start"]

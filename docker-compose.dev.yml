@@ -4,6 +4,12 @@
 # =========================================================
 
 services:
+  client:
+    # Hot reload: mount source, giữ node_modules trong container (anonymous volume).
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+
   gateway:
     command: npm run dev
     volumes:
@@ -21,12 +27,14 @@ services:
     volumes:
       - ./services/tour/src:/app/src
       - ./shared:/app/shared
+      - /app/shared/node_modules # giữ deps của shared (jsonwebtoken…) đã cài trong image
 
   moderation:
     command: npm run dev
     volumes:
       - ./services/moderation/src:/app/src
       - ./shared:/app/shared
+      - /app/shared/node_modules # giữ deps của shared (jsonwebtoken…) đã cài trong image
 
   media:
     command: npm run dev

@@ -22,9 +22,14 @@ export default defineConfig({
   ],
   server: {
     port: 5173,
+    host: true, // lắng nghe 0.0.0.0 để truy cập được từ ngoài container.
     // Proxy gọi API qua gateway để tránh CORS lúc dev.
+    // Target cấu hình qua env: local dev -> localhost:8080; trong Docker -> gateway:8080.
     proxy: {
-      '/api': { target: 'http://localhost:8080', changeOrigin: true },
+      '/api': {
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
 });
