@@ -48,11 +48,13 @@ const trigger = z.object({
   nextHint: nextHint.optional(),
 });
 
-// Audio chỉ đường tại ngã rẽ, có vùng kích hoạt riêng.
+// Audio chỉ đường tại ngã rẽ, có vùng kích hoạt riêng. Có thể dùng file audio
+// HOẶC để giọng máy đọc lời nhắc (text; trống thì đọc nhãn).
 const navAudio = z.object({
   id: z.string().uuid().optional(),
   label: z.string().trim().min(1, 'Nhãn audio chỉ đường là bắt buộc').max(200),
-  audioUrl: z.string().trim().url('Audio chỉ đường không hợp lệ'),
+  audioUrl: z.string().trim().url('Audio chỉ đường không hợp lệ').optional(),
+  text: z.string().trim().max(500, 'Lời nhắc tối đa 500 ký tự').optional(),
   zone: activationZone,
 });
 

@@ -1036,3 +1036,95 @@
 .place-form__manual .studio-form__row {
   margin-top: var(--sp-2);
 }
+
+/* ---- Bước Vùng kích hoạt (RouteConfigPage) ---- */
+.zonelist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.zonelist__item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  min-height: 52px;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--fg);
+  text-align: left;
+}
+.zonelist__item:hover {
+  border-color: var(--primary);
+}
+.zonelist__name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.zonepanel input[type='range'] {
+  width: 100%;
+  accent-color: var(--primary);
+}
+.zonepanel__hint {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.zonepanel__hint summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 4px 0;
+}
+.zonepanel__hint[open] summary {
+  margin-bottom: var(--sp-2);
+}
+.btn--dangertext {
+  color: var(--danger);
+  align-self: flex-start;
+}
+
+/* Thanh lưu dính đáy — chỉ hiện khi có thay đổi */
+.savebar {
+  position: sticky;
+  bottom: var(--sab);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: var(--r-lg);
+  background: var(--fg);
+  color: var(--bg);
+  box-shadow: var(--shadow-lg);
+}
+.savebar__msg,
+.savebar__err {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+}
+.savebar__err {
+  color: #fca5a5;
+}
+.savebar .btn--ghost {
+  color: var(--bg);
+  border-color: color-mix(in srgb, var(--bg) 40%, transparent);
+}
+.app--tabs .savebar {
+  bottom: calc(var(--tabbar-h, 64px) + var(--sab) + var(--sp-2));
+}
+@media (min-width: 900px) {
+  .app--tabs .savebar {
+    bottom: var(--sp-3);
+  }
+}

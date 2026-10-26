@@ -71,7 +71,9 @@ export class SaveRouteConfig {
       return {
         id: n.id ?? randomUUID(),
         label: n.label.trim(),
-        audioUrl: n.audioUrl.trim(),
+        // Không có file audio → trình phát đọc text (hoặc nhãn) bằng giọng máy.
+        audioUrl: n.audioUrl?.trim() || null,
+        text: n.text?.trim() || null,
         zone: zone.toPublic(),
       };
     });
