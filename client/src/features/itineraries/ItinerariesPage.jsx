@@ -91,7 +91,7 @@ export default function ItinerariesPage() {
             <Icon name="route" size={40} />
             <h2>Chưa có lịch trình nào</h2>
             <p>Tạo lịch trình đầu tiên, rồi thêm địa điểm từ mục Khám phá.</p>
-            <Link to="/explore" className="btn btn--ghost"><Icon name="search" size={18} /> Khám phá địa điểm</Link>
+            <Link to="/?tab=places" className="btn btn--ghost"><Icon name="search" size={18} /> Khám phá địa điểm</Link>
           </div>
         ) : (
           <ul className="itin__list">

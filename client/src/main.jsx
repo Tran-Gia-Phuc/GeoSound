@@ -8,8 +8,10 @@ import './styles/itinerary.css';
 import './styles/tours.css';
 import './styles/studio.css';
 import './styles/shell.css';
+import './styles/discover.css';
 import App from './App.jsx';
 import { AuthProvider } from './auth/AuthContext.jsx';
+import { ToastProvider } from './components/Toast.jsx';
 import { applyStoredTheme } from './hooks/useTheme.js';
 
 applyStoredTheme();
@@ -17,7 +19,9 @@ applyStoredTheme();
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </AuthProvider>
   </React.StrictMode>,
 );

@@ -466,7 +466,7 @@ export default function TourPlayerPage({
         open={showComplete}
         onClose={() => setShowComplete(false)}
         onReplay={replay}
-        onExplore={() => navigate('/tours')}
+        onExplore={() => navigate('/')}
         tourTitle={tour.title}
         placeCount={tour.placeCount}
       />

@@ -2,6 +2,8 @@
 // CÔNG KHAI để thêm vào lịch trình. Lọc theo từ khoá/thành phố/loại; nếu có
 // toạ độ người dùng thì sắp theo khoảng cách (gần nhất trước).
 // E1 (không có kết quả) → trả rỗng; client gợi ý địa điểm gần/phổ biến.
+// Bước 3 — xem chi tiết trước khi thêm: kèm mô tả + audio người thật (nếu có) và
+// ngôn ngữ gốc để client đọc mô tả bằng giọng máy khi không có audio.
 import { haversineMeters } from '../../domain/geo/distance.js';
 
 export class ExplorePlaces {
@@ -33,6 +35,9 @@ export class ExplorePlaces {
       lng: r.lng,
       images: Array.isArray(r.images) ? r.images : [],
       hasHumanAudio: r.audioSource === 'human',
+      description: r.description ?? '',
+      audioUrl: r.audioSource === 'human' ? r.audioUrl ?? null : null,
+      language: r.language ?? null,
       tourTitle: r.tourTitle,
       city: r.city ?? null,
     }));
