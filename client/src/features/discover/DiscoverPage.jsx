@@ -3,7 +3,8 @@
 // địa điểm (UC07 bước 1–3). Vừa mở đã có nội dung: Gần bạn + Phổ biến.
 //   - Ô tìm thật, gõ là tìm (debounce 300 ms); chuyển [Tour | Địa điểm]
 //   - Chip thành phố cuộn ngang; bộ lọc chi tiết nằm trong bottom sheet "Lọc (n)"
-//   - TOÀN BỘ state nằm trong URL (?tab=&q=&city=&lang=&type=&sort=) → vào chi
+//   - Danh sách ⇄ Bản đồ (?view=map): tour ghim tại điểm xuất phát, địa điểm tại chỗ
+//   - TOÀN BỘ state nằm trong URL (?tab=&q=&city=&lang=&type=&sort=&view=) → vào chi
 //     tiết rồi quay lại không mất kết quả, chia sẻ link được
 //   - Tab Địa điểm: chạm thẻ → sheet chi tiết (nghe thử); "＋" → thêm vào lịch
 //     trình (chọn / tạo lịch trình tại chỗ). ?addTo=<id> (từ trình sửa lịch trình)
@@ -17,6 +18,7 @@ import Modal from '../../components/Modal.jsx';
 import { useToast } from '../../components/Toast.jsx';
 import TourCard from '../tours/TourCard.jsx';
 import PlaceDetailSheet from './PlaceDetailSheet.jsx';
+import DiscoverMap from './DiscoverMap.jsx';
 import AddToItinerarySheet from '../itineraries/AddToItinerarySheet.jsx';
 import { searchTours, SORT_OPTIONS, LANGUAGE_OPTIONS, TOUR_TYPE_OPTIONS } from '../../lib/tours.js';
 import { explorePlaces, addItem } from '../../lib/itineraries.js';
@@ -84,6 +86,7 @@ export default function DiscoverPage() {
   const type = sp.get('type') || '';
   const sort = sp.get('sort') || (tab === 'places' ? 'recent' : 'popular');
   const addTo = sp.get('addTo');
+  const asMap = sp.get('view') === 'map';
   const addToName = location.state?.name;
 
   const setParams = useCallback(
@@ -317,6 +320,15 @@ export default function DiscoverPage() {
             </button>
           ))}
         </div>
+        <button
+          className="iconbtn discover__view"
+          onClick={() => setParams({ view: asMap ? '' : 'map' })}
+          aria-label={asMap ? 'Xem dạng danh sách' : 'Xem trên bản đồ'}
+          aria-pressed={asMap}
+          title={asMap ? 'Danh sách' : 'Bản đồ'}
+        >
+          <Icon name={asMap ? 'list' : 'map'} size={18} />
+        </button>
         <button className={`btn btn--sm ${filterCount ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setFiltersOpen(true)}>
           <Icon name="sliders" size={16} /> Lọc{filterCount ? ` (${filterCount})` : ''}
         </button>
@@ -346,7 +358,15 @@ export default function DiscoverPage() {
         </div>
       ) : null}
 
-      {toursLanding ? (
+      {asMap ? (
+        <DiscoverMap
+          kind={tab}
+          items={tab === 'places' ? results?.items ?? [] : (toursLanding ? popular?.tours : results?.tours) ?? []}
+          me={coords}
+          onOpenPlace={setDetail}
+          onAddPlace={onAddPlace}
+        />
+      ) : toursLanding ? (
         <>
           {recent.length ? (
             <section className="discover__section" aria-labelledby="recent-h">

@@ -981,3 +981,7 @@
   gap: var(--sp-2);
   flex: none;
 }
+/* Ghim địa điểm lẻ (Khám phá dạng bản đồ) */
+.gs-pin--place::before {
+  background: #0d9488;
+}

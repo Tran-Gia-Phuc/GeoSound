@@ -2,7 +2,8 @@
 // UC02 (bước 1–5, A1) — Tìm tour CÔNG KHAI (đã duyệt). Không cần đăng nhập.
 // Lọc: từ khóa (tên/mô tả), thành phố, ngôn ngữ gốc, loại tour.
 // Sắp xếp: popular | rating | recent | nearby (gần tôi — haversine).
-// Mỗi kết quả kèm số điểm, nhãn giọng (ưu tiên người thật), điểm đánh giá.
+// Mỗi kết quả kèm số điểm, nhãn giọng (ưu tiên người thật), điểm đánh giá và
+// toạ độ điểm đầu (anchor) để client hiện tour trên bản đồ Khám phá.
 // =========================================================
 import { voiceLabelFor } from '../../domain/value-objects/voice.js';
 import { haversineMeters } from '../../domain/geo/distance.js';
@@ -33,8 +34,12 @@ export class SearchTours {
       this.tourRepo.countPublic(filters),
       this.tourRepo.searchPublicPage(filters, { skip, take: limit, sort }),
     ]);
-    const stats = await this.placeRepo.statsByTours(tours.map((t) => t.id));
-    return { total, cards: tours.map((t) => buildCard(t, stats)) };
+    const ids = tours.map((t) => t.id);
+    const [stats, anchors] = await Promise.all([
+      this.placeRepo.statsByTours(ids),
+      this.placeRepo.anchorsByTours ? this.placeRepo.anchorsByTours(ids) : new Map(),
+    ]);
+    return { total, cards: tours.map((t) => buildCard(t, stats, undefined, anchors.get(t.id))) };
   }
 
   // "Gần tôi": xếp theo khoảng cách tới điểm đầu của tour, rồi phân trang trong app.
@@ -59,7 +64,7 @@ export class SearchTours {
     const cards = pageSlice
       .map((r) => {
         const tour = tourMap.get(r.id);
-        return tour ? buildCard(tour, stats, r.dist) : null;
+        return tour ? buildCard(tour, stats, r.dist, anchors.get(r.id)) : null;
       })
       .filter(Boolean);
     return { total: ranked.length, cards };
@@ -67,7 +72,7 @@ export class SearchTours {
 }
 
 // Thẻ kết quả tìm kiếm (bước 5).
-function buildCard(tour, stats, distanceMeters) {
+function buildCard(tour, stats, distanceMeters, anchor) {
   const s = stats.get(tour.id) ?? { count: 0, humanCount: 0 };
   const card = {
     id: tour.id,
@@ -83,5 +88,6 @@ function buildCard(tour, stats, distanceMeters) {
     voiceLabel: voiceLabelFor({ hasHumanAudio: s.humanCount > 0 }),
   };
   if (distanceMeters != null) card.distanceMeters = Math.round(distanceMeters);
+  if (anchor) card.anchor = { lat: anchor.lat, lng: anchor.lng };
   return card;
 }
