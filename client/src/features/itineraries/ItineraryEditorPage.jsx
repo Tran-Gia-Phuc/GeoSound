@@ -14,6 +14,7 @@ import {
 } from '../../lib/itineraries.js';
 import ShareDialog from './ShareDialog.jsx';
 import ModePicker from '../player/ModePicker.jsx';
+import PlaceDetailSheet from '../discover/PlaceDetailSheet.jsx';
 import { useBack } from '../../components/shell/AppHeader.jsx';
 
 export default function ItineraryEditorPage() {
@@ -26,6 +27,7 @@ export default function ItineraryEditorPage() {
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [shareOpen, setShareOpen] = useState(false);
+  const [detail, setDetail] = useState(null); // điểm đang xem nội dung (nghe thử)
 
   const load = useCallback(async () => {
     setError('');
@@ -168,7 +170,21 @@ export default function ItineraryEditorPage() {
             {places.map((p, i) => (
               <li key={p.id} className={`stop ${activeId === p.id ? 'is-active' : ''}`}>
                 <span className="stop__seq">{i + 1}</span>
-                <button className="stop__main" onClick={() => setActiveId(p.id)}>
+                <button
+                  className="stop__main"
+                  onClick={() => {
+                    setActiveId(p.id);
+                    setDetail({
+                      placeId: p.id,
+                      name: p.name,
+                      type: p.type,
+                      images: p.images,
+                      description: p.text,
+                      audioUrl: p.audioUrl,
+                      language: view.selectedLanguage,
+                    });
+                  }}
+                >
                   <span className="stop__name">{p.name}</span>
                   {Number.isFinite(view.legMeters?.[i - 1]) && i > 0 ? (
                     <span className="stop__leg muted small">
@@ -203,6 +219,7 @@ export default function ItineraryEditorPage() {
       ) : null}
 
       <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} itinerary={view} onChanged={load} />
+      <PlaceDetailSheet place={detail} onClose={() => setDetail(null)} />
     </div>
   );
 }
