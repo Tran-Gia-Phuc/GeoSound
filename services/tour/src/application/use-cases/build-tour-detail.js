@@ -7,6 +7,7 @@
 // =========================================================
 import { resolveVoiceLabel } from '../../domain/value-objects/voice.js';
 import { effectiveRoute } from '../../domain/route/effective-route.js';
+import { splitLanguagesByReadiness } from '../../domain/i18n/translation-status.js';
 
 /**
  * @param {{
@@ -19,10 +20,16 @@ import { effectiveRoute } from '../../domain/route/effective-route.js';
 export function buildTourDetailView({ tour, places, route = null, langs = [], translations = [], lang }) {
   const source = tour.originalLanguage;
 
-  // Ngôn ngữ khả dụng = cấu hình UC12 (gốc luôn có mặt).
+  // Ngôn ngữ khả dụng = cấu hình UC12 (gốc luôn có mặt) NHƯNG chỉ những ngôn ngữ
+  // mọi điểm đã có bản dịch thật; còn lại nằm ở pendingLanguages (không cho chọn).
   const configured = langs.map((l) => l.languageCode);
-  const availableLanguages = configured.length ? configured : [source];
-  if (!availableLanguages.includes(source)) availableLanguages.unshift(source);
+  if (!configured.includes(source)) configured.unshift(source);
+  const { ready: availableLanguages, pending: pendingLanguages } = splitLanguagesByReadiness({
+    source,
+    languages: configured,
+    places,
+    translations,
+  });
   const selectedLanguage = availableLanguages.includes(lang) ? lang : source;
 
   const hasHumanAudioOriginal = places.some((p) => p.audioSource === 'human');
@@ -52,6 +59,7 @@ export function buildTourDetailView({ tour, places, route = null, langs = [], tr
     placeCount: places.length,
     selectedLanguage,
     availableLanguages,
+    pendingLanguages,
     voiceLabel,
     places: places.map((p) => localizePlace(p, selectedLanguage, source, txByPlace.get(p.id))),
     // Route cho bản đồ chi tiết + vùng kích hoạt cho trình phát (UC11).

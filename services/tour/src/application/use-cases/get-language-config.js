@@ -3,6 +3,7 @@
 // Chưa cấu hình → chỉ có ngôn ngữ gốc, chưa có ngôn ngữ phụ/bản dịch.
 // =========================================================
 import { TourNotFoundError, NotTourOwnerError } from '../../domain/errors/index.js';
+import { splitLanguagesByReadiness } from '../../domain/i18n/translation-status.js';
 
 /** Ráp cấu hình trả về từ các mảnh đã tải (dùng chung với SetTourLanguages). */
 export function buildLanguageConfig({ tour, langs, translations, places }) {
@@ -10,9 +11,22 @@ export function buildLanguageConfig({ tour, langs, translations, places }) {
   const voice = langs.find((l) => l.gender)?.toPublic().voice ?? null;
 
   // Ngôn ngữ: luôn gồm ngôn ngữ gốc (kể cả khi chưa lưu TourLanguage nào).
-  const languages = langs.length
+  // Kèm tiến độ dịch thật + `ready` (khách chỉ thấy ngôn ngữ ready — UC02/UC04).
+  const base = langs.length
     ? langs.map((l) => l.toPublic())
     : [{ languageCode: source, isSource: true, voice: null }];
+  const { ready, progress } = splitLanguagesByReadiness({
+    source,
+    languages: base.map((l) => l.languageCode),
+    places,
+    translations,
+  });
+  const languages = base.map((l) => ({
+    ...l,
+    ready: ready.includes(l.languageCode),
+    translated: progress[l.languageCode]?.translated ?? 0,
+    total: progress[l.languageCode]?.total ?? places.length,
+  }));
 
   const byPlace = new Map(places.map((p) => [p.id, []]));
   for (const t of translations) {

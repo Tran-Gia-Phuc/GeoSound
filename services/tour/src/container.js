@@ -22,6 +22,7 @@ import { PrismaTourLanguageRepository } from './infrastructure/persistence/prism
 import { PrismaPlaceTranslationRepository } from './infrastructure/persistence/prisma-place-translation-repository.js';
 import { PolygonZoneChecker } from './infrastructure/zone/polygon-zone-checker.js';
 import { EchoTranslator } from './infrastructure/i18n/echo-translator.js';
+import { AiTranslator } from './infrastructure/i18n/ai-translator.js';
 import { PlaceholderTtsSynthesizer } from './infrastructure/i18n/placeholder-tts.js';
 
 import { CreateTour } from './application/use-cases/create-tour.js';
@@ -79,7 +80,14 @@ import { ExploreController } from './interfaces/http/controllers/explore-control
 import { buildExploreRouter } from './interfaces/http/routes/explore-routes.js';
 import { buildPublicItineraryRouter } from './interfaces/http/routes/public-itinerary-routes.js';
 
-export function buildContainer(/* env = process.env */) {
+// Dịch thật qua AI service khi có khoá Gemini (hoặc ép bằng TRANSLATOR=ai|echo).
+function selectTranslator(env) {
+  const mode = env.TRANSLATOR || (env.GEMINI_API_KEY ? 'ai' : 'echo');
+  if (mode !== 'ai') return new EchoTranslator();
+  return new AiTranslator({ baseUrl: env.AI_SERVICE_URL || 'http://ai:3004' });
+}
+
+export function buildContainer(env = process.env) {
   // --- infrastructure (impl của domain/ports) ---
   const tourRepo = new PrismaTourRepository(prisma);
   const placeRepo = new PrismaPlaceRepository(prisma);
@@ -88,11 +96,11 @@ export function buildContainer(/* env = process.env */) {
   const zoneChecker = new PolygonZoneChecker({ zoneRepo });
   // Cấu hình route & kích hoạt (UC11).
   const routeConfigRepo = new PrismaRouteConfigRepository(prisma);
-  // Đa ngôn ngữ & TTS (UC12). Adapter dịch/TTS là placeholder dev — đổi sang
-  // Gemini / dịch vụ TTS thật ở đây, không chạm use-case.
+  // Đa ngôn ngữ & TTS (UC12). Dịch: AI service (Gemini/Groq) hoặc Echo khi dev
+  // chưa có khoá. TTS vẫn là placeholder (client đọc bằng Web Speech).
   const tourLanguageRepo = new PrismaTourLanguageRepository(prisma);
   const placeTranslationRepo = new PrismaPlaceTranslationRepository(prisma);
-  const translator = new EchoTranslator();
+  const translator = selectTranslator(env);
   const ttsSynthesizer = new PlaceholderTtsSynthesizer();
   // Lịch trình cá nhân (UC07).
   const itineraryRepo = new PrismaItineraryRepository(prisma);
