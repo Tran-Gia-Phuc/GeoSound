@@ -2,12 +2,14 @@
 // TourDetailPage (UC02 bước 6–11, A2, E3) — Chi tiết tour CÔNG KHAI.
 //   - Ảnh bìa, mô tả, số điểm, thời lượng, điểm đánh giá, nhãn giọng.
 //   - Bản đồ route (UC11) ở chế độ xem tĩnh (tái dùng TourMap của UC04).
-//   - Chọn ngôn ngữ nghe (A2) → cập nhật nội dung + nhãn giọng.
-//   - Hành động: Nghe tour (→ UC04). Tải offline (UC03) ẩn cho tới khi làm xong.
+//   - Chọn ngôn ngữ nghe (A2) → cập nhật nội dung + nhãn giọng (đặt gần hành động).
+//   - Mỗi điểm: chạm → nghe tại điểm đó; ▶ nghe thử ngay; ＋ thêm vào lịch trình.
+//   - Thanh hành động DÍNH ĐÁY: [Nghe thử] [Bắt đầu đi tour] → trình phát mở
+//     thẳng theo ?mode= (không còn màn intro thứ hai). Tải offline (UC03) ẩn.
 //   - E3: tour không còn khả dụng → thông báo + quay lại danh sách.
 // =========================================================
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { fetchTourDetail } from '../../lib/api.js';
 import { langLabel, formatMinutes, voiceLabel } from '../../lib/format.js';
@@ -16,6 +18,9 @@ import { useBack } from '../../components/shell/AppHeader.jsx';
 import Icon from '../../components/Icon.jsx';
 import TourMap from '../player/TourMap.jsx';
 import Rating from './Rating.jsx';
+import ModePicker from '../player/ModePicker.jsx';
+import AddToItinerarySheet from '../itineraries/AddToItinerarySheet.jsx';
+import { playPreview, stopPreview } from '../../lib/preview-audio.js';
 
 // Mở thẳng bằng link chia sẻ (không có lịch sử) → về Khám phá.
 const BACK = '/';
@@ -30,6 +35,10 @@ export default function TourDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null); // { message, offline, notFound }
   const [langBusy, setLangBusy] = useState(false);
+  const [previewing, setPreviewing] = useState(null); // id điểm đang nghe thử
+  const [adding, setAdding] = useState(null); // { placeId, name } cho sheet "Thêm vào…"
+
+  useEffect(() => () => stopPreview(), []);
 
   const load = useCallback(
     async (useLang, opts) => fetchTourDetail(tourId, useLang, opts),
@@ -60,6 +69,8 @@ export default function TourDetailPage() {
 
   const changeLang = async (code) => {
     if (code === tour?.selectedLanguage || langBusy) return;
+    stopPreview();
+    setPreviewing(null);
     setLangBusy(true);
     try {
       const t = await load(code);
@@ -98,12 +109,12 @@ export default function TourDetailPage() {
             {error.offline
               ? 'Hãy kiểm tra kết nối mạng rồi thử lại.'
               : error.notFound
-                ? 'Tour có thể đã bị ẩn hoặc gỡ. Hãy quay lại danh sách.'
+                ? 'Tour có thể đã bị ẩn hoặc gỡ. Hãy tìm tour khác ở Khám phá.'
                 : 'Đã có lỗi khi tải tour.'}
           </p>
           <div className="row">
             <button className="btn btn--ghost" onClick={() => navigate(BACK)}>
-              <Icon name="arrow-left" size={16} /> Danh sách tour
+              <Icon name="arrow-left" size={16} /> Về Khám phá
             </button>
             {!error.notFound ? (
               <button className="btn btn--primary" onClick={() => window.location.reload()}>Thử lại</button>
@@ -116,13 +127,30 @@ export default function TourDetailPage() {
 
   if (!tour) return null; // phòng hờ: không loading, không lỗi, nhưng chưa có dữ liệu (tránh crash null)
 
-  const langParam = tour.selectedLanguage ? `?lang=${encodeURIComponent(tour.selectedLanguage)}` : '';
+  const lang = tour.selectedLanguage;
+  const playUrl = (mode, stop) => {
+    const p = new URLSearchParams({ mode });
+    if (lang) p.set('lang', lang);
+    if (stop) p.set('stop', stop);
+    return `/tour/${encodeURIComponent(tour.id)}/play?${p.toString()}`;
+  };
   const hasGeo =
     (tour.places || []).some((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)) ||
     (tour.route?.path?.length ?? 0) > 1;
+  const hasPlaces = (tour.places?.length ?? 0) > 0;
+
+  const togglePreview = (p) => {
+    if (previewing === p.id) {
+      stopPreview();
+      setPreviewing(null);
+      return;
+    }
+    setPreviewing(p.id);
+    playPreview({ url: p.audioUrl, text: p.text, lang, onEnd: () => setPreviewing(null) });
+  };
 
   return (
-    <div className="screen intro">
+    <div className={`screen intro ${hasPlaces ? 'detail--withbar' : ''}`}>
       {/* Ảnh bìa */}
       <div
         className="intro__cover"
@@ -144,42 +172,36 @@ export default function TourDetailPage() {
           <span className="chip"><Icon name="list" size={13} /> {tour.placeCount} điểm</span>
           {tour.duration ? <span className="chip"><Icon name="clock" size={13} /> {formatMinutes(tour.duration)}</span> : null}
           {tour.type ? <span className="chip">{TOUR_TYPE_LABELS[tour.type] || tour.type}</span> : null}
-          <span className="chip"><Icon name="volume" size={13} /> {voiceLabel(tour.voiceLabel)}</span>
         </div>
 
         <div className="detail__rating">
           <Rating value={tour.averageRating} count={tour.ratingCount} />
+          <span className="muted small"><Icon name="volume" size={13} /> {voiceLabel(tour.voiceLabel)}</span>
         </div>
 
-        {tour.description ? <p className="intro__desc">{tour.description}</p> : null}
-
-        {/* Chọn ngôn ngữ nghe (A2) */}
+        {/* Chọn ngôn ngữ nghe (A2) — đặt gần nút hành động */}
         {tour.availableLanguages?.length > 1 ? (
-          <section className="detail__section" aria-labelledby="lang-h">
-            <h2 className="detail__h2" id="lang-h">Ngôn ngữ nghe</h2>
-            <div className="langpick" role="group" aria-label="Chọn ngôn ngữ nghe">
-              {tour.availableLanguages.map((code) => {
-                const on = code === tour.selectedLanguage;
-                return (
-                  <button
-                    key={code}
-                    type="button"
-                    className={`langchip ${on ? 'langchip--on' : ''}`}
-                    aria-pressed={on}
-                    disabled={langBusy}
-                    onClick={() => changeLang(code)}
-                  >
-                    {langLabel(code)}
-                  </button>
-                );
-              })}
-              {langBusy ? <Icon name="loader" size={16} className="spin" /> : null}
-            </div>
-            <p className="detail__voice">
-              <Icon name="volume" size={14} /> {voiceLabel(tour.voiceLabel)} khi nghe bằng {langLabel(tour.selectedLanguage)}.
-            </p>
-          </section>
+          <div className="langpick" role="group" aria-label="Ngôn ngữ nghe">
+            {tour.availableLanguages.map((code) => {
+              const on = code === lang;
+              return (
+                <button
+                  key={code}
+                  type="button"
+                  className={`langchip ${on ? 'langchip--on' : ''}`}
+                  aria-pressed={on}
+                  disabled={langBusy}
+                  onClick={() => changeLang(code)}
+                >
+                  {langLabel(code)}
+                </button>
+              );
+            })}
+            {langBusy ? <Icon name="loader" size={16} className="spin" /> : null}
+          </div>
         ) : null}
+
+        {tour.description ? <p className="intro__desc">{tour.description}</p> : null}
 
         {/* Bản đồ route (UC11) */}
         {hasGeo ? (
@@ -191,55 +213,66 @@ export default function TourDetailPage() {
           </section>
         ) : null}
 
-        {/* Các điểm dừng */}
-        {tour.places?.length ? (
+        {/* Các điểm dừng: ▶ nghe thử điểm · ＋ thêm vào lịch trình */}
+        {hasPlaces ? (
           <section className="detail__section" aria-labelledby="stops-h">
             <h2 className="detail__h2" id="stops-h">Các điểm dừng</h2>
             <ol className="stops detail__stops">
               {tour.places.map((p, i) => (
-                <li key={p.id} className="stop" aria-current={false}>
+                <li key={p.id} className="stop detail-stop">
                   <span className="stop__num">{i + 1}</span>
-                  <span className="stop__info">
+                  <Link className="stop__info detail-stop__open" to={playUrl('remote', p.id)}>
                     <span className="stop__name">{p.name}</span>
-                    {p.images?.length ? (
-                      <span className="stop__sub"><Icon name="image" size={12} /> {p.images.length} ảnh</span>
-                    ) : null}
-                  </span>
+                    <span className="stop__sub">
+                      {p.images?.length ? <><Icon name="image" size={12} /> {p.images.length} ảnh · </> : null}
+                      Nghe tại điểm này
+                    </span>
+                  </Link>
+                  <button
+                    className="iconbtn iconbtn--sm"
+                    onClick={() => togglePreview(p)}
+                    aria-label={previewing === p.id ? `Dừng nghe ${p.name}` : `Nghe thử ${p.name}`}
+                    aria-pressed={previewing === p.id}
+                  >
+                    <Icon name={previewing === p.id ? 'pause' : 'play'} size={16} />
+                  </button>
+                  <button
+                    className="iconbtn iconbtn--sm"
+                    onClick={() => setAdding({ placeId: p.id, name: p.name })}
+                    aria-label={`Thêm ${p.name} vào lịch trình`}
+                  >
+                    <Icon name="plus" size={16} />
+                  </button>
                 </li>
               ))}
             </ol>
           </section>
-        ) : null}
+        ) : (
+          <div className="alert alert--warn" role="alert">
+            <Icon name="alert-triangle" size={18} className="alert__icon" />
+            <div>Tour này chưa có điểm nào để nghe.</div>
+          </div>
+        )}
 
-        {/* Đánh giá & nhận xét (UC05 — sắp có) */}
-        <section className="detail__section" aria-labelledby="rev-h">
-          <h2 className="detail__h2" id="rev-h">Đánh giá &amp; nhận xét</h2>
-          {tour.ratingCount ? (
+        {/* Đánh giá: chỉ điểm trung bình cho tới khi có UC05 */}
+        {tour.ratingCount ? (
+          <section className="detail__section" aria-labelledby="rev-h">
+            <h2 className="detail__h2" id="rev-h">Đánh giá</h2>
             <p className="muted small">
               Điểm trung bình {Number(tour.averageRating).toFixed(1).replace('.', ',')}/5 từ {tour.ratingCount} lượt đánh giá.
             </p>
-          ) : (
-            <p className="muted small">Chưa có nhận xét. Hãy là người đầu tiên sau khi nghe tour.</p>
-          )}
-        </section>
-
-        {/* Hành động (bước 10–11) */}
-        <div className="detail__actions">
-          {tour.places?.length ? (
-            <button
-              className="btn btn--primary btn--lg btn--block"
-              onClick={() => navigate(`/tour/${encodeURIComponent(tour.id)}/play${langParam}`)}
-            >
-              <Icon name="headphones" size={18} /> Nghe tour
-            </button>
-          ) : (
-            <div className="alert alert--warn" role="alert">
-              <Icon name="alert-triangle" size={18} className="alert__icon" />
-              <div>Tour này chưa có điểm nào để nghe.</div>
-            </div>
-          )}
-        </div>
+          </section>
+        ) : null}
       </div>
+
+      {/* Thanh hành động dính đáy — luôn nhìn thấy (bước 10–11) */}
+      {hasPlaces ? (
+        <div className="detail__bar">
+          <ModePicker to={(mode) => playUrl(mode)} />
+        </div>
+      ) : null}
+
+      <AddToItinerarySheet open={!!adding} place={adding} onClose={() => setAdding(null)} />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
   getItinerary, renameItinerary, removeItem, reorderItems,
 } from '../../lib/itineraries.js';
 import ShareDialog from './ShareDialog.jsx';
+import ModePicker from '../player/ModePicker.jsx';
 import { useBack } from '../../components/shell/AppHeader.jsx';
 
 export default function ItineraryEditorPage() {
@@ -147,11 +148,20 @@ export default function ItineraryEditorPage() {
       ) : null}
 
       <main className="itin-edit__list">
+        <div className="itin-edit__listhead">
+          <h2 className="detail__h2">Các điểm</h2>
+          <Link className="btn btn--ghost btn--sm" to={`/?tab=places&addTo=${id}`} state={{ name: view.name }}>
+            <Icon name="plus" size={16} /> Thêm địa điểm
+          </Link>
+        </div>
         {places.length === 0 ? (
           <div className="emptybox itin__empty">
             <Icon name="map-pin" size={36} />
             <h2>Lịch trình trống</h2>
-            <p>Thêm địa điểm đầu tiên từ mục Khám phá.</p>
+            <p>Thêm địa điểm từ mục Khám phá, hoặc bấm ＋ ở điểm dừng của một tour.</p>
+            <Link className="btn btn--primary" to={`/?tab=places&addTo=${id}`} state={{ name: view.name }}>
+              <Icon name="search" size={18} /> Tìm địa điểm
+            </Link>
           </div>
         ) : (
           <ol className="stops">
@@ -183,19 +193,14 @@ export default function ItineraryEditorPage() {
         )}
       </main>
 
-      <footer className="itin-edit__bar">
-        <Link className="btn btn--ghost" to={`/?tab=places&addTo=${id}`} state={{ name: view.name }}>
-          <Icon name="plus" size={18} /> Thêm địa điểm
-        </Link>
-        <Link
-          className={`btn btn--primary ${places.length === 0 ? 'is-disabled' : ''}`}
-          to={places.length ? `/itinerary/${id}/go` : '#'}
-          aria-disabled={places.length === 0}
-          onClick={(e) => places.length === 0 && e.preventDefault()}
-        >
-          <Icon name="navigation" size={18} /> Đi theo lịch trình
-        </Link>
-      </footer>
+      {places.length ? (
+        <footer className="itin-edit__bar">
+          <ModePicker
+            to={(mode) => `/itinerary/${id}/go?mode=${mode}`}
+            gpsLabel="Đi theo lịch trình"
+          />
+        </footer>
+      ) : null}
 
       <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} itinerary={view} onChanged={load} />
     </div>
