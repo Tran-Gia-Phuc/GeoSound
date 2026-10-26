@@ -315,3 +315,27 @@
     bottom: 0;
   }
 }
+
+/* ---------- Độ tương phản khi nền đảo màu (toast, thanh lưu) ----------
+   Hai khối này dùng nền = màu chữ (đảo): sáng → nền tối, tối → nền sáng.
+   Màu nhấn phải đổi theo để đạt ≥ 4.5:1 ở cả hai giao diện. */
+.toast__action {
+  color: #5eead4;
+}
+.savebar__err {
+  color: #fca5a5;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .toast__action {
+    color: var(--teal-700);
+  }
+  :root:not([data-theme='light']) .savebar__err {
+    color: #b91c1c;
+  }
+}
+:root[data-theme='dark'] .toast__action {
+  color: var(--teal-700);
+}
+:root[data-theme='dark'] .savebar__err {
+  color: #b91c1c;
+}

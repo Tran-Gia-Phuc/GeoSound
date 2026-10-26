@@ -561,7 +561,7 @@ export default function TourPlayerPage({
           onToggle={() => setSheetOpen((v) => !v)}
           audioError={audioError}
         />
-        <PlayerBar audio={engine.audio} engine={engine} />
+        <PlayerBar audio={engine.audio} engine={engine} hideTitle={sheetOpen && !!engine.currentPlace && engine.currentRole === 'place'} />
       </div>
 
       {/* Danh sách điểm (A3 / A5) */}

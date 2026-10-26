@@ -8,7 +8,7 @@ import { formatTime } from '../../lib/format.js';
 
 const ROLE_LABEL = { place: 'Đang nghe', hint: 'Gợi ý đi tiếp', nav: 'Chỉ đường' };
 
-export default function PlayerBar({ audio, engine }) {
+export default function PlayerBar({ audio, engine, hideTitle = false }) {
   const { state, toggle, seek } = audio;
   const { currentPlace, currentRole, prev, next, canPrev, canNext } = engine;
 
@@ -41,9 +41,11 @@ export default function PlayerBar({ audio, engine }) {
         ) : null}
       </div>
 
-      <div className="player__title" title={title}>
-        {title}
-      </div>
+      {hideTitle ? null : (
+        <div className="player__title" title={title}>
+          {title}
+        </div>
+      )}
 
       {/* Thanh tiến độ */}
       {state.canSeek ? (

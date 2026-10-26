@@ -35,7 +35,7 @@ export default function PlaceSheet({ place, number, role, expanded, onToggle, au
   const images = Array.isArray(place.images) ? place.images.filter(Boolean).map(toImage).filter((im) => im.url) : [];
 
   return (
-    <div className={`sheet ${expanded ? 'sheet--open' : ''}`}>
+    <div className={`sheet ${expanded ? 'sheet--open' : ''}`} role="region" aria-label={`Nội dung điểm ${place.name}`}>
       <button
         className="sheet__handle"
         onClick={onToggle}

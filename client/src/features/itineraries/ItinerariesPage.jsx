@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import AppHeader from '../../components/shell/AppHeader.jsx';
+import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { formatDistance, formatMinutes } from '../../lib/format.js';
 import { listMyItineraries, createItinerary, deleteItinerary } from '../../lib/itineraries.js';
@@ -19,6 +20,7 @@ export default function ItinerariesPage() {
   const [error, setError] = useState('');
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(null); // { id, name }
 
   async function load() {
     setError('');
@@ -50,8 +52,9 @@ export default function ItinerariesPage() {
     }
   };
 
-  const onDelete = async (id, title) => {
-    if (!window.confirm(`Xoá lịch trình “${title}”? Hành động này không thể hoàn tác.`)) return;
+  const onDelete = async () => {
+    const { id } = confirmDel;
+    setConfirmDel(null);
     try {
       await deleteItinerary(id);
       setList((l) => l.filter((x) => x.id !== id));
@@ -133,7 +136,7 @@ export default function ItinerariesPage() {
                 </Link>
                 <button
                   className="iconbtn itin-card__del"
-                  onClick={() => onDelete(it.id, it.name)}
+                  onClick={() => setConfirmDel({ id: it.id, name: it.name })}
                   aria-label={`Xoá lịch trình ${it.name}`}
                 >
                   <Icon name="trash" size={18} />
@@ -144,6 +147,15 @@ export default function ItinerariesPage() {
         )}
       </main>
       )}
+      <ConfirmDialog
+        open={!!confirmDel}
+        title={`Xoá lịch trình “${confirmDel?.name ?? ''}”?`}
+        message="Lịch trình và các điểm trong đó sẽ bị xoá. Liên kết chia sẻ (nếu có) cũng ngừng hoạt động."
+        confirmLabel="Xoá lịch trình"
+        danger
+        onConfirm={onDelete}
+        onCancel={() => setConfirmDel(null)}
+      />
     </div>
   );
 }
