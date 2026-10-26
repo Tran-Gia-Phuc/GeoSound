@@ -1128,3 +1128,62 @@
     bottom: var(--sp-3);
   }
 }
+
+/* ---- Bản dịch chia tab theo ngôn ngữ (UC12) ---- */
+.txtabs {
+  display: flex;
+  gap: var(--sp-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: relative;
+}
+.txtabs__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--fg-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.txtabs__tab.is-active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.txtabs__count {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--danger-soft);
+  color: var(--warning);
+}
+.txtabs__count.is-ready {
+  background: var(--primary-soft);
+  color: var(--success);
+}
+.txpanel__status {
+  margin: var(--sp-2) 0;
+}
+.tx-row__src summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+.tx-row__src p {
+  margin-top: 6px;
+  padding: var(--sp-2) var(--sp-3);
+  border-left: 3px solid var(--border-strong);
+  color: var(--fg-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.chip--warn {
+  background: var(--danger-soft);
+  color: var(--warning);
+  border-color: transparent;
+}

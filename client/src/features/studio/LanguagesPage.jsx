@@ -2,7 +2,9 @@
 // LanguagesPage (UC12) — đa ngôn ngữ & giọng đọc TTS cho tour.
 //   - Chọn ngôn ngữ phụ + giọng TTS → Lưu (tự dịch text gốc + render TTS,
 //     GIỮ bản dịch đã chỉnh tay). Gỡ ngôn ngữ sẽ xoá bản dịch của nó.
-//   - Theo từng điểm: xem/sửa bản dịch (A2, text gốc sửa ở UC10), nghe thử TTS (A1).
+//   - Bản dịch chia TAB theo ngôn ngữ phụ ("4/4 điểm đã dịch"); mỗi điểm một dòng:
+//     bản gốc (thu gọn) ↔ bản dịch, trạng thái Máy dịch / Đã sửa / Chưa dịch,
+//     nghe thử (A1), lưu khi có sửa (A2; text gốc sửa ở bước Điểm dừng).
 // =========================================================
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -10,7 +12,7 @@ import Icon from '../../components/Icon.jsx';
 import { langLabel } from '../../lib/format.js';
 import { LANGUAGE_OPTIONS } from '../../lib/tours.js';
 import {
-  TTS_GENDER_OPTIONS, TEXT_SOURCE_LABELS,
+  TTS_GENDER_OPTIONS,
   getLanguageConfig, setTourLanguages, previewTts, updateTranslation,
 } from '../../lib/studio.js';
 
@@ -46,6 +48,7 @@ export default function LanguagesPage() {
   const [drafts, setDrafts] = useState({}); // `${placeId}:${lang}` -> text
   const [rowBusy, setRowBusy] = useState({}); // `${placeId}:${lang}` -> 'save' | 'preview'
   const [rowError, setRowError] = useState({});
+  const [txTab, setTxTab] = useState(null); // ngôn ngữ đang xem bản dịch
 
   const hydrate = useCallback((cfg) => {
     setConfig(cfg);
@@ -162,6 +165,9 @@ export default function LanguagesPage() {
   const source = config.sourceLanguage;
   const secondaryOptions = LANGUAGE_OPTIONS.filter((o) => o.value !== source);
   const hasTranslations = config.places.some((p) => p.translations.length > 0);
+  const secLangs = config.languages.filter((l) => !l.isSource);
+  const activeLang = secLangs.some((l) => l.languageCode === txTab) ? txTab : secLangs[0]?.languageCode;
+  const activeMeta = secLangs.find((l) => l.languageCode === activeLang);
 
   return (
     <div className="studio-step">
@@ -244,57 +250,94 @@ export default function LanguagesPage() {
           <div className="alert studio-notice" role="status"><Icon name="check-circle" size={18} className="alert__icon" /><div>{notice}</div></div>
         ) : null}
 
-        {/* Bản dịch theo điểm */}
+        {/* Bản dịch — mỗi ngôn ngữ phụ một tab */}
         <section className="studio-section">
-          <h2 className="studio__h2"><Icon name="list" size={16} /> Bản dịch theo điểm</h2>
+          <h2 className="studio__h2"><Icon name="list" size={16} /> Bản dịch</h2>
           {config.places.length === 0 ? (
             <p className="muted small">Tour chưa có điểm dừng. <Link className="linkbtn" to={`/studio/tours/${id}/places`}>Thêm điểm dừng</Link> trước.</p>
-          ) : !hasTranslations ? (
-            <p className="muted small">Lưu cấu hình ngôn ngữ ở trên để tạo bản dịch cho từng điểm.</p>
+          ) : !secLangs.length || !hasTranslations ? (
+            <p className="muted small">Chọn ngôn ngữ phụ ở trên rồi bấm “Lưu &amp; tạo bản dịch” để có bản dịch từng điểm.</p>
           ) : (
-            <ul className="tx-list">
-              {config.places.map((p) => (
-                <li key={p.placeId} className="tx-place">
-                  <h3 className="tx-place__name">{p.name}</h3>
-                  {config.languages.map((l) => {
-                    const key = `${p.placeId}:${l.languageCode}`;
-                    const tx = p.translations.find((t) => t.languageCode === l.languageCode);
-                    if (!tx) return null;
-                    const isSource = l.isSource;
+            <>
+              <div className="txtabs" role="tablist" aria-label="Ngôn ngữ bản dịch">
+                {secLangs.map((l) => {
+                  const on = l.languageCode === activeLang;
+                  return (
+                    <button
+                      key={l.languageCode}
+                      role="tab"
+                      id={`txtab-${l.languageCode}`}
+                      aria-selected={on}
+                      aria-controls="txpanel"
+                      className={`txtabs__tab ${on ? 'is-active' : ''}`}
+                      onClick={() => setTxTab(l.languageCode)}
+                    >
+                      {langLabel(l.languageCode)}
+                      <span className={`txtabs__count ${l.ready ? 'is-ready' : ''}`}>{l.translated}/{l.total}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div role="tabpanel" id="txpanel" aria-labelledby={`txtab-${activeLang}`}>
+                <p className="muted small txpanel__status">
+                  {activeMeta?.ready
+                    ? `Đã dịch đủ ${activeMeta.total}/${activeMeta.total} điểm — khách chọn được ${langLabel(activeLang)}.`
+                    : `Mới dịch ${activeMeta?.translated ?? 0}/${activeMeta?.total ?? 0} điểm — khách chưa thấy ${langLabel(activeLang)} cho tới khi đủ.`}
+                </p>
+                <ul className="tx-list">
+                  {config.places.map((p, i) => {
+                    const key = `${p.placeId}:${activeLang}`;
+                    const src = p.translations.find((t) => t.languageCode === source);
+                    const tx = p.translations.find((t) => t.languageCode === activeLang);
+                    const draft = drafts[key] ?? tx?.text ?? '';
+                    const real = tx && (tx.textSource === 'edited' || tx.text.trim() !== (src?.text ?? '').trim());
+                    const status = !tx || !real ? { label: 'Chưa dịch', tone: 'warn' } : tx.textSource === 'edited' ? { label: 'Đã sửa', tone: 'ok' } : { label: 'Máy dịch', tone: '' };
+                    const changed = !!tx && draft.trim() !== tx.text.trim();
                     return (
-                      <div key={l.languageCode} className="tx-row">
+                      <li key={p.placeId} className="tx-row">
                         <div className="tx-row__head">
-                          <span className="tx-row__lang">{langLabel(l.languageCode)}</span>
-                          <span className="chip">{TEXT_SOURCE_LABELS[tx.textSource] || tx.textSource}</span>
+                          <span className="stop__seq">{i + 1}</span>
+                          <span className="tx-row__lang">{p.name}</span>
+                          <span className={`chip ${status.tone === 'ok' ? 'chip--ok' : status.tone === 'warn' ? 'chip--warn' : ''}`}>{status.label}</span>
                         </div>
-                        <textarea
-                          className="input studio-form__textarea tx-row__text"
-                          value={drafts[key] ?? tx.text}
-                          readOnly={isSource}
-                          rows={3}
-                          maxLength={5000}
-                          onChange={(e) => setDrafts((s) => ({ ...s, [key]: e.target.value }))}
-                          aria-label={`Bản dịch ${langLabel(l.languageCode)} của ${p.name}`}
-                        />
-                        {rowError[key] ? <span className="field__err">{rowError[key]}</span> : null}
-                        <div className="tx-row__actions">
-                          <button className="btn btn--ghost btn--sm" onClick={() => onPreview(p.placeId, l.languageCode)} disabled={!!rowBusy[key]}>
-                            {rowBusy[key] === 'preview' ? <Icon name="loader" size={16} className="spin" /> : <Icon name="volume" size={16} />} Nghe thử
-                          </button>
-                          {isSource ? (
-                            <span className="muted small">Sửa nội dung gốc ở <Link className="linkbtn" to={`/studio/tours/${id}/places`}>Quản lý điểm</Link></span>
-                          ) : (
-                            <button className="btn btn--primary btn--sm" onClick={() => onSaveTranslation(p.placeId, l.languageCode)} disabled={!!rowBusy[key]}>
-                              {rowBusy[key] === 'save' ? <Icon name="loader" size={16} className="spin" /> : <Icon name="check-circle" size={16} />} Lưu bản dịch
-                            </button>
-                          )}
-                        </div>
-                      </div>
+                        {src?.text ? (
+                          <details className="tx-row__src">
+                            <summary>Bản gốc ({langLabel(source)})</summary>
+                            <p>{src.text}</p>
+                          </details>
+                        ) : null}
+                        {tx ? (
+                          <>
+                            <textarea
+                              className="input studio-form__textarea tx-row__text"
+                              value={draft}
+                              rows={3}
+                              maxLength={5000}
+                              onChange={(e) => setDrafts((st) => ({ ...st, [key]: e.target.value }))}
+                              aria-label={`Bản dịch ${langLabel(activeLang)} của ${p.name}`}
+                            />
+                            {rowError[key] ? <span className="field__err">{rowError[key]}</span> : null}
+                            <div className="tx-row__actions">
+                              <button className="btn btn--ghost btn--sm" onClick={() => onPreview(p.placeId, activeLang)} disabled={!!rowBusy[key]}>
+                                {rowBusy[key] === 'preview' ? <Icon name="loader" size={16} className="spin" /> : <Icon name="volume" size={16} />} Nghe thử
+                              </button>
+                              {changed ? (
+                                <button className="btn btn--primary btn--sm" onClick={() => onSaveTranslation(p.placeId, activeLang)} disabled={!!rowBusy[key]}>
+                                  {rowBusy[key] === 'save' ? <Icon name="loader" size={16} className="spin" /> : <Icon name="check-circle" size={16} />} Lưu bản dịch
+                                </button>
+                              ) : null}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="muted small">Chưa có bản dịch — bấm “Lưu &amp; tạo bản dịch” ở trên.</p>
+                        )}
+                      </li>
                     );
                   })}
-                </li>
-              ))}
-            </ul>
+                </ul>
+              </div>
+            </>
           )}
         </section>
 
