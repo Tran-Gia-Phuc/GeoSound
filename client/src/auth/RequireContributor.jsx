@@ -1,15 +1,18 @@
 // =========================================================
 // RequireContributor — chặn khu "Studio" (UC09–UC13) chỉ cho người đóng góp.
 //   - Chưa đăng nhập  → /login?next=  (quay lại sau khi đăng nhập).
-//   - Đăng nhập nhưng KHÔNG phải contributor → màn thông báo (API sẽ 403).
+//   - Đăng nhập bằng tài khoản khách → giải thích + mở đường đăng ký tài khoản
+//     tác giả (tự chọn vai trò khi đăng ký — quyết định D2), không còn "liên hệ
+//     quản trị viên" vì app chưa có giao diện quản trị.
 // =========================================================
-import { Link, Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon.jsx';
 import { useAuth } from './AuthContext.jsx';
 
 export default function RequireContributor({ children }) {
-  const { authenticated, isContributor } = useAuth();
+  const { authenticated, isContributor, user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   if (!authenticated) {
     const next = encodeURIComponent(location.pathname + location.search);
@@ -17,18 +20,27 @@ export default function RequireContributor({ children }) {
   }
 
   if (!isContributor) {
+    const registerAsAuthor = () => {
+      logout();
+      navigate('/register?role=contributor', { replace: true });
+    };
     return (
       <div className="screen screen--center">
         <div className="emptybox">
-          <Icon name="info" size={40} />
-          <h2>Khu vực dành cho người đóng góp</h2>
+          <Icon name="mic" size={40} />
+          <h2>Studio dành cho tác giả tour</h2>
           <p>
-            Tài khoản của bạn chưa có quyền tạo &amp; quản lý tour. Hãy liên hệ quản trị viên để
-            được cấp quyền đóng góp nội dung.
+            {user?.email ? <b>{user.email}</b> : 'Tài khoản này'} là tài khoản khách du lịch. Để tạo và xuất bản
+            tour audio, hãy đăng ký một tài khoản tác giả (dùng email khác).
           </p>
-          <Link to="/" className="btn btn--ghost">
-            <Icon name="arrow-left" size={18} /> Về trang chủ
-          </Link>
+          <div className="row">
+            <Link to="/" className="btn btn--ghost">
+              <Icon name="arrow-left" size={18} /> Về Khám phá
+            </Link>
+            <button className="btn btn--primary" onClick={registerAsAuthor}>
+              Đăng ký tài khoản tác giả
+            </button>
+          </div>
         </div>
       </div>
     );

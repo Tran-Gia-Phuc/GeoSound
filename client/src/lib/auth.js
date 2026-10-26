@@ -15,10 +15,10 @@ export async function login({ email, password }) {
   return user;
 }
 
-/** A1 — đăng ký (gửi OTP tới email). Chưa tạo tài khoản. */
-export async function register({ fullName, email, password }) {
-  // role mặc định 'tourist' ở phía auth service.
-  return api.post('/api/auth/register', { fullName, email, password });
+/** A1 — đăng ký (gửi OTP tới email). Chưa tạo tài khoản.
+ *  role: 'tourist' (mặc định ở auth service) | 'contributor' (tác giả tour). */
+export async function register({ fullName, email, password, role }) {
+  return api.post('/api/auth/register', { fullName, email, password, ...(role ? { role } : {}) });
 }
 
 /** A1.7 — xác thực OTP, tạo tài khoản. Trả { user } (chưa có token). */
@@ -35,6 +35,17 @@ export async function resendOtp({ email, purpose = 'register' }) {
 export async function registerAndVerify({ fullName, email, password, otp }) {
   await verifyOtp({ email, otp });
   return login({ email, password });
+}
+
+/** A2.1 — quên mật khẩu: gửi OTP đặt lại (luôn trả chung chung, không lộ email tồn tại). */
+export async function forgotPassword({ email }) {
+  return api.post('/api/auth/forgot-password', { email });
+}
+
+/** A2.2 — xác thực OTP + đặt mật khẩu mới, rồi đăng nhập luôn. */
+export async function resetPasswordAndLogin({ email, otp, newPassword }) {
+  await api.post('/api/auth/reset-password', { email, otp, newPassword });
+  return login({ email, password: newPassword });
 }
 
 export function logout() {
