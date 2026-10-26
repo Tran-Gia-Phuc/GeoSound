@@ -20,7 +20,20 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'media', sto
 app.use('/', mediaRouter);
 if (localDir) {
   // File tải lên khi dev (LocalDiskStorage) — tên file là UUID, không đổi nội dung.
-  app.use('/files', express.static(localDir, { maxAge: '365d', immutable: true, fallthrough: false }));
+  app.use(
+    '/files',
+    express.static(localDir, {
+      maxAge: '365d',
+      immutable: true,
+      fallthrough: false,
+      // .webm/.m4a mặc định bị đoán là video — file trong audios/ là audio.
+      setHeaders: (res, filePath) => {
+        if (!/[\\/]audios[\\/]/.test(filePath)) return;
+        if (filePath.endsWith('.webm')) res.setHeader('Content-Type', 'audio/webm');
+        else if (filePath.endsWith('.m4a')) res.setHeader('Content-Type', 'audio/mp4');
+      },
+    }),
+  );
 }
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);

@@ -3,11 +3,13 @@
 //   - chạm để chọn file (điện thoại mở thư viện ảnh / file) hoặc kéo thả
 //   - đang tải: vòng quay; xong: xem trước (ảnh / trình nghe) + Thay · Gỡ
 //   - vẫn cho dán đường dẫn có sẵn (mục thu gọn "Dùng đường dẫn")
+//   - audio: có thể GHI ÂM ngay trên trình duyệt (AudioRecorder) rồi tải lên
 // Giá trị là URL công khai (string) hoặc '' khi trống.
 // =========================================================
 import { useId, useRef, useState } from 'react';
 import Icon from '../Icon.jsx';
 import { MEDIA_RULES, checkFile, uploadMedia } from '../../lib/media.js';
+import AudioRecorder from './AudioRecorder.jsx';
 
 const isHttpUrl = (s) => /^https?:\/\/\S+$/i.test(s || '');
 
@@ -22,6 +24,7 @@ export default function FileDrop({ kind, value, onChange, label, hint, error }) 
   const [err, setErr] = useState('');
   const [over, setOver] = useState(false);
   const [urlDraft, setUrlDraft] = useState('');
+  const [recording, setRecording] = useState(false);
   const rule = MEDIA_RULES[kind];
 
   async function handle(file) {
@@ -36,6 +39,7 @@ export default function FileDrop({ kind, value, onChange, label, hint, error }) 
     try {
       const r = await uploadMedia(file, kind);
       onChange(r.url);
+      setRecording(false);
     } catch (e) {
       setErr(e.message || 'Tải lên thất bại, vui lòng thử lại');
     } finally {
@@ -60,7 +64,9 @@ export default function FileDrop({ kind, value, onChange, label, hint, error }) 
         tabIndex={-1}
       />
 
-      {value ? (
+      {recording ? (
+        <AudioRecorder busy={busy} onUse={(file) => handle(file)} onCancel={() => setRecording(false)} />
+      ) : value ? (
         <div className={`filedrop__preview filedrop__preview--${kind}`}>
           {kind === 'image' ? (
             <img src={value} alt="" className="filedrop__img" />
@@ -72,6 +78,11 @@ export default function FileDrop({ kind, value, onChange, label, hint, error }) 
             <button type="button" className="btn btn--sm" onClick={pick} disabled={busy}>
               {busy ? <Icon name="loader" size={16} className="spin" /> : <Icon name="download" size={16} />} Thay
             </button>
+            {kind === 'audio' ? (
+              <button type="button" className="btn btn--sm" onClick={() => setRecording(true)} disabled={busy}>
+                <Icon name="mic" size={16} /> Ghi lại
+              </button>
+            ) : null}
             <button type="button" className="btn btn--sm btn--ghost" onClick={() => onChange('')} disabled={busy}>
               <Icon name="trash" size={16} /> Gỡ
             </button>
@@ -106,6 +117,11 @@ export default function FileDrop({ kind, value, onChange, label, hint, error }) 
           </span>
         </button>
       )}
+      {kind === 'audio' && !value && !recording ? (
+        <button type="button" className="btn btn--ghost btn--sm filedrop__rec" onClick={() => setRecording(true)} disabled={busy}>
+          <Icon name="mic" size={16} /> Ghi âm ngay trên máy
+        </button>
+      ) : null}
 
       {shownError ? (
         <span className="field__err" role="alert">{shownError}</span>
@@ -113,7 +129,7 @@ export default function FileDrop({ kind, value, onChange, label, hint, error }) 
         <span className="field__hint" id={`${id}-hint`}>{hint ? `${hint} ` : ''}{rule.label}.</span>
       )}
 
-      {!value ? (
+      {!value && !recording ? (
         <details className="filedrop__url">
           <summary>Dùng đường dẫn có sẵn</summary>
           <div className="filedrop__urlrow">
