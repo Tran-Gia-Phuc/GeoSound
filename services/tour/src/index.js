@@ -34,6 +34,15 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'tour' }));
 // nên /mine... rơi xuống các router sau (vẫn giữ verifyJwt của chúng).
 app.use('/', publicTourRouter);
 
+// UC07: khám phá địa điểm lẻ (công khai) + lịch trình. PHẢI mount TRƯỚC các router
+// contributor bên dưới: chúng gắn ở '/' và có verifyJwt(['contributor']) cấp router,
+// nên mọi request lọt xuống đó (kể cả /places, /itineraries) đều bị 401/403.
+app.use('/places', exploreRouter);
+// UC07/A4: lịch trình chia sẻ công khai — /itineraries/shared/:token (trước router có auth).
+app.use('/itineraries', publicItineraryRouter);
+// UC07: lịch trình cá nhân (bất kỳ tài khoản đã đăng nhập) — /itineraries/*
+app.use('/itineraries', itineraryRouter);
+
 // UC09: POST / | GET /mine | GET /mine/:id | PATCH /mine/:id | DELETE /mine/:id
 app.use('/', tourRouter);
 // UC10: /mine/:tourId/places (+ /:placeId, /reorder)
@@ -45,14 +54,6 @@ app.use('/', routeConfigRouter);
 app.use('/', languageRouter);
 // UC13: /mine/:tourId/preview (GET) — xem thử tour của chính tác giả
 app.use('/', previewRouter);
-
-// UC07: khám phá địa điểm lẻ (công khai) — /places
-app.use('/places', exploreRouter);
-// UC07/A4: lịch trình chia sẻ công khai — /itineraries/shared/:token (MOUNT TRƯỚC
-// router có auth để không bị verifyJwt chặn).
-app.use('/itineraries', publicItineraryRouter);
-// UC07: lịch trình cá nhân (cần đăng nhập) — /itineraries/*
-app.use('/itineraries', itineraryRouter);
 
 // TODO: publish tour.submitted (UC15); "tour gần tôi" chuyển PostGIS khi cần.
 

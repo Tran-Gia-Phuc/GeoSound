@@ -38,13 +38,16 @@ const mount = (path, target) =>
 
 // Giữ nguyên segment sau /api (vd /api/itineraries -> /itineraries) để tour
 // service phân tách namespace với /api/tours (tránh đụng route /:id công khai).
+// LƯU Ý: app.use(path) đã cắt `path` khỏi req.url trước khi tới proxy, nên phải
+// dựng lại từ req.originalUrl — nếu không /api/places?x bị chuyển thành /?x
+// (rơi vào tìm kiếm tour) và /api/itineraries thành /.
 const mountKeep = (path, target) =>
   app.use(
     path,
     createProxyMiddleware({
       target,
       changeOrigin: true,
-      pathRewrite: (p) => p.replace('/api', '') || '/',
+      pathRewrite: (_p, req) => req.originalUrl.replace(/^\/api/, '') || '/',
     })
   );
 
