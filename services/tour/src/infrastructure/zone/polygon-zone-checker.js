@@ -18,7 +18,7 @@ export class PolygonZoneChecker {
     const zones = await this.zoneRepo.listActive();
     for (const zone of zones) {
       if (zone?.geometry && pointInPolygon([lng, lat], zone.geometry)) {
-        throw new ForbiddenZoneError(zone.name); // E2
+        throw new ForbiddenZoneError({ name: zone.name, type: zone.type, geometry: zone.geometry }); // E2
       }
     }
   }

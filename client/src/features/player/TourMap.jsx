@@ -2,6 +2,8 @@
 // TourMap — bản đồ tour (UC04 bước 3): route, vùng kích hoạt, các điểm dừng,
 // vị trí GPS trực tiếp. Vùng của điểm ĐANG PHÁT tô hổ phách.
 // Chế độ giả lập: chạm bản đồ để đặt vị trí (test không cần ra hiện trường).
+// Studio: `editPin` = ghim đang đặt (kéo được), `focus` = bay tới một toạ độ
+// (kết quả tìm địa chỉ), `blockedZones` = vùng cấm cần tránh (tô đỏ).
 // =========================================================
 import { useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Polyline, Circle, Polygon, Marker, useMap, useMapEvents } from 'react-leaflet';
@@ -19,6 +21,13 @@ function pinIcon(label, { active, visited }) {
   });
 }
 
+const editIcon = L.divIcon({
+  className: 'gs-pin-wrap',
+  html: '<div class="gs-pin gs-pin--edit"><span>＋</span></div>',
+  iconSize: [34, 42],
+  iconAnchor: [17, 40],
+});
+
 function userIcon(stale) {
   return L.divIcon({
     className: 'gs-user-wrap',
@@ -33,7 +42,7 @@ const toLatLng = (ring) => ring.map(([lng, lat]) => [lat, lng]); // GeoJSON -> L
 // Canh khung ban đầu + theo dõi người dùng + sửa kích thước khi mở sheet.
 // Canh khung MỘT lần khi có dữ liệu (kể cả khi điểm tải về sau lúc bản đồ đã
 // hiện — trước đây bản đồ đứng ở toạ độ mặc định nếu dữ liệu tới muộn).
-function MapController({ bounds, follow, userPos, recenterNonce }) {
+function MapController({ bounds, follow, userPos, recenterNonce, focus }) {
   const map = useMap();
   const fitted = useRef(false);
   useEffect(() => {
@@ -49,10 +58,27 @@ function MapController({ bounds, follow, userPos, recenterNonce }) {
     if (recenterNonce && userPos) map.setView([userPos.lat, userPos.lng], Math.max(map.getZoom(), 17), { animate: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recenterNonce]);
+  // Bay tới một toạ độ (vd kết quả tìm địa chỉ) mỗi khi focus.nonce đổi.
+  useEffect(() => {
+    if (focus && Number.isFinite(focus.lat)) map.setView([focus.lat, focus.lng], Math.max(map.getZoom(), 17), { animate: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.nonce]);
   useEffect(() => {
     const t = setTimeout(() => map.invalidateSize(), 200);
     return () => clearTimeout(t);
   });
+  return null;
+}
+
+// Vừa vướng vùng cấm → thu phóng cho thấy trọn biên vùng để biết dời ghim đi đâu.
+function FitBlocked({ zones }) {
+  const map = useMap();
+  const key = JSON.stringify(zones.map((g) => g?.coordinates?.[0]?.[0]));
+  useEffect(() => {
+    const pts = zones.flatMap((g) => (g?.type === 'Polygon' ? toLatLng(g.coordinates[0]) : []));
+    if (pts.length) map.fitBounds(L.latLngBounds(pts), { padding: [40, 40], maxZoom: 17 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
   return null;
 }
 
@@ -71,6 +97,10 @@ export default function TourMap({
   recenterNonce,
   onSelectPlace,
   onSimPick,
+  editPin,
+  onEditPinMove,
+  focus,
+  blockedZones = [],
 }) {
   const places = tour?.places ?? [];
   const triggers = tour?.route?.triggers ?? [];
@@ -106,7 +136,7 @@ export default function TourMap({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         maxZoom={19}
       />
-      <MapController bounds={bounds} follow={follow} userPos={userPos} recenterNonce={recenterNonce} />
+      <MapController bounds={bounds} follow={follow} userPos={userPos} recenterNonce={recenterNonce} focus={focus} />
       {simulate ? <ClickToSimulate onPick={onSimPick} /> : null}
 
       {/* Route nối các điểm */}
@@ -163,6 +193,35 @@ export default function TourMap({
           title={p.name}
         />
       ))}
+
+      {/* Vùng cấm cần tránh (lỗi E2 khi đặt điểm) */}
+      {blockedZones.length ? <FitBlocked zones={blockedZones} /> : null}
+      {blockedZones.map((g, i) =>
+        g?.type === 'Polygon' ? (
+          <Polygon
+            key={`blocked-${i}`}
+            positions={toLatLng(g.coordinates[0])}
+            pathOptions={{ color: '#c0362c', weight: 2, fillColor: '#ef4444', fillOpacity: 0.25 }}
+          />
+        ) : null,
+      )}
+
+      {/* Ghim đang đặt / chỉnh (Studio) — kéo để dời */}
+      {editPin && Number.isFinite(editPin.lat) ? (
+        <Marker
+          position={[editPin.lat, editPin.lng]}
+          icon={editIcon}
+          draggable
+          zIndexOffset={2000}
+          title="Kéo để chỉnh vị trí"
+          eventHandlers={{
+            dragend: (e) => {
+              const ll = e.target.getLatLng();
+              onEditPinMove?.({ lat: ll.lat, lng: ll.lng });
+            },
+          }}
+        />
+      ) : null}
 
       {/* Vị trí người dùng + vòng độ chính xác */}
       {userPos ? (

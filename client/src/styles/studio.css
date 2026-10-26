@@ -896,3 +896,143 @@
   gap: var(--sp-2);
   justify-content: flex-end;
 }
+
+/* ---- Bước Điểm dừng: bản đồ trước (PlacesManagerPage) ---- */
+.placeseditor__grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.placeseditor__map {
+  position: relative;
+  height: 46vh;
+  min-height: 280px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.placeseditor__map .gs-map {
+  height: 100%;
+  width: 100%;
+}
+.placeseditor__map.is-editing {
+  border-color: var(--accent);
+}
+.placeseditor__map .studio-map__hint {
+  white-space: nowrap;
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (min-width: 1000px) {
+  .studio:has(.placeseditor) {
+    max-width: 1200px;
+  }
+  .placeseditor__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .placeseditor__map {
+    position: sticky;
+    top: calc(var(--topnav-h, 60px) + var(--sp-3));
+    height: calc(100vh - var(--topnav-h, 60px) - 2 * var(--sp-4));
+  }
+}
+.studio-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.studio-panel__head .studio__h2 {
+  margin: 0;
+}
+
+/* Ô tìm địa chỉ nổi trên bản đồ */
+.addrsearch {
+  position: absolute;
+  top: var(--sp-3);
+  left: var(--sp-3);
+  right: var(--sp-3);
+  z-index: 600;
+}
+.addrsearch__box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.addrsearch__box > svg {
+  position: absolute;
+  left: 12px;
+  color: var(--fg-subtle);
+  pointer-events: none;
+}
+.addrsearch__box .input {
+  width: 100%;
+  padding-left: 40px;
+  box-shadow: var(--shadow-md);
+  font-size: 16px;
+}
+.addrsearch__list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: var(--sp-1);
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+}
+.addrsearch__opt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+.addrsearch__opt:hover,
+.addrsearch__opt.is-active {
+  background: var(--primary-soft);
+}
+.addrsearch__opt .muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.addrsearch__empty {
+  padding: 8px 10px;
+}
+
+/* Vị trí trong form điểm */
+.place-form__coords {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.place-form__coords > svg {
+  color: var(--primary);
+}
+.place-form__coords--empty {
+  font-weight: 500;
+  color: var(--warning);
+}
+.place-form__coords--empty > svg {
+  color: inherit;
+}
+.place-form__manual summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--fg-muted);
+  padding: 4px 0;
+}
+.place-form__manual .studio-form__row {
+  margin-top: var(--sp-2);
+}

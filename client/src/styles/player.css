@@ -936,3 +936,11 @@
     font-size: 34px;
   }
 }
+
+/* Ghim đang đặt / chỉnh ở Studio (kéo được) */
+.gs-pin--edit::before {
+  background: var(--accent, #c2600a);
+}
+.gs-pin--edit span {
+  font-size: 18px;
+}
