@@ -167,6 +167,16 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Điện thoại: chỉ hiện avatar để nhường chỗ cho tiêu đề màn. */
+@media (max-width: 600px) {
+  .account__btn {
+    padding: 0 6px;
+  }
+  .account__name,
+  .account__btn > svg {
+    display: none;
+  }
+}
 .account__menu {
   position: absolute;
   right: 0;

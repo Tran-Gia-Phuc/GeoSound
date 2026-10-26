@@ -235,7 +235,7 @@ export default function RouteConfigPage() {
                 <h2 className="studio__h2"><Icon name="route" size={16} /> Lộ trình</h2>
                 <span className="muted small">{path.length} điểm trên đường</span>
               </div>
-              <p className="muted small">Lộ trình là đường nối hiển thị trên bản đồ (cần có để xem thử ở UC13).</p>
+              <p className="muted small">Lộ trình là đường nối các điểm hiển thị trên bản đồ (cần có để xem thử tour).</p>
               <div className="studio-section__actions">
                 <button className="btn btn--ghost btn--sm" onClick={generatePath}><Icon name="route" size={16} /> Tạo theo thứ tự điểm dừng</button>
                 {path.length ? <button className="btn btn--sm" onClick={() => setPath([])}><Icon name="x" size={16} /> Xoá lộ trình</button> : null}
@@ -247,14 +247,14 @@ export default function RouteConfigPage() {
               <h2 className="studio__h2"><Icon name="map-pin" size={16} /> Vùng kích hoạt theo điểm</h2>
               <p className="muted small">Khi khách vào vùng của một điểm, audio điểm đó tự phát. Vùng tròn lấy tâm tại vị trí điểm.</p>
               <ul className="trigger-list">
-                {places.map((p) => {
+                {places.map((p, i) => {
                   const t = triggers[p.id] || {};
                   return (
                     <li key={p.id} className={`trigger ${t.enabled ? '' : 'trigger--off'}`}>
                       <div className="trigger__head">
                         <label className="trigger__toggle">
                           <input type="checkbox" checked={!!t.enabled} onChange={(e) => setTrig(p.id, { enabled: e.target.checked })} />
-                          <span className="trigger__name">{p.sequence ?? ''} {p.name}</span>
+                          <span className="trigger__name">{i + 1}. {p.name}</span>
                         </label>
                         {t.poly ? <span className="chip">Vùng đa giác</span> : null}
                       </div>

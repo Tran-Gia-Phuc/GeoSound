@@ -17,7 +17,7 @@
 //   /studio/tours/:id/route  — route & vùng kích hoạt (UC11)
 //   /studio/tours/:id/languages — ngôn ngữ & TTS (UC12)
 //   /studio/tours/:tourId/preview — xem thử tour (UC13)
-import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import HomePage from './features/home/HomePage.jsx';
 import ToursPage from './features/tours/ToursPage.jsx';
 import TourDetailPage from './features/tours/TourDetailPage.jsx';
@@ -42,20 +42,32 @@ import { previewTour } from './lib/studio.js';
 // UC04 mở từ chi tiết tour (UC02) — thoát thì quay về chi tiết tour.
 function PlayTourRoute() {
   const { tourId } = useParams();
-  return <TourPlayerPage backTo={`/tour/${tourId}`} />;
+  return <TourPlayerPage backTo={`/tour/${tourId}`} backLabel="Chi tiết tour" />;
 }
 
 // UC13 — xem thử tour của chính tác giả: tái dùng trình phát UC04 nhưng nguồn là
 // endpoint preview (mọi trạng thái); thoát quay về trình chỉnh sửa tour.
+// E1 (422 — thiếu điểm/route): dẫn thẳng tới bước còn thiếu thay vì "Thử lại".
 function PreviewTourRoute() {
   const { tourId } = useParams();
+  const base = `/studio/tours/${tourId}`;
   return (
     <TourPlayerPage
       loadDetail={(lang, opts) => previewTour(tourId, lang, opts)}
       progressKey={`studio-preview:${tourId}`}
-      backTo={`/studio/tours/${tourId}`}
+      backTo={base}
+      backLabel="Về trình chỉnh sửa"
       remember={false}
+      allowSimulation
       modeLabels={{ gps: 'Xem thử (GPS)', remote: 'Xem thử từ xa' }}
+      errorActions={(err) =>
+        err.status === 422 ? (
+          <>
+            <Link className="btn btn--primary" to={`${base}/places`}>Thêm điểm dừng</Link>
+            <Link className="btn" to={`${base}/route`}>Tạo lộ trình</Link>
+          </>
+        ) : null
+      }
     />
   );
 }

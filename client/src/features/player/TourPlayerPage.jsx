@@ -11,7 +11,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { fetchTourDetail } from '../../lib/api.js';
 import { densifyPath } from '../../lib/geo.js';
-import { langLabel, formatDistance } from '../../lib/format.js';
+import { langLabel, formatDistance, formatMinutes, voiceLabel } from '../../lib/format.js';
 import { useGeolocation } from '../../hooks/useGeolocation.js';
 import { useTourProgress } from '../../hooks/useTourProgress.js';
 import { usePlaybackEngine } from '../../hooks/usePlaybackEngine.js';
@@ -50,13 +50,26 @@ function rememberRecent(id, title) {
  *   backTo?: string,        // nơi quay về khi thoát (mặc định '/')
  *   remember?: boolean,     // ghi "mở gần đây" cho HomePage (chỉ UC04)
  *   modeLabels?: { gps: string, remote: string }, // nhãn chế độ trên topbar
+ *   backLabel?: string,     // nhãn nút quay về ở màn lỗi (theo đúng nơi đến)
+ *   allowSimulation?: boolean, // hiện công cụ giả lập GPS (xem thử; khách thì cần ?debug=1)
+ *   errorActions?: (error: { status?: number, message: string }) => React.ReactNode, // nút riêng ở màn lỗi
  * }} [props]
  */
-export default function TourPlayerPage({ loadDetail, progressKey, backTo = '/', remember = true, modeLabels } = {}) {
+export default function TourPlayerPage({
+  loadDetail,
+  progressKey,
+  backTo = '/',
+  remember = true,
+  modeLabels,
+  backLabel = 'Quay lại',
+  allowSimulation = false,
+  errorActions,
+} = {}) {
   const { tourId } = useParams();
   const [sp, setSp] = useSearchParams();
   const navigate = useNavigate();
   const { isDark, toggle: toggleTheme } = useTheme();
+  const canSimulate = allowSimulation || sp.get('debug') === '1';
 
   const pkey = progressKey ?? tourId;
   const { progress, markVisited, setLang } = useTourProgress(pkey);
@@ -65,7 +78,7 @@ export default function TourPlayerPage({ loadDetail, progressKey, backTo = '/', 
   const [lang, setLangState] = useState(initialLang);
   const [tour, setTour] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null); // { message, offline, notFound }
+  const [error, setError] = useState(null); // { message, offline, notFound, status }
   const [langBusy, setLangBusy] = useState(false);
 
   const [mode, setMode] = useState(null); // null(intro) | 'gps' | 'remote'
@@ -110,6 +123,7 @@ export default function TourPlayerPage({ loadDetail, progressKey, backTo = '/', 
           message: e.offline ? 'Mất kết nối mạng' : e.status === 404 ? 'Không tìm thấy tour' : e.message,
           offline: e.offline,
           notFound: e.status === 404,
+          status: e.status,
         });
         setLoading(false);
       });
@@ -246,25 +260,33 @@ export default function TourPlayerPage({ loadDetail, progressKey, backTo = '/', 
     );
   }
   if (error) {
+    const custom = errorActions?.(error);
+    // Thử lại chỉ có ích với lỗi mạng / máy chủ; 4xx (thiếu dữ liệu, không có quyền…) thì vô ích.
+    const retryable = error.offline || !error.status || error.status >= 500;
     return (
       <div className="screen screen--center">
         <div className="emptybox">
           <Icon name={error.offline ? 'wifi-off' : 'alert-triangle'} size={40} />
           <h2>{error.message}</h2>
-          <p className="muted">
-            {error.offline
-              ? 'Tour chưa tải về sẽ cần có mạng. Hãy kiểm tra kết nối rồi thử lại.'
-              : error.notFound
-                ? 'Tour không tồn tại hoặc chưa công khai.'
-                : 'Đã có lỗi khi tải tour.'}
-          </p>
+          {!custom ? (
+            <p className="muted">
+              {error.offline
+                ? 'Tour chưa tải về sẽ cần có mạng. Hãy kiểm tra kết nối rồi thử lại.'
+                : error.notFound
+                  ? 'Tour không tồn tại hoặc chưa công khai.'
+                  : 'Đã có lỗi khi tải tour.'}
+            </p>
+          ) : null}
           <div className="row">
             <button className="btn btn--ghost" onClick={() => navigate(backTo)}>
-              <Icon name="arrow-left" size={16} /> Về trang chủ
+              <Icon name="arrow-left" size={16} /> {backLabel}
             </button>
-            <button className="btn btn--primary" onClick={() => window.location.reload()}>
-              Thử lại
-            </button>
+            {custom ??
+              (retryable ? (
+                <button className="btn btn--primary" onClick={() => window.location.reload()}>
+                  Thử lại
+                </button>
+              ) : null)}
           </div>
         </div>
       </div>
@@ -294,8 +316,8 @@ export default function TourPlayerPage({ loadDetail, progressKey, backTo = '/', 
           <div className="intro__chips">
             {tour.city ? <span className="chip"><Icon name="map-pin" size={13} /> {tour.city}</span> : null}
             <span className="chip"><Icon name="list" size={13} /> {tour.placeCount} điểm</span>
-            {tour.duration ? <span className="chip">{tour.duration} phút</span> : null}
-            <span className="chip" title={tour.voiceLabel}><Icon name="languages" size={13} /> {langLabel(tour.selectedLanguage)}</span>
+            {tour.duration ? <span className="chip">{formatMinutes(tour.duration)}</span> : null}
+            <span className="chip" title={voiceLabel(tour.voiceLabel)}><Icon name="languages" size={13} /> {langLabel(tour.selectedLanguage)}</span>
           </div>
           {tour.description ? <p className="intro__desc">{tour.description}</p> : null}
 
@@ -348,7 +370,7 @@ export default function TourPlayerPage({ loadDetail, progressKey, backTo = '/', 
           <LanguageMenu
             languages={tour.availableLanguages}
             selected={tour.selectedLanguage}
-            voiceLabel={tour.voiceLabel}
+            voiceLabel={voiceLabel(tour.voiceLabel)}
             onChange={changeLang}
             busy={langBusy}
           />
@@ -409,7 +431,7 @@ export default function TourPlayerPage({ loadDetail, progressKey, backTo = '/', 
           ) : null}
         </div>
 
-        {mode === 'gps' ? (
+        {mode === 'gps' && canSimulate ? (
           <SimControls
             simulate={simulate}
             onToggle={(v) => {
@@ -429,6 +451,7 @@ export default function TourPlayerPage({ loadDetail, progressKey, backTo = '/', 
       <div className="dock">
         <PlaceSheet
           place={engine.currentPlace}
+          number={engine.ordered.findIndex((p) => p.id === engine.currentPlaceId) + 1 || undefined}
           role={engine.currentRole}
           expanded={sheetOpen}
           onToggle={() => setSheetOpen((v) => !v)}
@@ -451,6 +474,7 @@ export default function TourPlayerPage({ loadDetail, progressKey, backTo = '/', 
         open={showComplete}
         onClose={() => setShowComplete(false)}
         onReplay={replay}
+        onExplore={() => navigate('/tours')}
         tourTitle={tour.title}
         placeCount={tour.placeCount}
       />

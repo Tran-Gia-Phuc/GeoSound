@@ -161,7 +161,7 @@ export default function PlaceForm({
         <input id="pf-audio" className="input" value={f.audioUrl} onChange={set('audioUrl')}
           placeholder="https://… (.mp3)" aria-invalid={!!errs.audioUrl} />
         {errs.audioUrl ? <span className="field__err">{errs.audioUrl}</span> : (
-          <span className="field__hint">Để trống → hệ thống dùng giọng đọc TTS (UC12).</span>
+          <span className="field__hint">Để trống thì hệ thống đọc mô tả bằng giọng máy.</span>
         )}
       </div>
 
