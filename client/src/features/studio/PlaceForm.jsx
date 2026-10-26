@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import Icon from '../../components/Icon.jsx';
 import FileDrop from '../../components/media/FileDrop.jsx';
 import ImageListField from '../../components/media/ImageListField.jsx';
+import { useDirtyGuard } from '../../hooks/useDirtyGuard.jsx';
 import { PLACE_TYPE_OPTIONS } from '../../lib/studio.js';
 
 const isHttpUrl = (s) => {
@@ -23,7 +24,7 @@ const isHttpUrl = (s) => {
 export default function PlaceForm({
   initial, pick, picking, onRequestPick, serverError, busy, onSubmit, onCancel,
 }) {
-  const [f, setF] = useState(() => ({
+  const [start] = useState(() => ({
     name: initial?.name ?? '',
     type: initial?.type ?? 'landmark',
     description: initial?.description ?? '',
@@ -32,7 +33,10 @@ export default function PlaceForm({
     images: initial?.images?.length ? initial.images.map((i) => ({ url: i.url, caption: i.caption ?? '' })) : [],
     audioUrl: initial?.audioUrl ?? '',
   }));
+  const [f, setF] = useState(start);
   const [errs, setErrs] = useState({});
+  // Đang nhập dở mà rời màn → hỏi lại (không mất dữ liệu).
+  const guard = useDirtyGuard(!busy && JSON.stringify(f) !== JSON.stringify(start));
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
 
   // Bơm toạ độ chạm từ bản đồ (parent tăng pick.nonce mỗi lần chạm).
@@ -151,6 +155,7 @@ export default function PlaceForm({
           {initial ? 'Lưu điểm' : 'Thêm điểm'}
         </button>
       </div>
+      {guard}
     </form>
   );
 }

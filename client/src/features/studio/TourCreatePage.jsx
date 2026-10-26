@@ -1,6 +1,6 @@
 // =========================================================
 // TourCreatePage (UC09 bước 4–8) — tạo tour mới (mặc định trạng thái "Nháp").
-// Tạo xong chuyển tới trình chỉnh sửa để thêm điểm, route, ngôn ngữ…
+// Chỉ hỏi tên + ngôn ngữ gốc + thành phố, tạo xong vào thẳng bước Điểm dừng.
 // =========================================================
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +18,7 @@ export default function TourCreatePage() {
     setError('');
     try {
       const tour = await createTour(values);
-      navigate(`/studio/tours/${tour.id}`, { replace: true });
+      navigate(`/studio/tours/${tour.id}/places`, { replace: true });
     } catch (e) {
       setError(e.message || 'Không tạo được tour');
       setBusy(false);
@@ -27,10 +27,11 @@ export default function TourCreatePage() {
 
   return (
     <div className="screen studio">
-      <StudioHeader title="Tạo tour mới" backTo="/studio" subtitle="Đặt tên & ngôn ngữ gốc để bắt đầu" />
+      <StudioHeader title="Tạo tour mới" backTo="/studio" subtitle="Bắt đầu bằng tên — chi tiết bổ sung sau" />
       <main className="studio__main studio__main--narrow">
         <TourForm
-          submitLabel="Tạo tour"
+          compact
+          submitLabel="Tạo & thêm điểm dừng"
           busy={busy}
           serverError={error}
           onSubmit={onSubmit}

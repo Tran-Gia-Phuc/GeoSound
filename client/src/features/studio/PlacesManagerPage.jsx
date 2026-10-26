@@ -7,13 +7,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
-import StudioHeader from './StudioHeader.jsx';
 import PlaceForm from './PlaceForm.jsx';
+import { useStudioTour } from './StudioTourLayout.jsx';
 import TourMap from '../player/TourMap.jsx';
 import { PLACE_TYPE_LABELS, listPlaces, addPlace, updatePlace, deletePlace, reorderPlaces } from '../../lib/studio.js';
 
 export default function PlacesManagerPage() {
   const { id } = useParams();
+  const { refresh: refreshTour } = useStudioTour();
   const [places, setPlaces] = useState(null); // null = đang tải
   const [loadError, setLoadError] = useState('');
   const [editing, setEditing] = useState(null); // null | 'new' | <placeId>
@@ -93,6 +94,7 @@ export default function PlacesManagerPage() {
         await updatePlace(id, editing, patch);
       }
       await load();
+      refreshTour();
       closeForm();
     } catch (e) {
       setFormError(e.message || 'Lưu điểm thất bại');
@@ -107,6 +109,7 @@ export default function PlacesManagerPage() {
     try {
       await deletePlace(id, placeId);
       await load();
+      refreshTour();
     } catch (e) {
       setLoadError(e.message || 'Không xoá được điểm');
     } finally {
@@ -134,8 +137,7 @@ export default function PlacesManagerPage() {
   const pendingPos = pick ? { lat: pick.lat, lng: pick.lng } : null;
 
   return (
-    <div className="screen studio">
-      <StudioHeader title="Điểm dừng" backTo={`/studio/tours/${id}`} subtitle="Thêm & sắp xếp các điểm trên tour" />
+    <div className="studio-step">
 
       <main className="studio__main">
         {loadError ? (
@@ -234,9 +236,14 @@ export default function PlacesManagerPage() {
               </ol>
             )}
 
-            <p className="muted small">
-              <Link className="linkbtn" to={`/studio/tours/${id}`}>← Về trình chỉnh sửa tour</Link>
-            </p>
+            {places?.length ? (
+              <div className="studio-nextstep">
+                <span className="muted small">Vùng kích hoạt 50 m quanh mỗi điểm đã được tạo sẵn.</span>
+                <Link className="btn btn--primary" to={`/studio/tours/${id}/publish`}>
+                  Xem thử &amp; xuất bản <Icon name="chevron-left" size={16} className="flip" />
+                </Link>
+              </div>
+            ) : null}
           </>
         )}
       </main>

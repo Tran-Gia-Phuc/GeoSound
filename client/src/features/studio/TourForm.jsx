@@ -3,10 +3,13 @@
 // sửa (A1). Kiểm tra tại chỗ theo từng trường (tên + ngôn ngữ gốc bắt buộc — E2;
 // ảnh bìa tải lên hoặc URL hợp lệ — E3). Lỗi hiển thị ngay dưới ô nhập.
 // Trả về `onSubmit(values)` đã chuẩn hoá (bỏ ô rỗng, duration là số).
+// `compact` (tạo tour): chỉ hỏi tên + ngôn ngữ gốc + thành phố — phần còn lại bổ
+// sung sau ở bước Thông tin. Có thay đổi chưa lưu → chặn rời màn (useDirtyGuard).
 // =========================================================
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Icon from '../../components/Icon.jsx';
 import FileDrop from '../../components/media/FileDrop.jsx';
+import { useDirtyGuard } from '../../hooks/useDirtyGuard.jsx';
 import { TOUR_TYPE_OPTIONS, LANGUAGE_OPTIONS } from '../../lib/tours.js';
 
 const isHttpUrl = (s) => {
@@ -31,11 +34,11 @@ const emptyForm = {
 /**
  * @param {{
  *   initial?: object, submitLabel: string, busy?: boolean, serverError?: string,
- *   onSubmit: (values: object) => void, onCancel?: () => void,
+ *   onSubmit: (values: object) => void, onCancel?: () => void, compact?: boolean,
  * }} props
  */
-export default function TourForm({ initial, submitLabel, busy, serverError, onSubmit, onCancel }) {
-  const [f, setF] = useState(() => ({
+export default function TourForm({ initial, submitLabel, busy, serverError, onSubmit, onCancel, compact = false }) {
+  const start = useMemo(() => ({
     ...emptyForm,
     ...(initial
       ? {
@@ -48,8 +51,11 @@ export default function TourForm({ initial, submitLabel, busy, serverError, onSu
           coverImageUrl: initial.coverImageUrl ?? '',
         }
       : {}),
-  }));
+  }), [initial]);
+  const [f, setF] = useState(start);
   const [errs, setErrs] = useState({});
+  const dirty = Object.keys(start).some((k) => f[k] !== start[k]);
+  const guard = useDirtyGuard(dirty && !busy);
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
 
   function validate() {
@@ -136,6 +142,21 @@ export default function TourForm({ initial, submitLabel, busy, serverError, onSu
         </div>
       </div>
 
+      {compact ? (
+        <div className="field">
+          <label className="field__label" htmlFor="tf-city">Thành phố</label>
+          <input
+            id="tf-city"
+            className="input"
+            value={f.city}
+            onChange={set('city')}
+            maxLength={120}
+            placeholder="Ví dụ: Hội An"
+          />
+          <span className="field__hint">Giúp khách tìm thấy tour theo thành phố. Ảnh bìa, mô tả… bổ sung sau.</span>
+        </div>
+      ) : (
+      <>
       <div className="studio-form__row">
         <div className="field">
           <label className="field__label" htmlFor="tf-city">Thành phố</label>
@@ -188,6 +209,8 @@ export default function TourForm({ initial, submitLabel, busy, serverError, onSu
           <span className="field__hint">{f.description.length}/2000 ký tự</span>
         )}
       </div>
+      </>
+      )}
 
       <div className="studio-form__actions">
         {onCancel ? (
@@ -198,6 +221,7 @@ export default function TourForm({ initial, submitLabel, busy, serverError, onSu
           {submitLabel}
         </button>
       </div>
+      {guard}
     </form>
   );
 }

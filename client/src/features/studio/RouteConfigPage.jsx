@@ -10,7 +10,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
-import StudioHeader from './StudioHeader.jsx';
 import TourMap from '../player/TourMap.jsx';
 import { getRouteConfig, saveRouteConfig, listPlaces } from '../../lib/studio.js';
 
@@ -192,16 +191,14 @@ export default function RouteConfigPage() {
 
   if (places === null && !loadError) {
     return (
-      <div className="screen studio">
-        <StudioHeader title="Route & vùng kích hoạt" backTo={`/studio/tours/${id}`} />
+      <div className="studio-step">
         <main className="studio__main"><p className="muted studio__loading"><Icon name="loader" size={20} className="spin" /> Đang tải…</p></main>
       </div>
     );
   }
 
   return (
-    <div className="screen studio">
-      <StudioHeader title="Route & vùng kích hoạt" backTo={`/studio/tours/${id}`} subtitle="Lộ trình, vùng tự phát audio, audio chỉ đường" />
+    <div className="studio-step">
 
       <main className="studio__main">
         {loadError ? (
@@ -373,7 +370,6 @@ export default function RouteConfigPage() {
             ) : null}
 
             <div className="studio-form__actions studio-save">
-              <Link className="btn" to={`/studio/tours/${id}`}>Xong</Link>
               <button className="btn btn--primary" onClick={onSave} disabled={busy}>
                 {busy ? <Icon name="loader" size={18} className="spin" /> : <Icon name="check-circle" size={18} />}
                 Lưu cấu hình

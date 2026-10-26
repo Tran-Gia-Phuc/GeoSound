@@ -12,7 +12,7 @@ import { getPublishReadiness, publishTour, unpublishTour } from '../../lib/studi
 // Mục chưa đạt → nơi sửa.
 function fixLink(key, tourId) {
   if (key === 'places' || key === 'placeDescriptions') return { to: `/studio/tours/${tourId}/places`, label: 'Thêm / sửa điểm dừng' };
-  return { href: '#tour-info', label: 'Sửa thông tin tour' };
+  return { to: `/studio/tours/${tourId}`, label: 'Sửa thông tin tour' };
 }
 
 /**

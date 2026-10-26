@@ -3,7 +3,7 @@
 // vị trí GPS trực tiếp. Vùng của điểm ĐANG PHÁT tô hổ phách.
 // Chế độ giả lập: chạm bản đồ để đặt vị trí (test không cần ra hiện trường).
 // =========================================================
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Polyline, Circle, Polygon, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { stopNumbers } from '../../lib/format.js';
@@ -31,12 +31,16 @@ function userIcon(stale) {
 const toLatLng = (ring) => ring.map(([lng, lat]) => [lat, lng]); // GeoJSON -> Leaflet
 
 // Canh khung ban đầu + theo dõi người dùng + sửa kích thước khi mở sheet.
+// Canh khung MỘT lần khi có dữ liệu (kể cả khi điểm tải về sau lúc bản đồ đã
+// hiện — trước đây bản đồ đứng ở toạ độ mặc định nếu dữ liệu tới muộn).
 function MapController({ bounds, follow, userPos, recenterNonce }) {
   const map = useMap();
+  const fitted = useRef(false);
   useEffect(() => {
-    if (bounds) map.fitBounds(bounds, { padding: [48, 48], maxZoom: 17 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!bounds || fitted.current) return;
+    fitted.current = true;
+    map.fitBounds(bounds, { padding: [48, 48], maxZoom: 17 });
+  }, [bounds, map]);
   useEffect(() => {
     if (follow && userPos) map.panTo([userPos.lat, userPos.lng], { animate: true });
   }, [follow, userPos, map]);

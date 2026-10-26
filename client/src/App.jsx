@@ -15,12 +15,21 @@
 //   /shared/:token/go   — đi theo lịch trình được chia sẻ (UC08, công khai)
 //   /studio             — tour của tôi (UC09, chỉ người đóng góp)
 //   /studio/tours/new   — tạo tour (UC09)
-//   /studio/tours/:id   — chỉnh sửa tour (UC09)
-//   /studio/tours/:id/places — quản lý điểm dừng (UC10)
-//   /studio/tours/:id/route  — route & vùng kích hoạt (UC11)
-//   /studio/tours/:id/languages — ngôn ngữ & TTS (UC12)
+//   /studio/tours/:id   — soạn tour theo các bước (StudioTourLayout + stepper):
+//        (index) Thông tin (UC09) · places Điểm dừng (UC10) · route Vùng kích hoạt (UC11)
+//        · languages Ngôn ngữ (UC12) · publish Xem thử & Xuất bản (UC09 A3)
 //   /studio/tours/:tourId/preview — xem thử tour (UC13)
-import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
+// Dùng data router (createBrowserRouter) để chặn rời form chưa lưu (useBlocker).
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  Link,
+  Navigate,
+  Route,
+  RouterProvider,
+  useLocation,
+  useParams,
+} from 'react-router-dom';
 import DiscoverPage from './features/discover/DiscoverPage.jsx';
 import TourDetailPage from './features/tours/TourDetailPage.jsx';
 import TourPlayerPage from './features/player/TourPlayerPage.jsx';
@@ -39,6 +48,8 @@ import TourEditorPage from './features/studio/TourEditorPage.jsx';
 import PlacesManagerPage from './features/studio/PlacesManagerPage.jsx';
 import RouteConfigPage from './features/studio/RouteConfigPage.jsx';
 import LanguagesPage from './features/studio/LanguagesPage.jsx';
+import StudioTourLayout from './features/studio/StudioTourLayout.jsx';
+import PublishStepPage from './features/studio/PublishStepPage.jsx';
 import AccountPage from './features/account/AccountPage.jsx';
 import AppLayout from './components/shell/AppLayout.jsx';
 import { previewTour } from './lib/studio.js';
@@ -82,42 +93,47 @@ function PreviewTourRoute() {
   );
 }
 
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <>
+      {/* Màn gốc của các tab */}
+      <Route element={<AppLayout />}>
+        <Route path="/" element={<DiscoverPage />} />
+        <Route path="/tours" element={<RedirectToDiscover />} />
+        <Route path="/explore" element={<RedirectToDiscover tab="places" />} />
+        <Route path="/itineraries" element={<ItinerariesPage />} />
+        <Route path="/account" element={<AccountPage />} />
+        <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />
+        <Route path="/studio/tours/new" element={<RequireContributor><TourCreatePage /></RequireContributor>} />
+        <Route path="/studio/tours/:id" element={<RequireContributor><StudioTourLayout /></RequireContributor>}>
+          <Route index element={<TourEditorPage />} />
+          <Route path="places" element={<PlacesManagerPage />} />
+          <Route path="route" element={<RouteConfigPage />} />
+          <Route path="languages" element={<LanguagesPage />} />
+          <Route path="publish" element={<PublishStepPage />} />
+        </Route>
+      </Route>
+
+      {/* Màn chi tiết có thanh hành động riêng ở đáy: ẩn tab dưới */}
+      <Route element={<AppLayout tabs={false} />}>
+        <Route path="/tour/:tourId" element={<TourDetailPage />} />
+        <Route path="/itineraries/:id" element={<RequireAuth><ItineraryEditorPage /></RequireAuth>} />
+        <Route path="/shared/:token" element={<SharedItineraryPage />} />
+      </Route>
+
+      {/* Toàn màn hình */}
+      <Route path="/login" element={<LoginPage key="login" initialTab="login" />} />
+      <Route path="/register" element={<LoginPage key="register" initialTab="register" />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/tour/:tourId/play" element={<PlayTourRoute />} />
+      <Route path="/itinerary/:id/go" element={<RequireAuth><ItineraryPlayerPage /></RequireAuth>} />
+      <Route path="/shared/:token/go" element={<SharedItineraryPlayerPage />} />
+      <Route path="/studio/tours/:tourId/preview" element={<RequireContributor><PreviewTourRoute /></RequireContributor>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </>,
+  ),
+);
+
 export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        {/* Màn gốc của các tab */}
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<DiscoverPage />} />
-          <Route path="/tours" element={<RedirectToDiscover />} />
-          <Route path="/explore" element={<RedirectToDiscover tab="places" />} />
-          <Route path="/itineraries" element={<ItinerariesPage />} />
-          <Route path="/account" element={<AccountPage />} />
-          <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />
-          <Route path="/studio/tours/new" element={<RequireContributor><TourCreatePage /></RequireContributor>} />
-          <Route path="/studio/tours/:id" element={<RequireContributor><TourEditorPage /></RequireContributor>} />
-          <Route path="/studio/tours/:id/places" element={<RequireContributor><PlacesManagerPage /></RequireContributor>} />
-          <Route path="/studio/tours/:id/route" element={<RequireContributor><RouteConfigPage /></RequireContributor>} />
-          <Route path="/studio/tours/:id/languages" element={<RequireContributor><LanguagesPage /></RequireContributor>} />
-        </Route>
-
-        {/* Màn chi tiết có thanh hành động riêng ở đáy: ẩn tab dưới */}
-        <Route element={<AppLayout tabs={false} />}>
-          <Route path="/tour/:tourId" element={<TourDetailPage />} />
-          <Route path="/itineraries/:id" element={<RequireAuth><ItineraryEditorPage /></RequireAuth>} />
-          <Route path="/shared/:token" element={<SharedItineraryPage />} />
-        </Route>
-
-        {/* Toàn màn hình */}
-        <Route path="/login" element={<LoginPage key="login" initialTab="login" />} />
-        <Route path="/register" element={<LoginPage key="register" initialTab="register" />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/tour/:tourId/play" element={<PlayTourRoute />} />
-        <Route path="/itinerary/:id/go" element={<RequireAuth><ItineraryPlayerPage /></RequireAuth>} />
-        <Route path="/shared/:token/go" element={<SharedItineraryPlayerPage />} />
-        <Route path="/studio/tours/:tourId/preview" element={<RequireContributor><PreviewTourRoute /></RequireContributor>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
-  );
+  return <RouterProvider router={router} />;
 }
