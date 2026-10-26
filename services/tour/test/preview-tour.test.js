@@ -78,11 +78,12 @@ test('E1 — chưa có điểm → 422, báo thiếu places', async () => {
   );
 });
 
-test('E1 — có điểm nhưng chưa vẽ route → 422, báo thiếu route', async () => {
-  await assert.rejects(
-    () => uc().execute({ authorId: OWNER, tourId: 't4' }),
-    (e) => e.status === 422 && e.missing.route === true && e.missing.places === false,
-  );
+test('có điểm nhưng chưa vẽ route → vẫn xem thử được, route + vùng tự sinh', async () => {
+  const d = await uc().execute({ authorId: OWNER, tourId: 't4' });
+  assert.deepEqual(d.route.path, [{ lat: 1, lng: 1 }]);
+  assert.equal(d.route.triggers.length, 1);
+  assert.equal(d.route.triggers[0].zone.radiusMeters, 50);
+  assert.equal(d.route.isDefault, true);
 });
 
 test('A2 — chọn ngôn ngữ không khả dụng → về ngôn ngữ gốc', async () => {

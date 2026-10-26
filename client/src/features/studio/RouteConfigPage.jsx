@@ -1,8 +1,8 @@
 // =========================================================
 // RouteConfigPage (UC11) — cấu hình lộ trình & vùng kích hoạt của tour.
 //   - Lộ trình (path): tạo nhanh theo thứ tự điểm dừng; xem trên bản đồ.
-//   - Vùng kích hoạt từng điểm: vùng TRÒN quanh điểm (chỉnh bán kính), bật/tắt,
-//     độ ưu tiên khi chồng lấn, gợi ý "đi tiếp" (text/audio). Vùng đa giác đã lưu
+//   - Vùng kích hoạt từng điểm: vùng TRÒN quanh điểm (chỉnh bán kính). Điểm nào
+//     cũng có vùng (mặc định 50 m, máy chủ tự sinh khi chưa lưu), độ ưu tiên khi chồng lấn, gợi ý "đi tiếp" (text/audio). Vùng đa giác đã lưu
 //     được giữ nguyên.
 //   - Audio chỉ đường (nav): nhãn + audio + vùng tròn riêng (chọn tâm trên bản đồ).
 // Lưu TOÀN BỘ cấu hình một lần (PUT) — bước 8.
@@ -30,6 +30,7 @@ export default function RouteConfigPage() {
   const [path, setPath] = useState([]);
   const [triggers, setTriggers] = useState({}); // placeId -> { enabled, radius, priority, hintText, hintAudio, poly }
   const [navAudios, setNavAudios] = useState([]); // { key, id?, label, audioUrl, lat, lng, radius, poly? }
+  const [isDefault, setIsDefault] = useState(false); // chưa từng lưu → đang dùng mặc định
   const [loadError, setLoadError] = useState('');
   const [saveError, setSaveError] = useState('');
   const [notice, setNotice] = useState('');
@@ -42,20 +43,20 @@ export default function RouteConfigPage() {
     try {
       const [cfg, pls] = await Promise.all([getRouteConfig(id), listPlaces(id)]);
       setPlaces(pls);
+      setIsDefault(!!cfg.isDefault);
       setPath(cfg.path || []);
       const byPlace = new Map((cfg.triggers || []).map((t) => [t.placeId, t]));
       const tState = {};
       for (const p of pls) {
         const t = byPlace.get(p.id);
         tState[p.id] = {
-          enabled: !!t,
+          enabled: true, // điểm nào cũng có vùng kích hoạt
           radius: t?.zone?.shape === 'circle' ? t.zone.radiusMeters : DEFAULT_RADIUS,
           priority: t?.priority ?? 0,
           hintText: t?.nextHint?.text ?? '',
           hintAudio: t?.nextHint?.audioUrl ?? '',
           poly: t?.zone?.shape === 'polygon' ? t.zone.geometry : null,
         };
-        if (!t) tState[p.id].enabled = true; // mặc định bật vùng kích hoạt cho mọi điểm
       }
       setTriggers(tState);
       setNavAudios(
@@ -180,6 +181,7 @@ export default function RouteConfigPage() {
     setBusy(true);
     try {
       await saveRouteConfig(id, config);
+      setIsDefault(false);
       setNotice('Đã lưu cấu hình route & vùng kích hoạt.');
     } catch (e) {
       setSaveError(e.message || 'Lưu cấu hình thất bại');
@@ -209,6 +211,16 @@ export default function RouteConfigPage() {
           </div>
         ) : null}
 
+        {isDefault && (places || []).length ? (
+          <div className="alert" role="status">
+            <Icon name="info" size={18} className="alert__icon" />
+            <div>
+              Đang dùng cấu hình mặc định: lộ trình nối các điểm theo thứ tự, mỗi điểm có vùng tròn 50 m.
+              Tour đã nghe theo GPS và xem thử được — chỉ cần chỉnh nếu muốn khác.
+            </div>
+          </div>
+        ) : null}
+
         {(places || []).length === 0 ? (
           <div className="emptybox studio__empty">
             <Icon name="route" size={40} />
@@ -235,7 +247,7 @@ export default function RouteConfigPage() {
                 <h2 className="studio__h2"><Icon name="route" size={16} /> Lộ trình</h2>
                 <span className="muted small">{path.length} điểm trên đường</span>
               </div>
-              <p className="muted small">Lộ trình là đường nối các điểm hiển thị trên bản đồ (cần có để xem thử tour).</p>
+              <p className="muted small">Đường nối các điểm hiển thị trên bản đồ. Để trống thì hệ thống tự nối các điểm theo thứ tự.</p>
               <div className="studio-section__actions">
                 <button className="btn btn--ghost btn--sm" onClick={generatePath}><Icon name="route" size={16} /> Tạo theo thứ tự điểm dừng</button>
                 {path.length ? <button className="btn btn--sm" onClick={() => setPath([])}><Icon name="x" size={16} /> Xoá lộ trình</button> : null}
@@ -250,12 +262,9 @@ export default function RouteConfigPage() {
                 {places.map((p, i) => {
                   const t = triggers[p.id] || {};
                   return (
-                    <li key={p.id} className={`trigger ${t.enabled ? '' : 'trigger--off'}`}>
+                    <li key={p.id} className="trigger">
                       <div className="trigger__head">
-                        <label className="trigger__toggle">
-                          <input type="checkbox" checked={!!t.enabled} onChange={(e) => setTrig(p.id, { enabled: e.target.checked })} />
-                          <span className="trigger__name">{i + 1}. {p.name}</span>
-                        </label>
+                        <span className="trigger__name">{i + 1}. {p.name}</span>
                         {t.poly ? <span className="chip">Vùng đa giác</span> : null}
                       </div>
                       {t.enabled ? (

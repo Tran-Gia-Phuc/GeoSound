@@ -6,14 +6,17 @@
 // giống nhau để client tái dùng một trình phát/bản đồ duy nhất.
 // =========================================================
 import { resolveVoiceLabel } from '../../domain/value-objects/voice.js';
+import { effectiveRoute } from '../../domain/route/effective-route.js';
 
 /**
  * @param {{
- *   tour, places: any[], route: { path, triggers, navAudios },
+ *   tour, places: any[], route?: { path, triggers, navAudios }|null,
  *   langs?: any[], translations?: any[], lang?: string,
  * }} input
+ *   route = cấu hình UC11 đã lưu (null nếu chưa lưu) — phần thiếu được tự sinh
+ *   (effectiveRoute) để chế độ GPS luôn có vùng kích hoạt.
  */
-export function buildTourDetailView({ tour, places, route, langs = [], translations = [], lang }) {
+export function buildTourDetailView({ tour, places, route = null, langs = [], translations = [], lang }) {
   const source = tour.originalLanguage;
 
   // Ngôn ngữ khả dụng = cấu hình UC12 (gốc luôn có mặt).
@@ -51,8 +54,8 @@ export function buildTourDetailView({ tour, places, route, langs = [], translati
     availableLanguages,
     voiceLabel,
     places: places.map((p) => localizePlace(p, selectedLanguage, source, txByPlace.get(p.id))),
-    // Route cho bản đồ chi tiết (UC11).
-    route: { path: route.path, triggers: route.triggers, navAudios: route.navAudios },
+    // Route cho bản đồ chi tiết + vùng kích hoạt cho trình phát (UC11).
+    route: effectiveRoute({ places, config: route }),
     // Phần đánh giá/nhận xét — chờ UC05.
     reviews: [],
   };

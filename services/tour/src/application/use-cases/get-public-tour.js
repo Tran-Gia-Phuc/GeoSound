@@ -7,7 +7,6 @@
 // (gốc + phụ), mỗi điểm có text + audio theo ngôn ngữ đang chọn (ưu tiên audio
 // người thật đúng ngôn ngữ gốc; còn lại dùng TTS). Reviews chờ UC05.
 // =========================================================
-import { RouteConfig } from '../../domain/entities/route-config.js';
 import { TourNotFoundError } from '../../domain/errors/index.js';
 import { buildTourDetailView } from './build-tour-detail.js';
 
@@ -32,8 +31,7 @@ export class GetPublicTour {
       this.tourLanguageRepo?.listByTour(id) ?? [],
       this.placeTranslationRepo?.listByTour(id) ?? [],
     ]);
-    const route = routeCfg ?? RouteConfig.empty(id);
-
-    return buildTourDetailView({ tour, places, route, langs, translations, lang });
+    // Chưa cấu hình route → buildTourDetailView tự sinh route + vùng mặc định.
+    return buildTourDetailView({ tour, places, route: routeCfg, langs, translations, lang });
   }
 }
