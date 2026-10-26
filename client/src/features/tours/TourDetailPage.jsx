@@ -40,16 +40,19 @@ export default function TourDetailPage() {
     setLoading(true);
     setError(null);
     load(sp.get('lang') || undefined, { signal: abort.signal })
-      .then(setTour)
+      .then((t) => {
+        setTour(t);
+        setLoading(false);
+      })
       .catch((e) => {
-        if (e.name === 'AbortError') return;
+        if (e.name === 'AbortError') return; // huỷ do đổi route/StrictMode — giữ loading, KHÔNG set lỗi
         setError({
           message: e.offline ? 'Mất kết nối mạng' : e.status === 404 ? 'Tour không còn khả dụng' : e.message,
           offline: e.offline,
           notFound: e.status === 404,
         });
-      })
-      .finally(() => setLoading(false));
+        setLoading(false);
+      });
     return () => abort.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourId]);
@@ -109,6 +112,8 @@ export default function TourDetailPage() {
       </div>
     );
   }
+
+  if (!tour) return null; // phòng hờ: không loading, không lỗi, nhưng chưa có dữ liệu (tránh crash null)
 
   const langParam = tour.selectedLanguage ? `?lang=${encodeURIComponent(tour.selectedLanguage)}` : '';
   const hasGeo =

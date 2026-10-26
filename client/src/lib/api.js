@@ -90,7 +90,8 @@ export async function request(method, path, { body, auth = false, signal } = {})
   let res;
   try {
     res = await doFetch(auth ? getAccessToken() : null);
-  } catch {
+  } catch (e) {
+    if (e?.name === 'AbortError') throw e; // caller huỷ chủ động — để nguyên cho .catch bỏ qua
     throw new ApiError('Không kết nối được máy chủ', { offline: true });
   }
 
@@ -103,7 +104,8 @@ export async function request(method, path, { body, auth = false, signal } = {})
     if (newToken) {
       try {
         res = await doFetch(newToken);
-      } catch {
+      } catch (e) {
+        if (e?.name === 'AbortError') throw e; // caller huỷ chủ động
         throw new ApiError('Không kết nối được máy chủ', { offline: true });
       }
     }

@@ -5,6 +5,22 @@
 # =========================================================
 
 services:
+  client: # React PWA (Vite dev server) — Tourist / Contributor / Admin
+    build: ./client
+    ports:
+      - "${CLIENT_PORT:-5173}:5173"
+    environment:
+      # Gọi API qua proxy '/api' (same-origin). Trong mạng compose gateway = http://gateway:8080.
+      VITE_PROXY_TARGET: http://gateway:8080
+    # Mount source để Vite HMR: sửa code frontend là tự reload, KHÔNG cần rebuild image.
+    # node_modules giữ trong container qua anonymous volume (không bị host che).
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - gateway
+    restart: unless-stopped
+
   gateway:
     build: ./gateway
     env_file: [.env]
