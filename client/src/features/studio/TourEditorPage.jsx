@@ -4,6 +4,7 @@
 //     Lưu chỉ gửi các trường THAY ĐỔI; sửa tour công khai sẽ về Nháp (A1).
 //   - Điều hướng sang các khu khác: điểm dừng (UC10), route (UC11),
 //     ngôn ngữ & TTS (UC12), xem thử (UC13) — bật dần theo từng tính năng.
+//   - Xuất bản thẳng / gỡ xuống kèm checklist sẵn sàng (A3 — PublishPanel).
 //   - Xoá tour (A2).
 // =========================================================
 import { useCallback, useEffect, useState } from 'react';
@@ -11,6 +12,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import StudioHeader, { StatusChip } from './StudioHeader.jsx';
 import TourForm from './TourForm.jsx';
+import PublishPanel from './PublishPanel.jsx';
 import { getMyTour, updateTour, deleteTour, statusMeta } from '../../lib/studio.js';
 
 // Các khu quản lý tour. `enabled` bật dần khi từng UC client hoàn thành.
@@ -67,7 +69,7 @@ export default function TourEditorPage() {
       setTour(res.tour ?? (await getMyTour(id)));
       setNotice(
         res.requiresResubmit
-          ? 'Đã lưu. Tour công khai đã chuyển về Nháp — cần gửi duyệt lại.'
+          ? 'Đã lưu. Tour công khai đã chuyển về Nháp — cần xuất bản lại.'
           : 'Đã lưu thay đổi.',
       );
     } catch (e) {
@@ -123,10 +125,14 @@ export default function TourEditorPage() {
       <main className="studio__main studio__main--narrow">
         <div className="studio-status">
           <StatusChip meta={meta} />
-          {tour.status === 'public' ? (
-            <Link className="linkbtn" to={`/tour/${tour.id}`}>Xem bản công khai →</Link>
-          ) : null}
         </div>
+
+        <PublishPanel
+          tourId={id}
+          status={tour.status}
+          refreshKey={tour.updatedAt}
+          onStatusChange={(t) => setTour((cur) => ({ ...cur, ...t }))}
+        />
 
         {/* Khu điều hướng tới các phần khác của tour */}
         <section className="studio-areas" aria-label="Quản lý nội dung tour">
@@ -153,7 +159,7 @@ export default function TourEditorPage() {
           )}
         </section>
 
-        <h2 className="studio__h2">Thông tin tour</h2>
+        <h2 className="studio__h2" id="tour-info">Thông tin tour</h2>
         {notice ? (
           <div className="alert studio-notice" role="status">
             <Icon name="check-circle" size={18} className="alert__icon" />

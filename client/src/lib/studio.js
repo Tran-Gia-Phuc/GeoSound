@@ -42,6 +42,22 @@ export async function deleteTour(id) {
   return api.del(`/api/tours/mine/${encodeURIComponent(id)}`, { auth: true });
 }
 
+// ---- UC09 / A3: xuất bản thẳng (chưa qua kiểm duyệt) ----
+/** { status, canPublish, ready, checks: [{ key, ok, required, label }] } */
+export async function getPublishReadiness(id) {
+  const b = await api.get(`/api/tours/mine/${encodeURIComponent(id)}/readiness`, { auth: true });
+  return b.readiness;
+}
+/** Chưa đủ điều kiện → ApiError 422 với err.missing = [{ key, label }]. */
+export async function publishTour(id) {
+  const b = await api.post(`/api/tours/mine/${encodeURIComponent(id)}/publish`, {}, { auth: true });
+  return b.tour;
+}
+export async function unpublishTour(id) {
+  const b = await api.post(`/api/tours/mine/${encodeURIComponent(id)}/unpublish`, {}, { auth: true });
+  return b.tour;
+}
+
 // ---- UC10: điểm dừng của tour ----
 // Nhãn loại địa điểm (khớp PLACE_TYPES ở backend).
 export const PLACE_TYPE_OPTIONS = [

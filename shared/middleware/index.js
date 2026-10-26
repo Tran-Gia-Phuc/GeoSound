@@ -31,10 +31,22 @@ export function verifyJwt(roles = []) {
   };
 }
 
-/** Error handler cuối chuỗi middleware. */
+/**
+ * Error handler cuối chuỗi middleware.
+ * Lỗi nghiệp vụ (4xx) trả thêm `code` + dữ liệu chỉ chỗ cần sửa (`details` theo
+ * trường, `missing`, `zone`) để client dẫn người dùng tới đúng bước. Lỗi 5xx chỉ
+ * trả message — không lộ code nội bộ (vd ECONNREFUSED).
+ */
 // eslint-disable-next-line no-unused-vars
 export function errorHandler(err, _req, res, _next) {
   console.error('[error]', err);
   const status = err.status || 500;
-  res.status(status).json({ error: err.message || 'Internal Server Error' });
+  const body = { error: err.message || 'Internal Server Error' };
+  if (status < 500) {
+    if (err.code) body.code = err.code;
+    if (err.details) body.details = err.details;
+    if (err.missing) body.missing = err.missing;
+    if (err.zone) body.zone = err.zone;
+  }
+  res.status(status).json(body);
 }

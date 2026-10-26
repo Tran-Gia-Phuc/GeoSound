@@ -35,6 +35,17 @@ export const EDITABLE_FIELDS = Object.freeze([
 // Trạng thái "đang hiển thị với khách" — sửa nội dung thì phải gửi duyệt lại.
 const LIVE_STATUSES = new Set([TOUR_STATUS.PUBLIC, TOUR_STATUS.RESTRICTED]);
 
+// Xuất bản thẳng (bỏ qua kiểm duyệt — quyết định D1): tác giả được đưa tour lên
+// Công khai từ các trạng thái chưa công khai. HIDDEN/RESTRICTED là quyết định của
+// quản trị viên nên tác giả không tự gỡ được.
+const PUBLISHABLE_FROM = new Set([
+  TOUR_STATUS.DRAFT,
+  TOUR_STATUS.REJECTED,
+  TOUR_STATUS.AI_CHECKING,
+  TOUR_STATUS.AI_WARNING,
+  TOUR_STATUS.PENDING_REVIEW,
+]);
+
 export class Tour {
   /**
    * @param {{
@@ -91,6 +102,21 @@ export class Tour {
     const requiresResubmit = this.isLive();
     if (requiresResubmit) this.status = TOUR_STATUS.DRAFT;
     return requiresResubmit;
+  }
+
+  /** Tác giả có thể tự xuất bản tour ở trạng thái hiện tại không. */
+  canPublish() {
+    return PUBLISHABLE_FROM.has(this.status);
+  }
+
+  /** Đưa tour lên Công khai. Kiểm tra sẵn sàng (nội dung) do use-case làm. */
+  publish() {
+    this.status = TOUR_STATUS.PUBLIC;
+  }
+
+  /** Tác giả gỡ tour công khai về Nháp (khách không còn thấy). */
+  unpublish() {
+    this.status = TOUR_STATUS.DRAFT;
   }
 
   /** Dữ liệu đầy đủ trả về cho chính tác giả (form chỉnh sửa). */

@@ -68,6 +68,23 @@ export class TourNotPreviewableError extends AppError {
   }
 }
 
+// UC09 / A3 — tour chưa đủ điều kiện xuất bản. `missing` = các mục bắt buộc còn thiếu
+// (key + nhãn) để client dẫn tác giả tới đúng chỗ cần sửa.
+export class TourNotReadyError extends AppError {
+  /** @param {Array<{ key: string, label: string }>} missing */
+  constructor(missing = []) {
+    super('Tour chưa đủ điều kiện xuất bản', { status: 422, code: 'tour_not_ready' });
+    this.missing = missing;
+  }
+}
+
+// UC09 / A3 — trạng thái hiện tại không cho phép xuất bản / gỡ xuống.
+export class TourStatusTransitionError extends AppError {
+  constructor(message) {
+    super(message, { status: 409, code: 'invalid_status_transition' });
+  }
+}
+
 // UC07 — không tìm thấy lịch trình (đã xoá / id sai / mã chia sẻ sai).
 export class ItineraryNotFoundError extends AppError {
   constructor(message = 'Không tìm thấy lịch trình') {

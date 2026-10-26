@@ -29,6 +29,7 @@ import { ListMyTours } from './application/use-cases/list-my-tours.js';
 import { GetMyTour } from './application/use-cases/get-my-tour.js';
 import { UpdateTour } from './application/use-cases/update-tour.js';
 import { DeleteTour } from './application/use-cases/delete-tour.js';
+import { GetPublishReadiness, PublishTour, UnpublishTour } from './application/use-cases/publish-tour.js';
 
 import { AddPlace } from './application/use-cases/add-place.js';
 import { ListPlaces } from './application/use-cases/list-places.js';
@@ -105,6 +106,10 @@ export function buildContainer(/* env = process.env */) {
     getMyTour: new GetMyTour({ tourRepo }),
     updateTour: new UpdateTour({ tourRepo }),
     deleteTour: new DeleteTour({ tourRepo }),
+    // UC09 / A3 — xuất bản thẳng (bỏ qua kiểm duyệt)
+    getPublishReadiness: new GetPublishReadiness({ tourRepo, placeRepo }),
+    publishTour: new PublishTour({ tourRepo, placeRepo }),
+    unpublishTour: new UnpublishTour({ tourRepo }),
   };
   const placeUseCases = {
     // UC10 — quản lý điểm dừng
