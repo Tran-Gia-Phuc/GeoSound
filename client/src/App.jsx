@@ -1,4 +1,7 @@
-// Định tuyến client.
+// Định tuyến client. Màn thường nằm trong AppLayout (thanh tab dưới ở điện thoại,
+// thanh trên ở desktop); màn chi tiết có thanh hành động riêng dùng AppLayout
+// tabs={false}; trình phát / đăng nhập là toàn màn hình.
+//   /account            — tài khoản + giao diện sáng/tối
 //   /                   — trang chủ
 //   /login, /register   — đăng nhập / đăng ký (chọn vai trò) (UC01)
 //   /forgot-password    — quên mật khẩu (UC01 A2)
@@ -39,6 +42,8 @@ import TourEditorPage from './features/studio/TourEditorPage.jsx';
 import PlacesManagerPage from './features/studio/PlacesManagerPage.jsx';
 import RouteConfigPage from './features/studio/RouteConfigPage.jsx';
 import LanguagesPage from './features/studio/LanguagesPage.jsx';
+import AccountPage from './features/account/AccountPage.jsx';
+import AppLayout from './components/shell/AppLayout.jsx';
 import { previewTour } from './lib/studio.js';
 
 // UC04 mở từ chi tiết tour (UC02) — thoát thì quay về chi tiết tour.
@@ -75,25 +80,35 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        {/* Màn gốc của các tab */}
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/tours" element={<ToursPage />} />
+          <Route path="/explore" element={<ExplorePage />} />
+          <Route path="/itineraries" element={<RequireAuth><ItinerariesPage /></RequireAuth>} />
+          <Route path="/account" element={<AccountPage />} />
+          <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />
+          <Route path="/studio/tours/new" element={<RequireContributor><TourCreatePage /></RequireContributor>} />
+          <Route path="/studio/tours/:id" element={<RequireContributor><TourEditorPage /></RequireContributor>} />
+          <Route path="/studio/tours/:id/places" element={<RequireContributor><PlacesManagerPage /></RequireContributor>} />
+          <Route path="/studio/tours/:id/route" element={<RequireContributor><RouteConfigPage /></RequireContributor>} />
+          <Route path="/studio/tours/:id/languages" element={<RequireContributor><LanguagesPage /></RequireContributor>} />
+        </Route>
+
+        {/* Màn chi tiết có thanh hành động riêng ở đáy: ẩn tab dưới */}
+        <Route element={<AppLayout tabs={false} />}>
+          <Route path="/tour/:tourId" element={<TourDetailPage />} />
+          <Route path="/itineraries/:id" element={<RequireAuth><ItineraryEditorPage /></RequireAuth>} />
+          <Route path="/shared/:token" element={<SharedItineraryPage />} />
+        </Route>
+
+        {/* Toàn màn hình */}
         <Route path="/login" element={<LoginPage key="login" initialTab="login" />} />
         <Route path="/register" element={<LoginPage key="register" initialTab="register" />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/tours" element={<ToursPage />} />
-        <Route path="/tour/:tourId" element={<TourDetailPage />} />
         <Route path="/tour/:tourId/play" element={<PlayTourRoute />} />
-        <Route path="/explore" element={<ExplorePage />} />
-        <Route path="/itineraries" element={<RequireAuth><ItinerariesPage /></RequireAuth>} />
-        <Route path="/itineraries/:id" element={<RequireAuth><ItineraryEditorPage /></RequireAuth>} />
         <Route path="/itinerary/:id/go" element={<RequireAuth><ItineraryPlayerPage /></RequireAuth>} />
-        <Route path="/shared/:token" element={<SharedItineraryPage />} />
         <Route path="/shared/:token/go" element={<SharedItineraryPlayerPage />} />
-        <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />
-        <Route path="/studio/tours/new" element={<RequireContributor><TourCreatePage /></RequireContributor>} />
-        <Route path="/studio/tours/:id" element={<RequireContributor><TourEditorPage /></RequireContributor>} />
-        <Route path="/studio/tours/:id/places" element={<RequireContributor><PlacesManagerPage /></RequireContributor>} />
-        <Route path="/studio/tours/:id/route" element={<RequireContributor><RouteConfigPage /></RequireContributor>} />
-        <Route path="/studio/tours/:id/languages" element={<RequireContributor><LanguagesPage /></RequireContributor>} />
         <Route path="/studio/tours/:tourId/preview" element={<RequireContributor><PreviewTourRoute /></RequireContributor>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

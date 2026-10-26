@@ -1,0 +1,317 @@
+/* =========================================================
+   GeoSound — khung app (AppLayout): thanh tab dưới (điện thoại), thanh điều
+   hướng trên (desktop), tiêu đề màn dùng chung (AppHeader) + vài khối chung
+   (page, card, menu, segmented).
+   ========================================================= */
+
+:root {
+  --tabbar-h: 64px;
+  --topnav-h: 60px;
+}
+
+.app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.app__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.app--tabs .app__content {
+  padding-bottom: calc(var(--tabbar-h) + var(--sab));
+}
+
+/* ---------- Thanh tab dưới (điện thoại) ---------- */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  height: calc(var(--tabbar-h) + var(--sab));
+  padding-bottom: var(--sab);
+  background: color-mix(in srgb, var(--bg-elev) 94%, transparent);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border);
+}
+.tabbar__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  color: var(--fg-muted);
+  text-decoration: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  transition: color var(--t-fast) var(--ease);
+}
+.tabbar__item.is-active {
+  color: var(--primary);
+}
+.tabbar__item.is-active svg {
+  transform: translateY(-1px);
+}
+
+/* ---------- Thanh điều hướng trên (desktop) ---------- */
+.topnav {
+  display: none;
+}
+@media (min-width: 900px) {
+  .tabbar {
+    display: none;
+  }
+  .app--tabs .app__content {
+    padding-bottom: 0;
+  }
+  .topnav {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    height: var(--topnav-h);
+    background: color-mix(in srgb, var(--bg-elev) 94%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topnav__inner {
+    max-width: 1200px;
+    height: 100%;
+    margin: 0 auto;
+    padding: 0 var(--sp-5);
+    display: flex;
+    align-items: center;
+    gap: var(--sp-5);
+  }
+  .topnav__links {
+    display: flex;
+    gap: var(--sp-1);
+    flex: 1;
+  }
+  .topnav__link {
+    padding: 8px 14px;
+    border-radius: 999px;
+    color: var(--fg-muted);
+    font-weight: 600;
+    font-size: 14.5px;
+    text-decoration: none;
+  }
+  .topnav__link:hover {
+    background: var(--surface-2);
+    color: var(--fg);
+  }
+  .topnav__link.is-active {
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .topnav__account {
+    text-decoration: none;
+  }
+  .topnav__avatar {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    background: var(--primary);
+    color: var(--primary-fg);
+    font-weight: 700;
+  }
+  .topnav__account.is-active .topnav__avatar {
+    box-shadow: 0 0 0 3px var(--primary-soft);
+  }
+}
+
+/* ---------- Tiêu đề màn ---------- */
+.appheader {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: var(--tap);
+  margin-bottom: var(--sp-4);
+}
+.appheader__titles {
+  flex: 1;
+  min-width: 0;
+}
+.appheader__title {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.appheader--large .appheader__title {
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  white-space: normal;
+}
+.appheader__subtitle {
+  margin-top: 2px;
+  color: var(--fg-muted);
+  font-size: 13.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.appheader__back,
+.appheader__action {
+  flex: none;
+}
+
+/* ---------- Trang & khối chung ---------- */
+.page {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: calc(var(--sat) + var(--sp-4)) var(--sp-4) var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.page--narrow {
+  max-width: 640px;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--sp-4);
+}
+.section-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: var(--sp-3);
+}
+.btn--sm {
+  min-height: 36px;
+  padding: 0 var(--sp-3);
+  font-size: 14px;
+}
+
+/* Danh sách lối tắt */
+.menu {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 56px;
+  padding: var(--sp-3) var(--sp-4);
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  font-weight: 600;
+  font-size: 15px;
+  text-align: left;
+  text-decoration: none;
+}
+.menu__item + .menu__item {
+  border-top: 1px solid var(--border);
+}
+.menu__item > span {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.menu__item:hover {
+  background: var(--surface-2);
+}
+.menu__sub {
+  font-weight: 500;
+}
+.menu__chev {
+  transform: rotate(180deg);
+  color: var(--fg-subtle);
+}
+
+/* Nhóm nút chọn một (segmented) */
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--sp-1);
+  padding: var(--sp-1);
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+}
+.segmented__item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  border: none;
+  border-radius: calc(var(--r-md) - 4px);
+  background: transparent;
+  color: var(--fg-muted);
+  font-weight: 600;
+  font-size: 14px;
+}
+.segmented__item.is-active {
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- Tài khoản ---------- */
+.account-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+.account-card__avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-fg);
+  font-size: 22px;
+  font-weight: 700;
+}
+.account-card__info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+.account-guest {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  color: var(--fg);
+}
+.account-guest > svg {
+  color: var(--primary);
+}
+.account-logout {
+  color: var(--danger);
+}
+
+/* Thanh lưu dính đáy của Studio phải nằm trên thanh tab (điện thoại). */
+.app--tabs .studio-save {
+  bottom: calc(var(--tabbar-h) + var(--sab));
+}
+@media (min-width: 900px) {
+  .app--tabs .studio-save {
+    bottom: 0;
+  }
+}

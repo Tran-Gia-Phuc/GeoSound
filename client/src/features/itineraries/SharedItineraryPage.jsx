@@ -7,13 +7,12 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import TourMap from '../player/TourMap.jsx';
-import { useTheme } from '../../hooks/useTheme.js';
+import AppHeader from '../../components/shell/AppHeader.jsx';
 import { formatDistance, formatMinutes } from '../../lib/format.js';
 import { getSharedItinerary } from '../../lib/itineraries.js';
 
 export default function SharedItineraryPage() {
   const { token } = useParams();
-  const { isDark, toggle } = useTheme();
   const [view, setView] = useState(null);
   const [error, setError] = useState('');
   const [activeId, setActiveId] = useState(null);
@@ -31,7 +30,7 @@ export default function SharedItineraryPage() {
           <Icon name="alert-triangle" size={18} className="alert__icon" />
           <div>{error}</div>
         </div>
-        <Link to="/" className="btn">Về trang chủ</Link>
+        <Link to="/" className="btn">Về Khám phá</Link>
       </div>
     );
   }
@@ -45,20 +44,11 @@ export default function SharedItineraryPage() {
 
   return (
     <div className="screen itin-edit">
-      <header className="itin__top">
-        <Link to="/" className="brand" aria-label="Về trang chủ GeoSound">
-          <span className="brand__logo"><Icon name="headphones" size={20} /></span>
-          <span className="brand__name">GeoSound</span>
-        </Link>
-        <button className="iconbtn" onClick={toggle} aria-label="Đổi giao diện sáng/tối">
-          <Icon name={isDark ? 'sun' : 'moon'} size={18} />
-        </button>
-      </header>
-
-      <div className="itin-edit__shared-title">
-        <span className="chip chip--live"><Icon name="share" size={13} /> Lịch trình được chia sẻ</span>
-        <h1 className="itin__h1">{view.name}</h1>
-      </div>
+      <AppHeader
+        title={view.name}
+        subtitle={<><Icon name="share" size={13} /> Lịch trình được chia sẻ</>}
+        backTo="/"
+      />
 
       <div className="itin-edit__map">
         <TourMap tour={view} activePlaceId={activeId} onSelectPlace={setActiveId} />

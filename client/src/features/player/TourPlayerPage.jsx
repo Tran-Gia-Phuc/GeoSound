@@ -15,7 +15,6 @@ import { langLabel, formatDistance, formatMinutes, voiceLabel } from '../../lib/
 import { useGeolocation } from '../../hooks/useGeolocation.js';
 import { useTourProgress } from '../../hooks/useTourProgress.js';
 import { usePlaybackEngine } from '../../hooks/usePlaybackEngine.js';
-import { useTheme } from '../../hooks/useTheme.js';
 
 import Icon from '../../components/Icon.jsx';
 import Modal from '../../components/Modal.jsx';
@@ -68,7 +67,6 @@ export default function TourPlayerPage({
   const { tourId } = useParams();
   const [sp, setSp] = useSearchParams();
   const navigate = useNavigate();
-  const { isDark, toggle: toggleTheme } = useTheme();
   const canSimulate = allowSimulation || sp.get('debug') === '1';
 
   const pkey = progressKey ?? tourId;
@@ -306,9 +304,6 @@ export default function TourPlayerPage({
           <button className="iconbtn intro__back" onClick={() => navigate(backTo)} aria-label="Quay lại">
             <Icon name="arrow-left" size={20} />
           </button>
-          <button className="iconbtn intro__theme" onClick={toggleTheme} aria-label="Đổi giao diện sáng/tối">
-            <Icon name={isDark ? 'sun' : 'moon'} size={18} />
-          </button>
         </div>
 
         <div className="intro__body">
@@ -376,9 +371,6 @@ export default function TourPlayerPage({
           />
           <button className="iconbtn" onClick={() => setListOpen(true)} aria-label="Danh sách điểm">
             <Icon name="list" size={20} />
-          </button>
-          <button className="iconbtn" onClick={toggleTheme} aria-label="Đổi giao diện sáng/tối">
-            <Icon name={isDark ? 'sun' : 'moon'} size={18} />
           </button>
         </div>
       </header>

@@ -7,10 +7,7 @@
 //   - "Gần tôi" dùng định vị thiết bị để xếp theo khoảng cách.
 // =========================================================
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
-import { useTheme } from '../../hooks/useTheme.js';
-import AccountMenu from '../../auth/AccountMenu.jsx';
 import TourCard from './TourCard.jsx';
 import {
   searchTours,
@@ -22,8 +19,6 @@ import {
 const LIMIT = 12;
 
 export default function ToursPage() {
-  const navigate = useNavigate();
-  const { isDark, toggle } = useTheme();
 
   const [q, setQ] = useState('');
   const [city, setCity] = useState('');
@@ -136,19 +131,6 @@ export default function ToursPage() {
   return (
     <div className="screen">
       <div className="tours">
-        <header className="tours__top">
-          <Link className="brand" to="/" aria-label="Về trang chủ GeoSound">
-            <span className="brand__logo"><Icon name="headphones" size={20} /></span>
-            <span className="brand__name">GeoSound</span>
-          </Link>
-          <div className="tours__topright">
-            <AccountMenu />
-            <button className="iconbtn" onClick={toggle} aria-label="Đổi giao diện sáng/tối">
-              <Icon name={isDark ? 'sun' : 'moon'} size={18} />
-            </button>
-          </div>
-        </header>
-
         <div>
           <h1 className="tours__h1">Tìm tour</h1>
           <p className="tours__lead">Chọn một tour để nghe thuyết minh theo bước chân, hoặc nghe thử từ xa.</p>

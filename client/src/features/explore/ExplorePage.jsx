@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
-import { useTheme } from '../../hooks/useTheme.js';
+import AppHeader from '../../components/shell/AppHeader.jsx';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { formatDistance } from '../../lib/format.js';
 import { explorePlaces, listMyItineraries, addItem } from '../../lib/itineraries.js';
@@ -24,7 +24,6 @@ export default function ExplorePage() {
   const [params] = useSearchParams();
   const addTo = params.get('addTo');
   const addToName = location.state?.name;
-  const { isDark, toggle } = useTheme();
   const { authenticated } = useAuth();
 
   const [q, setQ] = useState('');
@@ -97,15 +96,7 @@ export default function ExplorePage() {
 
   return (
     <div className="screen explore">
-      <header className="itin__top">
-        <button className="iconbtn" onClick={() => navigate(-1)} aria-label="Quay lại">
-          <Icon name="arrow-left" size={18} />
-        </button>
-        <div className="brand"><span className="brand__name">Khám phá địa điểm</span></div>
-        <button className="iconbtn" onClick={toggle} aria-label="Đổi giao diện sáng/tối">
-          <Icon name={isDark ? 'sun' : 'moon'} size={18} />
-        </button>
-      </header>
+      <AppHeader title="Khám phá địa điểm" backTo="/" />
 
       <main className="itin__main">
         {addTo ? (

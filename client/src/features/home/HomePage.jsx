@@ -7,8 +7,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
-import { useTheme } from '../../hooks/useTheme.js';
-import AccountMenu from '../../auth/AccountMenu.jsx';
 import { useAuth } from '../../auth/AuthContext.jsx';
 
 const RECENT_KEY = 'geosound:recent-tours';
@@ -23,7 +21,6 @@ function readRecent() {
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { isDark, toggle } = useTheme();
   const { isContributor } = useAuth();
   const [id, setId] = useState('');
   const [recent, setRecent] = useState([]);
@@ -38,18 +35,6 @@ export default function HomePage() {
 
   return (
     <div className="screen home">
-      <header className="home__top">
-        <div className="brand">
-          <span className="brand__logo"><Icon name="headphones" size={20} /></span>
-          <span className="brand__name">GeoSound</span>
-        </div>
-        <div className="home__topright">
-          <AccountMenu />
-          <button className="iconbtn" onClick={toggle} aria-label="Đổi giao diện sáng/tối">
-            <Icon name={isDark ? 'sun' : 'moon'} size={18} />
-          </button>
-        </div>
-      </header>
 
       <main className="home__main">
         <h1 className="home__h1">Nghe tour bằng audio theo bước chân</h1>
