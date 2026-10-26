@@ -1,7 +1,9 @@
 // =========================================================
 // TourPlayerPage — màn hình NGHE TOUR (UC04). Điều phối:
 //   - Tải chi tiết tour (UC02 detail: places + route UC11 + ngôn ngữ/TTS UC12).
-//   - Màn hình mở đầu: "Bắt đầu tour" (GPS) hoặc "Nghe thử từ xa" (A5).
+//   - Mở thẳng theo ?mode=gps|remote (chọn ở chi tiết tour / lịch trình bằng
+//     ModePicker) — không còn màn mở đầu thứ hai. ?stop=<id> nghe tại một điểm.
+//     Không có ?mode= (link cũ) thì vẫn hiện màn mở đầu để chọn.
 //   - Chế độ GPS: bản đồ + vị trí trực tiếp + tự phát theo vùng kích hoạt.
 //   - Chế độ nghe thử: chọn điểm thủ công, không cần GPS.
 //   - Xử lý E1 (quyền GPS), E2 (GPS yếu), E3 (audio lỗi -> TTS), E4 (offline).
@@ -10,7 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { fetchTourDetail } from '../../lib/api.js';
-import { densifyPath } from '../../lib/geo.js';
+import { densifyPath, haversine } from '../../lib/geo.js';
 import { langLabel, formatDistance, formatMinutes, voiceLabel } from '../../lib/format.js';
 import { useGeolocation } from '../../hooks/useGeolocation.js';
 import { useTourProgress } from '../../hooks/useTourProgress.js';
@@ -25,6 +27,7 @@ import PlaceList from './PlaceList.jsx';
 import LanguageMenu from './LanguageMenu.jsx';
 import SimControls from './SimControls.jsx';
 import CompletionDialog from './CompletionDialog.jsx';
+import { useBack } from '../../components/shell/AppHeader.jsx';
 
 const STALE_MS = 12000;
 
@@ -68,6 +71,10 @@ export default function TourPlayerPage({
   const [sp, setSp] = useSearchParams();
   const navigate = useNavigate();
   const canSimulate = allowSimulation || sp.get('debug') === '1';
+  const back = useBack(backTo);
+  const initialMode = ['gps', 'remote'].includes(sp.get('mode')) ? sp.get('mode') : null;
+  const stopParam = sp.get('stop');
+  const autoStarted = useRef(false);
 
   const pkey = progressKey ?? tourId;
   const { progress, markVisited, setLang } = useTourProgress(pkey);
@@ -177,20 +184,49 @@ export default function TourPlayerPage({
   // ---- Hành động mở đầu ----
   const startGps = useCallback(() => {
     setMode('gps');
-    setSheetOpen(true);
+    setSheetOpen(false);
     engine.start();
     if (geo.supported) geo.start();
   }, [engine, geo]);
 
-  const startRemote = useCallback(() => {
-    setMode('remote');
-    setListOpen(true);
-    setSheetOpen(true);
-    engine.start(); // mở khóa audio; chế độ remote không dùng GPS
-    geo.stop();
-    setSimulate(false);
-    stopWalk();
-  }, [engine, geo, stopWalk]);
+  const startRemote = useCallback(
+    ({ stop } = {}) => {
+      setMode('remote');
+      setSheetOpen(true);
+      engine.start(); // mở khóa audio; chế độ remote không dùng GPS
+      geo.stop();
+      setSimulate(false);
+      stopWalk();
+      if (stop) engine.selectPlace(stop);
+      else if (!progress.visited.length) setListOpen(true); // nghe dở → banner "nghe tiếp" thay vì danh sách
+    },
+    [engine, geo, stopWalk, progress.visited.length],
+  );
+
+  // Mở thẳng theo ?mode= (một lần, sau khi tải xong tour).
+  useEffect(() => {
+    if (!tour || mode || !initialMode || autoStarted.current) return;
+    autoStarted.current = true;
+    if (initialMode === 'gps') startGps();
+    else startRemote({ stop: tour.places.some((p) => p.id === stopParam) ? stopParam : null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tour]);
+
+  // Trình duyệt chỉ cho phát tiếng sau một thao tác của người dùng: mở khoá
+  // audio ở lần chạm đầu tiên trên màn trình phát (mở thẳng không qua nút bấm).
+  useEffect(() => {
+    if (!mode) return undefined;
+    if (navigator.userActivation?.hasBeenActive) engine.audio.unlock();
+    const h = () => engine.audio.unlock();
+    document.addEventListener('pointerdown', h, { once: true, capture: true });
+    return () => document.removeEventListener('pointerdown', h, { capture: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  // GPS: vào vùng một điểm mới → tự mở sheet nội dung.
+  useEffect(() => {
+    if (mode === 'gps' && engine.currentPlaceId && engine.currentRole === 'place') setSheetOpen(true);
+  }, [mode, engine.currentPlaceId, engine.currentRole]);
 
   const switchToRemote = useCallback(() => {
     geo.stop();
@@ -204,8 +240,8 @@ export default function TourPlayerPage({
     engine.stop();
     geo.stop();
     stopWalk();
-    navigate(backTo);
-  }, [engine, geo, stopWalk, navigate, backTo]);
+    back();
+  }, [engine, geo, stopWalk, back]);
 
   // ---- Đổi ngôn ngữ (UC12): tải lại nội dung đã bản địa hóa ----
   const changeLang = useCallback(
@@ -301,7 +337,7 @@ export default function TourPlayerPage({
       <div className="screen intro">
         <div className="intro__cover" style={tour.coverImageUrl ? { backgroundImage: `url(${tour.coverImageUrl})` } : undefined}>
           <div className="intro__cover-grad" />
-          <button className="iconbtn intro__back" onClick={() => navigate(backTo)} aria-label="Quay lại">
+          <button className="iconbtn intro__back" onClick={back} aria-label="Quay lại">
             <Icon name="arrow-left" size={20} />
           </button>
         </div>
@@ -333,7 +369,7 @@ export default function TourPlayerPage({
               <button className="btn btn--primary btn--lg btn--block" onClick={startGps} disabled={!hasRoute && !tour.places.length}>
                 <Icon name="navigation" size={18} /> Bắt đầu tour (theo GPS)
               </button>
-              <button className="btn btn--lg btn--block" onClick={startRemote}>
+              <button className="btn btn--lg btn--block" onClick={() => startRemote()}>
                 <Icon name="headphones" size={18} /> Nghe thử từ xa
               </button>
               {!hasRoute ? (
@@ -350,6 +386,12 @@ export default function TourPlayerPage({
   const showGpsDenied = mode === 'gps' && !simulate && (geo.permission === 'denied' || geo.permission === 'unsupported');
   const showLowAcc = mode === 'gps' && !simulate && geo.lowAccuracy && geo.permission === 'granted';
   const showStale = mode === 'gps' && !simulate && userPos?.stale;
+
+  // Điểm tiếp theo chưa nghe (theo thứ tự) + khoảng cách từ vị trí hiện tại.
+  const nextPlace = engine.ordered.find((p) => !visitedSet.has(p.id) && p.id !== engine.currentPlaceId) || null;
+  const nextDistance = nextPlace && userPos && Number.isFinite(nextPlace.lat) ? haversine(userPos, nextPlace) : null;
+  const nextIndex = nextPlace ? engine.ordered.indexOf(nextPlace) + 1 : 0;
+  const resumeAt = !engine.currentPlaceId && progress.visited.length > 0 && nextPlace ? nextPlace : null;
 
   return (
     <div className="screen player-screen">
@@ -410,6 +452,27 @@ export default function TourPlayerPage({
             <div className="alert banner" role="status">
               <Icon name="info" size={18} />
               <div className="banner__text">Tín hiệu vị trí chưa cập nhật. Đang chờ GPS…</div>
+            </div>
+          ) : null}
+          {resumeAt ? (
+            <div className="alert banner" role="status">
+              <Icon name="headphones" size={18} />
+              <div className="banner__text">
+                Bạn đã nghe {progress.visited.length}/{tour.places.length} điểm.
+              </div>
+              <button className="btn btn--primary btn--sm" onClick={() => engine.selectPlace(resumeAt.id)}>
+                Nghe tiếp điểm {nextIndex}
+              </button>
+            </div>
+          ) : null}
+          {mode === 'gps' && !resumeAt && nextPlace && !showGpsDenied ? (
+            <div className="nextcard" role="status">
+              <span className="nextcard__num">{nextIndex}</span>
+              <span className="nextcard__text">
+                <span className="nextcard__label">Tiếp theo</span>
+                <b>{nextPlace.name}</b>
+              </span>
+              {nextDistance !== null ? <span className="nextcard__dist">{formatDistance(nextDistance)}</span> : null}
             </div>
           ) : null}
         </div>

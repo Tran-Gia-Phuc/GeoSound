@@ -10,6 +10,7 @@ import TourMap from '../player/TourMap.jsx';
 import AppHeader from '../../components/shell/AppHeader.jsx';
 import { formatDistance, formatMinutes } from '../../lib/format.js';
 import { getSharedItinerary } from '../../lib/itineraries.js';
+import ModePicker from '../player/ModePicker.jsx';
 
 export default function SharedItineraryPage() {
   const { token } = useParams();
@@ -75,9 +76,7 @@ export default function SharedItineraryPage() {
 
       {view.placeCount ? (
         <footer className="itin-edit__bar">
-          <Link className="btn btn--primary btn--block" to={`/shared/${token}/go`}>
-            <Icon name="navigation" size={18} /> Đi theo lịch trình này
-          </Link>
+          <ModePicker to={(mode) => `/shared/${token}/go?mode=${mode}`} gpsLabel="Đi theo lịch trình" />
         </footer>
       ) : null}
     </div>
