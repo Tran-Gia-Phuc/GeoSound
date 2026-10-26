@@ -32,7 +32,12 @@ export class GetPublishReadiness {
   async execute(input) {
     const tour = await loadOwned(this.tourRepo, input);
     const places = await this.placeRepo.listByTour(tour.id);
-    return { status: tour.status, canPublish: tour.canPublish(), ...checkPublishReadiness({ tour, places }) };
+    return {
+      status: tour.status,
+      canPublish: tour.canPublish(),
+      placeCount: places.length,
+      ...checkPublishReadiness({ tour, places }),
+    };
   }
 }
 

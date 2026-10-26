@@ -106,3 +106,8 @@ test('GetPublishReadiness: trả checklist + trạng thái + có được tự x
   assert.equal(r.canPublish, true);
   assert.ok(r.checks.find((c) => c.key === 'places' && !c.ok));
 });
+
+test('GetPublishReadiness: kèm số điểm dừng (cho stepper Studio)', async () => {
+  const r = await new GetPublishReadiness(deps()).execute({ authorId: 'u1', tourId: 'ready' });
+  assert.equal(r.placeCount, 2);
+});

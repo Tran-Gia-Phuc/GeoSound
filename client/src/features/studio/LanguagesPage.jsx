@@ -7,7 +7,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
-import StudioHeader from './StudioHeader.jsx';
 import { langLabel } from '../../lib/format.js';
 import { LANGUAGE_OPTIONS } from '../../lib/tours.js';
 import {
@@ -141,8 +140,7 @@ export default function LanguagesPage() {
 
   if (loadError && !config) {
     return (
-      <div className="screen studio">
-        <StudioHeader title="Ngôn ngữ & giọng đọc" backTo={`/studio/tours/${id}`} />
+      <div className="studio-step">
         <main className="studio__main">
           <div className="alert alert--warn" role="alert">
             <Icon name="alert-triangle" size={18} className="alert__icon" />
@@ -155,8 +153,7 @@ export default function LanguagesPage() {
   }
   if (!config) {
     return (
-      <div className="screen studio">
-        <StudioHeader title="Ngôn ngữ & giọng đọc" backTo={`/studio/tours/${id}`} />
+      <div className="studio-step">
         <main className="studio__main"><p className="muted studio__loading"><Icon name="loader" size={20} className="spin" /> Đang tải…</p></main>
       </div>
     );
@@ -167,8 +164,7 @@ export default function LanguagesPage() {
   const hasTranslations = config.places.some((p) => p.translations.length > 0);
 
   return (
-    <div className="screen studio">
-      <StudioHeader title="Ngôn ngữ & giọng đọc" backTo={`/studio/tours/${id}`} subtitle="Ngôn ngữ phụ, giọng đọc, bản dịch từng điểm" />
+    <div className="studio-step">
 
       <main className="studio__main">
         {/* Cấu hình ngôn ngữ + giọng */}
@@ -298,7 +294,12 @@ export default function LanguagesPage() {
           )}
         </section>
 
-        <p className="muted small"><Link className="linkbtn" to={`/studio/tours/${id}`}>← Về trình chỉnh sửa tour</Link></p>
+        <div className="studio-nextstep">
+          <span className="muted small">Ngôn ngữ phụ là tuỳ chọn — có thể xuất bản chỉ với ngôn ngữ gốc.</span>
+          <Link className="btn btn--primary" to={`/studio/tours/${id}/publish`}>
+            Tiếp: Xuất bản <Icon name="chevron-left" size={16} className="flip" />
+          </Link>
+        </div>
       </main>
     </div>
   );

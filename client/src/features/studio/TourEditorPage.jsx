@@ -1,49 +1,27 @@
 // =========================================================
-// TourEditorPage (UC09 A1/A2) — trung tâm chỉnh sửa một tour của tôi:
+// TourEditorPage — bước "Thông tin" của Studio (UC09 A1/A2):
 //   - Sửa nội dung (tên/ngôn ngữ/loại/thành phố/thời lượng/mô tả/ảnh bìa).
 //     Lưu chỉ gửi các trường THAY ĐỔI; sửa tour công khai sẽ về Nháp (A1).
-//   - Điều hướng sang các khu khác: điểm dừng (UC10), route (UC11),
-//     ngôn ngữ & TTS (UC12), xem thử (UC13) — bật dần theo từng tính năng.
-//   - Xuất bản thẳng / gỡ xuống kèm checklist sẵn sàng (A3 — PublishPanel).
-//   - Xoá tour (A2).
+//   - Xoá tour (A2) — xác nhận bằng ConfirmDialog.
+// Các bước khác (điểm dừng, vùng kích hoạt, ngôn ngữ, xuất bản) nằm trên stepper
+// của StudioTourLayout.
 // =========================================================
-import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
-import StudioHeader, { StatusChip } from './StudioHeader.jsx';
+import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import TourForm from './TourForm.jsx';
-import PublishPanel from './PublishPanel.jsx';
-import { getMyTour, updateTour, deleteTour, statusMeta } from '../../lib/studio.js';
-
-// Các khu quản lý tour. `enabled` bật dần khi từng UC client hoàn thành.
-const AREAS = [
-  { key: 'places', to: 'places', icon: 'map-pin', title: 'Điểm dừng', desc: 'Thêm & sắp xếp các điểm trên tour', enabled: true },
-  { key: 'route', to: 'route', icon: 'route', title: 'Route & vùng kích hoạt', desc: 'Đã có mặc định — tuỳ chỉnh nếu cần', enabled: true },
-  { key: 'languages', to: 'languages', icon: 'languages', title: 'Ngôn ngữ & giọng đọc', desc: 'Ngôn ngữ phụ, bản dịch, giọng đọc', enabled: true },
-  { key: 'preview', to: 'preview', icon: 'play', title: 'Xem thử', desc: 'Trải nghiệm tour như một khách', enabled: true },
-];
+import { useStudioTour } from './StudioTourLayout.jsx';
+import { updateTour, deleteTour } from '../../lib/studio.js';
 
 export default function TourEditorPage() {
-  const { id } = useParams();
   const navigate = useNavigate();
-  const [tour, setTour] = useState(null);
-  const [loadError, setLoadError] = useState('');
+  const { tour, readiness, refresh, setTour } = useStudioTour();
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [notice, setNotice] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoadError('');
-    try {
-      setTour(await getMyTour(id));
-    } catch (e) {
-      setLoadError(e.message || 'Không tải được tour');
-    }
-  }, [id]);
-  useEffect(() => {
-    load();
-  }, [load]);
 
   function buildPatch(values) {
     const patch = {};
@@ -65,12 +43,11 @@ export default function TourEditorPage() {
     setSaveError('');
     setNotice('');
     try {
-      const res = await updateTour(id, patch);
-      setTour(res.tour ?? (await getMyTour(id)));
+      const res = await updateTour(tour.id, patch);
+      if (res.tour) setTour(res.tour);
+      await refresh();
       setNotice(
-        res.requiresResubmit
-          ? 'Đã lưu. Tour công khai đã chuyển về Nháp — cần xuất bản lại.'
-          : 'Đã lưu thay đổi.',
+        res.requiresResubmit ? 'Đã lưu. Tour công khai đã chuyển về Nháp — cần xuất bản lại.' : 'Đã lưu thay đổi.',
       );
     } catch (e) {
       setSaveError(e.message || 'Lưu thất bại');
@@ -80,10 +57,10 @@ export default function TourEditorPage() {
   }
 
   async function onDelete() {
-    if (!window.confirm(`Xoá tour “${tour.title}”? Hành động này không thể hoàn tác.`)) return;
+    setConfirmDelete(false);
     setDeleting(true);
     try {
-      await deleteTour(id);
+      await deleteTour(tour.id);
       navigate('/studio', { replace: true });
     } catch (e) {
       setSaveError(e.message || 'Không xoá được tour');
@@ -91,105 +68,57 @@ export default function TourEditorPage() {
     }
   }
 
-  if (loadError) {
-    return (
-      <div className="screen studio">
-        <StudioHeader title="Chỉnh sửa tour" backTo="/studio" />
-        <main className="studio__main studio__main--narrow">
-          <div className="alert alert--warn" role="alert">
-            <Icon name="alert-triangle" size={18} className="alert__icon" />
-            <div>{loadError}</div>
-          </div>
-          <Link to="/studio" className="btn">Về danh sách tour</Link>
-        </main>
-      </div>
-    );
-  }
-  if (!tour) {
-    return (
-      <div className="screen studio">
-        <StudioHeader title="Chỉnh sửa tour" backTo="/studio" />
-        <main className="studio__main studio__main--narrow">
-          <p className="muted studio__loading"><Icon name="loader" size={20} className="spin" /> Đang tải…</p>
-        </main>
-      </div>
-    );
-  }
-
-  const meta = statusMeta(tour.status);
+  const noPlaces = readiness && !readiness.placeCount;
 
   return (
-    <div className="screen studio">
-      <StudioHeader title={tour.title} backTo="/studio" />
-
-      <main className="studio__main studio__main--narrow">
-        <div className="studio-status">
-          <StatusChip meta={meta} />
+    <div className="studio-step studio__main--narrow">
+      {noPlaces ? (
+        <div className="alert studio-next" role="status">
+          <Icon name="map-pin" size={18} className="alert__icon" />
+          <div>Tour chưa có điểm dừng nào. Thêm điểm đầu tiên để khách nghe được tour.</div>
+          <Link className="btn btn--primary btn--sm" to={`/studio/tours/${tour.id}/places`}>Thêm điểm</Link>
         </div>
+      ) : null}
 
-        <PublishPanel
-          tourId={id}
-          status={tour.status}
-          refreshKey={tour.updatedAt}
-          onStatusChange={(t) => setTour((cur) => ({ ...cur, ...t }))}
-        />
+      {notice ? (
+        <div className="alert studio-notice" role="status">
+          <Icon name="check-circle" size={18} className="alert__icon" />
+          <div>{notice}</div>
+        </div>
+      ) : null}
 
-        {/* Khu điều hướng tới các phần khác của tour */}
-        <section className="studio-areas" aria-label="Quản lý nội dung tour">
-          {AREAS.map((a) =>
-            a.enabled ? (
-              <Link key={a.key} to={`/studio/tours/${id}/${a.to}`} className="studio-area">
-                <span className="studio-area__icon"><Icon name={a.icon} size={20} /></span>
-                <span className="studio-area__text">
-                  <b>{a.title}</b>
-                  <span className="muted small">{a.desc}</span>
-                </span>
-                <Icon name="chevron-left" size={16} className="studio-area__chev" />
-              </Link>
-            ) : (
-              <div key={a.key} className="studio-area studio-area--soon" aria-disabled="true">
-                <span className="studio-area__icon"><Icon name={a.icon} size={20} /></span>
-                <span className="studio-area__text">
-                  <b>{a.title}</b>
-                  <span className="muted small">{a.desc}</span>
-                </span>
-                <span className="chip">Sắp có</span>
-              </div>
-            ),
-          )}
-        </section>
+      <TourForm
+        key={tour.updatedAt || tour.id}
+        initial={tour}
+        submitLabel="Lưu thay đổi"
+        busy={busy}
+        serverError={saveError}
+        onSubmit={onSave}
+      />
 
-        <h2 className="studio__h2" id="tour-info">Thông tin tour</h2>
-        {notice ? (
-          <div className="alert studio-notice" role="status">
-            <Icon name="check-circle" size={18} className="alert__icon" />
-            <div>{notice}</div>
+      <section className="studio-danger">
+        <h2 className="studio__h2">Vùng nguy hiểm</h2>
+        <div className="studio-danger__row">
+          <div>
+            <b>Xoá tour</b>
+            <p className="muted small">Xoá vĩnh viễn tour này cùng các điểm dừng của nó.</p>
           </div>
-        ) : null}
+          <button className="btn btn--danger" onClick={() => setConfirmDelete(true)} disabled={deleting}>
+            {deleting ? <Icon name="loader" size={18} className="spin" /> : <Icon name="trash" size={18} />}
+            Xoá tour
+          </button>
+        </div>
+      </section>
 
-        <TourForm
-          key={tour.updatedAt || tour.id}
-          initial={tour}
-          submitLabel="Lưu thay đổi"
-          busy={busy}
-          serverError={saveError}
-          onSubmit={onSave}
-        />
-
-        <section className="studio-danger">
-          <h2 className="studio__h2">Vùng nguy hiểm</h2>
-          <div className="studio-danger__row">
-            <div>
-              <b>Xoá tour</b>
-              <p className="muted small">Xoá vĩnh viễn tour này cùng các điểm dừng của nó.</p>
-            </div>
-            <button className="btn btn--danger" onClick={onDelete} disabled={deleting}>
-              {deleting ? <Icon name="loader" size={18} className="spin" /> : <Icon name="trash" size={18} />}
-              Xoá tour
-            </button>
-          </div>
-        </section>
-      </main>
+      <ConfirmDialog
+        open={confirmDelete}
+        title={`Xoá tour “${tour.title}”?`}
+        message="Tour và toàn bộ điểm dừng, bản dịch sẽ bị xoá vĩnh viễn. Không thể hoàn tác."
+        confirmLabel="Xoá tour"
+        danger
+        onConfirm={onDelete}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }

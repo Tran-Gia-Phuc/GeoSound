@@ -745,3 +745,151 @@
   width: 30px;
   height: 30px;
 }
+
+/* ---- Stepper soạn tour (StudioTourLayout) ---- */
+.stepper {
+  margin: 0 calc(-1 * var(--sp-4)) var(--sp-4);
+  padding: 0 var(--sp-4);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.stepper::-webkit-scrollbar {
+  display: none;
+}
+.stepper ol {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 2px;
+  display: flex;
+  gap: var(--sp-2);
+}
+.stepper__step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--fg-muted);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.stepper__num {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 12px;
+}
+.stepper__label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.stepper__hint {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--fg-subtle);
+}
+.stepper__step--done .stepper__num {
+  background: var(--primary-soft);
+  color: var(--success);
+}
+.stepper__step--todo .stepper__num {
+  background: var(--danger-soft);
+  color: var(--warning);
+}
+.stepper__step--ready .stepper__num {
+  background: var(--primary);
+  color: var(--primary-fg);
+}
+.stepper__step.is-active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.studio-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.studio-next {
+  align-items: center;
+}
+.studio-next > div {
+  flex: 1;
+}
+.studio-nextstep {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  padding: var(--sp-3) 0;
+}
+.flip {
+  transform: rotate(180deg);
+}
+
+/* ---- Thẻ "Tour của tôi": tiến độ + bước tiếp theo ---- */
+.studio-cardwrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.studio-cardwrap .studio-card {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.studio-card__next {
+  justify-content: center;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border: 1px solid var(--border);
+  border-top: none;
+}
+.studio-card__next.btn--ghost {
+  background: var(--surface);
+}
+.studio-card__progress {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: 4px;
+}
+.studio-card__bar {
+  flex: 1;
+  max-width: 140px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.studio-card__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+/* ---- Hộp xác nhận ---- */
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.confirm__msg {
+  line-height: 1.55;
+  color: var(--fg-muted);
+}
+.confirm__actions {
+  display: flex;
+  gap: var(--sp-2);
+  justify-content: flex-end;
+}

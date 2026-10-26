@@ -113,3 +113,12 @@ test('DeleteTour: tour không tồn tại → 404', async () => {
     (err) => err.status === 404
   );
 });
+
+test('ListMyTours: kèm số điểm dừng của mỗi tour', async () => {
+  const repo = makeRepo();
+  const create = new CreateTour({ tourRepo: repo });
+  const t = await create.execute({ authorId: 'u1', title: 'A', originalLanguage: 'vi' });
+  const placeRepo = { async statsByTours(ids) { return new Map(ids.map((id) => [id, { count: id === t.id ? 3 : 0 }])); } };
+  const [mine] = await new ListMyTours({ tourRepo: repo, placeRepo }).execute({ authorId: 'u1' });
+  assert.equal(mine.placeCount, 3);
+});

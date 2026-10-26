@@ -1,6 +1,7 @@
 // =========================================================
 // StudioToursPage (UC09 bước 1–2) — "Tour của tôi": danh sách tour người đóng
-// góp đã tạo, kèm trạng thái; nút tạo tour mới; mỗi thẻ mở trình chỉnh sửa.
+// góp đã tạo, kèm trạng thái, TIẾN ĐỘ (n/4 bước) và nút làm bước tiếp theo
+// ("Thêm điểm dừng", "Xuất bản", "Xem bản công khai"); nút tạo tour mới.
 // =========================================================
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -9,6 +10,20 @@ import StudioHeader, { StatusChip } from './StudioHeader.jsx';
 import { langLabel } from '../../lib/format.js';
 import { TOUR_TYPE_LABELS } from '../../lib/tours.js';
 import { listMyTours, statusMeta } from '../../lib/studio.js';
+
+// Bước tiếp theo của một tour (số điểm lấy từ danh sách, không gọi thêm API).
+function nextAction(t) {
+  if (!t.placeCount) return { to: `/studio/tours/${t.id}/places`, label: 'Thêm điểm dừng', icon: 'map-pin', primary: true };
+  if (t.status === 'public') return { to: `/tour/${t.id}`, label: 'Xem bản công khai', icon: 'headphones' };
+  if (['hidden', 'restricted'].includes(t.status)) return { to: `/studio/tours/${t.id}`, label: 'Xem chi tiết', icon: 'info' };
+  return { to: `/studio/tours/${t.id}/publish`, label: 'Xem thử & xuất bản', icon: 'navigation', primary: true };
+}
+
+// Thông tin ✓ (đã tạo) · Điểm dừng · Vùng kích hoạt (tự sinh khi có điểm) · Xuất bản.
+function progressOf(t) {
+  const done = 1 + (t.placeCount ? 2 : 0) + (t.status === 'public' ? 1 : 0);
+  return { done, total: 4 };
+}
 
 export default function StudioToursPage() {
   const [list, setList] = useState(null); // null = đang tải
@@ -64,8 +79,11 @@ export default function StudioToursPage() {
           </div>
         ) : (
           <ul className="studio-cards">
-            {list.map((t) => (
-              <li key={t.id}>
+            {list.map((t) => {
+              const next = nextAction(t);
+              const p = progressOf(t);
+              return (
+              <li key={t.id} className="studio-cardwrap">
                 <Link to={`/studio/tours/${t.id}`} className="studio-card">
                   <span
                     className="studio-card__cover"
@@ -83,12 +101,21 @@ export default function StudioToursPage() {
                       <span><Icon name="languages" size={13} /> {langLabel(t.originalLanguage)}</span>
                       <span><Icon name="route" size={13} /> {TOUR_TYPE_LABELS[t.type] || t.type}</span>
                       {t.city ? <span><Icon name="map-pin" size={13} /> {t.city}</span> : null}
+                      <span><Icon name="list" size={13} /> {t.placeCount ?? 0} điểm</span>
+                    </span>
+                    <span className="studio-card__progress" aria-label={`Đã xong ${p.done}/${p.total} bước`}>
+                      <span className="studio-card__bar"><span style={{ width: `${(p.done / p.total) * 100}%` }} /></span>
+                      <span className="muted small">{p.done}/{p.total}</span>
                     </span>
                   </span>
                   <Icon name="chevron-left" size={18} className="studio-card__chev" />
                 </Link>
+                <Link to={next.to} className={`btn btn--sm ${next.primary ? 'btn--primary' : 'btn--ghost'} studio-card__next`}>
+                  <Icon name={next.icon} size={16} /> {next.label}
+                </Link>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </main>

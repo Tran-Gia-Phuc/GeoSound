@@ -110,7 +110,7 @@ export function buildContainer(env = process.env) {
   const useCases = {
     // UC09 — quản lý tour
     createTour: new CreateTour({ tourRepo }),
-    listMyTours: new ListMyTours({ tourRepo }),
+    listMyTours: new ListMyTours({ tourRepo, placeRepo }),
     getMyTour: new GetMyTour({ tourRepo }),
     updateTour: new UpdateTour({ tourRepo }),
     deleteTour: new DeleteTour({ tourRepo }),
