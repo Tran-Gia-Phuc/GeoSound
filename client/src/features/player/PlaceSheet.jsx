@@ -3,12 +3,13 @@
 // Text dài -> cắt gọn kèm nút "Xem thêm" (UX truncation). Kéo tay cầm để mở/thu.
 // =========================================================
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 
 // API trả ảnh dạng { url, caption }; bản cũ/lịch trình có thể là chuỗi URL.
 const toImage = (img) => (typeof img === 'string' ? { url: img, caption: '' } : img);
 
-export default function PlaceSheet({ place, number, role, expanded, onToggle, audioError }) {
+export default function PlaceSheet({ place, number, role, expanded, onToggle, audioError, editHref }) {
   const [showAll, setShowAll] = useState(false);
   const bodyRef = useRef(null);
 
@@ -51,9 +52,16 @@ export default function PlaceSheet({ place, number, role, expanded, onToggle, au
           </div>
           <h2 className="sheet__title">{place.name}</h2>
         </div>
-        <button className="iconbtn" onClick={onToggle} aria-label={expanded ? 'Thu gọn' : 'Mở rộng'}>
-          <Icon name={expanded ? 'chevron-down' : 'chevron-up'} size={20} />
-        </button>
+        <div className="sheet__headactions">
+          {editHref ? (
+            <Link className="btn btn--sm btn--ghost" to={editHref}>
+              <Icon name="edit" size={14} /> Sửa điểm này
+            </Link>
+          ) : null}
+          <button className="iconbtn" onClick={onToggle} aria-label={expanded ? 'Thu gọn' : 'Mở rộng'}>
+            <Icon name={expanded ? 'chevron-down' : 'chevron-up'} size={20} />
+          </button>
+        </div>
       </div>
 
       <div className="sheet__body" ref={bodyRef}>

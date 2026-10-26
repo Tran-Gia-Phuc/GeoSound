@@ -26,6 +26,7 @@ import PlaceSheet from './PlaceSheet.jsx';
 import PlaceList from './PlaceList.jsx';
 import LanguageMenu from './LanguageMenu.jsx';
 import SimControls from './SimControls.jsx';
+import SimBar, { SIM_SPEEDS } from './SimBar.jsx';
 import CompletionDialog from './CompletionDialog.jsx';
 import { useBack } from '../../components/shell/AppHeader.jsx';
 
@@ -55,6 +56,9 @@ function rememberRecent(id, title) {
  *   backLabel?: string,     // nhãn nút quay về ở màn lỗi (theo đúng nơi đến)
  *   allowSimulation?: boolean, // hiện công cụ giả lập GPS (xem thử; khách thì cần ?debug=1)
  *   errorActions?: (error: { status?: number, message: string }) => React.ReactNode, // nút riêng ở màn lỗi
+ *   editPlaceHref?: (placeId: string) => string, // xem thử: nút "Sửa điểm này" về Studio
+ *   completeAction?: { label: string, to: string }, // nút chính ở hộp hoàn thành
+ *   freshProgress?: boolean, // xem thử: luôn bắt đầu lại từ đầu (không nhớ điểm đã nghe)
  * }} [props]
  */
 export default function TourPlayerPage({
@@ -66,6 +70,9 @@ export default function TourPlayerPage({
   backLabel = 'Quay lại',
   allowSimulation = false,
   errorActions,
+  editPlaceHref,
+  completeAction = { label: 'Khám phá tour khác', to: '/' },
+  freshProgress = false,
 } = {}) {
   const { tourId } = useParams();
   const [sp, setSp] = useSearchParams();
@@ -77,7 +84,12 @@ export default function TourPlayerPage({
   const autoStarted = useRef(false);
 
   const pkey = progressKey ?? tourId;
-  const { progress, markVisited, setLang } = useTourProgress(pkey);
+  const { progress, markVisited, setLang, reset: resetProgress } = useTourProgress(pkey);
+  // Xem thử: mỗi lần mở là một lượt mới — không bật "hoàn thành" vì lượt trước.
+  useEffect(() => {
+    if (freshProgress) resetProgress();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const initialLang = sp.get('lang') || progress.lang || undefined;
 
   const [lang, setLangState] = useState(initialLang);
@@ -97,6 +109,7 @@ export default function TourPlayerPage({
   const [simPos, setSimPos] = useState(null);
   const [walking, setWalking] = useState(false);
   const [simOpen, setSimOpen] = useState(false);
+  const [simSpeed, setSimSpeed] = useState('normal'); // tốc độ đi bộ mô phỏng (xem thử)
   const walkTimer = useRef(null);
 
   const geo = useGeolocation();
@@ -176,8 +189,28 @@ export default function TourPlayerPage({
         return;
       }
       setSimPos({ ...walkPath[i], accuracy: 5, ts: Date.now() });
-    }, 320);
-  }, [walkPath, stopWalk]);
+    }, SIM_SPEEDS[simSpeed]?.stepMs ?? 320);
+  }, [walkPath, stopWalk, simSpeed]);
+
+  // Đổi tốc độ khi đang đi → đi tiếp từ chỗ hiện tại với nhịp mới.
+  const changeSpeed = useCallback(
+    (sp) => {
+      setSimSpeed(sp);
+      if (!walkTimer.current) return;
+      clearInterval(walkTimer.current);
+      const from = walkPath.findIndex((p) => simPos && p.lat === simPos.lat && p.lng === simPos.lng);
+      let i = Math.max(0, from);
+      walkTimer.current = setInterval(() => {
+        i += 1;
+        if (i >= walkPath.length) {
+          stopWalk();
+          return;
+        }
+        setSimPos({ ...walkPath[i], accuracy: 5, ts: Date.now() });
+      }, SIM_SPEEDS[sp].stepMs);
+    },
+    [walkPath, simPos, stopWalk],
+  );
 
   useEffect(() => () => stopWalk(), [stopWalk]);
 
@@ -186,8 +219,15 @@ export default function TourPlayerPage({
     setMode('gps');
     setSheetOpen(false);
     engine.start();
+    if (allowSimulation && tour?.places?.[0]) {
+      // Xem thử: không cần GPS thật — đứng ở điểm xuất phát, sẵn sàng đi mô phỏng.
+      const start = tour.route?.path?.[0] ?? tour.places[0];
+      setSimulate(true);
+      setSimPos({ lat: start.lat, lng: start.lng, accuracy: 5, ts: Date.now() });
+      return;
+    }
     if (geo.supported) geo.start();
-  }, [engine, geo]);
+  }, [engine, geo, allowSimulation, tour]);
 
   const startRemote = useCallback(
     ({ stop } = {}) => {
@@ -486,7 +526,15 @@ export default function TourPlayerPage({
           ) : null}
         </div>
 
-        {mode === 'gps' && canSimulate ? (
+        {mode === 'gps' && allowSimulation ? (
+          <SimBar
+            walking={walking}
+            onWalk={() => (walking ? stopWalk() : startWalk())}
+            canWalk={walkPath.length > 1}
+            speed={simSpeed}
+            onSpeed={changeSpeed}
+          />
+        ) : mode === 'gps' && canSimulate ? (
           <SimControls
             simulate={simulate}
             onToggle={(v) => {
@@ -505,6 +553,7 @@ export default function TourPlayerPage({
 
       <div className="dock">
         <PlaceSheet
+          editHref={editPlaceHref && engine.currentPlace ? editPlaceHref(engine.currentPlace.id) : null}
           place={engine.currentPlace}
           number={engine.ordered.findIndex((p) => p.id === engine.currentPlaceId) + 1 || undefined}
           role={engine.currentRole}
@@ -529,7 +578,8 @@ export default function TourPlayerPage({
         open={showComplete}
         onClose={() => setShowComplete(false)}
         onReplay={replay}
-        onExplore={() => navigate('/')}
+        onExplore={() => navigate(completeAction.to)}
+        exploreLabel={completeAction.label}
         tourTitle={tour.title}
         placeCount={tour.placeCount}
       />
