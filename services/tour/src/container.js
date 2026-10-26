@@ -116,7 +116,7 @@ export function buildContainer(/* env = process.env */) {
   };
   const routeConfigUseCases = {
     // UC11 — route & vùng kích hoạt
-    getRouteConfig: new GetRouteConfig({ tourRepo, routeConfigRepo }),
+    getRouteConfig: new GetRouteConfig({ tourRepo, placeRepo, routeConfigRepo }),
     saveRouteConfig: new SaveRouteConfig({ tourRepo, placeRepo, routeConfigRepo }),
   };
   const publicUseCases = {

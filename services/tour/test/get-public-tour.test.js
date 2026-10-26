@@ -73,7 +73,12 @@ test('A2 — chọn ngôn ngữ không khả dụng → về ngôn ngữ gốc',
   assert.equal(d.voiceLabel, 'human');
 });
 
-test('route mặc định rỗng khi tour chưa cấu hình', async () => {
+test('tour chưa cấu hình route → tự sinh route theo điểm + vùng tròn 50 m', async () => {
   const d = await uc().execute({ id: 't2' });
-  assert.deepEqual(d.route, { path: [], triggers: [], navAudios: [] });
+  assert.deepEqual(d.route.path, [{ lat: 1, lng: 1 }]);
+  assert.equal(d.route.isDefault, true);
+  assert.deepEqual(d.route.navAudios, []);
+  assert.deepEqual(d.route.triggers, [
+    { placeId: 'pa', zone: { shape: 'circle', center: { lat: 1, lng: 1 }, radiusMeters: 50 }, priority: 0, nextHint: null },
+  ]);
 });

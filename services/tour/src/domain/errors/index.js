@@ -56,11 +56,11 @@ export class ForbiddenZoneError extends AppError {
   }
 }
 
-// UC13 / E1 — tour thiếu dữ liệu để xem thử (chưa có điểm hoặc route).
+// UC13 / E1 — tour thiếu dữ liệu để xem thử (chưa có điểm dừng nào).
 export class TourNotPreviewableError extends AppError {
   /** @param {{ places?: boolean, route?: boolean }} [missing] cái còn thiếu */
   constructor(missing) {
-    super('Chưa thể xem thử: tour cần có ít nhất một điểm và route', {
+    super('Chưa thể xem thử: tour cần có ít nhất một điểm dừng', {
       status: 422,
       code: 'tour_not_previewable',
     });

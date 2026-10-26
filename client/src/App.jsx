@@ -47,7 +47,7 @@ function PlayTourRoute() {
 
 // UC13 — xem thử tour của chính tác giả: tái dùng trình phát UC04 nhưng nguồn là
 // endpoint preview (mọi trạng thái); thoát quay về trình chỉnh sửa tour.
-// E1 (422 — thiếu điểm/route): dẫn thẳng tới bước còn thiếu thay vì "Thử lại".
+// E1 (422 — chưa có điểm dừng; route đã tự sinh): dẫn thẳng tới bước thêm điểm.
 function PreviewTourRoute() {
   const { tourId } = useParams();
   const base = `/studio/tours/${tourId}`;
@@ -62,10 +62,7 @@ function PreviewTourRoute() {
       modeLabels={{ gps: 'Xem thử (GPS)', remote: 'Xem thử từ xa' }}
       errorActions={(err) =>
         err.status === 422 ? (
-          <>
-            <Link className="btn btn--primary" to={`${base}/places`}>Thêm điểm dừng</Link>
-            <Link className="btn" to={`${base}/route`}>Tạo lộ trình</Link>
-          </>
+          <Link className="btn btn--primary" to={`${base}/places`}>Thêm điểm dừng</Link>
         ) : null
       }
     />
