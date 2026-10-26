@@ -1,6 +1,7 @@
 // Định tuyến client.
 //   /                   — trang chủ
-//   /login              — đăng nhập / đăng ký (UC01)
+//   /login, /register   — đăng nhập / đăng ký (chọn vai trò) (UC01)
+//   /forgot-password    — quên mật khẩu (UC01 A2)
 //   /tours              — tìm & duyệt tour (UC02)
 //   /tour/:id           — chi tiết tour (UC02)
 //   /tour/:id/play      — trình nghe tour (UC04)
@@ -23,6 +24,7 @@ import ToursPage from './features/tours/ToursPage.jsx';
 import TourDetailPage from './features/tours/TourDetailPage.jsx';
 import TourPlayerPage from './features/player/TourPlayerPage.jsx';
 import LoginPage from './features/auth/LoginPage.jsx';
+import ForgotPasswordPage from './features/auth/ForgotPasswordPage.jsx';
 import ExplorePage from './features/explore/ExplorePage.jsx';
 import ItinerariesPage from './features/itineraries/ItinerariesPage.jsx';
 import ItineraryEditorPage from './features/itineraries/ItineraryEditorPage.jsx';
@@ -74,7 +76,9 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage key="login" initialTab="login" />} />
+        <Route path="/register" element={<LoginPage key="register" initialTab="register" />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/tours" element={<ToursPage />} />
         <Route path="/tour/:tourId" element={<TourDetailPage />} />
         <Route path="/tour/:tourId/play" element={<PlayTourRoute />} />

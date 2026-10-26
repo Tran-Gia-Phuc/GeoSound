@@ -222,3 +222,91 @@
 .account__item--danger {
   color: var(--danger);
 }
+
+/* ---------- Chọn vai trò khi đăng ký (A1.2) ---------- */
+.rolepick {
+  display: grid;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+}
+.rolecard {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-4);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--fg);
+  text-align: left;
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.rolecard:hover {
+  border-color: var(--primary);
+}
+.rolecard.is-active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.rolecard__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.rolecard__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.rolecard__chev {
+  flex: none;
+  transform: rotate(180deg);
+  color: var(--fg-subtle);
+}
+
+/* ---------- Ô mật khẩu có nút hiện/ẩn ---------- */
+.pwfield {
+  position: relative;
+  display: flex;
+}
+.pwfield .input {
+  padding-right: 52px;
+}
+.pwfield__toggle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  border: none;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--fg-muted);
+}
+.pwfield__toggle:hover {
+  color: var(--fg);
+}
+.auth__forgot {
+  align-self: flex-end;
+  margin-top: calc(-1 * var(--sp-2));
+  text-decoration: none;
+  font-size: 13.5px;
+}
+.auth__resend:disabled {
+  color: var(--fg-subtle);
+  cursor: not-allowed;
+}
+a.auth__back {
+  text-decoration: none;
+}

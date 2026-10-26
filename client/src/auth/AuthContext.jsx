@@ -31,6 +31,8 @@ export function AuthProvider({ children }) {
       register: authApi.register,
       resendOtp: authApi.resendOtp,
       registerAndVerify: authApi.registerAndVerify,
+      forgotPassword: authApi.forgotPassword,
+      resetPasswordAndLogin: authApi.resetPasswordAndLogin,
       logout: authApi.logout,
     };
   }, [auth]);
