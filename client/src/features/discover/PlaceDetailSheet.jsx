@@ -64,9 +64,11 @@ export default function PlaceDetailSheet({ place, onClose, onAdd }) {
             <Icon name={playing ? 'pause' : 'headphones'} size={18} />
             {playing ? 'Dừng' : 'Nghe thử'}
           </button>
-          <button className="btn btn--primary" onClick={() => onAdd(place)}>
-            <Icon name="plus" size={18} /> Thêm vào lịch trình
-          </button>
+          {onAdd ? (
+            <button className="btn btn--primary" onClick={() => onAdd(place)}>
+              <Icon name="plus" size={18} /> Thêm vào lịch trình
+            </button>
+          ) : null}
         </div>
       </div>
     </Modal>

@@ -21,6 +21,7 @@ import Rating from './Rating.jsx';
 import ModePicker from '../player/ModePicker.jsx';
 import AddToItinerarySheet from '../itineraries/AddToItinerarySheet.jsx';
 import { playPreview, stopPreview } from '../../lib/preview-audio.js';
+import { usePendingAdd } from '../../hooks/usePendingAdd.js';
 
 // Mở thẳng bằng link chia sẻ (không có lịch sử) → về Khám phá.
 const BACK = '/';
@@ -39,6 +40,14 @@ export default function TourDetailPage() {
   const [adding, setAdding] = useState(null); // { placeId, name } cho sheet "Thêm vào…"
 
   useEffect(() => () => stopPreview(), []);
+
+  // Vừa đăng nhập xong để thêm một điểm → mở lại sheet "Thêm vào…".
+  const [pendingAdd, clearPendingAdd] = usePendingAdd();
+  useEffect(() => {
+    if (!pendingAdd) return;
+    setAdding(pendingAdd);
+    clearPendingAdd();
+  }, [pendingAdd, clearPendingAdd]);
 
   const load = useCallback(
     async (useLang, opts) => fetchTourDetail(tourId, useLang, opts),

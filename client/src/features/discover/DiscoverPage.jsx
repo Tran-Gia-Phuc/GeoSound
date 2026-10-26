@@ -22,6 +22,7 @@ import { searchTours, SORT_OPTIONS, LANGUAGE_OPTIONS, TOUR_TYPE_OPTIONS } from '
 import { explorePlaces, addItem } from '../../lib/itineraries.js';
 import { PLACE_TYPE_OPTIONS, PLACE_TYPE_LABELS } from '../../lib/studio.js';
 import { formatDistance } from '../../lib/format.js';
+import { usePendingAdd } from '../../hooks/usePendingAdd.js';
 
 const LIMIT = 12;
 const RECENT_KEY = 'geosound:recent-tours';
@@ -223,6 +224,14 @@ export default function DiscoverPage() {
   const [adding, setAdding] = useState(null); // place cho AddToItinerarySheet
   const [addedIds, setAddedIds] = useState({});
   const [addingId, setAddingId] = useState(null);
+
+  // Vừa đăng nhập xong để thêm một địa điểm → mở lại sheet "Thêm vào…".
+  const [pendingAdd, clearPendingAdd] = usePendingAdd();
+  useEffect(() => {
+    if (!pendingAdd) return;
+    setAdding(pendingAdd);
+    clearPendingAdd();
+  }, [pendingAdd, clearPendingAdd]);
 
   const onAddPlace = async (place) => {
     setDetail(null);

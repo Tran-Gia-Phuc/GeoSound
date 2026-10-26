@@ -1,16 +1,20 @@
 // =========================================================
 // ItinerariesPage (UC07) — "Lịch trình của tôi": danh sách + tạo mới.
+// Chưa đăng nhập: giải thích + mời đăng nhập ngay trong tab (không bị đá sang
+// màn đăng nhập khi chỉ chạm vào tab).
 // Mỗi lịch trình mở trình chỉnh sửa (/itineraries/:id).
 // =========================================================
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import AppHeader from '../../components/shell/AppHeader.jsx';
+import { useAuth } from '../../auth/AuthContext.jsx';
 import { formatDistance, formatMinutes } from '../../lib/format.js';
 import { listMyItineraries, createItinerary, deleteItinerary } from '../../lib/itineraries.js';
 
 export default function ItinerariesPage() {
   const navigate = useNavigate();
+  const { authenticated } = useAuth();
   const [list, setList] = useState(null); // null = đang tải
   const [error, setError] = useState('');
   const [name, setName] = useState('');
@@ -26,6 +30,7 @@ export default function ItinerariesPage() {
     }
   }
   useEffect(() => {
+    if (!authenticated) return;
     load();
   }, []);
 
@@ -59,6 +64,21 @@ export default function ItinerariesPage() {
     <div className="screen itin">
       <AppHeader title="Lịch trình của tôi" subtitle="Tự lên kế hoạch chuyến đi từ các địa điểm bạn quan tâm." large />
 
+      {!authenticated ? (
+        <section className="card account-guest">
+          <Icon name="route" size={32} />
+          <div>
+            <b>Tự lên lịch trình cho chuyến đi</b>
+            <p className="muted small">
+              Gom các địa điểm bạn thích từ nhiều tour, sắp xếp thứ tự, rồi đi theo bằng GPS. Đăng nhập để lưu lịch trình.
+            </p>
+          </div>
+          <div className="row">
+            <Link className="btn btn--primary" to="/login?next=%2Fitineraries">Đăng nhập</Link>
+            <Link className="btn btn--ghost" to="/?tab=places"><Icon name="search" size={18} /> Khám phá địa điểm</Link>
+          </div>
+        </section>
+      ) : (
       <main className="itin__main">
 
         <form className="itin__create" onSubmit={onCreate}>
@@ -123,6 +143,7 @@ export default function ItinerariesPage() {
           </ul>
         )}
       </main>
+      )}
     </div>
   );
 }

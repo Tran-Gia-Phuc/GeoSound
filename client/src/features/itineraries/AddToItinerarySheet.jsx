@@ -3,7 +3,8 @@
 //   - chạm một lịch trình có sẵn → thêm ngay
 //   - "＋ Lịch trình mới": nhập tên tại chỗ → tạo & thêm (đúng đặc tả: hỏi tên
 //     lịch trình LÚC thêm, không bắt tạo trước ở màn khác)
-//   - chưa đăng nhập → mời đăng nhập rồi quay lại (D4)
+//   - chưa đăng nhập → mời đăng nhập; quay lại màn cũ thì sheet tự mở lại cho
+//     địa điểm đó (usePendingAdd) — không phải tìm lại từ đầu (D4)
 // Xong → toast "Đã thêm vào X · Xem".
 // =========================================================
 import { useEffect, useState } from 'react';
@@ -13,13 +14,12 @@ import Icon from '../../components/Icon.jsx';
 import { useToast } from '../../components/Toast.jsx';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { listMyItineraries, createItinerary, addItem } from '../../lib/itineraries.js';
+import { nextWithPendingAdd } from '../../hooks/usePendingAdd.js';
 
 /**
- * @param {{ open: boolean, place: { placeId: string, name: string } | null, onClose: () => void,
- *           loginNext?: string }} props
- * loginNext: đường dẫn quay lại sau khi đăng nhập (mặc định: màn hiện tại).
+ * @param {{ open: boolean, place: { placeId: string, name: string } | null, onClose: () => void }} props
  */
-export default function AddToItinerarySheet({ open, place, onClose, loginNext }) {
+export default function AddToItinerarySheet({ open, place, onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
@@ -36,7 +36,7 @@ export default function AddToItinerarySheet({ open, place, onClose, loginNext })
     setError('');
     setName('');
     listMyItineraries()
-      .then(setList)
+      .then((l) => setList(Array.isArray(l) ? l : []))
       .catch((e) => {
         setError(e.message || 'Không tải được lịch trình');
         setList([]);
@@ -81,7 +81,7 @@ export default function AddToItinerarySheet({ open, place, onClose, loginNext })
   }
 
   if (!place) return null;
-  const next = loginNext ?? location.pathname + location.search;
+  const next = nextWithPendingAdd(location.pathname, location.search, place);
 
   return (
     <Modal open={open} onClose={onClose} title={`Thêm “${place.name}” vào…`} labelledBy="add-itin-title">

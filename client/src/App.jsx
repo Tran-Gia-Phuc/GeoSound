@@ -91,7 +91,7 @@ export default function App() {
           <Route path="/" element={<DiscoverPage />} />
           <Route path="/tours" element={<RedirectToDiscover />} />
           <Route path="/explore" element={<RedirectToDiscover tab="places" />} />
-          <Route path="/itineraries" element={<RequireAuth><ItinerariesPage /></RequireAuth>} />
+          <Route path="/itineraries" element={<ItinerariesPage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />
           <Route path="/studio/tours/new" element={<RequireContributor><TourCreatePage /></RequireContributor>} />
