@@ -5,7 +5,7 @@
 import Modal from '../../components/Modal.jsx';
 import Icon from '../../components/Icon.jsx';
 
-export default function CompletionDialog({ open, onClose, onReplay, onExplore, tourTitle, placeCount }) {
+export default function CompletionDialog({ open, onClose, onReplay, onExplore, exploreLabel = 'Khám phá tour khác', tourTitle, placeCount }) {
   return (
     <Modal open={open} onClose={onClose} title="Hoàn thành tour">
       <div className="complete">
@@ -22,7 +22,7 @@ export default function CompletionDialog({ open, onClose, onReplay, onExplore, t
           </button>
           {onExplore ? (
             <button className="btn btn--primary" onClick={onExplore}>
-              <Icon name="search" size={16} /> Khám phá tour khác
+              <Icon name="search" size={16} /> {exploreLabel}
             </button>
           ) : (
             <button className="btn btn--primary" onClick={onClose}>

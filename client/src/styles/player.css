@@ -944,3 +944,40 @@
 .gs-pin--edit span {
   font-size: 18px;
 }
+
+/* ---------- Thanh mô phỏng (xem thử tour) ---------- */
+.simbar {
+  position: absolute;
+  left: var(--sp-3);
+  right: calc(var(--tap) + 2 * var(--sp-3));
+  bottom: var(--sp-3);
+  z-index: 500;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+.simbar__speed {
+  flex: 1 1 150px;
+}
+.simbar__speed .segmented__item {
+  min-height: 34px;
+  font-size: 13px;
+}
+.simbar__hint {
+  flex-basis: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.sheet__headactions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: none;
+}

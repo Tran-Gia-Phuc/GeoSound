@@ -8,7 +8,7 @@
 //     (xác nhận bằng ConfirmDialog).
 // =========================================================
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import PlaceForm from './PlaceForm.jsx';
@@ -19,6 +19,7 @@ import { PLACE_TYPE_LABELS, listPlaces, addPlace, updatePlace, deletePlace, reor
 
 export default function PlacesManagerPage() {
   const { id } = useParams();
+  const [sp, setSp] = useSearchParams();
   const { refresh: refreshTour } = useStudioTour();
   const [places, setPlaces] = useState(null); // null = đang tải
   const [loadError, setLoadError] = useState('');
@@ -74,6 +75,19 @@ export default function PlacesManagerPage() {
       setPick(null);
     }
   }
+  // Mở thẳng một điểm khi đến từ "Sửa điểm này" (Xem thử).
+  useEffect(() => {
+    const target = sp.get('edit');
+    if (!target || !places?.some((p) => p.id === target)) return;
+    openForm(target);
+    setSp((prev) => {
+      const n = new URLSearchParams(prev);
+      n.delete('edit');
+      return n;
+    }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [places]);
+
   function closeForm() {
     setEditing(null);
     setPin(null);

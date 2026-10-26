@@ -117,7 +117,7 @@ export default function PublishPanel({ tourId, status, refreshKey, onStatusChang
       ) : null}
 
       <div className="publish__actions">
-        <Link className="btn" to={`/studio/tours/${tourId}/preview`}>
+        <Link className="btn" to={`/studio/tours/${tourId}/preview?mode=gps`}>
           <Icon name="play" size={16} /> Xem thử như khách
         </Link>
         {isPublic ? (

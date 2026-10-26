@@ -83,7 +83,10 @@ function PreviewTourRoute() {
       backLabel="Về trình chỉnh sửa"
       remember={false}
       allowSimulation
-      modeLabels={{ gps: 'Xem thử (GPS)', remote: 'Xem thử từ xa' }}
+      editPlaceHref={(placeId) => `${base}/places?edit=${encodeURIComponent(placeId)}`}
+      completeAction={{ label: 'Về bước Xuất bản', to: `${base}/publish` }}
+      freshProgress
+      modeLabels={{ gps: 'Xem thử — đi bộ mô phỏng', remote: 'Xem thử từng điểm' }}
       errorActions={(err) =>
         err.status === 422 ? (
           <Link className="btn btn--primary" to={`${base}/places`}>Thêm điểm dừng</Link>
