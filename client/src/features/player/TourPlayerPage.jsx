@@ -103,15 +103,16 @@ export default function TourPlayerPage({ loadDetail, progressKey, backTo = '/', 
         setLang(t.selectedLanguage);
         if (remember && tourId) rememberRecent(tourId, t.title);
       })
+      .then(() => setLoading(false))
       .catch((e) => {
-        if (e.name === 'AbortError') return;
+        if (e.name === 'AbortError') return; // huỷ do đổi route/StrictMode — giữ loading, KHÔNG set lỗi
         setError({
           message: e.offline ? 'Mất kết nối mạng' : e.status === 404 ? 'Không tìm thấy tour' : e.message,
           offline: e.offline,
           notFound: e.status === 404,
         });
-      })
-      .finally(() => setLoading(false));
+        setLoading(false);
+      });
     return () => abort.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourId]);
@@ -269,6 +270,8 @@ export default function TourPlayerPage({ loadDetail, progressKey, backTo = '/', 
       </div>
     );
   }
+
+  if (!tour) return null; // phòng hờ: không loading, không lỗi, chưa có dữ liệu (tránh crash null)
 
   // ---------- Render: màn hình mở đầu ----------
   if (!mode) {
