@@ -1,11 +1,12 @@
 // =========================================================
 // TourForm — biểu mẫu nội dung tour dùng chung cho tạo (UC09 bước 4–7) và
 // sửa (A1). Kiểm tra tại chỗ theo từng trường (tên + ngôn ngữ gốc bắt buộc — E2;
-// ảnh bìa phải là URL — E3). Lỗi hiển thị ngay dưới ô nhập.
+// ảnh bìa tải lên hoặc URL hợp lệ — E3). Lỗi hiển thị ngay dưới ô nhập.
 // Trả về `onSubmit(values)` đã chuẩn hoá (bỏ ô rỗng, duration là số).
 // =========================================================
 import { useState } from 'react';
 import Icon from '../../components/Icon.jsx';
+import FileDrop from '../../components/media/FileDrop.jsx';
 import { TOUR_TYPE_OPTIONS, LANGUAGE_OPTIONS } from '../../lib/tours.js';
 
 const isHttpUrl = (s) => {
@@ -162,21 +163,14 @@ export default function TourForm({ initial, submitLabel, busy, serverError, onSu
         </div>
       </div>
 
-      <div className="field">
-        <label className="field__label" htmlFor="tf-cover">Ảnh bìa (URL)</label>
-        <input
-          id="tf-cover"
-          className="input"
-          value={f.coverImageUrl}
-          onChange={set('coverImageUrl')}
-          placeholder="https://…"
-          aria-invalid={!!errs.coverImageUrl}
-          aria-describedby={errs.coverImageUrl ? 'tf-cover-err' : undefined}
-        />
-        {errs.coverImageUrl ? <span id="tf-cover-err" className="field__err">{errs.coverImageUrl}</span> : (
-          <span className="field__hint">Dán link ảnh công khai. Có thể bỏ trống.</span>
-        )}
-      </div>
+      <FileDrop
+        kind="image"
+        label="Ảnh bìa"
+        hint="Ảnh ngang đẹp nhất. Có thể bổ sung sau."
+        value={f.coverImageUrl}
+        onChange={(url) => setF((s) => ({ ...s, coverImageUrl: url }))}
+        error={errs.coverImageUrl}
+      />
 
       <div className="field">
         <label className="field__label" htmlFor="tf-desc">Mô tả</label>

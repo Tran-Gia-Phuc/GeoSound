@@ -1,12 +1,13 @@
 {
   "name": "@geosound/media",
   "version": "0.1.0",
-  "description": "Media worker — UC12 + TTS của UC03: dịch + Google TTS -> .mp3 -> S3.",
+  "description": "Media service — tải ảnh/audio của tour lên (Supabase Storage / ổ đĩa dev); worker TTS (UC12, UC03).",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "test": "node --test",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },
@@ -16,6 +17,7 @@
     "@google-cloud/translate": "^8.3.0",
     "@prisma/client": "^5.18.0",
     "amqplib": "^0.10.4",
+    "express": "^4.19.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
