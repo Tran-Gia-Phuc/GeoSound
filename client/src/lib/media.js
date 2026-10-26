@@ -36,7 +36,8 @@ function normalize(file) {
 export function checkFile(file, kind) {
   const rule = MEDIA_RULES[kind];
   const f = normalize(file);
-  if (!rule.types.includes(f.type)) return `Định dạng không hỗ trợ — chọn ${rule.label}.`;
+  // Bản ghi âm trình duyệt có tham số (vd "audio/webm;codecs=opus") → so phần loại.
+  if (!rule.types.includes(f.type.split(';')[0].trim())) return `Định dạng không hỗ trợ — chọn ${rule.label}.`;
   if (f.size > rule.maxBytes) return `File quá lớn — ${rule.label}.`;
   return null;
 }

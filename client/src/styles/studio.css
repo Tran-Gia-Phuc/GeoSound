@@ -1187,3 +1187,44 @@
   color: var(--warning);
   border-color: transparent;
 }
+
+/* ---- Ghi âm thuyết minh trên trình duyệt ---- */
+.filedrop__rec {
+  align-self: flex-start;
+}
+.recorder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.recorder__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.recorder__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--danger);
+  animation: recpulse 1.2s ease-in-out infinite;
+}
+.recorder__time {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex: 1;
+}
+.recorder__cancel {
+  align-self: flex-start;
+  font-size: 13px;
+}
+@keyframes recpulse {
+  50% {
+    opacity: 0.35;
+  }
+}
