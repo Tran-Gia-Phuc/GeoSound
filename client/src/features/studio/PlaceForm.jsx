@@ -2,10 +2,13 @@
 // PlaceForm (UC10) — biểu mẫu thêm/sửa điểm dừng. Mô tả BẮT BUỘC (E3).
 // Toạ độ nhập tay hoặc chọn trên bản đồ (nút "Chọn trên bản đồ" bật chế độ
 // chạm bản đồ ở trang cha; toạ độ chạm được bơm vào qua prop `pick`).
-// Ảnh (nhiều) + audio người thật tuỳ chọn (để trống = dùng TTS ở UC12).
+// Ảnh (nhiều) + audio người thật tuỳ chọn — TẢI FILE LÊN (không phải dán URL);
+// không có audio thì hệ thống đọc mô tả bằng giọng máy (UC12).
 // =========================================================
 import { useEffect, useState } from 'react';
 import Icon from '../../components/Icon.jsx';
+import FileDrop from '../../components/media/FileDrop.jsx';
+import ImageListField from '../../components/media/ImageListField.jsx';
 import { PLACE_TYPE_OPTIONS } from '../../lib/studio.js';
 
 const isHttpUrl = (s) => {
@@ -40,10 +43,6 @@ export default function PlaceForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pick?.nonce]);
 
-  const setImage = (idx, key, value) =>
-    setF((s) => ({ ...s, images: s.images.map((im, i) => (i === idx ? { ...im, [key]: value } : im)) }));
-  const addImage = () => setF((s) => ({ ...s, images: [...s.images, { url: '', caption: '' }] }));
-  const removeImage = (idx) => setF((s) => ({ ...s, images: s.images.filter((_, i) => i !== idx) }));
 
   function validate() {
     const next = {};
@@ -134,36 +133,16 @@ export default function PlaceForm({
         </div>
       </div>
 
-      <div className="field">
-        <span className="field__label">Hình ảnh</span>
-        {f.images.map((im, i) => (
-          <div key={i} className="place-form__image">
-            <div className="place-form__imgfields">
-              <div className="field">
-                <input className="input" value={im.url} onChange={(e) => setImage(i, 'url', e.target.value)}
-                  placeholder="URL ảnh (https://…)" aria-invalid={!!errs[`img${i}`]} aria-label={`URL ảnh ${i + 1}`} />
-                {errs[`img${i}`] ? <span className="field__err">{errs[`img${i}`]}</span> : null}
-              </div>
-              <input className="input" value={im.caption} onChange={(e) => setImage(i, 'caption', e.target.value)}
-                placeholder="Chú thích (tuỳ chọn)" maxLength={300} aria-label={`Chú thích ảnh ${i + 1}`} />
-            </div>
-            <button type="button" className="iconbtn iconbtn--sm iconbtn--danger" onClick={() => removeImage(i)}
-              aria-label={`Xoá ảnh ${i + 1}`}><Icon name="trash" size={16} /></button>
-          </div>
-        ))}
-        <button type="button" className="btn btn--ghost btn--sm place-form__addimg" onClick={addImage}>
-          <Icon name="plus" size={16} /> Thêm ảnh
-        </button>
-      </div>
+      <ImageListField value={f.images} onChange={(images) => setF((st) => ({ ...st, images }))} />
 
-      <div className="field">
-        <label className="field__label" htmlFor="pf-audio">Audio người thật (URL)</label>
-        <input id="pf-audio" className="input" value={f.audioUrl} onChange={set('audioUrl')}
-          placeholder="https://… (.mp3)" aria-invalid={!!errs.audioUrl} />
-        {errs.audioUrl ? <span className="field__err">{errs.audioUrl}</span> : (
-          <span className="field__hint">Để trống thì hệ thống đọc mô tả bằng giọng máy.</span>
-        )}
-      </div>
+      <FileDrop
+        kind="audio"
+        label="Audio thuyết minh (giọng người thật)"
+        hint="Không bắt buộc — để trống thì hệ thống đọc mô tả bằng giọng máy."
+        value={f.audioUrl}
+        onChange={(url) => setF((st) => ({ ...st, audioUrl: url }))}
+        error={errs.audioUrl}
+      />
 
       <div className="studio-form__actions">
         <button type="button" className="btn" onClick={onCancel} disabled={busy}>Huỷ</button>

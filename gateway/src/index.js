@@ -14,6 +14,7 @@ const TARGETS = {
   auth: process.env.AUTH_SERVICE_URL || 'http://auth:3001',
   tour: process.env.TOUR_SERVICE_URL || 'http://tour:3002',
   moderation: process.env.MODERATION_SERVICE_URL || 'http://moderation:3003',
+  media: process.env.MEDIA_SERVICE_URL || 'http://media:3005',
 };
 
 app.use((req, _res, next) => {
@@ -54,10 +55,12 @@ mount('/api/tours', TARGETS.tour);
 mountKeep('/api/itineraries', TARGETS.tour);
 mountKeep('/api/places', TARGETS.tour);
 mount('/api/moderation', TARGETS.moderation);
+// Tải ảnh/audio của tour (Studio) + file tĩnh khi dev.
+mount('/api/media', TARGETS.media);
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 
 app.listen(PORT, () => {
   console.log(`[gateway] listening on :${PORT}`);
-  console.log('[gateway] routes: /api/auth /api/tours /api/itineraries /api/places /api/moderation');
+  console.log('[gateway] routes: /api/auth /api/tours /api/itineraries /api/places /api/moderation /api/media');
 });

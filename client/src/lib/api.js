@@ -77,17 +77,20 @@ async function refreshTokens() {
  * Gọi API chung. `auth:true` gắn access token; tự refresh 1 lần khi 401.
  * @param {string} method @param {string} path
  * @param {{ body?: any, auth?: boolean, signal?: AbortSignal }} [opts]
+ * body là Blob/File → gửi nguyên nội dung với Content-Type của file (tải ảnh/audio).
  */
 export async function request(method, path, { body, auth = false, signal } = {}) {
+  const raw = typeof Blob !== 'undefined' && body instanceof Blob;
   const doFetch = (token) => {
     const headers = { Accept: 'application/json' };
-    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    if (raw) headers['Content-Type'] = body.type || 'application/octet-stream';
+    else if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (token) headers.Authorization = `Bearer ${token}`;
     return fetch(`${BASE}${path}`, {
       method,
       headers,
       signal,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: raw ? body : body !== undefined ? JSON.stringify(body) : undefined,
     });
   };
 

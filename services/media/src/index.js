@@ -1,27 +1,50 @@
 // =========================================================
-// Media worker (UC12 + TTS của UC03). KHÔNG mở port.
-// Skeleton: consume tts.render.requested / tour.approved -> (sẽ) render TTS -> S3.
+// Media service (UC09/UC10 tải ảnh & audio; UC12 + TTS của UC03 sau này).
+//   - HTTP :3005 — POST /uploads (qua gateway /api/media/uploads), GET /files/*
+//     khi lưu ổ đĩa (dev).
+//   - Worker RabbitMQ (skeleton) — consume tts.render.requested / tour.approved.
+//     Worker lỗi kết nối KHÔNG làm sập phần HTTP (thử lại sau).
 // =========================================================
+import express from 'express';
+import { logger, errorHandler } from '../shared/middleware/index.js';
 import { connect, consume, publish } from '../shared/rabbitmq/index.js';
 import { EVENTS } from '../shared/events/index.js';
+import { buildContainer } from './container.js';
 
-async function main() {
+const PORT = process.env.PORT || 3005;
+const { mediaRouter, localDir, storageName } = buildContainer(process.env);
+
+const app = express();
+app.use(logger);
+app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'media', storage: storageName }));
+app.use('/', mediaRouter);
+if (localDir) {
+  // File tải lên khi dev (LocalDiskStorage) — tên file là UUID, không đổi nội dung.
+  app.use('/files', express.static(localDir, { maxAge: '365d', immutable: true, fallthrough: false }));
+}
+app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
+app.use(errorHandler);
+app.listen(PORT, () => console.log(`[media] http :${PORT} (storage: ${storageName})`));
+
+async function startWorker() {
   await connect();
   await consume(
     'media.tts-render',
     [EVENTS.TTS_RENDER_REQUESTED, EVENTS.TOUR_APPROVED],
     async (event, payload) => {
       console.log(`[media] got ${event}:`, payload);
-      // TODO(UC12): Google Translate + TTS -> .mp3 -> upload S3
+      // TODO(UC12): Google Translate + TTS -> .mp3 -> lưu trữ
       //   rồi publish tts.render.completed với danh sách asset.
-      //   (publish đã import sẵn để dùng ở bước sau)
       void publish;
     }
   );
   console.log('[media] worker started');
 }
 
-main().catch((err) => {
-  console.error('[media] fatal:', err.message);
-  process.exit(1);
-});
+function startWorkerWithRetry(delayMs = 10000) {
+  startWorker().catch((err) => {
+    console.error(`[media] worker: ${err.message} — thử lại sau ${delayMs / 1000}s`);
+    setTimeout(() => startWorkerWithRetry(delayMs), delayMs);
+  });
+}
+startWorkerWithRetry();
