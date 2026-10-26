@@ -2,13 +2,12 @@
 // thanh trên ở desktop); màn chi tiết có thanh hành động riêng dùng AppLayout
 // tabs={false}; trình phát / đăng nhập là toàn màn hình.
 //   /account            — tài khoản + giao diện sáng/tối
-//   /                   — trang chủ
+//   /                   — Khám phá: tìm tour + địa điểm (UC02, UC07) — ?tab=&q=&city=…
 //   /login, /register   — đăng nhập / đăng ký (chọn vai trò) (UC01)
 //   /forgot-password    — quên mật khẩu (UC01 A2)
-//   /tours              — tìm & duyệt tour (UC02)
+//   /tours, /explore    — chuyển hướng về / (giữ tham số)
 //   /tour/:id           — chi tiết tour (UC02)
 //   /tour/:id/play      — trình nghe tour (UC04)
-//   /explore            — khám phá địa điểm lẻ (UC07)
 //   /itineraries        — lịch trình của tôi (UC07, cần đăng nhập)
 //   /itineraries/:id    — chỉnh sửa lịch trình (UC07, cần đăng nhập)
 //   /shared/:token      — xem lịch trình được chia sẻ (UC07/A4, công khai)
@@ -21,14 +20,12 @@
 //   /studio/tours/:id/route  — route & vùng kích hoạt (UC11)
 //   /studio/tours/:id/languages — ngôn ngữ & TTS (UC12)
 //   /studio/tours/:tourId/preview — xem thử tour (UC13)
-import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from 'react-router-dom';
-import HomePage from './features/home/HomePage.jsx';
-import ToursPage from './features/tours/ToursPage.jsx';
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
+import DiscoverPage from './features/discover/DiscoverPage.jsx';
 import TourDetailPage from './features/tours/TourDetailPage.jsx';
 import TourPlayerPage from './features/player/TourPlayerPage.jsx';
 import LoginPage from './features/auth/LoginPage.jsx';
 import ForgotPasswordPage from './features/auth/ForgotPasswordPage.jsx';
-import ExplorePage from './features/explore/ExplorePage.jsx';
 import ItinerariesPage from './features/itineraries/ItinerariesPage.jsx';
 import ItineraryEditorPage from './features/itineraries/ItineraryEditorPage.jsx';
 import SharedItineraryPage from './features/itineraries/SharedItineraryPage.jsx';
@@ -45,6 +42,15 @@ import LanguagesPage from './features/studio/LanguagesPage.jsx';
 import AccountPage from './features/account/AccountPage.jsx';
 import AppLayout from './components/shell/AppLayout.jsx';
 import { previewTour } from './lib/studio.js';
+
+// /tours và /explore cũ → màn Khám phá (giữ tham số; /explore mở tab Địa điểm).
+function RedirectToDiscover({ tab }) {
+  const { search, state } = useLocation();
+  const sp = new URLSearchParams(search);
+  if (tab) sp.set('tab', tab);
+  const qs = sp.toString();
+  return <Navigate to={`/${qs ? `?${qs}` : ''}`} state={state} replace />;
+}
 
 // UC04 mở từ chi tiết tour (UC02) — thoát thì quay về chi tiết tour.
 function PlayTourRoute() {
@@ -82,9 +88,9 @@ export default function App() {
       <Routes>
         {/* Màn gốc của các tab */}
         <Route element={<AppLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/tours" element={<ToursPage />} />
-          <Route path="/explore" element={<ExplorePage />} />
+          <Route path="/" element={<DiscoverPage />} />
+          <Route path="/tours" element={<RedirectToDiscover />} />
+          <Route path="/explore" element={<RedirectToDiscover tab="places" />} />
           <Route path="/itineraries" element={<RequireAuth><ItinerariesPage /></RequireAuth>} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />

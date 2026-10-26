@@ -1,0 +1,347 @@
+/* =========================================================
+   GeoSound — màn Khám phá (gộp Trang chủ + Tìm tour + Khám phá địa điểm),
+   sheet chi tiết địa điểm, sheet "Thêm vào lịch trình", toast.
+   ========================================================= */
+
+.discover {
+  gap: var(--sp-4);
+}
+.discover__title {
+  font-size: 28px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+/* Ô tìm */
+.discover__search {
+  position: relative;
+  display: flex;
+}
+.discover__search .input {
+  width: 100%;
+  min-height: 50px;
+  padding-left: 44px;
+  padding-right: 44px;
+  border-radius: var(--r-lg);
+  font-size: 16px; /* ≥16px: iOS không tự phóng to khi gõ */
+}
+.discover__searchicon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--fg-subtle);
+  pointer-events: none;
+}
+.discover__clear {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-muted);
+}
+.discover__search .input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.discover__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.discover__tabs {
+  flex: 1;
+  max-width: 320px;
+}
+.discover__bar > .btn {
+  flex: none;
+  margin-left: auto;
+}
+.discover__addto {
+  align-items: center;
+}
+.discover__addto > div {
+  flex: 1;
+}
+
+.discover__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.discover__sectionhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.discover__h2 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.discover__recent {
+  text-decoration: none;
+  color: var(--fg);
+}
+.discover__locate {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.discover__locate > svg {
+  flex: none;
+  color: var(--primary);
+}
+.discover__locate > div {
+  flex: 1;
+}
+.discover__locate > .btn {
+  flex: none;
+}
+
+/* Thẻ tour cuộn ngang (Gần bạn) */
+.hscroll {
+  list-style: none;
+  margin: 0 calc(-1 * var(--sp-4));
+  padding: 2px var(--sp-4) var(--sp-2);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: min(78%, 300px);
+  gap: var(--sp-3);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.hscroll::-webkit-scrollbar {
+  display: none;
+}
+.hscroll > li {
+  scroll-snap-align: start;
+}
+
+@media (min-width: 1100px) {
+  .discover .tourlist {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .hscroll {
+    grid-auto-columns: 300px;
+  }
+}
+
+/* Thẻ địa điểm: mở chi tiết bằng cả thẻ, nút ＋ riêng */
+.place-card__open {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.place-card__plus {
+  flex: none;
+  color: var(--primary);
+}
+
+/* Bộ lọc (bottom sheet) */
+.filtersheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.filtersheet__actions {
+  display: flex;
+  gap: var(--sp-2);
+}
+.filtersheet__actions .btn {
+  flex: 1;
+}
+
+/* Chi tiết địa điểm */
+.placesheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.placesheet__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.placesheet__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.placesheet__desc {
+  line-height: 1.6;
+  white-space: pre-line;
+}
+.placesheet__actions {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+.placesheet__actions .btn {
+  flex: 1 1 160px;
+}
+
+/* Thêm vào lịch trình */
+.addsheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.addsheet__guest {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.addsheet__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.addsheet__item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--fg);
+  text-align: left;
+}
+.addsheet__item:hover {
+  border-color: var(--primary);
+}
+.addsheet__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.addsheet__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.addsheet__new {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.addsheet__newrow {
+  display: flex;
+  gap: var(--sp-2);
+}
+.addsheet__newrow .btn {
+  flex: none;
+}
+
+/* Toast */
+.toast-region {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tabbar-h, 64px) + var(--sab) + var(--sp-3));
+  z-index: 1100;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--sp-4);
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  max-width: 520px;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--fg);
+  color: var(--bg);
+  box-shadow: var(--shadow-lg);
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: auto;
+  animation: slideup var(--t-med) var(--ease);
+}
+.toast--danger {
+  background: var(--danger);
+  color: #fff;
+}
+.toast__msg {
+  flex: 1;
+}
+.toast__action {
+  flex: none;
+  border: none;
+  background: transparent;
+  color: var(--teal-500);
+  font-weight: 700;
+  padding: 4px 6px;
+}
+@media (min-width: 900px) {
+  .toast-region {
+    bottom: var(--sp-5);
+  }
+}
+
+/* Danh sách tour dạng gọn trên điện thoại: ảnh vuông bên trái, chữ bên phải —
+   thấy được 4–5 tour mỗi màn thay vì 1. */
+@media (max-width: 639px) {
+  .tourlist--compact .tour-card {
+    flex-direction: row;
+  }
+  .tourlist--compact .tour-card__cover {
+    flex: none;
+    width: 112px;
+    aspect-ratio: auto;
+    min-height: 112px;
+  }
+  .tourlist--compact .tour-card__voice {
+    display: none;
+  }
+  .tourlist--compact .tour-card__body {
+    min-width: 0;
+    padding: var(--sp-3);
+    gap: 6px;
+  }
+  .tourlist--compact .tour-card__title {
+    font-size: 15.5px;
+  }
+  .tourlist--compact .tour-card__meta .chip {
+    display: none;
+  }
+  .tourlist--compact .tour-card__go {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .placesheet__actions .btn {
+    flex-basis: 100%;
+  }
+}

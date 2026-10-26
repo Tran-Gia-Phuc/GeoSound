@@ -184,7 +184,7 @@ export default function ItineraryEditorPage() {
       </main>
 
       <footer className="itin-edit__bar">
-        <Link className="btn btn--ghost" to={`/explore?addTo=${id}`} state={{ name: view.name }}>
+        <Link className="btn btn--ghost" to={`/?tab=places&addTo=${id}`} state={{ name: view.name }}>
           <Icon name="plus" size={18} /> Thêm địa điểm
         </Link>
         <Link

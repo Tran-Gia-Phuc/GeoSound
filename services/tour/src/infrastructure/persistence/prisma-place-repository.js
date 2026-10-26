@@ -170,8 +170,10 @@ export class PrismaPlaceRepository {
         lat: true,
         lng: true,
         images: true,
+        description: true,
+        audioUrl: true,
         audioSource: true,
-        tour: { select: { title: true, city: true } },
+        tour: { select: { title: true, city: true, originalLanguage: true } },
       },
     });
     return rows.map((r) => ({
@@ -182,9 +184,12 @@ export class PrismaPlaceRepository {
       lat: r.lat,
       lng: r.lng,
       images: Array.isArray(r.images) ? r.images : [],
+      description: r.description,
+      audioUrl: r.audioUrl,
       audioSource: r.audioSource,
       tourTitle: r.tour?.title ?? null,
       city: r.tour?.city ?? null,
+      language: r.tour?.originalLanguage ?? null,
     }));
   }
 }
