@@ -10,8 +10,9 @@ import Icon from '../../components/Icon.jsx';
 import TourMap from '../player/TourMap.jsx';
 import { formatDistance, formatMinutes } from '../../lib/format.js';
 import {
-  getItinerary, renameItinerary, removeItem, reorderItems,
+  getItinerary, renameItinerary, removeItem, reorderItems, addItem,
 } from '../../lib/itineraries.js';
+import { useToast } from '../../components/Toast.jsx';
 import ShareDialog from './ShareDialog.jsx';
 import ModePicker from '../player/ModePicker.jsx';
 import PlaceDetailSheet from '../discover/PlaceDetailSheet.jsx';
@@ -20,6 +21,7 @@ import { useBack } from '../../components/shell/AppHeader.jsx';
 export default function ItineraryEditorPage() {
   const { id } = useParams();
   const back = useBack('/itineraries');
+  const toast = useToast();
   const [view, setView] = useState(null);
   const [error, setError] = useState('');
   const [activeId, setActiveId] = useState(null);
@@ -43,13 +45,16 @@ export default function ItineraryEditorPage() {
 
   const places = view?.places ?? [];
 
+  // Trả true nếu thành công (để quyết định có hiện "Hoàn tác" hay không).
   async function persist(fn) {
     setBusy(true);
     setError('');
     try {
       setView(await fn());
+      return true;
     } catch (e) {
       setError(e.message || 'Thao tác thất bại');
+      return false;
     } finally {
       setBusy(false);
     }
@@ -63,9 +68,24 @@ export default function ItineraryEditorPage() {
     persist(() => reorderItems(id, ids));
   };
 
-  const onRemove = (itemId, name) => {
-    if (!window.confirm(`Xoá “${name}” khỏi lịch trình?`)) return;
-    persist(() => removeItem(id, itemId));
+  // Bỏ điểm ngay (không hỏi) + "Hoàn tác": thêm lại địa điểm rồi đưa về đúng vị trí cũ.
+  const onRemove = async (item) => {
+    const order = places.map((p) => p.id);
+    const index = order.indexOf(item.id);
+    if (!(await persist(() => removeItem(id, item.id)))) return;
+    toast.show(`Đã bỏ “${item.name}” khỏi lịch trình`, {
+      action: {
+        label: 'Hoàn tác',
+        onClick: () =>
+          persist(async () => {
+            const after = await addItem(id, item.placeId);
+            const added = after.places.find((p) => !order.includes(p.id) && p.placeId === item.placeId);
+            if (!added) return after;
+            const restored = order.map((pid) => (pid === item.id ? added.id : pid));
+            return index >= 0 ? reorderItems(id, restored) : after;
+          }),
+      },
+    });
   };
 
   const startRename = () => {
@@ -199,7 +219,7 @@ export default function ItineraryEditorPage() {
                   <button className="iconbtn iconbtn--sm" onClick={() => move(i, 1)} disabled={i === places.length - 1 || busy} aria-label="Xuống dưới">
                     <Icon name="chevron-down" size={16} />
                   </button>
-                  <button className="iconbtn iconbtn--sm iconbtn--danger" onClick={() => onRemove(p.id, p.name)} disabled={busy} aria-label={`Xoá ${p.name}`}>
+                  <button className="iconbtn iconbtn--sm iconbtn--danger" onClick={() => onRemove(p)} disabled={busy} aria-label={`Xoá ${p.name}`}>
                     <Icon name="trash" size={16} />
                   </button>
                 </div>

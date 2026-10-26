@@ -202,9 +202,13 @@ export default function LanguagesPage() {
               </div>
             </div>
             <div className="field">
-              <label className="field__label" htmlFor="lp-region">Vùng miền (tuỳ chọn)</label>
-              <input id="lp-region" className="input" value={region} onChange={(e) => setRegion(e.target.value)}
-                maxLength={50} placeholder="Ví dụ: miền Bắc" />
+              <label className="field__label" htmlFor="lp-region">Giọng vùng miền</label>
+              <select id="lp-region" className="input" value={region} onChange={(e) => setRegion(e.target.value)}>
+                <option value="">Mặc định</option>
+                {['Miền Bắc', 'Miền Trung', 'Miền Nam', ...(region && !['Miền Bắc', 'Miền Trung', 'Miền Nam'].includes(region) ? [region] : [])].map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
             </div>
           </div>
 
