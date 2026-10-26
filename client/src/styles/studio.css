@@ -628,3 +628,32 @@
 .checklist__fix {
   font-size: 13px;
 }
+
+/* ---- Tình trạng bản dịch theo ngôn ngữ (UC12) ---- */
+.lang-status {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-2);
+}
+.lang-status__item {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  font-size: 14px;
+}
+.lang-status__item > svg {
+  align-self: center;
+  flex: none;
+}
+.lang-status__item.is-ready > svg {
+  color: var(--success);
+}
+.lang-status__item.is-pending > svg {
+  color: var(--warning);
+}

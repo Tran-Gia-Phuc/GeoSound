@@ -114,6 +114,10 @@ export default function LanguagesPage() {
         ),
       }));
       setNotice('Đã lưu bản dịch.');
+      // Cập nhật tiến độ dịch của từng ngôn ngữ (khách chỉ thấy ngôn ngữ đã dịch xong).
+      getLanguageConfig(id)
+        .then((cfg) => setConfig((c) => ({ ...c, languages: cfg.languages })))
+        .catch(() => {});
     } catch (e) {
       setRowError((s) => ({ ...s, [key]: e.message || 'Lưu bản dịch thất bại' }));
     } finally {
@@ -208,7 +212,23 @@ export default function LanguagesPage() {
             </div>
           </div>
 
-          <p className="muted small">Lưu sẽ dịch lại các bản <i>tự động</i> và tạo giọng đọc — bản bạn đã chỉnh tay được giữ nguyên.</p>
+          {config.languages.some((l) => !l.isSource) ? (
+            <ul className="lang-status" aria-label="Tình trạng bản dịch">
+              {config.languages.filter((l) => !l.isSource).map((l) => (
+                <li key={l.languageCode} className={`lang-status__item ${l.ready ? 'is-ready' : 'is-pending'}`}>
+                  <Icon name={l.ready ? 'check-circle' : 'info'} size={16} />
+                  <b>{langLabel(l.languageCode)}</b>
+                  <span className="muted small">
+                    {l.ready
+                      ? `Đã dịch ${l.translated}/${l.total} điểm — khách chọn được ngôn ngữ này`
+                      : `Mới dịch ${l.translated}/${l.total} điểm — khách chưa thấy ngôn ngữ này. Sửa bản dịch bên dưới hoặc lưu lại để dịch tự động.`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          <p className="muted small">Lưu sẽ dịch các điểm mới hoặc vừa sửa mô tả và tạo giọng đọc — bản bạn đã chỉnh tay được giữ nguyên.</p>
           {saveError ? (
             <div className="alert alert--warn" role="alert"><Icon name="alert-triangle" size={18} className="alert__icon" /><div>{saveError}</div></div>
           ) : null}

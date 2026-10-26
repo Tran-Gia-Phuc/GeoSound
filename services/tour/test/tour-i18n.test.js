@@ -151,7 +151,9 @@ test('UpdateTranslation (A2): sửa ngôn ngữ gốc bị chặn; ngôn ngữ c
 
 test('GetLanguageConfig: chưa cấu hình → chỉ ngôn ngữ gốc, chưa có bản dịch', async () => {
   const cfg = await new GetLanguageConfig(deps()).execute({ authorId: 'u1', tourId: 'tour1' });
-  assert.deepEqual(cfg.languages, [{ languageCode: 'vi', isSource: true, voice: null }]);
+  assert.deepEqual(cfg.languages, [
+    { languageCode: 'vi', isSource: true, voice: null, ready: true, translated: 2, total: 2 },
+  ]);
   assert.equal(cfg.voice, null);
   assert.deepEqual(cfg.places.find((p) => p.placeId === 'p1').translations, []);
 });

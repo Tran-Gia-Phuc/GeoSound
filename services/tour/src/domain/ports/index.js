@@ -72,7 +72,9 @@
 /**
  * Dịch text sang ngôn ngữ khác (UC12). Lỗi → ném TranslationError (E1).
  * @typedef {Object} Translator
- * @property {(p: { text: string, from: string, to: string }) => Promise<string>} translate
+ * @property {(p: { text: string, from: string, to: string, context?: string }) => Promise<string>} translate
+ * @property {(p: { texts: string[], from: string, to: string, context?: string }) => Promise<string[]>} [translateMany]
+ *   tuỳ chọn — dịch nhiều đoạn sang một ngôn ngữ trong một lần gọi (cùng thứ tự)
  */
 
 /**
