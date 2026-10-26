@@ -16,6 +16,7 @@ export default function SharedItineraryPlayerPage() {
       loadDetail={loadDetail}
       progressKey={`shared:${token}`}
       backTo={`/shared/${token}`}
+      backLabel="Về lịch trình"
       remember={false}
       modeLabels={{ gps: 'Đi theo lịch trình', remote: 'Nghe thử từng điểm' }}
     />

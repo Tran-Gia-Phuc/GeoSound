@@ -63,8 +63,10 @@ export default function HomePage() {
           <Icon name="chevron-left" size={16} className="recent__chev" />
         </Link>
 
+        {/* Chỉ dành cho lập trình viên — không lộ ra bản build thật. */}
+        {import.meta.env.DEV ? (
         <details className="home__dev">
-          <summary>Mở nhanh bằng mã tour</summary>
+          <summary>Mở nhanh bằng mã tour (dev)</summary>
         <form
           className="home__open"
           onSubmit={(e) => {
@@ -88,6 +90,7 @@ export default function HomePage() {
           </button>
         </form>
         </details>
+        ) : null}
 
         <nav className="home__nav" aria-label="Lịch trình cá nhân">
           {isContributor ? (
@@ -133,11 +136,7 @@ export default function HomePage() {
               ))}
             </ul>
           </section>
-        ) : (
-          <p className="muted small home__hint">
-            Mẹo: từ chi tiết tour (UC02), nút “Bắt đầu tour” và “Nghe thử từ xa” sẽ mở màn hình này.
-          </p>
-        )}
+        ) : null}
       </main>
     </div>
   );

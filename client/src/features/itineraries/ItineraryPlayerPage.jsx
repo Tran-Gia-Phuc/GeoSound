@@ -17,6 +17,7 @@ export default function ItineraryPlayerPage() {
       loadDetail={loadDetail}
       progressKey={`itin:${id}`}
       backTo={`/itineraries/${id}`}
+      backLabel="Về lịch trình"
       remember={false}
       modeLabels={{ gps: 'Đi theo lịch trình', remote: 'Nghe thử từng điểm' }}
     />

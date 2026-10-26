@@ -6,6 +6,7 @@
 import { useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Polyline, Circle, Polygon, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
+import { stopNumbers } from '../../lib/format.js';
 
 // ----- Icon pin số thứ tự (divIcon, né lỗi icon mặc định của Leaflet) -----
 function pinIcon(label, { active, visited }) {
@@ -72,8 +73,9 @@ export default function TourMap({
   const path = tour?.route?.path ?? [];
   const navAudios = tour?.route?.navAudios ?? [];
   const triggerByPlace = useMemo(() => new Map(triggers.map((t) => [t.placeId, t])), [triggers]);
+  const numbers = useMemo(() => stopNumbers(places), [places]);
 
-  const pts = places.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  const pts =places.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
   const center = pts.length ? [pts[0].lat, pts[0].lng] : [21.0278, 105.8342]; // mặc định Hà Nội
 
   const bounds = useMemo(() => {
@@ -151,7 +153,7 @@ export default function TourMap({
         <Marker
           key={p.id}
           position={[p.lat, p.lng]}
-          icon={pinIcon(p.sequence ?? i + 1, { active: p.id === activePlaceId, visited: visited.has(p.id) })}
+          icon={pinIcon(numbers.get(p.id) ?? i + 1, { active: p.id === activePlaceId, visited: visited.has(p.id) })}
           keyboard
           eventHandlers={{ click: () => onSelectPlace?.(p.id) }}
           title={p.name}

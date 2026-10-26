@@ -19,7 +19,7 @@ export default function PlaceList({ places, currentPlaceId, visitedIds, onSelect
               aria-current={active ? 'true' : undefined}
             >
               <span className={`stop__num ${done ? 'stop__num--done' : ''}`}>
-                {done ? <Icon name="check-circle" size={18} /> : (p.sequence ?? i + 1)}
+                {done ? <Icon name="check-circle" size={18} /> : i + 1}
               </span>
               <span className="stop__info">
                 <span className="stop__name">{p.name}</span>

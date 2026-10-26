@@ -30,8 +30,8 @@ export default function PlayerBar({ audio, engine }) {
           {roleLabel}
         </span>
         {state.usingTts ? (
-          <span className="chip" title={state.fellBack ? 'File audio lỗi — đang đọc bằng giọng tổng hợp' : 'Giọng đọc tổng hợp (TTS)'}>
-            TTS{state.fellBack ? ' (dự phòng)' : ''}
+          <span className="chip" title={state.fellBack ? 'File audio lỗi — đang đọc bằng giọng máy' : 'Giọng đọc máy'}>
+            Giọng máy{state.fellBack ? ' (dự phòng)' : ''}
           </span>
         ) : null}
         {state.status === 'error' ? (
@@ -64,7 +64,7 @@ export default function PlayerBar({ audio, engine }) {
         </div>
       ) : (
         <div className={`scrub scrub--indet ${playing ? 'is-playing' : ''}`} aria-hidden="true">
-          <span className="scrub__t">{state.usingTts ? 'TTS' : '--:--'}</span>
+          <span className="scrub__t">--:--</span>
           <div className="scrub__track">
             <div className="scrub__bar" />
           </div>

@@ -8,13 +8,13 @@ import Icon from '../../components/Icon.jsx';
 export default function SimControls({ simulate, onToggle, walking, onWalk, canWalk, open, onToggleOpen }) {
   return (
     <div className={`sim ${open ? 'sim--open' : ''}`}>
-      <button className="iconbtn sim__fab" onClick={onToggleOpen} aria-expanded={open} aria-label="Công cụ giả lập GPS" title="Giả lập GPS (thử nghiệm)">
+      <button className="iconbtn sim__fab" onClick={onToggleOpen} aria-expanded={open} aria-label="Mô phỏng vị trí" title="Mô phỏng vị trí">
         <Icon name="crosshair" size={20} />
       </button>
       {open ? (
-        <div className="sim__panel" role="group" aria-label="Giả lập GPS">
+        <div className="sim__panel" role="group" aria-label="Mô phỏng vị trí">
           <div className="sim__title">
-            <Icon name="info" size={14} /> Giả lập GPS (thử nghiệm)
+            <Icon name="info" size={14} /> Mô phỏng vị trí
           </div>
           <label className="switch">
             <input type="checkbox" checked={simulate} onChange={(e) => onToggle(e.target.checked)} />
@@ -25,7 +25,7 @@ export default function SimControls({ simulate, onToggle, walking, onWalk, canWa
             <Icon name={walking ? 'pause' : 'navigation'} size={16} />
             {walking ? 'Dừng đi theo route' : 'Đi theo route'}
           </button>
-          <p className="sim__hint">Dùng để kiểm thử auto-phát khi vào vùng kích hoạt. Tắt khi đi thực địa.</p>
+          <p className="sim__hint">Thử xem audio có tự phát khi vào vùng kích hoạt không, mà không cần ra hiện trường.</p>
         </div>
       ) : null}
     </div>

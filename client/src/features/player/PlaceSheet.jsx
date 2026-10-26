@@ -5,7 +5,10 @@
 import { useEffect, useRef, useState } from 'react';
 import Icon from '../../components/Icon.jsx';
 
-export default function PlaceSheet({ place, role, expanded, onToggle, audioError }) {
+// API trả ảnh dạng { url, caption }; bản cũ/lịch trình có thể là chuỗi URL.
+const toImage = (img) => (typeof img === 'string' ? { url: img, caption: '' } : img);
+
+export default function PlaceSheet({ place, number, role, expanded, onToggle, audioError }) {
   const [showAll, setShowAll] = useState(false);
   const bodyRef = useRef(null);
 
@@ -28,7 +31,7 @@ export default function PlaceSheet({ place, role, expanded, onToggle, audioError
     );
   }
 
-  const images = Array.isArray(place.images) ? place.images.filter(Boolean) : [];
+  const images = Array.isArray(place.images) ? place.images.filter(Boolean).map(toImage).filter((im) => im.url) : [];
 
   return (
     <div className={`sheet ${expanded ? 'sheet--open' : ''}`}>
@@ -44,7 +47,7 @@ export default function PlaceSheet({ place, role, expanded, onToggle, audioError
       <div className="sheet__head">
         <div>
           <div className="sheet__eyebrow">
-            {role === 'hint' ? 'Gợi ý đi tiếp' : role === 'nav' ? 'Chỉ đường' : `Điểm ${place.sequence ?? ''}`.trim()}
+            {role === 'hint' ? 'Gợi ý đi tiếp' : role === 'nav' ? 'Chỉ đường' : number ? `Điểm ${number}` : 'Điểm dừng'}
           </div>
           <h2 className="sheet__title">{place.name}</h2>
         </div>
@@ -66,8 +69,15 @@ export default function PlaceSheet({ place, role, expanded, onToggle, audioError
 
         {images.length ? (
           <div className="gallery" role="list">
-            {images.map((src, i) => (
-              <img key={i} src={src} alt={`${place.name} — ảnh ${i + 1}`} loading="lazy" role="listitem" className="gallery__img" />
+            {images.map((im, i) => (
+              <img
+                key={i}
+                src={im.url}
+                alt={im.caption || `${place.name} — ảnh ${i + 1}`}
+                loading="lazy"
+                role="listitem"
+                className="gallery__img"
+              />
             ))}
           </div>
         ) : null}

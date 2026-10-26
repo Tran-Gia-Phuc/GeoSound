@@ -553,8 +553,8 @@
   .studio-form__row {
     grid-template-columns: 1fr;
   }
-  .studio__title { max-width: 40vw; }
-  .studio__subtitle { max-width: 40vw; }
+  .studio__title { max-width: 56vw; }
+  .studio__subtitle { max-width: 56vw; }
   .place-form__imgfields {
     grid-template-columns: 1fr;
   }

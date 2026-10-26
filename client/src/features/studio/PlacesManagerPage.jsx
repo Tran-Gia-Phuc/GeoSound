@@ -211,7 +211,7 @@ export default function PlacesManagerPage() {
                         {p.audioSource === 'human' ? (
                           <><Icon name="volume" size={12} /> Audio người thật</>
                         ) : (
-                          <><Icon name="languages" size={12} /> TTS</>
+                          <><Icon name="languages" size={12} /> Giọng máy</>
                         )}
                       </span>
                     </button>

@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import Rating from './Rating.jsx';
 import { TOUR_TYPE_LABELS } from '../../lib/tours.js';
-import { formatDistance, langLabel } from '../../lib/format.js';
+import { formatDistance, formatMinutes, langLabel, voiceLabel, isHumanVoice } from '../../lib/format.js';
 
 export default function TourCard({ tour }) {
-  const hasHuman = /người/i.test(tour.voiceLabel || '');
+  const hasHuman = isHumanVoice(tour.voiceLabel);
   return (
     <li>
       <Link className="tour-card" to={`/tour/${encodeURIComponent(tour.id)}`}>
@@ -18,7 +18,7 @@ export default function TourCard({ tour }) {
           )}
           {tour.voiceLabel ? (
             <span className={`chip tour-card__voice ${hasHuman ? 'chip--human' : ''}`}>
-              <Icon name="volume" size={13} /> {tour.voiceLabel}
+              <Icon name="volume" size={13} /> {voiceLabel(tour.voiceLabel)}
             </span>
           ) : null}
         </div>
@@ -38,7 +38,7 @@ export default function TourCard({ tour }) {
 
           <div className="tour-card__meta muted small">
             <span><Icon name="map-pin" size={13} /> {tour.placeCount ?? 0} điểm</span>
-            {tour.duration ? <span><Icon name="clock" size={13} /> {tour.duration} phút</span> : null}
+            {tour.duration ? <span><Icon name="clock" size={13} /> {formatMinutes(tour.duration)}</span> : null}
             {Number.isFinite(tour.distanceMeters) ? (
               <span><Icon name="navigation" size={13} /> cách {formatDistance(tour.distanceMeters)}</span>
             ) : null}

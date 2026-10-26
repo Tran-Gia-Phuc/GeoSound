@@ -41,3 +41,27 @@ const LANG_LABELS = {
 export function langLabel(code) {
   return LANG_LABELS[code] || (code ? code.toUpperCase() : '');
 }
+
+// API trả mã giọng (VOICE_LABEL ở tour service): 'human' | 'tts'.
+const VOICE_LABELS = {
+  human: 'Giọng người thật',
+  tts: 'Giọng đọc máy',
+};
+
+/** Mã giọng -> nhãn hiển thị. Chuỗi lạ giữ nguyên, rỗng -> ''. */
+export function voiceLabel(code) {
+  return VOICE_LABELS[code] || code || '';
+}
+
+/** Điểm có giọng người thật không (để tô chip khác màu). */
+export const isHumanVoice = (code) => code === 'human';
+
+/**
+ * Số thứ tự hiển thị của các điểm: 1, 2, 3… theo `sequence` (0-based ở API).
+ * @param {Array<{id:string, sequence?:number}>} places
+ * @returns {Map<string, number>} placeId -> số thứ tự (bắt đầu từ 1)
+ */
+export function stopNumbers(places = []) {
+  const ordered = [...places].sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
+  return new Map(ordered.map((p, i) => [p.id, i + 1]));
+}

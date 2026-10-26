@@ -164,14 +164,14 @@ export default function LanguagesPage() {
 
   return (
     <div className="screen studio">
-      <StudioHeader title="Ngôn ngữ & giọng đọc" backTo={`/studio/tours/${id}`} subtitle="Ngôn ngữ phụ, giọng TTS, bản dịch từng điểm" />
+      <StudioHeader title="Ngôn ngữ & giọng đọc" backTo={`/studio/tours/${id}`} subtitle="Ngôn ngữ phụ, giọng đọc, bản dịch từng điểm" />
 
       <main className="studio__main">
         {/* Cấu hình ngôn ngữ + giọng */}
         <section className="studio-section">
           <h2 className="studio__h2"><Icon name="languages" size={16} /> Ngôn ngữ & giọng đọc</h2>
           <p className="muted small">
-            Ngôn ngữ gốc: <b>{langLabel(source)}</b>. Chọn thêm ngôn ngữ phụ để hệ thống tự dịch &amp; tạo giọng đọc TTS.
+            Ngôn ngữ gốc: <b>{langLabel(source)}</b>. Chọn thêm ngôn ngữ phụ để hệ thống tự dịch &amp; tạo giọng đọc máy.
           </p>
 
           <div className="field">

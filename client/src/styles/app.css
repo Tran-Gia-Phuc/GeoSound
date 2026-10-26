@@ -195,6 +195,7 @@ button {
   color: var(--fg);
   font-weight: 600;
   font-size: 15px;
+  text-decoration: none; /* <Link className="btn"> không bị gạch chân */
   transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease),
     border-color var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease);
 }
