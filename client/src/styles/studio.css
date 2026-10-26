@@ -749,6 +749,9 @@
 /* ---- Stepper soạn tour (StudioTourLayout) ---- */
 .stepper {
   margin: 0 calc(-1 * var(--sp-4)) var(--sp-4);
+  /* Giữ các phần tử position:absolute (vd .sr-only) trong vùng cuộn — không thì
+     chúng thoát ra ngoài và làm cả trang rộng hơn màn hình (bị thu nhỏ). */
+  position: relative;
   padding: 0 var(--sp-4);
   overflow-x: auto;
   scrollbar-width: none;
