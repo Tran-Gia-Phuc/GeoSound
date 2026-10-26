@@ -1,9 +1,16 @@
-// Chuyển sáng/tối, nhớ lựa chọn (mặc định theo hệ thống).
+// Giao diện sáng/tối, nhớ lựa chọn (mặc định theo hệ thống).
+// Chỉ đổi ở màn Tài khoản; applyStoredTheme() chạy lúc khởi động để mọi màn
+// đều đúng giao diện ngay từ đầu.
 import { useCallback, useEffect, useState } from 'react';
 
 const KEY = 'geosound:theme';
+export const THEME_OPTIONS = [
+  { value: 'system', label: 'Tự động' },
+  { value: 'light', label: 'Sáng' },
+  { value: 'dark', label: 'Tối' },
+];
 
-function initial() {
+function stored() {
   try {
     return localStorage.getItem(KEY) || 'system';
   } catch {
@@ -11,13 +18,22 @@ function initial() {
   }
 }
 
+function apply(theme) {
+  const root = document.documentElement;
+  if (theme === 'system') root.removeAttribute('data-theme');
+  else root.setAttribute('data-theme', theme);
+}
+
+/** Gọi một lần lúc khởi động app (main.jsx). */
+export function applyStoredTheme() {
+  apply(stored());
+}
+
 export function useTheme() {
-  const [theme, setTheme] = useState(initial); // 'system' | 'light' | 'dark'
+  const [theme, setThemeState] = useState(stored); // 'system' | 'light' | 'dark'
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme === 'system') root.removeAttribute('data-theme');
-    else root.setAttribute('data-theme', theme);
+    apply(theme);
     try {
       localStorage.setItem(KEY, theme);
     } catch {
@@ -29,7 +45,8 @@ export function useTheme() {
     typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
   const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
 
-  const toggle = useCallback(() => setTheme((t) => (isDark ? 'light' : 'dark')), [isDark]);
+  const setTheme = useCallback((t) => setThemeState(t), []);
+  const toggle = useCallback(() => setThemeState(isDark ? 'light' : 'dark'), [isDark]);
 
-  return { theme, isDark, toggle };
+  return { theme, setTheme, isDark, toggle };
 }

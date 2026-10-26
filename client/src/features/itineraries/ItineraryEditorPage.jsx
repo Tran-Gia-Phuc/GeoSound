@@ -5,7 +5,7 @@
 // và "Đi theo lịch trình" (UC08).
 // =========================================================
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import TourMap from '../player/TourMap.jsx';
 import { formatDistance, formatMinutes } from '../../lib/format.js';
@@ -13,10 +13,11 @@ import {
   getItinerary, renameItinerary, removeItem, reorderItems,
 } from '../../lib/itineraries.js';
 import ShareDialog from './ShareDialog.jsx';
+import { useBack } from '../../components/shell/AppHeader.jsx';
 
 export default function ItineraryEditorPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const back = useBack('/itineraries');
   const [view, setView] = useState(null);
   const [error, setError] = useState('');
   const [activeId, setActiveId] = useState(null);
@@ -101,7 +102,7 @@ export default function ItineraryEditorPage() {
   return (
     <div className="screen itin-edit">
       <header className="itin__top">
-        <button className="iconbtn" onClick={() => navigate('/itineraries')} aria-label="Về danh sách lịch trình">
+        <button className="iconbtn" onClick={back} aria-label="Quay lại">
           <Icon name="arrow-left" size={18} />
         </button>
         {editingName ? (

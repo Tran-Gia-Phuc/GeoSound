@@ -12,18 +12,19 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { fetchTourDetail } from '../../lib/api.js';
 import { langLabel, formatMinutes, voiceLabel } from '../../lib/format.js';
 import { TOUR_TYPE_LABELS } from '../../lib/tours.js';
-import { useTheme } from '../../hooks/useTheme.js';
+import { useBack } from '../../components/shell/AppHeader.jsx';
 import Icon from '../../components/Icon.jsx';
 import TourMap from '../player/TourMap.jsx';
 import Rating from './Rating.jsx';
 
-const BACK = '/tours';
+// Mở thẳng bằng link chia sẻ (không có lịch sử) → về Khám phá.
+const BACK = '/';
 
 export default function TourDetailPage() {
   const { tourId } = useParams();
   const navigate = useNavigate();
   const [sp, setSp] = useSearchParams();
-  const { isDark, toggle } = useTheme();
+  const back = useBack(BACK);
 
   const [tour, setTour] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -130,11 +131,8 @@ export default function TourDetailPage() {
         aria-label={`Ảnh bìa tour ${tour.title}`}
       >
         <div className="intro__cover-grad" />
-        <button className="iconbtn intro__back" onClick={() => navigate(BACK)} aria-label="Quay lại danh sách">
+        <button className="iconbtn intro__back" onClick={back} aria-label="Quay lại">
           <Icon name="arrow-left" size={20} />
-        </button>
-        <button className="iconbtn intro__theme" onClick={toggle} aria-label="Đổi giao diện sáng/tối">
-          <Icon name={isDark ? 'sun' : 'moon'} size={18} />
         </button>
       </div>
 

@@ -11,7 +11,6 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
-import { useTheme } from '../../hooks/useTheme.js';
 import { useCountdown, formatCountdown } from '../../hooks/useCountdown.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { Field, PasswordField, ErrorAlert } from './fields.jsx';
@@ -39,7 +38,6 @@ export default function LoginPage({ initialTab = 'login' }) {
   const location = useLocation();
   const [params] = useSearchParams();
   const next = params.get('next');
-  const { isDark, toggle } = useTheme();
   const { login, register, registerAndVerify, resendOtp } = useAuth();
 
   const presetRole = params.get('role') === 'contributor' || next?.startsWith('/studio') ? 'contributor' : null;
@@ -149,9 +147,6 @@ export default function LoginPage({ initialTab = 'login' }) {
           <span className="brand__logo"><Icon name="headphones" size={20} /></span>
           <span className="brand__name">GeoSound</span>
         </Link>
-        <button className="iconbtn" onClick={toggle} aria-label="Đổi giao diện sáng/tối">
-          <Icon name={isDark ? 'sun' : 'moon'} size={18} />
-        </button>
       </header>
 
       <main className="auth__main">

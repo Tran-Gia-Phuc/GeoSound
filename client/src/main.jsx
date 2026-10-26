@@ -7,8 +7,12 @@ import './styles/auth.css';
 import './styles/itinerary.css';
 import './styles/tours.css';
 import './styles/studio.css';
+import './styles/shell.css';
 import App from './App.jsx';
 import { AuthProvider } from './auth/AuthContext.jsx';
+import { applyStoredTheme } from './hooks/useTheme.js';
+
+applyStoredTheme();
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

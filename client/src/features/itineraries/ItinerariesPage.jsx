@@ -5,14 +5,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
-import { useTheme } from '../../hooks/useTheme.js';
-import AccountMenu from '../../auth/AccountMenu.jsx';
+import AppHeader from '../../components/shell/AppHeader.jsx';
 import { formatDistance, formatMinutes } from '../../lib/format.js';
 import { listMyItineraries, createItinerary, deleteItinerary } from '../../lib/itineraries.js';
 
 export default function ItinerariesPage() {
   const navigate = useNavigate();
-  const { isDark, toggle } = useTheme();
   const [list, setList] = useState(null); // null = đang tải
   const [error, setError] = useState('');
   const [name, setName] = useState('');
@@ -59,22 +57,9 @@ export default function ItinerariesPage() {
 
   return (
     <div className="screen itin">
-      <header className="itin__top">
-        <Link to="/" className="brand" aria-label="Về trang chủ GeoSound">
-          <span className="brand__logo"><Icon name="headphones" size={20} /></span>
-          <span className="brand__name">GeoSound</span>
-        </Link>
-        <div className="home__topright">
-          <AccountMenu />
-          <button className="iconbtn" onClick={toggle} aria-label="Đổi giao diện sáng/tối">
-            <Icon name={isDark ? 'sun' : 'moon'} size={18} />
-          </button>
-        </div>
-      </header>
+      <AppHeader title="Lịch trình của tôi" subtitle="Tự lên kế hoạch chuyến đi từ các địa điểm bạn quan tâm." large />
 
       <main className="itin__main">
-        <h1 className="itin__h1">Lịch trình của tôi</h1>
-        <p className="muted">Tự lên kế hoạch chuyến đi từ các địa điểm bạn quan tâm.</p>
 
         <form className="itin__create" onSubmit={onCreate}>
           <label htmlFor="itin-name" className="sr-only">Tên lịch trình mới</label>
