@@ -24,6 +24,10 @@ export function buildTourRouter({ tourController }) {
   r.get('/mine/:id', validateParams(tourIdParamSchema), wrap(tourController.getOne));
   r.patch('/mine/:id', validateParams(tourIdParamSchema), validateBody(updateTourSchema), wrap(tourController.update));
   r.delete('/mine/:id', validateParams(tourIdParamSchema), wrap(tourController.remove));
+  // A3 — xuất bản / gỡ xuống (xuất bản thẳng, D1)
+  r.get('/mine/:id/readiness', validateParams(tourIdParamSchema), wrap(tourController.readiness));
+  r.post('/mine/:id/publish', validateParams(tourIdParamSchema), wrap(tourController.publish));
+  r.post('/mine/:id/unpublish', validateParams(tourIdParamSchema), wrap(tourController.unpublish));
 
   return r;
 }

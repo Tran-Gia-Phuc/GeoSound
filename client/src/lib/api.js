@@ -10,13 +10,15 @@ import { readAuth, writeAuth, clearAuth, getAccessToken, getRefreshToken } from 
 const BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 export class ApiError extends Error {
-  constructor(message, { status, code, offline, details } = {}) {
+  constructor(message, { status, code, offline, details, missing, zone } = {}) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
     this.offline = !!offline;
     this.details = details;
+    this.missing = missing; // mục còn thiếu (vd xuất bản tour: [{ key, label }])
+    this.zone = zone; // tên vùng cấm (lỗi đặt điểm trong vùng cấm)
   }
 }
 
@@ -35,6 +37,8 @@ function fail(res, body) {
     status: res.status,
     code: body?.code,
     details: body?.details,
+    missing: body?.missing,
+    zone: body?.zone,
   });
 }
 

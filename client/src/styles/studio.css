@@ -559,3 +559,72 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Xuất bản (UC09 A3) ---- */
+.publish {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.publish__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+.publish__head .studio__h2 {
+  margin: 0;
+}
+.publish__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.publish__actions .btn--primary {
+  margin-left: auto;
+}
+.chip--ok {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-color: transparent;
+}
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-2);
+}
+.checklist__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.checklist__icon {
+  flex: none;
+  margin-top: 1px;
+}
+.checklist__label {
+  flex: 1 1 180px;
+}
+.checklist__item.is-ok .checklist__icon {
+  color: var(--success);
+}
+.checklist__item.is-missing .checklist__icon {
+  color: var(--danger);
+}
+.checklist__item.is-warn .checklist__icon {
+  color: var(--warning);
+}
+.checklist__fix {
+  font-size: 13px;
+}

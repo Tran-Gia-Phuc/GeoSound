@@ -5,10 +5,13 @@
 // =========================================================
 
 export class TourController {
-  /** @param {{ createTour, listMyTours, getMyTour, updateTour, deleteTour }} useCases */
+  /**
+   * @param {{ createTour, listMyTours, getMyTour, updateTour, deleteTour,
+   *           getPublishReadiness, publishTour, unpublishTour }} useCases
+   */
   constructor(useCases) {
     this.uc = useCases;
-    for (const m of ['create', 'listMine', 'getOne', 'update', 'remove']) {
+    for (const m of ['create', 'listMine', 'getOne', 'update', 'remove', 'readiness', 'publish', 'unpublish']) {
       this[m] = this[m].bind(this);
     }
   }
@@ -45,7 +48,7 @@ export class TourController {
       patch: req.validated,
     });
     const message = result.requiresResubmit
-      ? 'Đã lưu. Tour công khai đã chuyển về Nháp, cần gửi duyệt lại'
+      ? 'Đã lưu. Tour công khai đã chuyển về Nháp, cần xuất bản lại'
       : 'Đã lưu thay đổi';
     res.json({ message, ...result });
   }
@@ -57,5 +60,32 @@ export class TourController {
       tourId: req.validatedParams.id,
     });
     res.json({ message: 'Đã xóa tour', ...result });
+  }
+
+  // A3 — checklist sẵn sàng xuất bản
+  async readiness(req, res) {
+    const readiness = await this.uc.getPublishReadiness.execute({
+      authorId: req.user.sub,
+      tourId: req.validatedParams.id,
+    });
+    res.json({ readiness });
+  }
+
+  // A3 — xuất bản (thẳng, chưa qua kiểm duyệt)
+  async publish(req, res) {
+    const result = await this.uc.publishTour.execute({
+      authorId: req.user.sub,
+      tourId: req.validatedParams.id,
+    });
+    res.json({ message: result.changed ? 'Đã xuất bản tour' : 'Tour đã công khai', tour: result.tour });
+  }
+
+  // A3 — gỡ tour công khai về Nháp
+  async unpublish(req, res) {
+    const result = await this.uc.unpublishTour.execute({
+      authorId: req.user.sub,
+      tourId: req.validatedParams.id,
+    });
+    res.json({ message: 'Đã gỡ tour về Nháp', tour: result.tour });
   }
 }
