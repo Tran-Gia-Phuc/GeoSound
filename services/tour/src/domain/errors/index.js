@@ -45,14 +45,19 @@ export class PlaceNotFoundError extends AppError {
 }
 
 // UC10 / E2 — vị trí nằm trong vùng cấm (quân sự, trường học, bệnh viện...).
+// Kèm hình vùng (GeoJSON) để client VẼ vùng cấm lên bản đồ và gợi ý dời ghim ra
+// ngoài, thay vì chỉ báo lỗi chung chung.
 export class ForbiddenZoneError extends AppError {
-  /** @param {string} [zone] tên vùng cấm, nếu biết */
+  /** @param {{ name?: string, type?: string, geometry?: object }|string} [zone] vùng cấm, nếu biết */
   constructor(zone) {
-    super('Vị trí nằm trong vùng cấm, vui lòng điều chỉnh', {
-      status: 422,
-      code: 'forbidden_zone',
-    });
-    if (zone) this.zone = zone;
+    const info = typeof zone === 'string' ? { name: zone } : zone;
+    super(
+      info?.name
+        ? `Vị trí nằm trong vùng cấm (${info.name}), vui lòng dời ra ngoài`
+        : 'Vị trí nằm trong vùng cấm, vui lòng điều chỉnh',
+      { status: 422, code: 'forbidden_zone' },
+    );
+    if (info) this.zone = { name: info.name ?? null, type: info.type ?? null, geometry: info.geometry ?? null };
   }
 }
 

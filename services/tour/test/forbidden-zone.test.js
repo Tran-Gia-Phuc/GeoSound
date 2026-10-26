@@ -71,7 +71,7 @@ test('PolygonZoneChecker: điểm trong vùng cấm → ForbiddenZoneError kèm 
   const checker = new PolygonZoneChecker({ zoneRepo });
   await assert.rejects(
     () => checker.assertAllowed({ lat: 0.5, lng: 100.5 }),
-    (err) => err.status === 422 && err.code === 'forbidden_zone' && err.zone === 'Khu quân sự'
+    (err) => err.status === 422 && err.code === 'forbidden_zone' && err.zone.name === 'Khu quân sự' && err.zone.geometry?.type === 'Polygon'
   );
 });
 

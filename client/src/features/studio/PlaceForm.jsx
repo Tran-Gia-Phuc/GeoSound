@@ -1,7 +1,8 @@
 // =========================================================
 // PlaceForm (UC10) — biểu mẫu thêm/sửa điểm dừng. Mô tả BẮT BUỘC (E3).
-// Toạ độ nhập tay hoặc chọn trên bản đồ (nút "Chọn trên bản đồ" bật chế độ
-// chạm bản đồ ở trang cha; toạ độ chạm được bơm vào qua prop `pick`).
+// Vị trí đặt BẰNG BẢN ĐỒ ở trang cha (chạm bản đồ / kéo ghim / tìm địa chỉ) và
+// được bơm vào qua prop `pick`; ô lat/lng chỉ là phương án phụ ("Nhập toạ độ thủ
+// công") — gõ toạ độ thì báo ngược lên trang cha để dời ghim (onManualCoords).
 // Ảnh (nhiều) + audio người thật tuỳ chọn — TẢI FILE LÊN (không phải dán URL);
 // không có audio thì hệ thống đọc mô tả bằng giọng máy (UC12).
 // =========================================================
@@ -22,7 +23,7 @@ const isHttpUrl = (s) => {
 };
 
 export default function PlaceForm({
-  initial, pick, picking, onRequestPick, serverError, busy, onSubmit, onCancel,
+  initial, pick, onManualCoords, serverError, busy, onSubmit, onCancel,
 }) {
   const [start] = useState(() => ({
     name: initial?.name ?? '',
@@ -38,6 +39,14 @@ export default function PlaceForm({
   // Đang nhập dở mà rời màn → hỏi lại (không mất dữ liệu).
   const guard = useDirtyGuard(!busy && JSON.stringify(f) !== JSON.stringify(start));
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
+  const setCoord = (k) => (e) => {
+    const next = { ...f, [k]: e.target.value };
+    setF(next);
+    const lat = Number(next.lat);
+    const lng = Number(next.lng);
+    if (next.lat !== '' && next.lng !== '' && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) onManualCoords?.({ lat, lng });
+  };
+  const hasCoords = f.lat !== '' && f.lng !== '' && Number.isFinite(Number(f.lat)) && Number.isFinite(Number(f.lng));
 
   // Bơm toạ độ chạm từ bản đồ (parent tăng pick.nonce mỗi lần chạm).
   useEffect(() => {
@@ -54,8 +63,9 @@ export default function PlaceForm({
     if (!f.description.trim()) next.description = 'Mô tả là bắt buộc';
     const lat = Number(f.lat);
     const lng = Number(f.lng);
-    if (f.lat === '' || !Number.isFinite(lat) || lat < -90 || lat > 90) next.lat = 'Vĩ độ từ -90 đến 90';
-    if (f.lng === '' || !Number.isFinite(lng) || lng < -180 || lng > 180) next.lng = 'Kinh độ từ -180 đến 180';
+    if (f.lat === '' || f.lng === '') next.lat = 'Hãy chọn vị trí trên bản đồ';
+    else if (!Number.isFinite(lat) || lat < -90 || lat > 90) next.lat = 'Vĩ độ phải từ -90 đến 90';
+    else if (!Number.isFinite(lng) || lng < -180 || lng > 180) next.lng = 'Kinh độ phải từ -180 đến 180';
     f.images.forEach((im, i) => {
       if (im.url.trim() && !isHttpUrl(im.url.trim())) next[`img${i}`] = 'URL ảnh không hợp lệ';
     });
@@ -114,27 +124,34 @@ export default function PlaceForm({
         )}
       </div>
 
-      <div className="field">
-        <div className="place-form__coordhead">
-          <span className="field__label">Toạ độ *</span>
-          <button type="button" className={`btn btn--ghost btn--sm ${picking ? 'is-active' : ''}`} onClick={onRequestPick}>
-            <Icon name="crosshair" size={16} /> {picking ? 'Chạm bản đồ để chọn…' : 'Chọn trên bản đồ'}
-          </button>
-        </div>
-        <div className="studio-form__row">
-          <div className="field">
-            <label className="field__label small" htmlFor="pf-lat">Vĩ độ (lat)</label>
-            <input id="pf-lat" className="input" value={f.lat} onChange={set('lat')} inputMode="decimal"
-              aria-invalid={!!errs.lat} placeholder="15.8801" />
-            {errs.lat ? <span className="field__err">{errs.lat}</span> : null}
+      <div className="field place-form__where">
+        <span className="field__label">Vị trí *</span>
+        {hasCoords ? (
+          <p className="place-form__coords">
+            <Icon name="map-pin" size={16} /> {Number(f.lat).toFixed(5)}, {Number(f.lng).toFixed(5)}
+            <span className="muted small"> — kéo ghim trên bản đồ để chỉnh</span>
+          </p>
+        ) : (
+          <p className="place-form__coords place-form__coords--empty">
+            <Icon name="crosshair" size={16} /> Chạm vào bản đồ hoặc tìm địa chỉ ở trên để đặt ghim.
+          </p>
+        )}
+        {errs.lat || errs.lng ? <span className="field__err">{errs.lat || errs.lng}</span> : null}
+        <details className="place-form__manual">
+          <summary>Nhập toạ độ thủ công</summary>
+          <div className="studio-form__row">
+            <div className="field">
+              <label className="field__label small" htmlFor="pf-lat">Vĩ độ (lat)</label>
+              <input id="pf-lat" className="input" value={f.lat} onChange={setCoord('lat')} inputMode="decimal"
+                aria-invalid={!!errs.lat} placeholder="15.8801" />
+            </div>
+            <div className="field">
+              <label className="field__label small" htmlFor="pf-lng">Kinh độ (lng)</label>
+              <input id="pf-lng" className="input" value={f.lng} onChange={setCoord('lng')} inputMode="decimal"
+                aria-invalid={!!errs.lng} placeholder="108.3380" />
+            </div>
           </div>
-          <div className="field">
-            <label className="field__label small" htmlFor="pf-lng">Kinh độ (lng)</label>
-            <input id="pf-lng" className="input" value={f.lng} onChange={set('lng')} inputMode="decimal"
-              aria-invalid={!!errs.lng} placeholder="108.3380" />
-            {errs.lng ? <span className="field__err">{errs.lng}</span> : null}
-          </div>
-        </div>
+        </details>
       </div>
 
       <ImageListField value={f.images} onChange={(images) => setF((st) => ({ ...st, images }))} />

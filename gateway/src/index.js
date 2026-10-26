@@ -6,6 +6,7 @@
 import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { rateLimit } from './rate-limit.js';
+import { createGeocoder } from './geocode.js';
 
 const app = express();
 const PORT = process.env.GATEWAY_PORT || 8080;
@@ -25,6 +26,10 @@ app.use((req, _res, next) => {
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'gateway' }));
 
 app.use(rateLimit);
+
+// UC10 — tìm địa chỉ để đặt điểm dừng (proxy Nominatim có cache + giới hạn 1 req/s).
+const geocoder = createGeocoder({ userAgent: process.env.GEOCODER_USER_AGENT || undefined });
+app.get('/api/geocode', geocoder.handler);
 
 // Route /api/<service>/* -> service tương ứng, cắt bỏ tiền tố /api/<service>.
 const mount = (path, target) =>
