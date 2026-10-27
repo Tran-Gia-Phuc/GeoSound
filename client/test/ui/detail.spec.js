@@ -34,7 +34,9 @@ test('404 never renders fabricated tour content', async ({ page }) => {
 });
 test('live detail connects to gateway', async ({ page }) => {
   test.skip(!process.env.LIVE_API_TESTS, 'Requires gateway');
+  await page.setViewportSize({ width: 390, height: 844 });
   await liveRead(page, null, async (t) =>
     expect(page.getByRole('heading', { name: t.title, exact: true })).toBeVisible(),
   );
+  await noOverflow(page);
 });
