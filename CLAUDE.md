@@ -1,8 +1,8 @@
 # GeoSound: AI and Moderation (agent instructions)
 
-Read this file first in every session, then read `AI_PLAN.md` (decisions, current state, task list, notes for the next tasks). One task per branch, in the order of `AI_PLAN.md` section 4. Several tasks in one session only when the user asks for it.
+Read this file first in every session, then read `AI_PLAN.md` (decisions, current state, task list, notes for the next tasks). One task per branch, in the order of `AI_PLAN.md` section 4. Several tasks in one session only when the user asks for it. **Run tasks with the project skill `/ai-task <N>`** (`.claude/skills/ai-task/SKILL.md`): it holds the full branch → agent → test → review → commit → PR → merge procedure.
 
-**Priority:** finish place moderation (text and images) and tour moderation (content and geo rules) end to end first. LangSmith tracing and the chatbot come after.
+**Priority:** place moderation (text and images) and tour moderation (content and geo rules) are done end to end (phases 1 and 2). Next: #173 LangSmith tracing (optional), then the chatbot (#184 first).
 
 ## 1. Role and language
 
@@ -70,7 +70,8 @@ Limits: title 200, tour description 5000, place name 200, place description 2000
 - Branch from `develop`; never commit to `main`, `staging` or `develop`. One branch, one purpose. Create it from the issue: `gh issue develop <N> --base develop --name <name> --checkout`.
 - Small commits, "one commit, one change", format `<type>: <short description>` with `feat, docs, fix, chore, test, refactor`.
 - **Never `git add .` or `git add -A`.** Add explicit paths. Untracked files `CNPM-main/`, `PROJECT_TREE.md`, `package-lock.json` at the repo root are not ours: never add them.
-- Do not push, open a PR or merge unless the user says so. Before asking to push, show `git log --oneline` of the branch. PR: `gh pr create --base develop --fill --body "Closes #<N>"`; merge with "Create a merge commit" (no squash).
+- Do not push, open a PR or merge unless the user says so. Before asking to push, show `git log --oneline` of the branch. PR: `gh pr create --base develop --fill --body "Closes #<N>"`; merge with "Create a merge commit" (no squash, no `--admin`).
+- Merge only when no CI check fails. The `Client — browser smoke tests` job (`player-controls.spec.js`) is known to be flaky: rerun the failed job and merge when green. After a merge, check the issue is CLOSED (else close it with "Done in PR #<PR>").
 - Docs go under `docs/` in the right phase folder with a `README.md` index; never delete old docs.
 
 ## 6. Safety
@@ -100,6 +101,14 @@ MSYS_NO_PATHCONV=1 docker run --rm --network none -v "E:/CNPM/git/CNPM-main/shar
 # Shared event schema tests
 MSYS_NO_PATHCONV=1 docker run --rm --network none -v "E:/CNPM/git/CNPM-main/shared:/app/shared:ro" -w /app/shared cnpm-main-moderation node --test
 
+# Node tests in the repo layout, the way CI runs them (must also pass; <svc> = moderation or tour)
+MSYS_NO_PATHCONV=1 docker run --rm --network none -v "E:/CNPM/git/CNPM-main:/repo:ro" --entrypoint sh cnpm-main-<svc> -c \n  "mkdir -p /tmp/r && cp -r /repo/shared /repo/services /tmp/r/ && ln -s /app/node_modules /tmp/r/node_modules && cd /tmp/r/services/<svc> && node --test"
+
+# End-to-end with the AI stub (no real LLM): see docs/03-testing/moderation-e2e.md
+docker compose -f docker-compose.yml -f tests/e2e/docker-compose.e2e.yml up -d --build ai-stub moderation
+docker compose -f docker-compose.yml -f tests/e2e/docker-compose.e2e.yml --profile e2e run --rm --build --no-deps e2e
+docker compose up -d moderation && docker compose -f docker-compose.yml -f tests/e2e/docker-compose.e2e.yml rm -sf ai-stub   # restore
+
 # Prisma validate (the moderation image has no prisma CLI)
 MSYS_NO_PATHCONV=1 docker run --rm --network none -e DATABASE_URL="postgresql://ci:ci@localhost:5432/ci?schema=moderation" \
   -v "E:/CNPM/git/CNPM-main/services/moderation/prisma:/p:ro" -w /app cnpm-main-auth npx prisma validate --schema /p/schema.prisma
@@ -107,6 +116,8 @@ MSYS_NO_PATHCONV=1 docker run --rm --network none -e DATABASE_URL="postgresql://
 docker compose -f docker-compose.yml config -q   # validate compose; never run `config` without -q (prints secrets)
 docker compose logs --tail 30 <service>
 ```
+
+**CI rule for Node services:** CI runs `npm test` from the repo layout, where `services/<svc>/../shared` does not exist. Only `src/index.js` may import `../shared/...`; everything else gets `validateEvent` / `publish` injected, and test helpers load shared with a dynamic import (repo path first, then image path).
 
 Add `--build` after changing `requirements.txt` or `package.json`. Use `exec -T` with pipes or heredocs. Use `git --no-pager`. The root `.env` must have no duplicated keys.
 
@@ -120,21 +131,22 @@ Add `--build` after changing `requirements.txt` or `package.json`. Use `exec -T`
 
 ## 9. Layout of the AI and Moderation code
 
-New files exist as stubs (`throw new Error('not implemented: #AI-xx')` or `NotImplementedError`); each file header names its task. Do not move files; fill them in.
+Phases 1 and 2 are implemented; chatbot files under `services/ai/app/chatbot/` are still stubs. Do not move files.
 
 ```text
 services/ai/app/
-  api/            moderation.py (to rewrite, #AI-30), translation.py (not ours)
-  moderation/     schema.py policy.py (existing), place_service.py tour_service.py pipeline.py
-                  validator.py images.py (phase 2), tracing.py (LangSmith, optional),
+  api/            moderation.py (POST /moderate/place, /moderate/tour), translation.py (not ours)
+  moderation/     schema.py policy.py place_service.py tour_service.py pipeline.py
+                  validator.py images.py, tracing.py (LangSmith, optional, #AI-32),
                   prompts/{place,tour}_moderation.txt
   chatbot/        phase 3: LangGraph agent, LangChain models, graph + vector RAG (#AI-43 to #AI-48)
-  middleware/     auth.py (x-internal-token, #AI-28)
+  middleware/     auth.py (x-internal-token)
 services/moderation/src/
   config.js  container.js  index.js
   domain/         entities, errors, ports, moderation/{case-state-machine,merge-verdicts}.js,
                   geo/{distance,tour-geo-rules}.js (pure JS)
-  application/    dtos/ai-mapping.js, use-cases/{run-place-review,run-tour-review,retry-failed-cases}.js
+  application/    events.js, dtos/ai-mapping.js,
+                  use-cases/{review-case-flow,run-place-review,run-tour-review,retry-failed-cases}.js
   infrastructure/ ai/http-ai-reviewer.js, retry/with-retry.js, persistence/*, messaging/event-publisher.js
   interfaces/     events/{place,tour}-submitted-consumer.js, jobs/retry-sweeper.js
 ```
@@ -153,6 +165,6 @@ The main agent owns git, the issue, and the final answer to the user. Delegate w
 | `contract-reviewer` | read-only review of events, HTTP contract, secrets, git hygiene, before asking the user to push |
 | `docs-writer` | English docs under `docs/` |
 
-Typical task: dev agent implements (code plus tests) -> `test-runner` -> `contract-reviewer` (fix every FAIL, review again) -> main agent commits, shows `git log --oneline` and waits for the user (or pushes and merges when the user allowed it for that run).
+Typical task (automated by `/ai-task`): dev agent implements (code plus tests) -> `test-runner` -> `contract-reviewer` (fix every FAIL, review again) -> main agent commits, shows `git log --oneline` and waits for the user (or pushes and merges when the user allowed it for that run). Independent tasks run in parallel in git worktrees (`/e/CNPM/git/wt-<N>`).
 
 If `ai-python-dev` or `moderation-node-dev` is not available in the session, use `general-purpose` and paste the rules from the matching `.claude/agents/*.md` file into its prompt.

@@ -32,54 +32,43 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 | D13 | Quota | Moderation prefetch 2 + a semaphore in AI; Groq absorbs text-only overflow |
 | D14 | Geo rules | Moderation `domain/geo/tour-geo-rules.js`, rules G1 to G6, limits per tour type; only G1 (invalid coordinate) rejects; findings use category `route` |
 | D15 | Forbidden zones | Already checked by Tour when a place is added; Moderation does not repeat it |
+| D16 | Concurrency | Every move into `reviewing` and every re-publish claims the case with a compare-and-set (`claim`), so a sweep and a consumer never process the same case twice |
+| D17 | Sweeper | Every 60 s: retries `ai_failed` and stale `pending` / `reviewing` cases, and re-publishes `done` / `failed_permanent` results whose publish failed. `RETRY_STALE_AFTER_MS` must exceed the worst-case review time |
+| D18 | Images | AI fetches images itself (https, host allowlist, no redirects, type + magic bytes, 3 MB). Permanent image problem → Warning `images[n]`; temporary → 503. Moderation stores `imagesChecked` and downgrades a Pass with unexplained unchecked images to Warning |
+| D19 | Tour edge cases | No `revision` → skipped; missing title / language / places → human-review Warning without an AI call; temporary AI failure publishes nothing even when G1 fired (whole review retried) |
+| D20 | Tour side (PR #213, owner reviews) | Tour stores `moderationRevision` before publishing and applies a result with a conditional update on it; editing a tour or its places while in moderation sends it back to `draft` |
 
-## 3. Current state
 
-**Goal: finish place moderation (F1, text and images) and tour moderation (F2) end to end before anything else.** LangSmith tracing and the chatbot come after.
+## 3. Current state (2026-10-27)
 
-- Merged before V4: #AI-01 to #AI-10 (issues #5 to #14). Scaffold of V4 files: PR #190.
-- Merged in V4 (2026-10-27):
-  - #166 architecture V4 and spec v3.0 (PR #191)
-  - #167 shared events: `place.*`, extended `tour.*`, `reasonSchema` with category `route` (PR #192)
-  - #168 env and compose variables, `moderation` depends on `ai` (PR #193)
-  - #169 `x-internal-token` on `/moderate/*`, fail closed; `validator.py` (`clip`, `sanitize_text`, `wrap`) already used by the old `/moderate` prompt (PR #194)
-  - #174 `ModerationCase` model, state machine, `mergeVerdicts`, Prisma and in-memory repositories (PR #195)
-  - #176 tour geo rules G1 to G6, `config.geo` from `GEO_*` (PR #196)
-- Closed as superseded: #15 to #22 and #60 to #65 (old design).
-- Still old code in AI: `moderation/service.py`, `POST /moderate` (`stops`), `prompts/text_moderation.txt`, `events/` package; `schema.py` has no `irrelevant` category and keeps its own limit constants (to import from `validator.py`). Replaced by #170 to #172.
-- Local `.env` (owner action): set `INTERNAL_SERVICE_TOKEN` (long random value), otherwise every `/moderate/*` call is 401. After the next `docker compose up --build`, check `docker compose logs moderation`: if `db push skipped` appears (old `moderation_logs` table had rows), run `npx prisma db push --accept-data-loss` once for the moderation schema.
-- CI (`.github/workflows/ci.yml`): node syntax check, `prisma validate`, `npm test --workspaces --if-present` (now runs `shared` and `moderation` tests), client build. Python tests are not in CI.
+**Phase 1 and 2 are done end to end** (place text and images, tour content and geo rules). Proven by `tests/e2e/moderation-e2e.mjs` against the stack with the AI stub: 9/9 PASS.
+
+- Merged: #166 to #172, #174 to #179, #181 to #183 (PRs #191 to #196, #203 to #212, #214). Superseded and closed: #15 to #22, #60 to #65.
+- Open, not ours to merge: **#180 Tour integration, PR #213** (CI green). The Tour owner reviews it, runs `npx prisma db push` for schema `tour`, then sets `MODERATION_EVENTS_ENABLED=true`.
+- Not done: #173 LangSmith tracing (optional), #184 to #189 chatbot (phase 3).
+- Owner actions on the local stack: set `INTERNAL_SERVICE_TOKEN` in `.env`; after `docker compose up --build moderation`, `docker compose logs moderation` must show the Prisma schema in sync.
+- Never run against real Gemini without an explicit request (rate limits, cost). The e2e uses the stub.
+
+Known limits (accepted for now):
+- A `place.submitted` / `tour.submitted` that arrives while the moderation DB is down is acked and lost (shared `consume()` has no requeue / DLQ). Tour can resubmit.
+- If more than 50 reasons are merged for a tour, the cap may hide geo reasons (the verdict is still correct).
+- CI: `Client — browser smoke tests` (`player-controls.spec.js`) is flaky and unrelated to our code; rerun the failed job before merging.
 
 ## 4. Tasks (label `ai-service`)
 
-Work in this order (a step starts when its dependencies are merged; tasks in the same step are independent):
+| Code | Issue | Branch | Status |
+| --- | --- | --- | --- |
+| AI-25 to AI-38, AI-40 to AI-42 | #166 to #179, #181 to #183 | | merged |
+| AI-39 Tour integration (flag) | #180 | `feature/tour-moderation-integration` | PR #213 open, Tour owner reviews and merges |
+| AI-32 LangSmith tracing | #173 | `feature/ai-langsmith-tracing` | next (optional) |
+| AI-43 chatbot design | #184 | `docs/chatbot-architecture` | phase 3, first |
+| AI-44 to AI-48 chatbot | #185 to #189 | | phase 3, after #184 |
 
-| Step | Code | Issue | Branch | Depends on | Status |
-| --- | --- | --- | --- | --- | --- |
-| done | AI-25, 26, 27, 28, 33, 35 | #166 to #169, #174, #176 | | | merged |
-| 1 | AI-29 place text moderation | #170 | `feature/ai-place-moderation` | 28 | |
-| 1 | AI-34 HTTP AI reviewer | #175 | `feature/moderation-ai-reviewer` | 33 | |
-| 2 | AI-30 `POST /moderate/place` | #171 | `feature/ai-moderate-place-endpoint` | 29 | |
-| 2 | AI-36 place flow | #177 | `feature/moderation-place-flow` | 26, 33, 34 | |
-| 3 | AI-31 tour content + `POST /moderate/tour` | #172 | `feature/ai-tour-moderation` | 30 | |
-| 3 | AI-38 retry sweeper | #179 | `feature/moderation-retry-job` | 36 | |
-| 4 | AI-37 tour flow | #178 | `feature/moderation-tour-flow` | 31, 35, 36 | |
-| 4 | AI-41 place images (AI) | #182 | `feature/ai-place-images` | 30 | |
-| 5 | AI-42 images through Moderation | #183 | `feature/moderation-place-images` | 36, 41 | |
-| 5 | AI-39 Tour integration (flag) | #180 | `feature/tour-moderation-integration` | 26; open PR only, the Tour owner reviews and merges | |
-| 6 | AI-40 e2e script | #181 | `test/moderation-e2e` | 37, 42 (39 for the real Tour round trip; a stub Tour publisher is enough before it) | |
-| later | AI-32 LangSmith tracing | #173 | `feature/ai-langsmith-tracing` | 30 | optional |
-| later | AI-43 to AI-48 chatbot | #184 to #189 | | 43 first | phase 3 |
-
-Place images (#182, #183) moved before tracing and the chatbot: place moderation covers text and images.
-
-## 5. Notes for the next tasks (found while building the merged tasks)
+## 5. Notes for the next tasks
 
 | Task | Note |
 | --- | --- |
-| #170, #171 | Add `irrelevant` to `Category` in `schema.py`; new schemas import limits from `validator.py`; build prompts only with `validator.wrap()` |
-| #172 | Delete `moderation/service.py`, `prompts/text_moderation.txt`, the `events/` package and old `POST /moderate` with its tests |
-| #177 | `shared/rabbitmq` `consume()` has no prefetch: add an optional `{ prefetch }` argument (additive, other services unchanged) for D13. Cap published `reasons` at 50 and `reason` at 1000 characters (`reasonSchema` limits) |
-| #178 | Same caps after merging geo and AI reasons. Geo `field` `places[i]` uses the order after sorting by `sequence`; also put the `placeId` in the message so Tour can map it |
-| #179 | Stale `reviewing` cases (crash during the AI call) go `reviewing -> ai_failed -> reviewing`. Stubs still say `#AI-29`: rename to `#AI-38` |
-| #180 | Tour must store reasons from both sources and show geo messages (English only) |
+| all Node tasks | Only `src/index.js` may import `../shared/...`; inject `validateEvent` / `publish` elsewhere (CI runs tests from the repo layout, where `../shared` does not exist). Test helpers load shared with a dynamic import that tries the repo path, then the image path |
+| all tasks | Merge only when no CI check fails; for the known flaky UI test, rerun the failed job first (`gh run rerun <id> --failed`) |
+| #173 | Wrap `PlaceModerator` and `TourModerator` calls with `langsmith` `@traceable` only when `LANGSMITH_TRACING=true`; no import side effects when off; never log prompts with secrets |
+| #184 | Decide vector store (pgvector image vs Chroma) and how the chatbot gets public tour data (content-carrying event vs Tour public API) with the team before coding |
