@@ -48,6 +48,7 @@ export default function LoginPage({ initialTab = 'login' }) {
   const [form, setForm] = useState({ fullName: '', email: '', password: '', otp: '' });
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
+  const [accessError, setAccessError] = useState(null);
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [otpLeft, restartOtp] = useCountdown(0);
@@ -61,6 +62,7 @@ export default function LoginPage({ initialTab = 'login' }) {
     setErrors({});
     setServerError('');
     setNotice('');
+    setAccessError(null);
     navigate(`/${t}${location.search}`, { replace: true });
   };
 
@@ -77,12 +79,20 @@ export default function LoginPage({ initialTab = 'login' }) {
   async function go(fn) {
     setBusy(true);
     setServerError('');
+    setAccessError(null);
     try {
       await fn();
     } catch (err) {
       // Lỗi xác thực theo trường (nếu server trả details) -> gắn vào field.
       if (err?.details && typeof err.details === 'object') setErrors((p) => ({ ...p, ...err.details }));
-      setServerError(err?.message || 'Có lỗi xảy ra, vui lòng thử lại');
+      const messages = {
+        account_locked: 'Tài khoản tạm khóa do đăng nhập sai nhiều lần. Hãy thử lại sau hoặc đặt lại mật khẩu.',
+        account_banned: 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên của dự án để được hỗ trợ.',
+        invalid_credentials: 'Email hoặc mật khẩu không đúng. Hãy kiểm tra và thử lại.',
+      };
+      if (tab === 'login' && (messages[err.code] || err.offline)) {
+        setAccessError({ code: err.offline ? 'offline' : err.code, message: messages[err.code] || 'Chưa kết nối được máy chủ. Hãy kiểm tra mạng và thử đăng nhập lại.' });
+      } else setServerError(err?.message || 'Có lỗi xảy ra, vui lòng thử lại');
     } finally {
       setBusy(false);
     }
@@ -251,6 +261,14 @@ export default function LoginPage({ initialTab = 'login' }) {
                   </p>
 
                   <ErrorAlert>{serverError}</ErrorAlert>
+                  {tab === 'login' && accessError ? <section className="alert alert--warn" role="alert">
+                    <Icon name="alert-triangle" size={22} />
+                    <div><b>{accessError.code === 'account_banned' ? 'Tài khoản đã bị khóa' : accessError.code === 'account_locked' ? 'Tài khoản tạm khóa' : 'Đăng nhập chưa thành công'}</b>
+                      <p>{accessError.message}</p>
+                      {accessError.code === 'account_locked' ? <Link to={'/forgot-password' + location.search} className="linkbtn">Đặt lại mật khẩu</Link> : null}
+                      <Link to="/" className="linkbtn">Tiếp tục khám phá</Link>
+                    </div>
+                  </section> : null}
 
                   <form className="auth__form" onSubmit={tab === 'login' ? onLogin : onRegister} noValidate>
                     {tab === 'register' ? (
