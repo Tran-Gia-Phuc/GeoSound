@@ -82,6 +82,30 @@ test('200 place: path, token header, snake_case truncated body, mapped result', 
   assert.deepEqual(delays, []);
 });
 
+test('200 place with images: images forwarded (max 5, caption cut), images_checked mapped', async () => {
+  script = [reply(200, { ...okPlace, verdict: 'Pass', severity: 0.1, reasons: [], images_checked: 5 })];
+  const { r } = reviewer();
+  const images = Array.from({ length: 7 }, (_, i) => ({ url: `https://storage.example/img/${i}.jpg`, ...(i === 1 && { caption: 'c'.repeat(400) }) }));
+  const out = await r.reviewPlace({ ...placeEvent, images });
+  assert.equal(out.imagesChecked, 5);
+  const sent = hits[0].body.images;
+  assert.equal(sent.length, 5);
+  assert.deepEqual(sent[0], { url: 'https://storage.example/img/0.jpg' });
+  assert.equal(sent[1].url, 'https://storage.example/img/1.jpg');
+  assert.equal(sent[1].caption.length, 300);
+  assert.deepEqual(sent.map((i) => i.url), images.slice(0, 5).map((i) => i.url));
+});
+
+test('503 on a place with images is temporary and retried', async () => {
+  script = [reply(503, { detail: 'all providers failed' })];
+  const { r, delays } = reviewer();
+  const images = [{ url: 'https://storage.example/img/0.jpg' }];
+  await assert.rejects(r.reviewPlace({ ...placeEvent, images }), (err) => err instanceof AiTemporaryError && err.status === 503);
+  assert.equal(hits.length, 3);
+  assert.ok(hits.every((h) => h.body.images.length === 1));
+  assert.deepEqual(delays.length, 2);
+});
+
 test('200 tour: path and snake_case body; result has no imagesChecked', async () => {
   script = [reply(200, { tour_id: 't1', verdict: 'Pass', severity: 0.1, reasons: [], model: 'llama-3.3' })];
   const { r } = reviewer();

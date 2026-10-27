@@ -9,7 +9,7 @@
 //   subjectType, label                 'place' | 'tour'
 //   caseKey(payload)                   { subjectId, tourId, revision }
 //   tagOf(row) / tagOfPayload(p)       short log tag with ids only, never content
-//   check(payload)                     -> { verdict, severity, reasons, model }; throws AiPermanentError /
+//   check(payload)                     -> { verdict, severity, reasons, model, imagesChecked? }; throws AiPermanentError /
 //                                         AiTemporaryError from the AI
 //   permanentResult(payload, err)      -> { verdict, severity, reasons } published for human review on a 422
 //   buildResultEvent(case, at)         -> { eventName, payload }
@@ -181,6 +181,7 @@ export class ReviewCaseFlow {
         severity: result.severity,
         reasons: result.reasons,
         model: result.model ?? null,
+        imagesChecked: Number.isInteger(result.imagesChecked) ? result.imagesChecked : 0,
         lastError: null,
         checkedAt: this.clock.now(),
       }));

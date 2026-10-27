@@ -76,6 +76,37 @@ test('ai_failed older than the cutoff is retried from the stored payload and pub
   assert.equal(ctx.ai.calls.length, 2);
 });
 
+test('image place: AI 503 -> ai_failed, nothing published; sweeper retry publishes once and stores imagesChecked', async () => {
+  const ctx = setup();
+  const images = [{ url: 'https://storage.example/img/0.jpg' }, { url: 'https://storage.example/img/1.jpg', caption: 'Gate' }];
+  ctx.ai.responder = () => {
+    if (ctx.ai.mode === 'down') throw temporary();
+    return aiResult({ imagesChecked: 2 });
+  };
+  ctx.ai.mode = 'down';
+  await ctx.runPlaceReview.execute(place('p1', { images }));
+  let c = await ctx.caseOf();
+  assert.equal(c.status, 'ai_failed');
+  assert.equal(c.imagesChecked, 0);
+  assert.equal(ctx.publisher.events.length, 0);
+
+  ctx.ai.mode = 'ok';
+  ctx.clock.advance(FAILED_AFTER + 1);
+  assert.deepEqual(await ctx.sweeper.execute(), { ...zero, retried: 1 });
+  assert.deepEqual(ctx.ai.calls[1], ['place', place('p1', { images })]);
+  assert.equal(ctx.publisher.events.length, 1);
+  assert.equal(ctx.publisher.events[0].eventName, 'place.ai_passed');
+  assert.equal(ctx.publisher.events[0].payload.warning, false);
+  c = await ctx.caseOf();
+  assert.equal(c.status, 'done');
+  assert.equal(c.imagesChecked, 2);
+  assert.equal(c.attempts, 2);
+
+  ctx.clock.advance(STALE_AFTER * 3);
+  assert.deepEqual(await ctx.sweeper.execute(), zero);
+  assert.equal(ctx.publisher.events.length, 1);
+});
+
 test('ai_failed younger than the cutoff is not retried', async () => {
   const ctx = setup();
   await aiFailedCase(ctx);

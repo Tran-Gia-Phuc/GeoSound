@@ -23,6 +23,8 @@ model ModerationCase {
   reasons     Json      @default("[]")
   attempts    Int       @default(0)
   model       String?
+  // Place images the AI checked (images_checked); 0 for tours and when the AI gave no result.
+  imagesChecked Int     @default(0) @map("images_checked")
   lastError   String?   @map("last_error")
   payload     Json // original event payload, used by the sweeper to retry
   publishedAt DateTime? @map("published_at")

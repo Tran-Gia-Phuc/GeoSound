@@ -26,7 +26,7 @@ export class InMemoryModerationRepository {
     const row = {
       id: randomUUID(), subjectType, subjectId, tourId, revision,
       status: CASE_STATUS.PENDING, verdict: null, severity: null, reasons: [], attempts: 0,
-      model: null, lastError: null, payload, publishedAt: null, checkedAt: null,
+      model: null, imagesChecked: 0, lastError: null, payload, publishedAt: null, checkedAt: null,
       createdAt: now, updatedAt: now,
     };
     this.rows.set(row.id, row);

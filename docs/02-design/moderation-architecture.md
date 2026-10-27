@@ -90,6 +90,7 @@ sequenceDiagram
 - Phase 2 (images): up to 5 images in the same Gemini call. A place with images is never sent to Groq (text only)
   and is never Passed with unchecked images: an image that permanently cannot be read gives a Warning with
   reason `images[n]`; a temporary failure is retried.
+- Moderation stores `imagesChecked` on the case. As a defensive check, a Pass whose `imagesChecked` is lower than the number of images (and the missing ones are not explained by `images[n]` reasons) is downgraded to a Warning with reason field `images`.
 
 ## 5. Flow F2: tour moderation
 

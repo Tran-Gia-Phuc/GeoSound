@@ -205,3 +205,92 @@ test('two concurrent deliveries of one revision call the AI once (compare-and-se
   assert.equal((await caseOf()).attempts, 1);
   assert.ok(logger.lines.some(([level, m]) => level === 'info' && /claimed by another worker/.test(m)));
 });
+
+// Place images (phase 2, task #AI-42).
+const imgs = (n) => Array.from({ length: n }, (_, i) => ({ url: `https://storage.example/img/${i}.jpg` }));
+
+test('images: the payload images reach the AI and imagesChecked is stored on the case', async () => {
+  const { uc, ai, publisher, caseOf } = setup(() => aiResult({ imagesChecked: 3 }));
+  await uc.execute(place({ images: imgs(3) }));
+  assert.deepEqual(ai.calls[0][1].images, imgs(3));
+  assert.equal(publisher.events[0].eventName, 'place.ai_passed');
+  assert.equal(publisher.events[0].payload.warning, false);
+  const c = await caseOf();
+  assert.equal(c.verdict, 'Pass');
+  assert.equal(c.imagesChecked, 3);
+});
+
+test('images: a text-only place stores imagesChecked 0', async () => {
+  const { uc, caseOf } = setup(() => aiResult());
+  await uc.execute(place());
+  assert.equal((await caseOf()).imagesChecked, 0);
+});
+
+test('images: Pass with fewer images checked and no images[n] reason is downgraded to Warning', async () => {
+  const { uc, publisher, caseOf, logger } = setup(() => aiResult({ imagesChecked: 1 }));
+  await uc.execute(place({ images: imgs(3) }));
+  const { eventName, payload } = publisher.events[0];
+  assert.equal(eventName, 'place.ai_passed');
+  assert.equal(payload.warning, true);
+  assert.equal(payload.severity, 0.5);
+  assert.deepEqual(payload.reasons, [{
+    field: 'images', category: 'other', message: 'Some images were not checked; needs human review.', source: 'ai',
+  }]);
+  const c = await caseOf();
+  assert.equal(c.verdict, 'Warning');
+  assert.equal(c.imagesChecked, 1);
+  assert.ok(logger.lines.some(([level, m]) => level === 'warn' && /unchecked images/.test(m)));
+});
+
+test('images: missing imagesChecked on a place with images is treated as 0 and never Passed', async () => {
+  const { uc, publisher } = setup(() => aiResult({ imagesChecked: undefined }));
+  await uc.execute(place({ images: imgs(1) }));
+  assert.equal(publisher.events[0].payload.warning, true);
+});
+
+test('images: each missing image explained by an images[n] reason is not downgraded again', async () => {
+  // Pass with images[n] reasons does not happen with the AI policy, but the check must not add a duplicate.
+  const reasons = [aiReason({ field: 'images[0]', category: 'other' }), aiReason({ field: 'images[2]', category: 'other' })];
+  const { uc, publisher } = setup(() => aiResult({ imagesChecked: 1, reasons }));
+  await uc.execute(place({ images: imgs(3) }));
+  const { payload } = publisher.events[0];
+  assert.equal(payload.warning, false);
+  assert.deepEqual(payload.reasons.map((r) => r.field), ['images[0]', 'images[2]']);
+});
+
+test('images: only one images[n] reason for two missing images still downgrades', async () => {
+  const reasons = [aiReason({ field: 'images[0]', category: 'other' })];
+  const { uc, publisher } = setup(() => aiResult({ imagesChecked: 1, reasons }));
+  await uc.execute(place({ images: imgs(3) }));
+  const { payload } = publisher.events[0];
+  assert.equal(payload.warning, true);
+  assert.deepEqual(payload.reasons.map((r) => r.field), ['images[0]', 'images']);
+});
+
+test('images: more than 5 payload images counts only the 5 sent', async () => {
+  const { uc, publisher } = setup(() => aiResult({ imagesChecked: 5 }));
+  await uc.execute(place({ images: imgs(7) }));
+  assert.equal(publisher.events[0].payload.warning, false);
+});
+
+test('images: Warning and Reject are kept as they are', async () => {
+  const warn = setup(() => aiResult({ verdict: 'Warning', severity: 0.6, imagesChecked: 0, reasons: [aiReason()] }));
+  await warn.uc.execute(place({ images: imgs(2) }));
+  assert.deepEqual(warn.publisher.events[0].payload.reasons, [aiReason()]);
+  assert.equal(warn.publisher.events[0].payload.severity, 0.6);
+  // Blocked content: Reject with images_checked 0.
+  const rej = setup(() => aiResult({ verdict: 'Reject', severity: 1, imagesChecked: 0, reasons: [aiReason({ category: 'other' })] }));
+  await rej.uc.execute(place({ images: imgs(2) }));
+  assert.equal(rej.publisher.events[0].eventName, 'place.ai_rejected');
+  assert.equal(rej.publisher.events[0].payload.reasons.length, 1);
+});
+
+test('images: AI 503 leaves ai_failed with imagesChecked 0 and publishes nothing', async () => {
+  const { uc, publisher, caseOf } = setup(() => { throw new AiTemporaryError('AI service answered 503', { status: 503, kind: 'server' }); });
+  await uc.execute(place({ images: imgs(2) }));
+  assert.equal(publisher.events.length, 0);
+  const c = await caseOf();
+  assert.equal(c.status, 'ai_failed');
+  assert.equal(c.imagesChecked, 0);
+  assert.match(c.lastError, /503/);
+});
