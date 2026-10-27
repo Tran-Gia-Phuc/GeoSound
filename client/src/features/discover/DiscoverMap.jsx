@@ -43,8 +43,8 @@ export default function DiscoverMap({ kind, items, me, onOpenPlace, onAddPlace }
       items
         .map((it) =>
           kind === 'tours'
-            ? it.anchor ? { id: it.id, lat: it.anchor.lat, lng: it.anchor.lng, item: it } : null
-            : Number.isFinite(it.lat) ? { id: it.placeId, lat: it.lat, lng: it.lng, item: it } : null,
+            ? Number.isFinite(it.anchor?.lat) && Number.isFinite(it.anchor?.lng) ? { id: it.id, lat: it.anchor.lat, lng: it.anchor.lng, item: it } : null
+            : Number.isFinite(it.lat) && Number.isFinite(it.lng) ? { id: it.placeId, lat: it.lat, lng: it.lng, item: it } : null,
         )
         .filter(Boolean),
     [items, kind],

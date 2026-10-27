@@ -4,6 +4,7 @@
 //   (chi tiết tour dùng fetchTourDetail() ở lib/api.js — tái dùng cho UC04)
 // =========================================================
 import { api } from './api.js';
+import { requireDiscoveryPage } from './discovery-data.js';
 
 // Loại tour (khớp TOUR_TYPES ở backend: walking/driving/cycling/indoor).
 export const TOUR_TYPE_OPTIONS = [
@@ -43,5 +44,5 @@ export async function searchTours(params = {}, opts) {
     if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
   }
   const s = qs.toString();
-  return api.get(`/api/tours${s ? `?${s}` : ''}`, opts);
+  return requireDiscoveryPage(await api.get(`/api/tours${s ? `?${s}` : ''}`, opts), 'tours');
 }
