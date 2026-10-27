@@ -9,6 +9,9 @@
     "./middleware": "./middleware/index.js",
     "./rabbitmq": "./rabbitmq/index.js"
   },
+  "scripts": {
+    "test": "node --test"
+  },
   "dependencies": {
     "amqplib": "^0.10.4",
     "jsonwebtoken": "^9.0.2",
