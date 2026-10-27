@@ -36,6 +36,10 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 | D17 | Sweeper | Every 60 s: retries `ai_failed` and stale `pending` / `reviewing` cases, and re-publishes `done` / `failed_permanent` results whose publish failed. `RETRY_STALE_AFTER_MS` must exceed the worst-case review time |
 | D18 | Images | AI fetches images itself (https, host allowlist, no redirects, type + magic bytes, 3 MB). Permanent image problem → Warning `images[n]`; temporary → 503. Moderation stores `imagesChecked` and downgrades a Pass with unexplained unchecked images to Warning |
 | D19 | Tour edge cases | No `revision` → skipped; missing title / language / places → human-review Warning without an AI call; temporary AI failure publishes nothing even when G1 fired (whole review retried) |
+| D21 | Chatbot data | Tour publishes `tour.published` / `tour.unpublished` behind `CHATBOT_EVENTS_ENABLED`; the AI indexer is the only RabbitMQ consumer in the AI service |
+| D22 | Chatbot store | pgvector in the shared Postgres (custom image), schema `ai`, `DATABASE_URL_AI`; graph as edge tables; local multilingual embeddings |
+| D23 | Chatbot auth | Gateway JWT checks skipped for now: anonymous sessions by `session_id`; gateway adds `x-internal-token` and chat rate limits |
+| D24 | Other services | Changes to Tour, Gateway and infra are written by the AI team behind flags and merged only by their owners; requests in `docs/02-design/ai-integration-requests.md` |
 | D20 | Tour side (PR #213, owner reviews) | Tour stores `moderationRevision` before publishing and applies a result with a conditional update on it; editing a tour or its places while in moderation sends it back to `draft` |
 
 
@@ -60,9 +64,13 @@ Known limits (accepted for now):
 | --- | --- | --- | --- |
 | AI-25 to AI-38, AI-40 to AI-42 | #166 to #179, #181 to #183 | | merged |
 | AI-39 Tour integration (flag) | #180 | `feature/tour-moderation-integration` | PR #213 open, Tour owner reviews and merges |
-| AI-32 LangSmith tracing | #173 | `feature/ai-langsmith-tracing` | next (optional) |
-| AI-43 chatbot design | #184 | `docs/chatbot-architecture` | phase 3, first |
-| AI-44 to AI-48 chatbot | #185 to #189 | | phase 3, after #184 |
+| AI-43 chatbot design | #184 | `docs/chatbot-architecture` | merged (PR #217) |
+| AI-32 LangSmith tracing | #173 | | merged (PR #216) |
+| AI-46 LangGraph agent (fake retriever) | #187 | `feature/chatbot-agent` | next (no external dependency) |
+| AI-44 knowledge graph and vector index | #185 | `feature/chatbot-index` | next; Tour events and pgvector image as separate PRs for their owners |
+| AI-45 hybrid retriever | #186 | `feature/chatbot-retriever` | after #185 |
+| AI-47 `POST /chat` and gateway route | #188 | `feature/chatbot-api` | after #186, #187 |
+| AI-48 chatbot evaluation | #189 | `test/chatbot-eval` | after #188 |
 
 ## 5. Notes for the next tasks
 
@@ -70,5 +78,4 @@ Known limits (accepted for now):
 | --- | --- |
 | all Node tasks | Only `src/index.js` may import `../shared/...`; inject `validateEvent` / `publish` elsewhere (CI runs tests from the repo layout, where `../shared` does not exist). Test helpers load shared with a dynamic import that tries the repo path, then the image path |
 | all tasks | Merge only when no CI check fails; for the known flaky UI test, rerun the failed job first (`gh run rerun <id> --failed`) |
-| #173 | Wrap `PlaceModerator` and `TourModerator` calls with `langsmith` `@traceable` only when `LANGSMITH_TRACING=true`; no import side effects when off; never log prompts with secrets |
-| #184 | Decide vector store (pgvector image vs Chroma) and how the chatbot gets public tour data (content-carrying event vs Tour public API) with the team before coding |
+| #185 to #189 | Follow `chatbot-architecture.md`. One LLM call per normal turn; tests use FakeLLM and a fake retriever/embedder; no real Gemini |
