@@ -6,11 +6,14 @@
 //   done / failed_permanent, publishedAt null,
 //   older than staleAfterMs                     -> re-publish the stored result, no AI call
 //
-// The work itself lives in RunPlaceReview (retry / republish) so the logic is not duplicated. Every status
+// The work itself lives in RunPlaceReview / RunTourReview (retry / republish, shared flow in
+// review-case-flow.js) so the logic is not duplicated. Every status
 // change there is a compare-and-set claim, so two sweeps (or a sweep and a consumer) never process the same
 // case at once: the loser gets null and the case is counted as skipped.
 // A successful retry publishes exactly once. execute() never throws (it runs from a timer).
 import { CASE_STATUS, SUBJECT } from '../../domain/entities/moderation-case.js';
+
+/** @typedef {{ retry: (row: object) => Promise<string>, republish: (row: object) => Promise<string> }} CaseReviewer */
 
 export const DEFAULT_BATCH_SIZE = 10;
 
@@ -24,14 +27,15 @@ const REPUBLISH_OUTCOME = Object.freeze({ republished: 'republished', skipped: '
 export class RetryFailedCases {
   /**
    * @param {{ repo: import('../../domain/ports/index.js').ModerationRepository,
-   *           runPlaceReview: { retry: (row: object) => Promise<string>, republish: (row: object) => Promise<string> },
+   *           runPlaceReview: CaseReviewer, runTourReview?: CaseReviewer,
    *           clock: import('../../domain/ports/index.js').Clock,
    *           config: { failedAfterMs: number, staleAfterMs?: number, batchSize?: number },
    *           logger?: Pick<Console, 'info' | 'warn' | 'error'> & { debug?: (m: string) => void } }} deps
    */
-  constructor({ repo, runPlaceReview, clock, config, logger = console }) {
+  constructor({ repo, runPlaceReview, runTourReview, clock, config, logger = console }) {
     const { failedAfterMs, staleAfterMs = failedAfterMs, batchSize = DEFAULT_BATCH_SIZE } = config;
-    Object.assign(this, { repo, runPlaceReview, clock, logger, failedAfterMs, staleAfterMs, batchSize });
+    Object.assign(this, { repo, runPlaceReview, runTourReview, clock, logger, failedAfterMs, staleAfterMs, batchSize });
+    this.reviewers = Object.freeze({ [SUBJECT.PLACE]: runPlaceReview, [SUBJECT.TOUR]: runTourReview });
   }
 
   /** @returns {Promise<{ retried: number, republished: number, skipped: number, failed: number }>} */
@@ -68,15 +72,15 @@ export class RetryFailedCases {
   }
 
   async #process(row) {
-    if (row.subjectType !== SUBJECT.PLACE) {
-      // TODO(#AI-37, issue #178): retry / re-publish tour cases once RunTourReview exists.
-      this.logger.debug?.(`[moderation] sweeper skips ${row.subjectType} case ${row.subjectId}: not supported yet (#AI-37)`);
+    const reviewer = Object.hasOwn(this.reviewers, row.subjectType) ? this.reviewers[row.subjectType] : undefined;
+    if (!reviewer) {
+      this.logger.warn(`[moderation] sweeper skips ${row.subjectType} case ${row.subjectId}: no reviewer for this subject type`);
       return 'skipped';
     }
     if (row.status === CASE_STATUS.DONE || row.status === CASE_STATUS.FAILED_PERMANENT) {
-      return REPUBLISH_OUTCOME[await this.runPlaceReview.republish(row)] ?? 'failed';
+      return REPUBLISH_OUTCOME[await reviewer.republish(row)] ?? 'failed';
     }
     // pending, reviewing, ai_failed. 'ai_failed' (AI still down) and 'error' count as failed.
-    return RETRY_OUTCOME[await this.runPlaceReview.retry(row)] ?? 'failed';
+    return RETRY_OUTCOME[await reviewer.retry(row)] ?? 'failed';
   }
 }
