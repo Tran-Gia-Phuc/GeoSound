@@ -1,6 +1,8 @@
 # GeoSound: AI and Moderation (agent instructions)
 
-Read this file first in every session, then read `AI_PLAN.md` (decisions, current state, task list). Do one task per session.
+Read this file first in every session, then read `AI_PLAN.md` (decisions, current state, task list, notes for the next tasks). One task per branch, in the order of `AI_PLAN.md` section 4. Several tasks in one session only when the user asks for it.
+
+**Priority:** finish place moderation (text and images) and tour moderation (content and geo rules) end to end first. LangSmith tracing and the chatbot come after.
 
 ## 1. Role and language
 
@@ -85,12 +87,24 @@ Limits: title 200, tour description 5000, place name 200, place description 2000
 docker compose up -d --build
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build ai   # dev, mounts services/ai/app only
 
-# AI tests (tests/ is not mounted in dev compose, so copy it in)
-docker compose -f docker-compose.yml -f docker-compose.dev.yml cp services/ai/tests/. ai:/app/tests
-docker compose -f docker-compose.yml -f docker-compose.dev.yml exec -T ai sh -c "pip install -q pytest && python -m pytest tests -q"
+# The host has no node_modules / Python deps: run tests in throwaway containers from the built images (Git Bash).
+# AI tests (network only for `pip install pytest`; tests themselves use FakeLLM)
+MSYS_NO_PATHCONV=1 docker run --rm -v "E:/CNPM/git/CNPM-main/services/ai:/src:ro" -w /src -e PYTHONDONTWRITEBYTECODE=1 \
+  --entrypoint sh cnpm-main-ai:latest -c "pip install -q pytest; python -m pytest tests -q -p no:cacheprovider"
 
-# Node service tests: follow that service's package.json
-(cd services/moderation && node --test)   # runner is node --test; unfinished tests are { todo } until their task lands
+# Moderation tests (no network; unfinished tests are { todo } until their task lands)
+MSYS_NO_PATHCONV=1 docker run --rm --network none -v "E:/CNPM/git/CNPM-main/shared:/app/shared:ro" \
+  -v "E:/CNPM/git/CNPM-main/services/moderation/src:/app/src:ro" -v "E:/CNPM/git/CNPM-main/services/moderation/test:/app/test:ro" \
+  -w /app cnpm-main-moderation node --test
+
+# Shared event schema tests
+MSYS_NO_PATHCONV=1 docker run --rm --network none -v "E:/CNPM/git/CNPM-main/shared:/app/shared:ro" -w /app/shared cnpm-main-moderation node --test
+
+# Prisma validate (the moderation image has no prisma CLI)
+MSYS_NO_PATHCONV=1 docker run --rm --network none -e DATABASE_URL="postgresql://ci:ci@localhost:5432/ci?schema=moderation" \
+  -v "E:/CNPM/git/CNPM-main/services/moderation/prisma:/p:ro" -w /app cnpm-main-auth npx prisma validate --schema /p/schema.prisma
+
+docker compose -f docker-compose.yml config -q   # validate compose; never run `config` without -q (prints secrets)
 docker compose logs --tail 30 <service>
 ```
 
@@ -139,4 +153,6 @@ The main agent owns git, the issue, and the final answer to the user. Delegate w
 | `contract-reviewer` | read-only review of events, HTTP contract, secrets, git hygiene, before asking the user to push |
 | `docs-writer` | English docs under `docs/` |
 
-Typical task: dev agent implements (code plus tests) -> `test-runner` -> `contract-reviewer` -> main agent shows `git log --oneline` and waits for the user.
+Typical task: dev agent implements (code plus tests) -> `test-runner` -> `contract-reviewer` (fix every FAIL, review again) -> main agent commits, shows `git log --oneline` and waits for the user (or pushes and merges when the user allowed it for that run).
+
+If `ai-python-dev` or `moderation-node-dev` is not available in the session, use `general-purpose` and paste the rules from the matching `.claude/agents/*.md` file into its prompt.
