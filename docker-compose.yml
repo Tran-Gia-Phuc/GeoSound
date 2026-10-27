@@ -73,6 +73,7 @@ services:
     depends_on:
       rabbitmq: { condition: service_healthy }
       postgres: { condition: service_healthy }
+      ai: { condition: service_started }
     restart: unless-stopped
 
   media: # HTTP :3005 (chỉ trong mạng compose, qua gateway /api/media) + worker
@@ -108,7 +109,6 @@ services:
     env_file: [.env]
     environment:
       PORT: 3004
-      DATABASE_URL: ${DATABASE_URL_AI:-}
     depends_on:
       rabbitmq: { condition: service_healthy }
       postgres: { condition: service_healthy }
