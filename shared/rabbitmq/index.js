@@ -38,9 +38,17 @@ export async function publish(eventName, payload) {
 /**
  * Consume các event. `bindings` là mảng routing key (hỗ trợ wildcard: 'tour.*').
  * `handler(eventName, payload)` được gọi cho mỗi message hợp lệ.
+ * Optional `options.prefetch` (positive integer): max unacked messages per consumer. It is set with
+ * basic.qos (global=false) before this consumer starts, so it applies to consumers created afterwards on
+ * the shared channel. When omitted, nothing changes (no limit), as before.
  */
-export async function consume(queueName, bindings, handler) {
+export async function consume(queueName, bindings, handler, options = {}) {
   if (!channel) throw new Error('RabbitMQ chưa connect()');
+  const { prefetch } = options;
+  if (prefetch !== undefined) {
+    if (!Number.isInteger(prefetch) || prefetch < 1) throw new Error(`invalid prefetch: ${prefetch}`);
+    await channel.prefetch(prefetch);
+  }
   const q = await channel.assertQueue(queueName, { durable: true });
   for (const key of bindings) await channel.bindQueue(q.queue, EXCHANGE, key);
   await channel.consume(q.queue, async (msg) => {
