@@ -4,7 +4,7 @@
 // màn đăng nhập khi chỉ chạm vào tab).
 // Mỗi lịch trình mở trình chỉnh sửa (/itineraries/:id).
 // =========================================================
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import AppHeader from '../../components/shell/AppHeader.jsx';
@@ -15,26 +15,31 @@ import { listMyItineraries, createItinerary, deleteItinerary } from '../../lib/i
 
 export default function ItinerariesPage() {
   const navigate = useNavigate();
-  const { authenticated } = useAuth();
-  const [list, setList] = useState(null); // null = đang tải
+  const { authenticated, user } = useAuth();
+  const owner = authenticated ? user?.id : null;
+  const [snapshot, setSnapshot] = useState({ owner:null, data:null });
+  const list = snapshot.owner === owner ? snapshot.data : null;
+  const setList = (value) => setSnapshot((current)=>({ owner, data:typeof value === 'function' ? value(current.owner === owner ? current.data : []) : value }));
+  const generation = useRef(0);
   const [error, setError] = useState('');
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
   const [confirmDel, setConfirmDel] = useState(null); // { id, name }
 
-  async function load() {
+  const load = useCallback(async () => {
+    if (!owner) return;
+    const request = ++generation.current;
     setError('');
     try {
-      setList(await listMyItineraries());
-    } catch (e) {
-      setError(e.message || 'Không tải được danh sách');
-      setList([]);
-    }
-  }
+      const data = await listMyItineraries();
+      if (request === generation.current) setSnapshot({ owner, data });
+    } catch (e) { if (request === generation.current) setError(e.message || 'Không tải được danh sách'); }
+  }, [owner]);
   useEffect(() => {
-    if (!authenticated) return;
-    load();
-  }, []);
+    setSnapshot({ owner, data:null });setError('');
+    if (owner) load();
+    return () => { generation.current += 1; };
+  }, [owner, load]);
 
   const onCreate = async (e) => {
     e.preventDefault();
@@ -104,10 +109,11 @@ export default function ItinerariesPage() {
           <div className="alert alert--warn" role="alert">
             <Icon name="alert-triangle" size={18} className="alert__icon" />
             <div>{error}</div>
+            <button className="btn btn--sm" onClick={load}>Thử lại danh sách</button>
           </div>
         ) : null}
 
-        {list === null ? (
+        {error && list === null ? <p className="muted">Chưa tải được lịch trình. Vui lòng thử lại, các lịch trình đã lưu vẫn được giữ trên máy chủ.</p> : list === null ? (
           <p className="muted itin__loading"><Icon name="loader" size={18} className="spin" /> Đang tải…</p>
         ) : list.length === 0 ? (
           <div className="emptybox itin__empty">
