@@ -44,3 +44,17 @@ test('login design fits desktop and phone', async ({ page }) => {
     await noOverflow(page);
   }
 });
+
+test('desktop login introduction and form do not overlap', async ({ page }) => {
+  for (const width of [1000, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/login');
+    const story = await page.locator('.login-a-story').boundingBox();
+    const form = await page.locator('.auth__card').boundingBox();
+    expect(story).not.toBeNull();
+    expect(form).not.toBeNull();
+    expect(story.x + story.width).toBeLessThanOrEqual(form.x);
+    await expect(page.getByRole('heading', { name: /Mỗi bước chân/ })).toBeVisible();
+    await noOverflow(page);
+  }
+});
