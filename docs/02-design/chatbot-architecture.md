@@ -1,6 +1,6 @@
 # Chatbot Architecture (phase 3)
 
-Status: **proposed — ingestion source needs team agreement**. Issue #184 (#AI-43), 2026-10-27.
+Status: **accepted by the AI owner on 2026-10-28** (options A, pgvector, local embeddings; JWT checks skipped for now). Requests to Tour, Gateway and infra: `ai-integration-requests.md`. Issue #184 (#AI-43).
 Owner: AI part of GeoSound. Builds on section 8 of [moderation-architecture.md](moderation-architecture.md)
 and closes its section 8.4 (open decisions) with recommendations in section 6 below.
 
