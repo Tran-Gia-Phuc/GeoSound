@@ -1,10 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.moderation import get_moderator
+from app.api.moderation import get_place_moderator
 from app.config import get_settings
 from app.main import app
-from app.moderation.service import TextModerator
+from app.moderation.place_service import PlaceModerator
 
 # Fake token used only in tests; the real one comes from INTERNAL_SERVICE_TOKEN.
 TEST_TOKEN = "test-internal-token"
@@ -43,14 +43,14 @@ def internal_token(monkeypatch):
 
 @pytest.fixture
 def make_client(internal_token):
-    """Build a TestClient (sending the internal token) whose moderator uses a FakeLLM.
+    """Build a TestClient (sending the internal token) whose place moderator uses a FakeLLM.
 
     Returns (client, llm).
     """
 
     def _make(responder):
         llm = FakeLLM(responder)
-        app.dependency_overrides[get_moderator] = lambda: TextModerator(llm=llm)
+        app.dependency_overrides[get_place_moderator] = lambda: PlaceModerator(llm=llm)
         return TestClient(app, headers=AUTH_HEADERS), llm
 
     yield _make
