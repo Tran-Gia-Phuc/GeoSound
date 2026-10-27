@@ -26,6 +26,8 @@ import { PLACE_TYPE_OPTIONS, PLACE_TYPE_LABELS } from '../../lib/studio.js';
 import { formatDistance } from '../../lib/format.js';
 import { usePendingAdd } from '../../hooks/usePendingAdd.js';
 
+import './discover-a.css';
+
 const LIMIT = 12;
 const RECENT_KEY = 'geosound:recent-tours';
 
@@ -267,10 +269,12 @@ export default function DiscoverPage() {
 
   // ---------- Render ----------
   return (
-    <div className="page discover">
-      <header className="discover__head">
-        <h1 className="discover__title">Khám phá</h1>
-        <p className="muted">Tour audio thuyết minh theo bước chân — hoặc nghe thử ngay tại nhà.</p>
+    <div className="page discover discover-a">
+      <header className="discover__head discover-a__hero">
+        <span className="discover-a__eyebrow"><Icon name="headphones" size={18} /> GeoSound · Nghe câu chuyện nơi bạn đến</span>
+        <h1 className="discover__title">Khám phá thế giới<br />qua những câu chuyện âm thanh</h1>
+        <p>Tour audio theo bước chân của bạn. Tìm điểm đến mới hoặc nghe từ xa ngay tại nhà.</p>
+        <Icon name="headphones" className="discover-a__illustration" size={130} />
       </header>
 
       {addTo ? (
@@ -333,6 +337,14 @@ export default function DiscoverPage() {
           <Icon name="sliders" size={16} /> Lọc{filterCount ? ` (${filterCount})` : ''}
         </button>
       </div>
+
+      <section className="discover-a__filters" aria-label="Bộ lọc khám phá">
+        <label>Thành phố<input className="input" list="discover-a-cities" value={city} onChange={(e)=>setParams({city:e.target.value})} placeholder="Tất cả thành phố" /></label>
+        <datalist id="discover-a-cities">{cities.map((c)=><option value={c} key={c} />)}</datalist>
+        {tab === 'tours' ? <label>Ngôn ngữ<select className="input" value={lang} onChange={(e)=>setParams({lang:e.target.value})}><option value="">Tất cả ngôn ngữ</option>{LANGUAGE_OPTIONS.map((o)=><option value={o.value} key={o.value}>{o.label}</option>)}</select></label> : null}
+        <label>{tab === 'tours' ? 'Loại tour' : 'Loại địa điểm'}<select className="input" value={type} onChange={(e)=>setParams({type:e.target.value})}><option value="">Tất cả loại</option>{(tab === 'tours' ? TOUR_TYPE_OPTIONS : PLACE_TYPE_OPTIONS).map((o)=><option value={o.value} key={o.value}>{o.label}</option>)}</select></label>
+        <label>Sắp xếp<select className="input" value={sort} onChange={(e)=>setParams({sort:e.target.value})}>{sortOptions.map((o)=><option value={o.value} key={o.value}>{o.label}</option>)}</select></label>
+      </section>
 
       {cities.length ? (
         <div className="sorts discover__cities" role="group" aria-label="Thành phố">

@@ -1,0 +1,21 @@
+.discover-a { max-width:1280px; }
+.discover-a__hero { position:relative; overflow:hidden; display:grid; gap:14px; padding:28px; border-radius:18px; background:linear-gradient(120deg,#073e3a,#0f766e); color:white; }
+.discover-a__hero .discover__title { font-size:clamp(26px,3.4vw,40px); line-height:1.18; max-width:800px; letter-spacing:-.035em; position:relative; z-index:1; }
+.discover-a__hero p { max-width:650px; line-height:1.7; font-size:15px; position:relative; z-index:1; }
+.discover-a__eyebrow { display:flex; align-items:center; gap:8px; font-size:13px; }
+.discover-a__illustration { position:absolute; right:32px; bottom:24px; opacity:.12; transform:rotate(-15deg); }
+.discover-a__filters { display:none; }
+@media(min-width:900px) {
+ .discover-a__hero { padding:36px 40px; }
+ .discover-a__filters { display:flex; flex-wrap:wrap; gap:16px; padding:20px; background:var(--surface); border:1px solid var(--border); border-radius:14px; }
+ .discover-a__filters label { display:grid; gap:8px; flex:1; min-width:160px; color:var(--fg-muted); font-size:13px; }
+ .discover-a__filters .input { width:100%; }
+ .discover-a .discover__bar > .btn { display:none; }
+ .discover-a .tourlist--compact { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+ .discover-a .tour-card { display:flex; flex-direction:column; height:100%; }
+ .discover-a .tour-card__cover { width:100%; height:180px; min-height:180px; }
+ .discover-a .tour-card__body { width:100%; flex:1; padding:16px; }
+ .discover-a .tour-card__title { white-space:normal; }
+}
+@media(min-width:1250px) { .discover-a .tourlist--compact { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+@media(max-width:500px) { .discover-a__hero { padding:22px; }.discover-a__hero .discover__title { font-size:26px; } }
