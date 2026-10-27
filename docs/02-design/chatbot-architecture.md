@@ -171,14 +171,23 @@ No contributor id, email or any user field is stored (section 7).
 
 ## 5. Hybrid retrieval
 
-1. **Vector seeds**: embed the search text; cosine top 20 chunks, filtered by `filters` (city, type, duration)
-   in SQL; group by node.
+1. **Vector seeds**: embed the search text; cosine top `k_seed` chunks (default 20, configurable; optional
+   `min_similarity` cut-off), keep the best chunk per node. City (as the set of alias slugs), tour type, max duration and place type are
+   applied inside `vector_search` before the top k (SQL `WHERE` in pgvector, TODO(#219)), and chunks of deleted tours
+   are skipped, so other cities cannot crowd out the requested one. Graph-reached nodes are re-checked in step 3.
 2. **Graph expansion** (1 to 2 hops from the seeds): `Tour -has_stop-> Place`, `Place -near-> Place`,
    `-about-> Topic <-about-` (shared topic), `City -has-> Tour`. Each hop lowers the graph score.
-3. **Rerank** without an LLM: `score = 0.6 * vector_similarity + 0.2 * graph_proximity + 0.2 * filter_match`
-   (`graph_proximity` = 1, 0.5, 0.25 for 0, 1, 2 hops; `filter_match` = share of requested topics, city, type
-   matched). Deduplicate places of the same tour under that tour.
+3. **Filter and rerank** without an LLM: hard filters (city, tour type, max duration for tours; city and
+   `place_type` for places) drop failing nodes, then
+   `score = 0.6 * vector_similarity + 0.2 * graph_proximity + 0.2 * filter_match`
+   (`graph_proximity` = 1, 0.5, 0.25 for 0, 1, 2 hops; `filter_match` = share of requested constraints met:
+   topics, city, type and max duration for tours, `place_type` for places; hard filters always count as met
+   because failing nodes were already dropped). `search_tours` and `search_places` return separate lists; places
+   are not deduplicated under their tours.
 4. **Top k = 5** items go to `answer`, each with its id, so `cite` can return `{kind, id, title}`.
+
+The Postgres read path (`PgVectorIndexStore` read methods) is still TODO(#219); today only the in-memory store
+implements it.
 
 Example: "tour ẩm thực gần chợ Bến Thành có đi qua di tích lịch sử" (a food tour near Ben Thanh market that
 also passes historic sites).
@@ -194,6 +203,17 @@ also passes historic sites).
 
 Plain vector search finds the market or a food tour, but not "near the market and also historic"; the graph
 hops add that.
+
+Implementation notes (#186): `services/ai/app/chatbot/rag/hybrid_retriever.py` over the `IndexStore` port
+(`store.py`).
+
+| Topic | Behaviour |
+| --- | --- |
+| Score | `score = 0.6 * similarity + 0.2 * graph_proximity + 0.2 * filter_match`. A node reached through the graph also gets its seed similarity multiplied by the hop proximity (1 / 0.5 / 0.25 for 0 / 1 / 2 hops), on top of the graph term, so a same-city tour two hops away cannot outrank a direct seed |
+| Filters | City, tour type and max duration are hard filters (a node that fails them is dropped); topics only raise the score. A tour without a duration is dropped when a max duration is given |
+| Language | `SearchFilters.language` does not filter results; it only picks the snippet language |
+| `nearby_places` | Geo query on place coordinates (`places_near`), not the stored `near` edges, which keep only the 10 nearest per place. `score = 1 - distance / radius`; `hops = 1` when anchored on a place, and the anchor itself is excluded |
+| Store read methods | `vector_search`, `get_nodes`, `neighbours`, `places_near`, `get_chunks`, `list_nodes`, `get_revisions` (batch). Every hit is re-checked against the tour index state (`ai.tour_index`, must be `indexed`), so a deleted tour is never returned |
 
 ## 6. Decisions (close section 8.4 of moderation-architecture.md)
 
