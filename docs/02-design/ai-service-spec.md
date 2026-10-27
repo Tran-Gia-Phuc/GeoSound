@@ -189,7 +189,7 @@ Response `200`:
 | `200` | Verdict returned | Save and publish |
 | `401` | Missing or bad `x-internal-token` | Configuration error: case `ai_failed`, nothing published, sweeper retries after the token is fixed |
 | `422` | Invalid input (schema, limits, image rules) | Permanent, do not retry: publish a Warning for human review |
-| `503` | All providers failed | Temporary, retry |
+| `503` | Temporary failure: all providers failed, timeout or malformed model output (no provider details in the body) | Temporary, retry |
 
 ### 3.4 Image rules (phase 2)
 
@@ -215,7 +215,8 @@ Names only; values live in the root `.env`, which is never committed.
 | `LLM_TIMEOUT_SECONDS` | Timeout of one provider call |
 | `MODERATION_REJECT_THRESHOLD` | Reject threshold (default 0.8) |
 | `MODERATION_WARNING_THRESHOLD` | Warning threshold (default 0.4) |
-| `MODERATION_TIMEOUT_SECONDS` | Total time budget of one moderation request |
+| `MODERATION_TIMEOUT_SECONDS` | Total time budget of one moderation request, including the wait for a slot |
+| `MODERATION_MAX_CONCURRENCY` | Moderation LLM calls running at the same time (quota, default 2) |
 | `INTERNAL_SERVICE_TOKEN` | Shared token checked on `/moderate/*` (secret) |
 | `IMAGE_ALLOWED_HOSTS` | Comma-separated hosts allowed for images (phase 2) |
 | `LANGSMITH_TRACING` | Enables LangSmith tracing, `false` by default |
