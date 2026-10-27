@@ -17,6 +17,8 @@ export const EVENTS = {
   TOUR_REJECTED: 'tour.rejected',
   TOUR_REPORTED: 'tour.reported',
   TOUR_HIDDEN: 'tour.hidden',
+  TOUR_PUBLISHED: 'tour.published',
+  TOUR_UNPUBLISHED: 'tour.unpublished',
   TTS_RENDER_REQUESTED: 'tts.render.requested',
   TTS_RENDER_COMPLETED: 'tts.render.completed',
 };
@@ -82,6 +84,27 @@ const tourPlace = z.object({
   sequence: z.number().int().nonnegative(),
 });
 
+// --- Chatbot index events (Tour -> AI indexer). See docs/02-design/ai-integration-requests.md section 2. ---
+
+export const UNPUBLISH_REASONS = ['unpublished', 'edited', 'hidden', 'restricted', 'deleted'];
+
+const placeTranslation = z.object({
+  language: z.string().min(2).max(10),
+  text: z.string().max(5000),
+});
+
+// Public place content carried by tour.published.
+const publishedPlace = z.object({
+  placeId: z.string().min(1),
+  name: z.string().min(1).max(200),
+  type: z.string().optional(),
+  description: z.string().max(2000),
+  lat,
+  lng,
+  sequence: z.number().int().nonnegative(),
+  translations: z.array(placeTranslation).optional(),
+});
+
 export const schemas = {
   [EVENTS.PLACE_SUBMITTED]: z.object({
     placeId: z.string().min(1),
@@ -139,6 +162,24 @@ export const schemas = {
   [EVENTS.TOUR_REJECTED]: base.extend({ reason: z.string(), ...recipient }),
   [EVENTS.TOUR_REPORTED]: base.extend({ count: z.number().int().nonnegative() }),
   [EVENTS.TOUR_HIDDEN]: base.extend({ reason: z.string(), ...recipient }),
+  // Published by Tour only when a tour enters `public` (flag CHATBOT_EVENTS_ENABLED).
+  [EVENTS.TOUR_PUBLISHED]: base.extend({
+    revision: isoUtc,
+    status: z.literal('public'),
+    title: z.string().min(1).max(200),
+    description: z.string().max(5000),
+    language: z.string().min(2).max(10),
+    city: z.string().optional(),
+    type: z.enum(['walking', 'driving', 'cycling', 'indoor']),
+    durationMinutes: z.number().int().nonnegative().optional(),
+    languages: z.array(z.string().min(2).max(10)).optional(),
+    places: z.array(publishedPlace).max(50),
+  }),
+  // A tour left `public`: the indexer deletes everything about it.
+  [EVENTS.TOUR_UNPUBLISHED]: base.extend({
+    revision: isoUtc.optional(),
+    reason: z.enum(UNPUBLISH_REASONS),
+  }),
   [EVENTS.TTS_RENDER_REQUESTED]: base.extend({ languages: z.array(z.string()).nonempty() }),
   [EVENTS.TTS_RENDER_COMPLETED]: base.extend({ assets: z.array(z.object({ lang: z.string(), url: z.string().url() })), ...recipient }),
 };
