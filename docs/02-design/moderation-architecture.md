@@ -133,6 +133,15 @@ Geo findings use the new category `route` and `field` = `route` or `places[i]`.
 `merge-verdicts.js`: the worst verdict wins (Reject > Warning > Pass), `severity` = max, reasons are concatenated
 (AI first, then geo), each reason carries `source: "ai" | "geo"`.
 
+### 5.3 Edge cases of the tour flow
+
+- `tour.submitted` without `revision`: logged and skipped (no case key).
+- `revision` present but `title`, `language` or `places` missing: the AI is not called; `tour.ai_passed` with `warning: true` and one human-review reason is published.
+- Temporary AI failure (timeout, 429, 5xx, network, 401): case `ai_failed`, nothing is published, even if G1 fired; the sweeper retries the whole review.
+- AI 422: the human-review Warning is merged with the geo findings, so a G1 Reject still wins.
+- Geo reasons on `places[i]` (index after sorting by `sequence`) carry the `placeId` in the message.
+- Tour results carry the optional recipient keys `contributorId` and `tourTitle` when the input has them.
+
 ## 6. Contracts
 
 ### 6.1 Events (`shared/events/index.js`, camelCase, `at` ends with `Z`)
