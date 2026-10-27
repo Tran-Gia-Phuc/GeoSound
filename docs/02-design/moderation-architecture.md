@@ -179,12 +179,12 @@ limits before the call (title 200, tour description 5000, place name 200, place 
 | Duplicate events | One row per `(subjectType, subjectId, revision)`; an existing result is re-published, no new AI call |
 | Crash safety | Consumer saves the case, then acks. A handler never throws for work it wants to retry (shared `consume()` nacks without requeue) |
 | AI errors | 3 attempts (2 s, 4 s) on timeout, 429, 503, network. 422 is permanent → case `failed_permanent`, publish a Warning so a human looks at it. 401 is a configuration error → `ai_failed`, logged, retried by the sweeper |
-| AI down after retries | Case `ai_failed`, publish nothing, Tour stays `ai_checking`. A sweeper retries `ai_failed` and stale `pending` cases every 60 s |
+| AI down after retries | Case `ai_failed`, publish nothing, Tour stays `ai_checking`. A sweeper runs every 60 s: it retries `ai_failed` cases and stale `pending` / `reviewing` cases, and re-publishes `done` / `failed_permanent` results whose publish failed. Each case is claimed with a compare-and-set, so two workers never process it at once |
 | Quota | Moderation prefetch 2 + a semaphore in AI; Groq absorbs text-only overflow |
 | Feature flag | Tour: `MODERATION_EVENTS_ENABLED=false` by default = today's direct publish, unchanged |
 | Observability | Structured logs with `subjectId`, `revision`, `attempt`, `model`; optional LangSmith tracing in AI (section 8.1) |
 
-Case states: `pending → reviewing → done | ai_failed | failed_permanent`; `ai_failed → reviewing` (sweeper).
+Case states: `pending → reviewing → done | ai_failed | failed_permanent`; `ai_failed → reviewing` (sweeper); a stale `reviewing` case goes `reviewing → ai_failed → reviewing`.
 
 ## 8. Frameworks: LangChain, LangGraph, LangSmith, graph RAG
 
