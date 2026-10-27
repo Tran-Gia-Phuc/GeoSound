@@ -4,6 +4,7 @@
 .login-a-guest span span { color:var(--fg-muted); font-size:13px; line-height:1.5; }
 .auth-login-a .auth__card { border-radius:24px; }
 @media(min-width:1000px) {
+ .auth.auth-login-a { max-width:1120px; }
  .auth-login-a .auth__main { display:grid; grid-template-columns:minmax(0,1fr) 440px; gap:64px; max-width:1120px; margin:0 auto; padding:48px 24px; align-items:center; width:100%; }
  .login-a-story { display:grid; gap:24px; border-radius:28px; min-height:520px; align-content:center; padding:48px; background:linear-gradient(145deg,var(--primary-soft),var(--surface)); border:1px solid var(--border); }
  .login-a-story h2 { font-size:clamp(32px,4vw,52px); line-height:1.15; letter-spacing:-.035em; }
