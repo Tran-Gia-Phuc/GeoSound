@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     langsmith_project: str = "geosound-ai"
     langsmith_api_key: SecretStr = SecretStr("")
 
+    # Chatbot indexer (#AI-44, D21): the only RabbitMQ consumer of the AI service.
+    # Off by default; nothing is started when false.
+    chatbot_indexer_enabled: bool = False
+
     def allowed_image_hosts(self) -> frozenset[str]:
         """Hosts images may be fetched from. Empty set = every image is refused."""
         hosts = {h.strip().lower().rstrip(".") for h in self.image_allowed_hosts.split(",")}
