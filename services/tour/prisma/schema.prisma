@@ -27,6 +27,9 @@ model Tour {
   duration      Int? // thời lượng ước tính (phút)
   averageRating Float    @default(0) @map("average_rating") // UC05 cập nhật
   ratingCount   Int      @default(0) @map("rating_count")
+  // UC15 (MODERATION_EVENTS_ENABLED): AI/geo reasons of the last result, and the revision sent in tour.submitted.
+  moderationReasons  Json    @default("[]") @map("moderation_reasons")
+  moderationRevision String? @map("moderation_revision")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -55,6 +58,11 @@ model Place {
   images      Json     @default("[]") // [{ url, caption }]
   audioUrl    String?  @map("audio_url")
   audioSource String   @default("tts") @map("audio_source") // human | tts
+  // UC15 (MODERATION_EVENTS_ENABLED): checking | approved | warning | rejected. Default approved so
+  // existing rows (and flag off) stay as today. Revision = the one sent in place.submitted.
+  moderationStatus   String  @default("approved") @map("moderation_status")
+  moderationReasons  Json    @default("[]") @map("moderation_reasons")
+  moderationRevision String? @map("moderation_revision")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
