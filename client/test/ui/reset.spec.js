@@ -66,3 +66,20 @@ test('reset OTP rejection keeps inputs', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await noOverflow(page);
 });
+
+test('reset password follows the backend password policy before submitting', async ({ page }) => {
+  let resets = 0;
+  await page.route('**/api/auth/forgot-password', (r) => json(r, { otpTtlSeconds: 120 }));
+  await page.route('**/api/auth/reset-password', (r) => { resets++; return json(r, { message: 'ok' }); });
+  await page.goto('/forgot-password');
+  await page.getByLabel('Email', { exact: true }).fill('test@example.test');
+  await page.getByRole('button', { name: 'Gửi mã OTP', exact: true }).click();
+  await page.getByLabel('Mã OTP').fill('123456');
+  for (const [password, message] of [['Ab12', 'Mật khẩu phải có tối thiểu 8 ký tự'], ['abcdefgh', 'Mật khẩu phải gồm cả chữ và số'], ['12345678', 'Mật khẩu phải gồm cả chữ và số']]) {
+    await page.locator('#newPassword').fill(password);
+    await page.locator('#confirmPassword').fill(password);
+    await page.getByRole('button', { name: 'Đặt lại mật khẩu', exact: true }).click();
+    await expect(page.getByText(message)).toBeVisible();
+  }
+  expect(resets).toBe(0);
+});

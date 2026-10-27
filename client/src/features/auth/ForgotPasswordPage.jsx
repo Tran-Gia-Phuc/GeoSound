@@ -66,6 +66,8 @@ export default function ForgotPasswordPage() {
     const errs = {};
     if (!form.otp.trim()) errs.otp = 'Vui lòng nhập mã OTP';
     if (!form.newPassword) errs.newPassword = 'Vui lòng nhập mật khẩu mới';
+    else if (form.newPassword.length < 8) errs.newPassword = 'Mật khẩu phải có tối thiểu 8 ký tự';
+    else if (!/[A-Za-z]/.test(form.newPassword) || !/[0-9]/.test(form.newPassword)) errs.newPassword = 'Mật khẩu phải gồm cả chữ và số';
     if (confirmed !== form.newPassword) errs.confirmed = 'Mật khẩu xác nhận không khớp';
     setErrors(errs);
     if (Object.keys(errs).length) return;
