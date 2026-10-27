@@ -61,3 +61,36 @@ test('unavailable speech is recoverable and cancels on unmount', async ({ page }
     page.locator('.tx-row').first().getByRole('button', { name: 'Nghe thử', exact: true }),
   ).toBeEnabled();
 });
+
+test('out-of-order previews keep the current row busy and discard stale errors', async ({ page }) => {
+  await fixtures(page);
+  await signIn(page);
+  const pending = [];
+  await page.route('**/tts-preview', async (route) => {
+    await new Promise((resolve) => pending.push({ route, resolve }));
+  });
+  await page.goto('/studio/tours/' + id + '/languages');
+  const rows = page.locator('.tx-row');
+  const first = rows.first().getByRole('button', { name: 'Nghe thử', exact: true });
+  const second = rows.nth(1).getByRole('button', { name: 'Nghe thử', exact: true });
+  await first.click();
+  await expect.poll(() => pending.length).toBe(1);
+  await second.click();
+  await expect.poll(() => pending.length).toBe(2);
+  await expect(first).toBeEnabled();
+  await first.click();
+  await expect.poll(() => pending.length).toBe(3);
+  await json(pending[0].route, { error: 'Stale error' }, 503);
+  pending[0].resolve();
+  await expect(first).toBeDisabled();
+  await expect(rows.first()).not.toContainText('Stale error');
+  await expect(second).toBeEnabled();
+  await json(pending[1].route, { error: 'Other stale error' }, 503);
+  pending[1].resolve();
+  await expect(first).toBeDisabled();
+  await json(pending[2].route, { error: 'Current error' }, 503);
+  pending[2].resolve();
+  await expect(rows.first()).toContainText('Current error');
+  await expect(first).toBeEnabled();
+  await expect(rows.first().locator('textarea')).toHaveValue('Translated stop content.');
+});

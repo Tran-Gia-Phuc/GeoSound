@@ -22,6 +22,7 @@ export default function LanguagesPage() {
   const player=useRef(null);
   if(!player.current)player.current=createLanguagePreview();
   const previewGeneration=useRef(0);
+  const previewKey=useRef(null);
   useEffect(()=>()=>{previewGeneration.current += 1;player.current.cancel();},[]);
   const [config, setConfig] = useState(null);
   const [loadError, setLoadError] = useState('');
@@ -116,8 +117,10 @@ export default function LanguagesPage() {
   async function onPreview(placeId, lang) {
     const key = `${placeId}:${lang}`;
     const generation=++previewGeneration.current;
+    const previousKey = previewKey.current;
+    previewKey.current = key;
     player.current.cancel();
-    setRowBusy((s) => ({ ...s, [key]: 'preview' }));
+    setRowBusy((s) => ({ ...s, ...(previousKey && s[previousKey] === 'preview' ? { [previousKey]: undefined } : {}), [key]: 'preview' }));
     setRowError((s) => ({ ...s, [key]: '' }));
     try {
       const res = await previewTts(id, placeId, lang);
@@ -128,7 +131,10 @@ export default function LanguagesPage() {
     } catch (e) {
       if(generation === previewGeneration.current)setRowError((s) => ({ ...s, [key]: e.message || 'Không tạo được bản nghe thử' }));
     } finally {
-      setRowBusy((s) => ({ ...s, [key]: undefined }));
+      if (generation === previewGeneration.current) {
+        previewKey.current = null;
+        setRowBusy((s) => ({ ...s, [key]: s[key] === 'preview' ? undefined : s[key] }));
+      }
     }
   }
 
@@ -261,7 +267,14 @@ export default function LanguagesPage() {
                       aria-selected={on}
                       aria-controls="txpanel"
                       className={`txtabs__tab ${on ? 'is-active' : ''}`}
-                      onClick={() => setTxTab(l.languageCode)}
+                      onClick={() => {
+                        previewGeneration.current += 1;
+                        player.current.cancel();
+                        const previousKey = previewKey.current;
+                        previewKey.current = null;
+                        if (previousKey) setRowBusy((s) => ({ ...s, [previousKey]: s[previousKey] === 'preview' ? undefined : s[previousKey] }));
+                        setTxTab(l.languageCode);
+                      }}
                     >
                       {langLabel(l.languageCode)}
                       <span className={`txtabs__count ${l.ready ? 'is-ready' : ''}`}>{l.translated}/{l.total}</span>
