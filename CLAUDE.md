@@ -2,7 +2,7 @@
 
 Read this file first in every session, then read `AI_PLAN.md` (decisions, current state, task list, notes for the next tasks). One task per branch, in the order of `AI_PLAN.md` section 4. Several tasks in one session only when the user asks for it. **Run tasks with the project skill `/ai-task <N>`** (`.claude/skills/ai-task/SKILL.md`): it holds the full branch → agent → test → review → commit → PR → merge procedure.
 
-**Priority:** place moderation (text and images) and tour moderation (content and geo rules) are done end to end (phases 1 and 2). Next: #173 LangSmith tracing (optional), then the chatbot (#184 first).
+**Priority:** place moderation (text and images) and tour moderation (content and geo rules) are done end to end (phases 1 and 2). Tracing (#173) and the chatbot design (#184) are merged. Next: chatbot #187 and #185, then #186, #188, #189 (`AI_PLAN.md` section 4).
 
 ## 1. Role and language
 
@@ -20,7 +20,7 @@ Moderation ──place.ai_passed | place.ai_rejected | tour.ai_passed | tour.ai_
 Warning = ai_passed with warning:true and reasons. Temporary AI failure = publish nothing; 422 = Warning for human review.
 ```
 
-- **AI service** (`services/ai`, Python 3.11, FastAPI, port 3004): stateless HTTP. It does **not** listen to RabbitMQ. Also hosts translation and, later, the chatbot.
+- **AI service** (`services/ai`, Python 3.11, FastAPI, port 3004): stateless HTTP. It does **not** listen to RabbitMQ, with one exception: the chatbot indexer consumes `tour.published` / `tour.unpublished` (D21). Also hosts translation and the chatbot.
 - **Moderation** (`services/moderation`, Node, port 3003): listens to events, calls AI over HTTP, owns retry, state and results, publishes results. Never calls an LLM itself.
 - **Tour** (`services/tour`): owns tour/place state and visibility. Publishes `*.submitted`, consumes `*.ai_passed` / `*.ai_rejected`. Never calls AI for moderation.
 - Moderation and AI only use data carried by the events. They never read other services' databases or call their APIs.
