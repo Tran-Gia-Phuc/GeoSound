@@ -24,6 +24,8 @@ import { playPreview, stopPreview } from '../../lib/preview-audio.js';
 import { usePendingAdd } from '../../hooks/usePendingAdd.js';
 
 // Mở thẳng bằng link chia sẻ (không có lịch sử) → về Khám phá.
+import './detail-a.css';
+
 const BACK = '/';
 
 export default function TourDetailPage() {
@@ -159,7 +161,8 @@ export default function TourDetailPage() {
   };
 
   return (
-    <div className={`screen intro ${hasPlaces ? 'detail--withbar' : ''}`}>
+    <div className={`screen intro detail-a ${hasPlaces ? 'detail--withbar' : ''}`}>
+      <div className="detail-a__overview">
       {/* Ảnh bìa */}
       <div
         className="intro__cover"
@@ -212,6 +215,19 @@ export default function TourDetailPage() {
 
         {tour.description ? <p className="intro__desc">{tour.description}</p> : null}
 
+        {/* Đánh giá: chỉ điểm trung bình cho tới khi có UC05 */}
+        {tour.ratingCount ? (
+          <section className="detail__section" aria-labelledby="rev-h">
+            <h2 className="detail__h2" id="rev-h">Đánh giá</h2>
+            <p className="muted small">
+              Điểm trung bình {Number(tour.averageRating).toFixed(1).replace('.', ',')}/5 từ {tour.ratingCount} lượt đánh giá.
+            </p>
+          </section>
+        ) : null}
+      </div>
+
+      </div>
+      <aside className="detail-a__route" aria-label="Lộ trình và điểm dừng">
         {/* Bản đồ route (UC11) */}
         {hasGeo ? (
           <section className="detail__section" aria-labelledby="map-h">
@@ -230,6 +246,7 @@ export default function TourDetailPage() {
               {tour.places.map((p, i) => (
                 <li key={p.id} className="stop detail-stop">
                   <span className="stop__num">{i + 1}</span>
+                  {p.images?.[0]?.url ? <img className="detail-a__stopimage" src={p.images[0].url} alt="" loading="lazy" /> : null}
                   <Link className="stop__info detail-stop__open" to={playUrl('remote', p.id)}>
                     <span className="stop__name">{p.name}</span>
                     <span className="stop__sub">
@@ -263,16 +280,7 @@ export default function TourDetailPage() {
           </div>
         )}
 
-        {/* Đánh giá: chỉ điểm trung bình cho tới khi có UC05 */}
-        {tour.ratingCount ? (
-          <section className="detail__section" aria-labelledby="rev-h">
-            <h2 className="detail__h2" id="rev-h">Đánh giá</h2>
-            <p className="muted small">
-              Điểm trung bình {Number(tour.averageRating).toFixed(1).replace('.', ',')}/5 từ {tour.ratingCount} lượt đánh giá.
-            </p>
-          </section>
-        ) : null}
-      </div>
+      </aside>
 
       {/* Thanh hành động dính đáy — luôn nhìn thấy (bước 10–11) */}
       {hasPlaces ? (
