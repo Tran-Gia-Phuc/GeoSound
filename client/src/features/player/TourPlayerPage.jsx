@@ -323,6 +323,7 @@ export default function TourPlayerPage({
 
   const visitedSet = useMemo(() => new Set(progress.visited), [progress.visited]);
   const audioError = engine.audio.state.status === 'error';
+  useEffect(()=>{if(audioError)setSheetOpen(true);},[audioError]);
 
   // ---------- Render: tải / lỗi ----------
   if (loading) {

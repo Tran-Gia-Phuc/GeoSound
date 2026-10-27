@@ -14,6 +14,10 @@ const isPlayableUrl = (src) => typeof src === 'string' && /^(https?:|blob:|data:
 export function useAudioController({ onEnded } = {}) {
   const ttsSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
   const audioRef = useRef(null);
+  const requestedTrack = useRef(null);
+  const playGeneration = useRef(0);
+  const retryPending = useRef(false);
+  const lastPosition = useRef({ trackId: null, time: 0 });
   const trackRef = useRef(null); // track đang phát (để biết nguồn khi 'ended')
   const endedRef = useRef(onEnded);
   const ttsKeepAlive = useRef(null);
@@ -60,9 +64,14 @@ export function useAudioController({ onEnded } = {}) {
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
-    const onTime = () => patch({ currentTime: a.currentTime });
+    const onTime = () => {
+      if (trackRef.current?.kind === 'url' && Number.isFinite(a.currentTime)) {
+        lastPosition.current = { trackId: trackRef.current.id ?? null, time: a.currentTime };
+      }
+      patch({ currentTime: a.currentTime });
+    };
     const onMeta = () =>
-      patch({ duration: Number.isFinite(a.duration) ? a.duration : 0, canSeek: true });
+      patch({ duration: Number.isFinite(a.duration) ? a.duration : 0, canSeek: a.seekable.length > 0 });
     const onPlay = () => patch({ status: 'playing' });
     const onPause = () => {
       if (!a.ended) patch({ status: 'paused' });
@@ -139,10 +148,15 @@ export function useAudioController({ onEnded } = {}) {
    *           title?:string, id?:string }} track
    */
   const playTrack = useCallback(
-    (track) => {
+    (track, options = {}) => {
       if (!track) return;
+      const generation = ++playGeneration.current;
+      retryPending.current = !!options.retry;
+      requestedTrack.current = { ...track };
       const title = track.title || '';
       const trackId = track.id ?? null;
+      const restoreTime = options.retry && trackId !== null && lastPosition.current.trackId === trackId ? lastPosition.current.time : 0;
+      if (!options.retry) lastPosition.current = { trackId, time: 0 };
       // URL thật -> thử phát; lỗi thì lùi TTS (E3).
       if (isPlayableUrl(track.src)) {
         clearTts();
@@ -158,24 +172,39 @@ export function useAudioController({ onEnded } = {}) {
           title,
           trackId,
         });
-        a.src = track.src;
-        a.play().catch(() => {
-          // Autoplay bị chặn hoặc file hỏng -> TTS fallback nếu có text.
-          if (track.text) speak(track.text, track.lang, { fellBack: true, title, trackId });
-          else patch({ status: 'error', title, trackId });
-        });
-        // Lỗi tải nguồn (404/hỏng) -> fallback.
-        a.onerror = () => {
+        let failed = false;
+        const fail = () => {
+          if (generation !== playGeneration.current || failed) return;
+          failed = true;
+          retryPending.current = false;
+          if (Number.isFinite(a.currentTime) && a.currentTime > 0) lastPosition.current = { trackId, time: a.currentTime };
           if (track.text) speak(track.text, track.lang, { fellBack: true, title, trackId });
           else patch({ status: 'error', title, trackId });
         };
+        a.onloadedmetadata = () => {
+          if (generation !== playGeneration.current || !restoreTime) return;
+          try {
+            if (a.seekable.length) {
+              const start = a.seekable.start(0), end = a.seekable.end(a.seekable.length - 1);
+              if (restoreTime >= start && restoreTime <= end) a.currentTime = restoreTime;
+            }
+          } catch { /* Source is not seekable; play from the available position. */ }
+        };
+        a.onerror = fail;
+        a.src = track.src;
+        a.play().then(() => { if (generation === playGeneration.current) retryPending.current = false; }).catch(fail);
         return;
       }
       // Không có URL phát được (null hoặc 'tts://...') -> đọc text.
+      retryPending.current = false;
       speak(track.text, track.lang, { fellBack: false, title, trackId });
     },
     [clearTts, patch, speak],
   );
+
+  const retry = useCallback(() => {
+    if (requestedTrack.current && !retryPending.current) playTrack(requestedTrack.current, { retry: true });
+  }, [playTrack]);
 
   const pause = useCallback(() => {
     if (trackRef.current?.kind === 'tts') {
@@ -205,12 +234,15 @@ export function useAudioController({ onEnded } = {}) {
 
   const seek = useCallback((sec) => {
     const a = audioRef.current;
-    if (trackRef.current?.kind === 'url' && a && Number.isFinite(a.duration)) {
+    if (trackRef.current?.kind === 'url' && a && a.seekable.length > 0 && Number.isFinite(a.duration)) {
       a.currentTime = Math.max(0, Math.min(sec, a.duration));
     }
   }, []);
 
   const stop = useCallback(() => {
+    playGeneration.current += 1;
+    retryPending.current = false;
+    lastPosition.current = { trackId: null, time: 0 };
     clearTts();
     const a = audioRef.current;
     if (a) {
@@ -218,6 +250,7 @@ export function useAudioController({ onEnded } = {}) {
       a.removeAttribute('src');
     }
     trackRef.current = null;
+    requestedTrack.current = null;
     patch({ status: 'idle', currentTime: 0, duration: 0, title: '', trackId: null });
   }, [clearTts, patch]);
 
@@ -246,11 +279,16 @@ export function useAudioController({ onEnded } = {}) {
     }
   }, [ttsSupported]);
 
-  useEffect(() => () => clearTts(), [clearTts]);
+  useEffect(() => () => {
+    clearTts();
+    const a=audioRef.current;
+    playGeneration.current += 1;
+    if(a){a.onerror=null;a.onloadedmetadata=null;a.pause();a.removeAttribute('src');}
+  }, [clearTts]);
 
   return useMemo(
-    () => ({ state, playTrack, toggle, pause, resume, seek, stop, unlock, ttsSupported }),
-    [state, playTrack, toggle, pause, resume, seek, stop, unlock, ttsSupported],
+    () => ({ state, playTrack, retry, toggle, pause, resume, seek, stop, unlock, ttsSupported }),
+    [state, playTrack, retry, toggle, pause, resume, seek, stop, unlock, ttsSupported],
   );
 }
 
