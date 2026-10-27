@@ -1,5 +1,5 @@
 // UC01 registration uses the real challenge APIs. Verification never creates a session.
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import { Field, PasswordField, ErrorAlert } from './fields.jsx';
@@ -13,19 +13,22 @@ export default function RegisterPage() {
   const [role, setRole] = useState(params.get('role') === 'contributor' ? 'contributor' : 'tourist');
   const [form, setForm] = useState({ fullName:'', email:'', password:'', confirm:'', otp:'' });
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const [errors, setErrors] = useState({});
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [left, restart] = useCountdown(0);
+  const [resendLeft, restartResend] = useCountdown(0);
   const set = (key) => (e) => { setForm((f) => ({ ...f, [key]:e.target.value })); setErrors((v) => ({ ...v,[key]:'' })); };
   const loginHref = '/login' + (params.get('next') ? '?next=' + encodeURIComponent(params.get('next')) : '');
   async function run(fn) {
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true); setError(''); setErrors({});
     try { await fn(); } catch (e) {
       setErrors(e.details || (['invalid_otp','challenge_expired'].includes(e.code) ? { otp:e.message } : {}));
       setError(e.message || 'Chưa kết nối được máy chủ. Vui lòng thử lại.');
-    } finally { setBusy(false); }
+    } finally { busyRef.current = false; setBusy(false); }
   }
   function submit(e) {
     e.preventDefault();
@@ -41,7 +44,7 @@ export default function RegisterPage() {
     run(async () => {
       if (step === 'form') {
         const result = await register({ fullName:form.fullName.trim(), email:form.email.trim(), password:form.password, role });
-        restart(result.otpTtlSeconds ?? 120); setNotice('Mã xác thực đã được gửi tới email của bạn.'); setStep('otp');
+        restart(result.otpTtlSeconds ?? 120); restartResend(30); setNotice('Mã xác thực đã được gửi tới email của bạn.'); setStep('otp');
       } else {
         await verifyOtp({ email:form.email.trim(), otp:form.otp.trim() });
         setForm((f) => ({ ...f, password:'', confirm:'', otp:'' })); setStep('complete');
@@ -67,7 +70,7 @@ export default function RegisterPage() {
             <PasswordField id="password" autoComplete="new-password" value={form.password} onChange={set('password')} error={errors.password} hint="Tối thiểu 8 ký tự, gồm chữ và số." />
             <PasswordField id="confirmPassword" label="Xác nhận mật khẩu" autoComplete="new-password" value={form.confirm} onChange={set('confirm')} error={errors.confirm} />
           </> : <>{notice ? <p className="auth__notice" role="status">{notice}</p> : null}<Field id="otp" label="Mã OTP" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={form.otp} onChange={set('otp')} error={errors.otp} hint={left ? 'Mã còn hiệu lực ' + formatCountdown(left) : 'Mã đã hết hạn. Hãy gửi lại mã.'} />
-            <button type="button" className="linkbtn" disabled={busy} onClick={()=>run(async()=>{ const r = await resendOtp({ email:form.email.trim(), purpose:'register' }); restart(r.otpTtlSeconds ?? 120);setForm((f)=>({...f,otp:''}));setNotice('Đã gửi lại mã OTP.'); })}>Gửi lại mã OTP</button>
+            <button type="button" className="linkbtn" disabled={busy || resendLeft > 0} onClick={()=>run(async()=>{ const r = await resendOtp({ email:form.email.trim(), purpose:'register' }); restart(r.otpTtlSeconds ?? 120);restartResend(30);setForm((f)=>({...f,otp:''}));setNotice('Đã gửi lại mã OTP.'); })}>Gửi lại mã OTP</button>{resendLeft > 0 ? <span className="muted small">Vui lòng chờ {resendLeft} giây.</span> : null}
             <button type="button" className="linkbtn" disabled={busy} onClick={changeEmail}>Đổi email</button>
           </>}
           <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy}>{busy ? 'Đang xử lý…' : step === 'form' ? 'Tiếp tục' : 'Xác thực'}</button>

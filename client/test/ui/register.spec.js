@@ -51,6 +51,7 @@ for (const role of ['tourist', 'contributor'])
     await expect(page).toHaveURL(/login[?]next=%2Fitineraries/);
   });
 test('confirmation, OTP errors and resend preserve recovery', async ({ page }) => {
+  await page.clock.install();
   let requests = 0,
     resends = 0;
   await page.route('**/api/auth/register', (r) => {
@@ -74,15 +75,19 @@ test('confirmation, OTP errors and resend preserve recovery', async ({ page }) =
   await page.getByLabel('Mã OTP').fill('000000');
   await page.getByRole('button', { name: 'Xác thực', exact: true }).click();
   await expect(page.locator('#otp-err')).toContainText('OTP không hợp lệ');
+  await expect(page.getByRole('button', { name: 'Gửi lại mã OTP', exact: true })).toBeDisabled();
+  await page.clock.fastForward(30000);
   await page.getByRole('button', { name: 'Gửi lại mã OTP', exact: true }).click();
   expect(resends).toBe(1);
+  await expect(page.getByRole('button', { name: 'Gửi lại mã OTP', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Đổi email', exact: true }).click();
   await expect(page.getByLabel('Email', { exact: true })).toHaveValue('new@example.test');
   await page.setViewportSize({ width: 390, height: 844 });
   await noOverflow(page);
 });
 
-test('expired OTP offers resend without creating a session', async ({ page }) => {
+test('expired OTP offers resend after cooldown without creating a session', async ({ page }) => {
+  await page.clock.install();
   await page.route('**/api/auth/register', (r) => json(r, { otpTtlSeconds: 1 }, 202));
   await page.route('**/api/auth/verify-otp', (r) =>
     json(r, { code: 'challenge_expired', error: 'Phiên xác thực đã hết hạn' }, 410),
@@ -92,6 +97,8 @@ test('expired OTP offers resend without creating a session', async ({ page }) =>
   await page.getByLabel('Mã OTP').fill('123456');
   await page.getByRole('button', { name: 'Xác thực', exact: true }).click();
   await expect(page.locator('#otp-err')).toContainText('hết hạn');
+  await expect(page.getByRole('button', { name: 'Gửi lại mã OTP' })).toBeDisabled();
+  await page.clock.fastForward(30000);
   await expect(page.getByRole('button', { name: 'Gửi lại mã OTP' })).toBeEnabled();
   expect(await page.evaluate(() => localStorage.getItem('geosound:auth'))).toBeNull();
 });
