@@ -187,8 +187,8 @@ Response `200`:
 | Status | Meaning | Moderation action |
 | --- | --- | --- |
 | `200` | Verdict returned | Save and publish |
-| `401` | Missing or bad `x-internal-token` | Permanent |
-| `422` | Invalid input (schema, limits, image rules) | Permanent, do not retry |
+| `401` | Missing or bad `x-internal-token` | Configuration error: case `ai_failed`, nothing published, sweeper retries after the token is fixed |
+| `422` | Invalid input (schema, limits, image rules) | Permanent, do not retry: publish a Warning for human review |
 | `503` | All providers failed | Temporary, retry |
 
 ### 3.4 Image rules (phase 2)

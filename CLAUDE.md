@@ -8,14 +8,14 @@ You help one student (owner of the **AI** part) on the team project GeoSound. Re
 
 The user owns: place moderation, tour moderation, chatbot (`services/ai`), plus the AI-related parts of `services/moderation` (consumers, use-cases, AI reviewer, persistence). Admin approval (UC#19) belongs to someone else: do not build it. `services/ai/app/translation` and `api/translation.py` were added by another teammate: do not change them.
 
-## 2. Architecture (V3, decided)
+## 2. Architecture (V4, accepted: `docs/02-design/moderation-architecture.md`)
 
 ```text
 Tour ──place.submitted / tour.submitted (content inside)──▶ RabbitMQ ──▶ Moderation (Node)
 Moderation ──HTTP POST /moderate/place | /moderate/tour (x-internal-token)──▶ AI (Python) ──▶ Gemini (fallback Groq)
-Moderation: save case, merge signals, retry
+Moderation: save case, geo rules (tour), merge signals, retry
 Moderation ──place.ai_passed | place.ai_rejected | tour.ai_passed | tour.ai_rejected──▶ RabbitMQ ──▶ Tour
-Warning = ai_passed with warning:true and reasons. AI failure = publish nothing.
+Warning = ai_passed with warning:true and reasons. Temporary AI failure = publish nothing; 422 = Warning for human review.
 ```
 
 - **AI service** (`services/ai`, Python 3.11, FastAPI, port 3004): stateless HTTP. It does **not** listen to RabbitMQ. Also hosts translation and, later, the chatbot.
@@ -30,7 +30,7 @@ Warning = ai_passed with warning:true and reasons. AI failure = publish nothing.
 - The LLM only reports findings (`category`, `severity` 0 to 1). `policy.py` decides: `severity >= 0.8` Reject, `>= 0.4` Warning, else Pass (`MODERATION_REJECT_THRESHOLD`, `MODERATION_WARNING_THRESHOLD`). Any doubt goes to a human, never to an automatic Pass.
 - Categories: `hate, violence, sexual, scam, misleading, irrelevant, other` (from AI), plus `route` (from Moderation geo rules).
 - Tour geo rules G1 to G6 run in Moderation (`domain/geo/tour-geo-rules.js`, pure JS, no LLM, limits per tour `type`). Only G1 (invalid coordinate) rejects; the rest are Warnings. Geo findings and the AI verdict are merged: worst verdict wins, max severity, reasons carry `source: ai | geo`. Forbidden zones are checked by Tour, not here.
-- A permanent AI error (422) is published as a Warning for human review; a temporary failure after retries publishes nothing (`ai_failed`, sweeper retries).
+- A permanent AI error (422) is published as a Warning for human review. A temporary failure after retries, or a 401 (configuration error), publishes nothing (`ai_failed`, sweeper retries).
 - Text blocked by the provider (`LLMBlockedError`) is a **Reject** with category `other`, not an infrastructure error.
 - Fallback to Groq only on timeout, 429, 5xx, and only for text-only requests. 4xx and blocked content are never retried on another provider.
 - Phase 1 = text only (`imagesChecked` is 0). Phase 2 = place images (Gemini only; never Pass a place whose images were not checked). Phase 3 = chatbot.
@@ -110,12 +110,12 @@ New files exist as stubs (`throw new Error('not implemented: #AI-xx')` or `NotIm
 
 ```text
 services/ai/app/
-  api/            moderation.py (to rewrite, #AI-21), translation.py (not ours)
+  api/            moderation.py (to rewrite, #AI-30), translation.py (not ours)
   moderation/     schema.py policy.py (existing), place_service.py tour_service.py pipeline.py
                   validator.py images.py (phase 2), tracing.py (LangSmith, optional),
                   prompts/{place,tour}_moderation.txt
   chatbot/        phase 3: LangGraph agent, LangChain models, graph + vector RAG (#AI-43 to #AI-48)
-  middleware/     auth.py (x-internal-token, #AI-12)
+  middleware/     auth.py (x-internal-token, #AI-28)
 services/moderation/src/
   config.js  container.js  index.js
   domain/         entities, errors, ports, moderation/{case-state-machine,merge-verdicts}.js,

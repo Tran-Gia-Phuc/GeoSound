@@ -1,7 +1,7 @@
 # AI and Moderation Architecture
 
 Status: **accepted (V4)**, 2026-10-27. Owner: AI part of GeoSound.
-Replaces the V3 notes in `AI_PLAN.md` once accepted. Older issues #AI-11 to #AI-24 follow the abandoned
+Replaces the V3 notes in `AI_PLAN.md`. Older issues #AI-11 to #AI-24 follow the abandoned
 design and are superseded by the task list in section 10.
 
 ## 1. Scope
@@ -178,7 +178,7 @@ limits before the call (title 200, tour description 5000, place name 200, place 
 | --- | --- |
 | Duplicate events | One row per `(subjectType, subjectId, revision)`; an existing result is re-published, no new AI call |
 | Crash safety | Consumer saves the case, then acks. A handler never throws for work it wants to retry (shared `consume()` nacks without requeue) |
-| AI errors | 3 attempts (2 s, 4 s) on timeout, 429, 503, network. 422 and other 4xx are permanent → case `failed_permanent`, publish a Warning so a human looks at it |
+| AI errors | 3 attempts (2 s, 4 s) on timeout, 429, 503, network. 422 is permanent → case `failed_permanent`, publish a Warning so a human looks at it. 401 is a configuration error → `ai_failed`, logged, retried by the sweeper |
 | AI down after retries | Case `ai_failed`, publish nothing, Tour stays `ai_checking`. A sweeper retries `ai_failed` and stale `pending` cases every 60 s |
 | Quota | Moderation prefetch 2 + a semaphore in AI; Groq absorbs text-only overflow |
 | Feature flag | Tour: `MODERATION_EVENTS_ENABLED=false` by default = today's direct publish, unchanged |
@@ -296,5 +296,5 @@ Order for phase 1: 25 → 26, 27 → AI track (28 → 29 → 30 → 31 → 32) a
 | D12 no LangChain / LangGraph / LangSmith | Moderation: plain Python + optional LangSmith tracing. Chatbot: LangGraph + LangChain + LangSmith |
 | Tour moderation = text only | Tour moderation = text (AI) + geo rules (Moderation), merged |
 | Categories | Add `route` for geo findings |
-| AI failure after retries on 4xx | Permanent 4xx publishes a Warning (human review) instead of nothing |
+| AI failure after retries on 4xx | 422 publishes a Warning (human review) instead of nothing; 401 is treated as a temporary configuration failure |
 | Issues #AI-11 to #AI-24 | Superseded by #AI-25 to #AI-48 |

@@ -27,7 +27,7 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 | D8 | HTTP naming | snake_case on the wire like `/translate`; Moderation converts in `application/dtos/ai-mapping.js` only |
 | D9 | Oversized text | Moderation truncates to the limits before calling AI |
 | D10 | Duplicates | One case per `(subjectType, subjectId, revision)`; an existing result is re-published without a new AI call |
-| D11 | Retry and failure | 3 attempts (2 s, 4 s) on timeout, 429, 503, network. After that: `ai_failed`, publish nothing, sweeper retries. Permanent 4xx (422): `failed_permanent` and publish a Warning so a human reviews it |
+| D11 | Retry and failure | 3 attempts (2 s, 4 s) on timeout, 429, 503, network. After that: `ai_failed`, publish nothing, sweeper retries. 422: `failed_permanent` and publish a Warning so a human reviews it. 401 (bad token, configuration): `ai_failed`, no publish |
 | D12 | Frameworks | Moderation: plain Python + optional LangSmith tracing (`LANGSMITH_TRACING=false`). Chatbot: LangGraph + LangChain + LangSmith, graph + vector RAG |
 | D13 | Quota | Moderation prefetch 2 + a semaphore in AI; Groq absorbs text-only overflow |
 | D14 | Geo rules | Moderation `domain/geo/tour-geo-rules.js`, rules G1 to G6, limits per tour type; only G1 (invalid coordinate) rejects; findings use category `route` |
@@ -45,7 +45,7 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 | Code | Issue | Branch | Phase | Depends on |
 | --- | --- | --- | --- | --- |
 | AI-25 architecture V4 and spec | #166 | `docs/ai-moderation-architecture-v4` | 1 | |
-| AI-26 shared events | #167 | `feature/events-moderation-contract` | 1 | |
+| AI-26 shared events | #167 | `feature/events-moderation-contract` | 1 | 25 |
 | AI-27 env and compose | #168 | `chore/ai-env-compose` | 1 | |
 | AI-28 auth and validator | #169 | `feature/ai-auth-validator` | 1 | |
 | AI-29 place text moderation | #170 | `feature/ai-place-moderation` | 1 | 28 |
