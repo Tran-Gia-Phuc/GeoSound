@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     langsmith_project: str = "geosound-ai"
     langsmith_api_key: SecretStr = SecretStr("")
 
+    # Chatbot (phase 3, #AI-46): user turns kept in memory and sent to the LLM.
+    chat_memory_turns: int = 6
+
     def allowed_image_hosts(self) -> frozenset[str]:
         """Hosts images may be fetched from. Empty set = every image is refused."""
         hosts = {h.strip().lower().rstrip(".") for h in self.image_allowed_hosts.split(",")}
