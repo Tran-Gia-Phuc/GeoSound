@@ -5,6 +5,7 @@
 // =========================================================
 import Icon from '../../components/Icon.jsx';
 import { formatTime } from '../../lib/format.js';
+import './player-transport-a.css';
 
 const ROLE_LABEL = { place: 'Đang nghe', hint: 'Gợi ý đi tiếp', nav: 'Chỉ đường' };
 
@@ -77,22 +78,23 @@ export default function PlayerBar({ audio, engine, hideTitle = false }) {
 
       {/* Nút điều khiển */}
       <div className="player__controls">
-        <button className="iconbtn" onClick={prev} disabled={!canPrev} aria-label="Điểm trước">
-          <Icon name="skip-back" size={20} />
+        <button className="iconbtn player-transport-a" onClick={prev} disabled={!canPrev} aria-label="Điểm trước">
+          <Icon name="skip-back" size={20} /><span>Điểm trước</span>
         </button>
         <button
-          className="iconbtn"
-          onClick={() => seek((state.currentTime || 0) - 10)}
+          className="iconbtn player-transport-a"
+          onClick={() => seek((state.currentTime || 0) - 15)}
           disabled={!state.canSeek}
-          aria-label="Tua lùi 10 giây"
+          aria-label="Tua lùi 15 giây"
         >
-          <Icon name="rewind" size={20} />
+          <Icon name="rewind" size={20} /><span>Lùi 15s</span>
         </button>
 
         <button
           className="player__play"
           onClick={toggle}
-          disabled={!hasTrack || state.status === 'error'}
+          disabled={!hasTrack || loading || state.status === 'error'}
+          aria-busy={loading}
           aria-label={playing ? 'Tạm dừng' : 'Phát'}
         >
           {loading ? (
@@ -105,15 +107,15 @@ export default function PlayerBar({ audio, engine, hideTitle = false }) {
         </button>
 
         <button
-          className="iconbtn"
-          onClick={() => seek((state.currentTime || 0) + 10)}
+          className="iconbtn player-transport-a"
+          onClick={() => seek((state.currentTime || 0) + 15)}
           disabled={!state.canSeek}
-          aria-label="Tua tới 10 giây"
+          aria-label="Tua tới 15 giây"
         >
-          <Icon name="forward" size={20} />
+          <Icon name="forward" size={20} /><span>Tiến 15s</span>
         </button>
-        <button className="iconbtn" onClick={next} disabled={!canNext} aria-label="Điểm kế tiếp">
-          <Icon name="skip-forward" size={20} />
+        <button className="iconbtn player-transport-a" onClick={next} disabled={!canNext} aria-label="Điểm kế tiếp">
+          <Icon name="skip-forward" size={20} /><span>Điểm sau</span>
         </button>
       </div>
     </section>
