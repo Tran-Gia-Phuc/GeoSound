@@ -28,6 +28,8 @@ export class PrismaTourRepository {
       duration: row.duration,
       averageRating: row.averageRating,
       ratingCount: row.ratingCount,
+      moderationReasons: Array.isArray(row.moderationReasons) ? row.moderationReasons : [],
+      moderationRevision: row.moderationRevision ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
@@ -82,6 +84,31 @@ export class PrismaTourRepository {
 
   async delete(id) {
     await this.prisma.tour.delete({ where: { id } });
+  }
+
+  /**
+   * UC15 — writes ONLY the status + moderation columns (save() never touches the moderation ones).
+   * undefined = keep, null clears moderationRevision.
+   * @param {string} id @param {{ status?, moderationReasons?, moderationRevision? }} fields
+   */
+  async updateModeration(id, { status, moderationReasons, moderationRevision }) {
+    const row = await this.prisma.tour.update({
+      where: { id },
+      data: { status, moderationReasons, moderationRevision },
+    });
+    return PrismaTourRepository.toEntity(row);
+  }
+
+  /**
+   * UC15 — conditional write of an AI result: only while the tour is still 'ai_checking' with the
+   * same revision (one atomic UPDATE, no read-then-write race). Returns the number of rows updated.
+   */
+  async applyModerationResultIf(id, revision, { status, moderationReasons }) {
+    const { count } = await this.prisma.tour.updateMany({
+      where: { id, status: 'ai_checking', moderationRevision: revision },
+      data: { status, moderationReasons },
+    });
+    return count;
   }
 
   // ---------- UC02 — đọc công khai (chỉ tour status=public) ----------
