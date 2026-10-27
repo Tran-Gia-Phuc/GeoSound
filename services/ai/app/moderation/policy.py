@@ -38,12 +38,25 @@ def decide(
     warning_threshold: float | None = None,
 ) -> Verdict:
     reject, warning = resolve_thresholds(reject_threshold, warning_threshold)
-    worst = max((f.severity for f in findings), default=0.0)
+    worst = max_severity(findings)
     if worst >= reject:
         return Verdict.REJECT
     if worst >= warning:
         return Verdict.WARNING
     return Verdict.PASS
+
+
+def flagged(findings: Sequence[Finding], warning_threshold: float) -> list[Finding]:
+    """Findings at or above the warning threshold, worst first (they become reasons)."""
+    return sorted(
+        (f for f in findings if f.severity >= warning_threshold),
+        key=lambda f: f.severity,
+        reverse=True,
+    )
+
+
+def max_severity(findings: Sequence[Finding]) -> float:
+    return max((f.severity for f in findings), default=0.0)
 
 
 def build_response(
@@ -54,10 +67,8 @@ def build_response(
 ) -> ModerationResponse:
     reject, warning = resolve_thresholds(reject_threshold, warning_threshold)
     verdict = decide(findings, reject, warning)
-    flagged = sorted(
-        (f for f in findings if f.severity >= warning),
-        key=lambda f: f.severity,
-        reverse=True,
-    )
-    reasons = [Reason(field=f.field, category=f.category, message=f.message) for f in flagged]
+    reasons = [
+        Reason(field=f.field, category=f.category, message=f.message)
+        for f in flagged(findings, warning)
+    ]
     return ModerationResponse(tour_id=tour_id, verdict=verdict, reasons=reasons)
