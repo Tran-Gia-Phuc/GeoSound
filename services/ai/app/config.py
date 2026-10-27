@@ -1,4 +1,5 @@
 from functools import lru_cache
+from urllib.parse import urlsplit
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -35,6 +36,25 @@ class Settings(BaseSettings):
     moderation_timeout_seconds: float = 30.0
     # Concurrent LLM-backed moderation calls in this process (quota, D13).
     moderation_max_concurrency: int = 2
+
+    # Place images (phase 2, #AI-41). Comma-separated hosts; empty = host of SUPABASE_URL.
+    image_allowed_hosts: str = ""
+    # Only its host is used (image allowlist fallback); never log this value.
+    supabase_url: str = ""
+    image_max_bytes: int = 3 * 1024 * 1024
+    image_fetch_timeout_seconds: float = 10.0
+
+    def allowed_image_hosts(self) -> frozenset[str]:
+        """Hosts images may be fetched from. Empty set = every image is refused."""
+        hosts = {h.strip().lower().rstrip(".") for h in self.image_allowed_hosts.split(",")}
+        hosts.discard("")
+        if hosts:
+            return frozenset(hosts)
+        try:
+            host = urlsplit(self.supabase_url.strip()).hostname
+        except ValueError:
+            host = None
+        return frozenset({host.rstrip(".")}) if host else frozenset()
 
 
 @lru_cache
