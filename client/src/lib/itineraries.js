@@ -4,6 +4,7 @@
 // Xem/chia sẻ công khai (/shared, /places) không cần đăng nhập.
 // =========================================================
 import { api } from './api.js';
+import { requireDiscoveryPage } from './discovery-data.js';
 
 const langQ = (lang) => (lang ? `?lang=${encodeURIComponent(lang)}` : '');
 
@@ -19,7 +20,7 @@ export async function explorePlaces({ q, city, type, lat, lng, page = 1, pageSiz
   }
   p.set('page', String(page));
   p.set('pageSize', String(pageSize));
-  return api.get(`/api/places?${p.toString()}`);
+  return requireDiscoveryPage(await api.get(`/api/places?${p.toString()}`), 'items');
 }
 
 // ---- Lịch trình của tôi ----

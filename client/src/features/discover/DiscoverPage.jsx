@@ -33,7 +33,10 @@ const RECENT_KEY = 'geosound:recent-tours';
 
 function readRecent() {
   try {
-    return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]').slice(0, 3);
+    const saved = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+    return Array.isArray(saved)
+      ? saved.filter((item) => item && typeof item.id === 'string' && typeof item.title === 'string').slice(0, 3)
+      : [];
   } catch {
     return [];
   }
@@ -122,11 +125,13 @@ export default function DiscoverPage() {
   // ---------- Dữ liệu ----------
   const [popular, setPopular] = useState(null); // { tours, total, page }
   const [nearby, setNearby] = useState(null);
-  const [results, setResults] = useState(null); // tour: { tours, total, page } | địa điểm: { items, total, page }
+  const [nearbyError, setNearbyError] = useState('');
+  const [resultState, setResultState] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const requestGeneration = useRef(0);
+  const moreRequest = useRef(null);
   const [error, setError] = useState(null);
   const [recent] = useState(readRecent);
 
@@ -135,6 +140,10 @@ export default function DiscoverPage() {
   const wantNearby = sort === 'nearby';
   // Chỉ phụ thuộc vị trí khi đang sắp "gần tôi" (tránh tải lại khi vị trí tới muộn).
   const near = wantNearby ? coords : null;
+  // URL changes render before effects run. Never expose a previous query's
+  // payload (especially places.items as tours.tours) during that render.
+  const resultKey = JSON.stringify([tab, q, city, lang, type, sort, near?.lat, near?.lng]);
+  const results = resultState?.key === resultKey ? resultState.data : null;
 
   // Phổ biến (luôn tải 1 lần — cũng dùng để gợi ý chip thành phố).
   useEffect(() => {
@@ -148,10 +157,14 @@ export default function DiscoverPage() {
   // Gần bạn — khi đã có vị trí.
   useEffect(() => {
     if (!coords) return;
+    let alive = true;
+    setNearby(null);
+    setNearbyError('');
     searchTours({ sort: 'nearby', lat: coords.lat, lng: coords.lng, limit: 8 })
-      .then((r) => setNearby(r.tours))
-      .catch(() => setNearby([]));
-  }, [coords]);
+      .then((r) => { if (alive) setNearby(r.tours); })
+      .catch((e) => { if (alive) setNearbyError(e.message || 'Không tải được tour gần bạn.'); });
+    return () => { alive = false; };
+  }, [coords, retryKey]);
 
   const query = useCallback(
     (page) => {
@@ -184,9 +197,11 @@ export default function DiscoverPage() {
   // Kết quả theo bộ lọc (tab Tour khi có lọc/tìm; tab Địa điểm luôn).
   useEffect(() => {
     requestGeneration.current += 1;
+    moreRequest.current = null;
     setLoadingMore(false);
     if (toursLanding) {
-      setResults(null);
+      setResultState(null);
+      setLoading(false);
       return undefined;
     }
     if (wantNearby && !coords) {
@@ -195,10 +210,10 @@ export default function DiscoverPage() {
     }
     let alive = true;
     setLoading(true);
-    setResults(null);
+    setResultState(null);
     setError(null);
     query(1)
-      .then((r) => alive && setResults(r))
+      .then((r) => alive && setResultState({ key: resultKey, data: r }))
       .catch((e) => alive && setError({ message: e.offline ? 'Mất kết nối mạng' : e.message || 'Không tải được', offline: e.offline }))
       .finally(() => alive && setLoading(false));
     return () => {
@@ -206,10 +221,12 @@ export default function DiscoverPage() {
       requestGeneration.current += 1;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toursLanding, query, retryKey]);
+  }, [toursLanding, query, retryKey, resultKey]);
 
   const loadMore = async (which) => {
-    if (loadingMore) return;
+    if (moreRequest.current || (which === 'popular' ? !popular : !results)) return;
+    const request = {};
+    moreRequest.current = request;
     const generation = requestGeneration.current;
     setLoadingMore(true);
     setError(null);
@@ -219,11 +236,16 @@ export default function DiscoverPage() {
         if (generation === requestGeneration.current) setPopular((p) => ({ ...r, tours: [...p.tours, ...r.tours] }));
       } else {
         const r = await query(results.page + 1);
-        if (generation === requestGeneration.current) setResults((d) => (tab === 'places' ? { ...r, items: [...d.items, ...r.items] } : { ...r, tours: [...d.tours, ...r.tours] }));
+        if (generation === requestGeneration.current) setResultState((current) => {
+          if (current?.key !== resultKey) return current;
+          const field = tab === 'places' ? 'items' : 'tours';
+          return { key: resultKey, data: { ...r, [field]: [...current.data[field], ...r[field]] } };
+        });
       }
     } catch (e) {
       if (generation === requestGeneration.current) setError({ message: e.message || 'Không tải thêm được', retryMore: which });
     } finally {
+      if (moreRequest.current === request) moreRequest.current = null;
       if (generation === requestGeneration.current) setLoadingMore(false);
     }
   };
@@ -412,7 +434,9 @@ export default function DiscoverPage() {
               ) : null}
             </div>
             {coords ? (
-              nearby === null ? (
+              nearbyError ? (
+                <div role="alert"><p>{nearbyError}</p><button className="btn" onClick={() => setRetryKey((n) => n + 1)}>Thử lại tour gần bạn</button></div>
+              ) : nearby === null ? (
                 <p className="muted small"><Icon name="loader" size={14} className="spin" /> Đang tìm tour quanh bạn…</p>
               ) : nearby.length ? (
                 <ul className="hscroll">
