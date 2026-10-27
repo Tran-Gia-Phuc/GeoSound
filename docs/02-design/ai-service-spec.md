@@ -227,12 +227,26 @@ Names only; values live in the root `.env`, which is never committed.
 | `IMAGE_MAX_BYTES` | Max size of one image in bytes (default 3145728 = 3 MB) |
 | `IMAGE_FETCH_TIMEOUT_SECONDS` | Total fetch time of one image (default 10) |
 | `LANGSMITH_TRACING` | Enables LangSmith tracing, `false` by default |
+| `LANGSMITH_API_KEY` | LangSmith key (secret, never logged); empty with tracing on = untraced plus one warning |
+| `LANGSMITH_PROJECT` | LangSmith project of the traces (default `geosound-ai`) |
 
 ## 5. Observability
 
-Structured logs carry the subject id, model, latency and verdict, never content secrets or keys. Optional
-LangSmith tracing (`langsmith` package, `@traceable`) can be turned on with `LANGSMITH_TRACING=true` to inspect
-prompts, latency and token usage. It is off by default and never enabled in tests.
+Structured logs carry the subject id, model, latency and verdict, never content secrets or keys.
+
+Optional LangSmith tracing (`moderation/tracing.py`, `langsmith` package, `@traceable`), task #AI-32:
+
+| Item | Rule |
+| --- | --- |
+| Flag | `LANGSMITH_TRACING=false` by default: the endpoint calls the moderator directly and `langsmith` is never imported (no side effect, no network) |
+| Runs | One run per `/moderate/place` or `/moderate/tour` call, named `moderate_place` or `moderate_tour`, run type `chain`, project `LANGSMITH_PROJECT` |
+| Inputs | Summary only: ids, language, text lengths, number of places or images. No user text, no prompt, no key |
+| Outputs | `verdict`, `severity`, `categories`, `model`, `images_checked` (place), `latency_ms`; model, verdict and latency are also run metadata. A failure records only the exception class name |
+| Failure | Package missing, empty key or tracer error: the call runs untraced and one warning is logged; tracing never fails a moderation |
+| Tests | Never enabled against LangSmith; flag-on tests use a fake `langsmith` module |
+
+Prompts and token usage are deliberately not recorded: they contain user text. Token usage can be added later
+from the provider response without the prompt.
 
 ## 6. Security
 
