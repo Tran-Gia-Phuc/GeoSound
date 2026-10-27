@@ -4,6 +4,7 @@
 //   - đóng thì trả focus về phần tử đã mở hộp
 //   - khoá cuộn trang nền khi đang mở
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from './Icon.jsx';
 
 const FOCUSABLE =
@@ -55,7 +56,7 @@ export default function Modal({ open, onClose, title, children, labelledBy = 'mo
   }, [open]);
 
   if (!open) return null;
-  return (
+  return createPortal(
     <div className="modal" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
       <div className="modal__card" role="dialog" aria-modal="true" aria-labelledby={labelledBy} tabIndex={-1} ref={ref}>
         <div className="modal__head">
@@ -70,6 +71,7 @@ export default function Modal({ open, onClose, title, children, labelledBy = 'mo
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -40,3 +40,30 @@ test('live detail connects to gateway', async ({ page }) => {
   );
   await noOverflow(page);
 });
+
+test('GPS permission dialog stays in viewport and its action can be used', async ({ page }) => {
+  await fixtures(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'permissions', { configurable: true, value: { query: async () => ({ state: 'prompt' }) } });
+    localStorage.removeItem('geosound:gps-explained');
+  });
+  for (const viewport of [{ width: 1440, height: 800 }, { width: 390, height: 650 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/tour/' + id);
+    await page.getByRole('button', { name: 'Bắt đầu đi tour' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Nghe tự động theo vị trí' });
+    await expect(dialog).toBeVisible();
+    await expect.poll(async () => { const b = await dialog.boundingBox(); return b.y + b.height; }).toBeLessThanOrEqual(viewport.height);
+    const bounds = await dialog.boundingBox();
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.y).toBeGreaterThanOrEqual(0);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Bắt đầu đi tour' })).toBeFocused();
+    await page.getByRole('button', { name: 'Bắt đầu đi tour' }).click();
+    await dialog.getByRole('button', { name: 'Cho phép & bắt đầu' }).click();
+    await expect(page).toHaveURL(/mode=gps/);
+    await page.evaluate(() => localStorage.removeItem('geosound:gps-explained'));
+  }
+});
