@@ -4,13 +4,15 @@ from functools import lru_cache
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.llm.errors import LLMError
+from app.middleware.auth import require_internal_token
 from app.moderation.policy import build_response
 from app.moderation.schema import ModerationRequest, ModerationResponse
 from app.moderation.service import TextModerator
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+# Every moderation route requires the internal service token (#AI-28).
+router = APIRouter(dependencies=[Depends(require_internal_token)])
 
 
 @lru_cache
