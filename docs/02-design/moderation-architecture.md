@@ -1,6 +1,6 @@
 # AI and Moderation Architecture
 
-Status: **proposal (V4)**, waiting for review. Owner: AI part of GeoSound.
+Status: **accepted (V4)**, 2026-10-27. Owner: AI part of GeoSound.
 Replaces the V3 notes in `AI_PLAN.md` once accepted. Older issues #AI-11 to #AI-24 follow the abandoned
 design and are superseded by the task list in section 10.
 
@@ -258,32 +258,32 @@ only `container.js` wires them.
 
 ## 10. Task list (GitHub issues, label `ai-service`)
 
-| Code | Title | Phase | Depends on |
-| --- | --- | --- | --- |
-| #AI-25 | Write AI and Moderation architecture V4 and spec | 1 | |
-| #AI-26 | Extend shared events for place and tour moderation | 1 | 25 |
-| #AI-27 | Add AI and Moderation env variables and compose wiring | 1 | |
-| #AI-28 | Add internal token auth and input validator to AI service | 1 | |
-| #AI-29 | Implement place text moderation in AI service | 1 | 28 |
-| #AI-30 | Add POST /moderate/place endpoint and pipeline | 1 | 29 |
-| #AI-31 | Implement tour content moderation and POST /moderate/tour | 1 | 30 |
-| #AI-32 | Add optional LangSmith tracing to moderation calls | 1 | 30 |
-| #AI-33 | Add moderation case persistence and state machine | 1 | |
-| #AI-34 | Add HTTP AI reviewer with retry and truncation | 1 | 33 |
-| #AI-35 | Implement tour geo rules | 1 | |
-| #AI-36 | Wire place review flow in Moderation | 1 | 26, 33, 34 |
-| #AI-37 | Wire tour review flow with geo and AI merge | 1 | 35, 36 |
-| #AI-38 | Add retry sweeper for failed moderation cases | 1 | 36 |
-| #AI-39 | Integrate moderation events in Tour behind a feature flag | 1 | 26 |
-| #AI-40 | Add moderation end-to-end test script | 1 | 37, 39 |
-| #AI-41 | Moderate place images with Gemini | 2 | 30 |
-| #AI-42 | Carry place images through Moderation | 2 | 36, 41 |
-| #AI-43 | Design chatbot: LangGraph agent and graph RAG | 3 | |
-| #AI-44 | Build chatbot knowledge graph and vector index | 3 | 43 |
-| #AI-45 | Implement hybrid graph and vector retriever | 3 | 44 |
-| #AI-46 | Implement LangGraph chat agent with tools and memory | 3 | 45 |
-| #AI-47 | Add POST /chat streaming and gateway route | 3 | 46 |
-| #AI-48 | Add chatbot evaluation with LangSmith datasets | 3 | 46 |
+| Code | Issue | Title | Phase | Depends on |
+| --- | --- | --- | --- | --- |
+| #AI-25 | #166 | Write AI and Moderation architecture V4 and spec | 1 | |
+| #AI-26 | #167 | Extend shared events for place and tour moderation | 1 | 25 |
+| #AI-27 | #168 | Add AI and Moderation env variables and compose wiring | 1 | |
+| #AI-28 | #169 | Add internal token auth and input validator to AI service | 1 | |
+| #AI-29 | #170 | Implement place text moderation in AI service | 1 | 28 |
+| #AI-30 | #171 | Add POST /moderate/place endpoint and pipeline | 1 | 29 |
+| #AI-31 | #172 | Implement tour content moderation and POST /moderate/tour | 1 | 30 |
+| #AI-32 | #173 | Add optional LangSmith tracing to moderation calls | 1 | 30 |
+| #AI-33 | #174 | Add moderation case persistence and state machine | 1 | |
+| #AI-34 | #175 | Add HTTP AI reviewer with retry and truncation | 1 | 33 |
+| #AI-35 | #176 | Implement tour geo rules | 1 | |
+| #AI-36 | #177 | Wire place review flow in Moderation | 1 | 26, 33, 34 |
+| #AI-37 | #178 | Wire tour review flow with geo and AI merge | 1 | 35, 36 |
+| #AI-38 | #179 | Add retry sweeper for failed moderation cases | 1 | 36 |
+| #AI-39 | #180 | Integrate moderation events in Tour behind a feature flag | 1 | 26 |
+| #AI-40 | #181 | Add moderation end-to-end test script | 1 | 37, 39 |
+| #AI-41 | #182 | Moderate place images with Gemini | 2 | 30 |
+| #AI-42 | #183 | Carry place images through Moderation | 2 | 36, 41 |
+| #AI-43 | #184 | Design chatbot: LangGraph agent and graph RAG | 3 | |
+| #AI-44 | #185 | Build chatbot knowledge graph and vector index | 3 | 43 |
+| #AI-45 | #186 | Implement hybrid graph and vector retriever | 3 | 44 |
+| #AI-46 | #187 | Implement LangGraph chat agent with tools and memory | 3 | 45 |
+| #AI-47 | #188 | Add POST /chat streaming and gateway route | 3 | 46 |
+| #AI-48 | #189 | Add chatbot evaluation with LangSmith datasets | 3 | 46 |
 
 Order for phase 1: 25 → 26, 27 → AI track (28 → 29 → 30 → 31 → 32) and Moderation track
 (33 → 34, 35 → 36 → 37 → 38) in parallel → 39 → 40.
