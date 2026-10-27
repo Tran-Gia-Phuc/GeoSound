@@ -67,6 +67,23 @@ test('tour: missing optional keys dropped, places default to []', () => {
   assert.deepEqual(body, { tour_id: 't1', title: 'T', description: 'D', language: 'en', places: [] });
 });
 
+test('place and tour: type and city are cut to 100 characters (AI label limit), so they never cause 422', () => {
+  const long = 'c'.repeat(150);
+  assert.equal(AI_LIMITS.label, 100);
+  const place = toPlaceRequest({ placeId: 'p1', tourId: 't1', name: 'N', type: long, description: 'D', language: 'vi', city: long });
+  assert.equal(place.type.length, 100);
+  assert.equal(place.city.length, 100);
+  const tour = toTourRequest({
+    tourId: 't1', title: 'T', language: 'vi', city: long, type: 'walking',
+    places: [{ placeId: 'p1', name: 'N', type: long, description: 'D', lat: 10, lng: 106, sequence: 0 }],
+  });
+  assert.equal(tour.city.length, 100);
+  assert.equal(tour.type, 'walking');
+  assert.equal(tour.places[0].type.length, 100);
+  const longType = toTourRequest({ tourId: 't1', title: 'T', language: 'vi', type: long });
+  assert.equal(longType.type.length, 100);
+});
+
 test('truncate counts code points and never splits a surrogate pair', () => {
   assert.equal(truncate(SMILE.repeat(250), 200), SMILE.repeat(200));
   assert.equal(truncate(SMILE.repeat(150), 200), SMILE.repeat(150)); // 300 units but 150 code points
