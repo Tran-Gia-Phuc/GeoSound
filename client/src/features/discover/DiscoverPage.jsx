@@ -26,6 +26,8 @@ import { PLACE_TYPE_OPTIONS, PLACE_TYPE_LABELS } from '../../lib/studio.js';
 import { formatDistance } from '../../lib/format.js';
 import { usePendingAdd } from '../../hooks/usePendingAdd.js';
 
+import './discover-a.css';
+
 const LIMIT = 12;
 const RECENT_KEY = 'geosound:recent-tours';
 
@@ -123,6 +125,8 @@ export default function DiscoverPage() {
   const [results, setResults] = useState(null); // tour: { tours, total, page } | địa điểm: { items, total, page }
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+  const requestGeneration = useRef(0);
   const [error, setError] = useState(null);
   const [recent] = useState(readRecent);
 
@@ -134,10 +138,12 @@ export default function DiscoverPage() {
 
   // Phổ biến (luôn tải 1 lần — cũng dùng để gợi ý chip thành phố).
   useEffect(() => {
+    let alive = true;
     searchTours({ sort: 'popular', limit: LIMIT })
-      .then((r) => setPopular(r))
-      .catch((e) => setError({ message: e.offline ? 'Mất kết nối mạng' : e.message, offline: e.offline }));
-  }, []);
+      .then((r) => { if (alive) { setPopular(r); if (toursLanding) setError(null); } })
+      .catch((e) => { if (alive && toursLanding) setError({ message: e.offline ? 'Mất kết nối mạng' : e.message, offline: e.offline }); });
+    return () => { alive = false; };
+  }, [retryKey, toursLanding]);
 
   // Gần bạn — khi đã có vị trí.
   useEffect(() => {
@@ -177,6 +183,8 @@ export default function DiscoverPage() {
 
   // Kết quả theo bộ lọc (tab Tour khi có lọc/tìm; tab Địa điểm luôn).
   useEffect(() => {
+    requestGeneration.current += 1;
+    setLoadingMore(false);
     if (toursLanding) {
       setResults(null);
       return undefined;
@@ -187,6 +195,7 @@ export default function DiscoverPage() {
     }
     let alive = true;
     setLoading(true);
+    setResults(null);
     setError(null);
     query(1)
       .then((r) => alive && setResults(r))
@@ -194,24 +203,28 @@ export default function DiscoverPage() {
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
+      requestGeneration.current += 1;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toursLanding, query]);
+  }, [toursLanding, query, retryKey]);
 
   const loadMore = async (which) => {
+    if (loadingMore) return;
+    const generation = requestGeneration.current;
     setLoadingMore(true);
+    setError(null);
     try {
       if (which === 'popular') {
         const r = await searchTours({ sort: 'popular', page: popular.page + 1, limit: LIMIT });
-        setPopular((p) => ({ ...r, tours: [...p.tours, ...r.tours] }));
+        if (generation === requestGeneration.current) setPopular((p) => ({ ...r, tours: [...p.tours, ...r.tours] }));
       } else {
         const r = await query(results.page + 1);
-        setResults((d) => (tab === 'places' ? { ...r, items: [...d.items, ...r.items] } : { ...r, tours: [...d.tours, ...r.tours] }));
+        if (generation === requestGeneration.current) setResults((d) => (tab === 'places' ? { ...r, items: [...d.items, ...r.items] } : { ...r, tours: [...d.tours, ...r.tours] }));
       }
     } catch (e) {
-      setError({ message: e.message || 'Không tải thêm được' });
+      if (generation === requestGeneration.current) setError({ message: e.message || 'Không tải thêm được', retryMore: which });
     } finally {
-      setLoadingMore(false);
+      if (generation === requestGeneration.current) setLoadingMore(false);
     }
   };
 
@@ -267,10 +280,12 @@ export default function DiscoverPage() {
 
   // ---------- Render ----------
   return (
-    <div className="page discover">
-      <header className="discover__head">
-        <h1 className="discover__title">Khám phá</h1>
-        <p className="muted">Tour audio thuyết minh theo bước chân — hoặc nghe thử ngay tại nhà.</p>
+    <div className="page discover discover-a">
+      <header className="discover__head discover-a__hero">
+        <span className="discover-a__eyebrow"><Icon name="headphones" size={18} /> GeoSound · Nghe câu chuyện nơi bạn đến</span>
+        <h1 className="discover__title">Khám phá thế giới<br />qua những câu chuyện âm thanh</h1>
+        <p>Tour audio theo bước chân của bạn. Tìm điểm đến mới hoặc nghe từ xa ngay tại nhà.</p>
+        <Icon name="headphones" className="discover-a__illustration" size={130} />
       </header>
 
       {addTo ? (
@@ -334,6 +349,14 @@ export default function DiscoverPage() {
         </button>
       </div>
 
+      <section className="discover-a__filters" aria-label="Bộ lọc khám phá">
+        <label>Thành phố<input className="input" list="discover-a-cities" value={city} onChange={(e)=>setParams({city:e.target.value})} placeholder="Tất cả thành phố" /></label>
+        <datalist id="discover-a-cities">{cities.map((c)=><option value={c} key={c} />)}</datalist>
+        {tab === 'tours' ? <label>Ngôn ngữ<select className="input" value={lang} onChange={(e)=>setParams({lang:e.target.value})}><option value="">Tất cả ngôn ngữ</option>{LANGUAGE_OPTIONS.map((o)=><option value={o.value} key={o.value}>{o.label}</option>)}</select></label> : null}
+        <label>{tab === 'tours' ? 'Loại tour' : 'Loại địa điểm'}<select className="input" value={type} onChange={(e)=>setParams({type:e.target.value})}><option value="">Tất cả loại</option>{(tab === 'tours' ? TOUR_TYPE_OPTIONS : PLACE_TYPE_OPTIONS).map((o)=><option value={o.value} key={o.value}>{o.label}</option>)}</select></label>
+        <label>Sắp xếp<select className="input" value={sort} onChange={(e)=>setParams({sort:e.target.value})}>{sortOptions.map((o)=><option value={o.value} key={o.value}>{o.label}</option>)}</select></label>
+      </section>
+
       {cities.length ? (
         <div className="sorts discover__cities" role="group" aria-label="Thành phố">
           <button className={`sortchip ${!city ? 'sortchip--on' : ''}`} aria-pressed={!city} onClick={() => setParams({ city: '' })}>
@@ -354,7 +377,7 @@ export default function DiscoverPage() {
             <div className="alert__title">{error.message}</div>
             {error.offline ? 'Kiểm tra kết nối rồi thử lại.' : null}
           </div>
-          <button className="btn" onClick={() => window.location.reload()}>Thử lại</button>
+          <button className="btn" onClick={() => { if (error.retryMore) loadMore(error.retryMore); else { setError(null); setRetryKey((n)=>n+1); } }}>Thử lại</button>
         </div>
       ) : null}
 
@@ -420,7 +443,7 @@ export default function DiscoverPage() {
 
           <section className="discover__section" aria-labelledby="pop-h">
             <h2 className="discover__h2" id="pop-h">Phổ biến</h2>
-            {popular === null ? (
+            {popular === null && error ? <p className="muted">Chưa tải được danh sách tour.</p> : popular === null ? (
               <SkeletonList />
             ) : popular.tours.length ? (
               <>
@@ -460,7 +483,7 @@ export default function DiscoverPage() {
             <p className="muted">
               {geoState === 'denied' ? 'Chưa có quyền vị trí — hãy cho phép để sắp xếp theo khoảng cách.' : 'Đang lấy vị trí của bạn…'}
             </p>
-          ) : loading || !results ? (
+          ) : error && !results ? <p className="muted">Chưa tải được kết quả. Bộ lọc của bạn vẫn được giữ.</p> : loading || !results ? (
             <SkeletonList />
           ) : tab === 'tours' ? (
             results.tours.length ? (

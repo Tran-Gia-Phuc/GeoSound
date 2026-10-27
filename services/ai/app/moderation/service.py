@@ -9,6 +9,7 @@ from app.llm.errors import LLMBlockedError, LLMError, LLMResponseError
 from app.llm.fallback import FallbackLLM
 from app.llm.gemini_client import GeminiClient
 from app.moderation.schema import Category, ModerationRequest
+from app.moderation.validator import wrap
 
 logger = logging.getLogger(__name__)
 
@@ -47,13 +48,12 @@ class Finding(BaseModel):
 
 # build prompt để gửi cho LLM, bao gồm field, text và language.
 def build_prompt(field: str, text: str, language: str) -> str:
-    # Remove the closing tag so the text cannot break out of its delimiter.
-    safe_text = text.replace("</content>", "")
+    # wrap() sanitizes the text so it cannot open or close the delimiter (#AI-28).
     reply_language = _LANGUAGE_NAMES.get(language, "English")
     return (
         f"Field: {field}\n"
         f"Write each finding message in {reply_language}.\n\n"
-        f"<content>\n{safe_text}\n</content>"
+        f"{wrap('content', text)}"
     )
 
 # đảm nhiệm ba nhiệm vụ:

@@ -2,23 +2,24 @@
 // ForgotPasswordPage — Quên mật khẩu (UC01 A2), 2 bước:
 //   1) nhập email → máy chủ gửi OTP (luôn trả lời chung chung, không lộ email)
 //   2) OTP + mật khẩu mới (hiện/ẩn, đếm ngược hạn mã, gửi lại sau 30 giây)
-// Đặt lại xong thì đăng nhập luôn và điều hướng như đăng nhập thường.
+// Đặt lại xong quay về đăng nhập; endpoint reset không cấp token.
 // =========================================================
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import { useCountdown, formatCountdown } from '../../hooks/useCountdown.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { Field, PasswordField, ErrorAlert } from './fields.jsx';
-import { destinationFor } from './redirect.js';
+import { api } from '../../lib/api.js';
 
 const RESEND_LOCK_S = 30;
 
 export default function ForgotPasswordPage() {
-  const navigate = useNavigate();
   const [params] = useSearchParams();
   const next = params.get('next');
-  const { forgotPassword, resetPasswordAndLogin, resendOtp } = useAuth();
+  const { forgotPassword, resendOtp } = useAuth();
+  const [confirmed, setConfirmed] = useState('');
+  const [complete, setComplete] = useState(false);
 
   const [step, setStep] = useState('email'); // email | reset
   const [form, setForm] = useState({ email: '', otp: '', newPassword: '' });
@@ -65,15 +66,20 @@ export default function ForgotPasswordPage() {
     const errs = {};
     if (!form.otp.trim()) errs.otp = 'Vui lòng nhập mã OTP';
     if (!form.newPassword) errs.newPassword = 'Vui lòng nhập mật khẩu mới';
+    else if (form.newPassword.length < 8) errs.newPassword = 'Mật khẩu phải có tối thiểu 8 ký tự';
+    else if (!/[A-Za-z]/.test(form.newPassword) || !/[0-9]/.test(form.newPassword)) errs.newPassword = 'Mật khẩu phải gồm cả chữ và số';
+    if (confirmed !== form.newPassword) errs.confirmed = 'Mật khẩu xác nhận không khớp';
     setErrors(errs);
     if (Object.keys(errs).length) return;
     go(async () => {
-      const user = await resetPasswordAndLogin({
+      await api.post('/api/auth/reset-password', {
         email: form.email.trim(),
         otp: form.otp.trim(),
         newPassword: form.newPassword,
       });
-      navigate(destinationFor(user, next), { replace: true });
+      setForm((current) => ({ ...current, otp: '', newPassword: '' }));
+      setConfirmed('');
+      setComplete(true);
     });
   };
 
@@ -86,6 +92,13 @@ export default function ForgotPasswordPage() {
     });
 
   const loginHref = `/login${next ? `?next=${encodeURIComponent(next)}` : ''}`;
+
+  if (complete) return <div className="screen auth"><main className="auth__main"><section className="auth__card" aria-live="polite">
+    <Icon name="check-circle" size={52} />
+    <h1 className="auth__h1">Đã đặt lại mật khẩu</h1>
+    <p>Bạn có thể đăng nhập bằng mật khẩu mới.</p>
+    <Link to={loginHref} className="btn btn--primary btn--block">Về đăng nhập</Link>
+  </section></main></div>;
 
   return (
     <div className="screen auth">
@@ -160,9 +173,10 @@ export default function ForgotPasswordPage() {
                   error={errors.newPassword}
                   hint="Tối thiểu 8 ký tự, có chữ và số."
                 />
+                <PasswordField id="confirmPassword" label="Xác nhận mật khẩu mới" autoComplete="new-password" value={confirmed} onChange={(e) => setConfirmed(e.target.value)} error={errors.confirmed} />
                 <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy}>
                   {busy ? <Icon name="loader" size={18} className="spin" /> : null}
-                  Đặt lại & đăng nhập
+                  Đặt lại mật khẩu
                 </button>
               </form>
               <button className="linkbtn auth__resend" onClick={onResend} disabled={busy || resendLeft > 0}>

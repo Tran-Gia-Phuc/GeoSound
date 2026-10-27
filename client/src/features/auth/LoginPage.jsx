@@ -15,6 +15,7 @@ import { useCountdown, formatCountdown } from '../../hooks/useCountdown.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { Field, PasswordField, ErrorAlert } from './fields.jsx';
 import { destinationFor, leadFor } from './redirect.js';
+import './login-a.css';
 
 const RESEND_LOCK_S = 30;
 
@@ -48,6 +49,7 @@ export default function LoginPage({ initialTab = 'login' }) {
   const [form, setForm] = useState({ fullName: '', email: '', password: '', otp: '' });
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
+  const [accessError, setAccessError] = useState(null);
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [otpLeft, restartOtp] = useCountdown(0);
@@ -61,6 +63,7 @@ export default function LoginPage({ initialTab = 'login' }) {
     setErrors({});
     setServerError('');
     setNotice('');
+    setAccessError(null);
     navigate(`/${t}${location.search}`, { replace: true });
   };
 
@@ -77,12 +80,20 @@ export default function LoginPage({ initialTab = 'login' }) {
   async function go(fn) {
     setBusy(true);
     setServerError('');
+    setAccessError(null);
     try {
       await fn();
     } catch (err) {
       // Lỗi xác thực theo trường (nếu server trả details) -> gắn vào field.
       if (err?.details && typeof err.details === 'object') setErrors((p) => ({ ...p, ...err.details }));
-      setServerError(err?.message || 'Có lỗi xảy ra, vui lòng thử lại');
+      const messages = {
+        account_locked: 'Tài khoản tạm khóa do đăng nhập sai nhiều lần. Hãy thử lại sau hoặc đặt lại mật khẩu.',
+        account_banned: 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên của dự án để được hỗ trợ.',
+        invalid_credentials: 'Email hoặc mật khẩu không đúng. Hãy kiểm tra và thử lại.',
+      };
+      if (tab === 'login' && (messages[err.code] || err.offline)) {
+        setAccessError({ code: err.offline ? 'offline' : err.code, message: messages[err.code] || 'Chưa kết nối được máy chủ. Hãy kiểm tra mạng và thử đăng nhập lại.' });
+      } else setServerError(err?.message || 'Có lỗi xảy ra, vui lòng thử lại');
     } finally {
       setBusy(false);
     }
@@ -141,7 +152,7 @@ export default function LoginPage({ initialTab = 'login' }) {
   const roleMeta = ROLE_OPTIONS.find((o) => o.value === role);
 
   return (
-    <div className="screen auth">
+    <div className={`screen auth ${tab === 'login' ? 'auth-login-a' : ''}`}>
       <header className="auth__top">
         <Link to="/" className="brand" aria-label="Về trang chủ GeoSound">
           <span className="brand__logo"><Icon name="headphones" size={20} /></span>
@@ -150,6 +161,12 @@ export default function LoginPage({ initialTab = 'login' }) {
       </header>
 
       <main className="auth__main">
+        {tab === 'login' ? <section className="login-a-story" aria-label="GeoSound">
+          <span className="chip"><Icon name="headphones" size={16} /> Khám phá bằng âm thanh</span>
+          <h2>Mỗi bước chân,<br />một câu chuyện.</h2>
+          <p>Lắng nghe những câu chuyện về văn hóa và con người tại nơi bạn đến.</p>
+          <Link className="btn" to="/">Tiếp tục khám phá <Icon name="arrow-left" size={18} /></Link>
+        </section> : null}
         <div className="auth__card">
           {tab === 'register' && phase === 'otp' ? (
             <>
@@ -251,6 +268,14 @@ export default function LoginPage({ initialTab = 'login' }) {
                   </p>
 
                   <ErrorAlert>{serverError}</ErrorAlert>
+                  {tab === 'login' && accessError ? <section className="alert alert--warn" role="alert">
+                    <Icon name="alert-triangle" size={22} />
+                    <div><b>{accessError.code === 'account_banned' ? 'Tài khoản đã bị khóa' : accessError.code === 'account_locked' ? 'Tài khoản tạm khóa' : 'Đăng nhập chưa thành công'}</b>
+                      <p>{accessError.message}</p>
+                      {accessError.code === 'account_locked' ? <Link to={'/forgot-password' + location.search} className="linkbtn">Đặt lại mật khẩu</Link> : null}
+                      <Link to="/" className="linkbtn">Tiếp tục khám phá</Link>
+                    </div>
+                  </section> : null}
 
                   <form className="auth__form" onSubmit={tab === 'login' ? onLogin : onRegister} noValidate>
                     {tab === 'register' ? (
@@ -294,6 +319,7 @@ export default function LoginPage({ initialTab = 'login' }) {
                       {tab === 'login' ? 'Đăng nhập' : 'Tiếp tục'}
                     </button>
                   </form>
+                  {tab === 'login' ? <Link className="login-a-guest" to="/"><Icon name="headphones" size={24} /><span><b>Tiếp tục khám phá</b><span>Không cần tài khoản để tìm và nghe tour.</span></span><Icon name="chevron-down" size={18} /></Link> : null}
                 </>
               )}
             </>

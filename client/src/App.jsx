@@ -34,6 +34,7 @@ import DiscoverPage from './features/discover/DiscoverPage.jsx';
 import TourDetailPage from './features/tours/TourDetailPage.jsx';
 import TourPlayerPage from './features/player/TourPlayerPage.jsx';
 import LoginPage from './features/auth/LoginPage.jsx';
+import RegisterPage from './features/auth/RegisterPage.jsx';
 import ForgotPasswordPage from './features/auth/ForgotPasswordPage.jsx';
 import ItinerariesPage from './features/itineraries/ItinerariesPage.jsx';
 import ItineraryEditorPage from './features/itineraries/ItineraryEditorPage.jsx';
@@ -126,7 +127,7 @@ const router = createBrowserRouter(
 
       {/* Toàn màn hình */}
       <Route path="/login" element={<LoginPage key="login" initialTab="login" />} />
-      <Route path="/register" element={<LoginPage key="register" initialTab="register" />} />
+      <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/tour/:tourId/play" element={<PlayTourRoute />} />
       <Route path="/itinerary/:id/go" element={<RequireAuth><ItineraryPlayerPage /></RequireAuth>} />

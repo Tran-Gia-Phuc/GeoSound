@@ -1,5 +1,5 @@
-// Moderation service — schema "moderation". State machine trạng thái tour + log.
-// Data model chi tiết: tech-stack.md §11.
+// Moderation service: schema "moderation". One row per moderation case (task #AI-33).
+// Design: docs/02-design/moderation-architecture.md section 7.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,14 +10,27 @@ datasource db {
   url      = env("DATABASE_URL") // ...?schema=moderation
 }
 
-// --- Placeholder (sẽ thay khi chốt data model) ---
-model ModerationLog {
-  id        String   @id @default(uuid())
-  tourId    String
-  stage     String // ai | admin | community
-  result    String // pass | warning | reject
-  note      String?
-  createdAt DateTime @default(now())
+// One case = one (subjectType, subjectId, revision). Duplicate events reuse the same row (D10).
+model ModerationCase {
+  id          String    @id @default(uuid())
+  subjectType String    @map("subject_type") // place | tour
+  subjectId   String    @map("subject_id")
+  tourId      String?   @map("tour_id")
+  revision    String // Tour's updatedAt, echoed back in results
+  status      String    @default("pending") // pending | reviewing | done | ai_failed | failed_permanent
+  verdict     String? // Pass | Warning | Reject
+  severity    Float?
+  reasons     Json      @default("[]")
+  attempts    Int       @default(0)
+  model       String?
+  lastError   String?   @map("last_error")
+  payload     Json // original event payload, used by the sweeper to retry
+  publishedAt DateTime? @map("published_at")
+  checkedAt   DateTime? @map("checked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  @@map("moderation_logs")
+  @@unique([subjectType, subjectId, revision])
+  @@index([status, updatedAt])
+  @@map("moderation_cases")
 }

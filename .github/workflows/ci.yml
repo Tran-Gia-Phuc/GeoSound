@@ -71,3 +71,18 @@ jobs:
 
       - name: Build client (Vite)
         run: npm run build --workspace client
+
+  browser:
+    name: Client — browser smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run browser tests
+        run: npm run test:ui --workspace client

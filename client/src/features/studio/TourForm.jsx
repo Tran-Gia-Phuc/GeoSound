@@ -37,7 +37,7 @@ const emptyForm = {
  *   onSubmit: (values: object) => void, onCancel?: () => void, compact?: boolean,
  * }} props
  */
-export default function TourForm({ initial, submitLabel, busy, serverError, onSubmit, onCancel, compact = false }) {
+export default function TourForm({ initial, submitLabel, busy, serverError, onSubmit, onCancel, compact = false, renderPreview, secondarySubmit }) {
   const start = useMemo(() => ({
     ...emptyForm,
     ...(initial
@@ -88,7 +88,7 @@ export default function TourForm({ initial, submitLabel, busy, serverError, onSu
     // description cho phép rỗng (xoá mô tả); coverImageUrl rỗng thì bỏ qua (API cần URL).
     v.description = f.description.trim();
     if (f.coverImageUrl.trim()) v.coverImageUrl = f.coverImageUrl.trim();
-    onSubmit(v);
+    onSubmit(v, e.nativeEvent.submitter?.value === 'library' ? 'library' : 'places');
   }
 
   return (
@@ -212,11 +212,13 @@ export default function TourForm({ initial, submitLabel, busy, serverError, onSu
       </>
       )}
 
+      {renderPreview?.(f)}
       <div className="studio-form__actions">
         {onCancel ? (
           <button type="button" className="btn" onClick={onCancel} disabled={busy}>Huỷ</button>
         ) : null}
-        <button type="submit" className="btn btn--primary" disabled={busy}>
+        {secondarySubmit ? <button type="submit" className="btn btn--ghost" name="destination" value="library" disabled={busy}>{secondarySubmit}</button> : null}
+        <button type="submit" className="btn btn--primary" name="destination" value="places" disabled={busy}>
           {busy ? <Icon name="loader" size={18} className="spin" /> : <Icon name="check-circle" size={18} />}
           {submitLabel}
         </button>

@@ -8,7 +8,7 @@
 //     thẳng theo ?mode= (không còn màn intro thứ hai). Tải offline (UC03) ẩn.
 //   - E3: tour không còn khả dụng → thông báo + quay lại danh sách.
 // =========================================================
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { fetchTourDetail } from '../../lib/api.js';
@@ -24,6 +24,8 @@ import { playPreview, stopPreview } from '../../lib/preview-audio.js';
 import { usePendingAdd } from '../../hooks/usePendingAdd.js';
 
 // Mở thẳng bằng link chia sẻ (không có lịch sử) → về Khám phá.
+import './detail-a.css';
+
 const BACK = '/';
 
 export default function TourDetailPage() {
@@ -36,6 +38,10 @@ export default function TourDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null); // { message, offline, notFound }
   const [langBusy, setLangBusy] = useState(false);
+  const [languageError, setLanguageError] = useState(null);
+  const [langRetry, setLangRetry] = useState(0);
+  const requestedLanguage = sp.get('lang') || '';
+  const loadedTour = useRef(null);
   const [previewing, setPreviewing] = useState(null); // id điểm đang nghe thử
   const [adding, setAdding] = useState(null); // { placeId, name } cho sheet "Thêm vào…"
 
@@ -56,47 +62,23 @@ export default function TourDetailPage() {
 
   useEffect(() => {
     const abort = new AbortController();
-    setLoading(true);
-    setError(null);
-    load(sp.get('lang') || undefined, { signal: abort.signal })
-      .then((t) => {
-        setTour(t);
-        setLoading(false);
-      })
+    const hasPrevious = loadedTour.current?.id === tourId;
+    setLoading(!hasPrevious); setLangBusy(hasPrevious); setError(null); setLanguageError(null);
+    load(requestedLanguage || undefined, { signal:abort.signal })
+      .then((result) => { if (!abort.signal.aborted) { loadedTour.current=result; setTour(result); } })
       .catch((e) => {
-        if (e.name === 'AbortError') return; // huỷ do đổi route/StrictMode — giữ loading, KHÔNG set lỗi
-        setError({
-          message: e.offline ? 'Mất kết nối mạng' : e.status === 404 ? 'Tour không còn khả dụng' : e.message,
-          offline: e.offline,
-          notFound: e.status === 404,
-        });
-        setLoading(false);
-      });
+        if (abort.signal.aborted || e.name === 'AbortError') return;
+        if (hasPrevious && e.status !== 404) setLanguageError({ requested:requestedLanguage, message:e.message || 'Không đổi được ngôn ngữ. Nội dung trước vẫn được giữ.' });
+        else setError({ message:e.offline ? 'Mất kết nối mạng' : e.status === 404 ? 'Tour không còn khả dụng' : e.message, offline:e.offline, notFound:e.status === 404 });
+      })
+      .finally(() => { if (!abort.signal.aborted) { setLoading(false); setLangBusy(false); } });
     return () => abort.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tourId]);
+  }, [tourId, requestedLanguage, langRetry, load]);
 
-  const changeLang = async (code) => {
-    if (code === tour?.selectedLanguage || langBusy) return;
-    stopPreview();
-    setPreviewing(null);
-    setLangBusy(true);
-    try {
-      const t = await load(code);
-      setTour(t);
-      setSp(
-        (prev) => {
-          const n = new URLSearchParams(prev);
-          n.set('lang', t.selectedLanguage);
-          return n;
-        },
-        { replace: true },
-      );
-    } catch {
-      /* giữ nội dung cũ nếu lỗi */
-    } finally {
-      setLangBusy(false);
-    }
+  const changeLang = (code) => {
+    if (langBusy || code === tour?.selectedLanguage) return;
+    stopPreview();setPreviewing(null);
+    setSp((prev) => { const n=new URLSearchParams(prev);n.set('lang',code);return n; });
   };
 
   // ---------- Tải / lỗi ----------
@@ -159,7 +141,8 @@ export default function TourDetailPage() {
   };
 
   return (
-    <div className={`screen intro ${hasPlaces ? 'detail--withbar' : ''}`}>
+    <div className={`screen intro detail-a ${hasPlaces ? 'detail--withbar' : ''}`}>
+      <div className="detail-a__overview">
       {/* Ảnh bìa */}
       <div
         className="intro__cover"
@@ -188,6 +171,7 @@ export default function TourDetailPage() {
           <span className="muted small"><Icon name="volume" size={13} /> {voiceLabel(tour.voiceLabel)}</span>
         </div>
 
+        {languageError ? <div className="alert alert--warn" role="alert"><Icon name="alert-triangle" size={18} /><div><b>Chưa đổi được ngôn ngữ</b><p>{languageError.message}</p><p>Đang hiển thị {langLabel(tour.selectedLanguage)}.</p><button className="btn btn--sm" onClick={()=>setLangRetry((n)=>n+1)}>Thử lại ngôn ngữ</button><button className="btn btn--ghost btn--sm" onClick={()=>setSp((prev)=>{const n=new URLSearchParams(prev);n.set('lang',tour.selectedLanguage);return n;})}>Giữ ngôn ngữ hiện tại</button></div></div> : null}
         {/* Chọn ngôn ngữ nghe (A2) — đặt gần nút hành động */}
         {tour.availableLanguages?.length > 1 ? (
           <div className="langpick" role="group" aria-label="Ngôn ngữ nghe">
@@ -212,6 +196,19 @@ export default function TourDetailPage() {
 
         {tour.description ? <p className="intro__desc">{tour.description}</p> : null}
 
+        {/* Đánh giá: chỉ điểm trung bình cho tới khi có UC05 */}
+        {tour.ratingCount ? (
+          <section className="detail__section" aria-labelledby="rev-h">
+            <h2 className="detail__h2" id="rev-h">Đánh giá</h2>
+            <p className="muted small">
+              Điểm trung bình {Number(tour.averageRating).toFixed(1).replace('.', ',')}/5 từ {tour.ratingCount} lượt đánh giá.
+            </p>
+          </section>
+        ) : null}
+      </div>
+
+      </div>
+      <aside className="detail-a__route" aria-label="Lộ trình và điểm dừng">
         {/* Bản đồ route (UC11) */}
         {hasGeo ? (
           <section className="detail__section" aria-labelledby="map-h">
@@ -230,6 +227,7 @@ export default function TourDetailPage() {
               {tour.places.map((p, i) => (
                 <li key={p.id} className="stop detail-stop">
                   <span className="stop__num">{i + 1}</span>
+                  {p.images?.[0]?.url ? <img className="detail-a__stopimage" src={p.images[0].url} alt="" loading="lazy" /> : null}
                   <Link className="stop__info detail-stop__open" to={playUrl('remote', p.id)}>
                     <span className="stop__name">{p.name}</span>
                     <span className="stop__sub">
@@ -263,16 +261,7 @@ export default function TourDetailPage() {
           </div>
         )}
 
-        {/* Đánh giá: chỉ điểm trung bình cho tới khi có UC05 */}
-        {tour.ratingCount ? (
-          <section className="detail__section" aria-labelledby="rev-h">
-            <h2 className="detail__h2" id="rev-h">Đánh giá</h2>
-            <p className="muted small">
-              Điểm trung bình {Number(tour.averageRating).toFixed(1).replace('.', ',')}/5 từ {tour.ratingCount} lượt đánh giá.
-            </p>
-          </section>
-        ) : null}
-      </div>
+      </aside>
 
       {/* Thanh hành động dính đáy — luôn nhìn thấy (bước 10–11) */}
       {hasPlaces ? (

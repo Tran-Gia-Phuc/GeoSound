@@ -10,6 +10,7 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import Icon from '../Icon.jsx';
 import { useAuth } from '../../auth/AuthContext.jsx';
+import './studio-navigation.css';
 
 const TABS = [
   { to: '/', icon: 'search', label: 'Khám phá', match: (p) => p === '/' || p.startsWith('/tour/') },
@@ -26,9 +27,17 @@ export default function AppLayout({ tabs = true }) {
   const { pathname } = useLocation();
   const { authenticated, user, isContributor } = useAuth();
   const visible = TABS.filter((t) => !t.contributorOnly || isContributor);
+  const inStudio = isContributor && pathname.startsWith('/studio');
+  const studioLinks = [
+    { to: '/studio', end: true, icon: 'list', label: 'Tour của tôi' },
+    { to: '/studio/tours/new', icon: 'plus', label: 'Tạo tour mới' },
+    { to: '/', end: true, icon: 'search', label: 'Khám phá' },
+    { to: '/itineraries', icon: 'route', label: 'Lịch trình của tôi' },
+    { to: '/account', icon: 'user', label: 'Tài khoản' },
+  ];
 
   return (
-    <div className={`app ${tabs ? 'app--tabs' : ''}`}>
+    <div className={`app ${tabs ? 'app--tabs' : ''} ${inStudio ? 'app--studio-a' : ''}`}>
       <header className="topnav">
         <div className="topnav__inner">
           <NavLink to="/" className="brand topnav__brand" aria-label="GeoSound — Khám phá">
@@ -63,6 +72,24 @@ export default function AppLayout({ tabs = true }) {
         </div>
       </header>
 
+      {inStudio ? (
+        <aside className="studio-nav-a" aria-label="Khu vực Studio">
+          <p className="studio-nav-a__label">Studio · Tác giả</p>
+          <nav aria-label="Điều hướng Studio">
+            {studioLinks.map((item) => (
+              <NavLink key={item.to} to={item.to} end={item.end}
+                className={({ isActive }) => 'studio-nav-a__link ' + (isActive ? 'is-active' : '')}>
+                <Icon name={item.icon} size={20} /> {item.label}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="studio-nav-a__help">
+            <Icon name="headphones" size={24} />
+            <b>Kể câu chuyện nơi bạn đến</b>
+            <p>Lưu bản nháp, thêm điểm dừng và xem thử trước khi chia sẻ.</p>
+          </div>
+        </aside>
+      ) : null}
       <div className="app__content">
         <Outlet />
       </div>

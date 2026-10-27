@@ -7,6 +7,9 @@ import { z } from 'zod';
 
 // --- Tên event (routing key) ---
 export const EVENTS = {
+  PLACE_SUBMITTED: 'place.submitted',
+  PLACE_AI_PASSED: 'place.ai_passed',
+  PLACE_AI_REJECTED: 'place.ai_rejected',
   TOUR_SUBMITTED: 'tour.submitted',
   TOUR_AI_PASSED: 'tour.ai_passed',
   TOUR_AI_REJECTED: 'tour.ai_rejected',
@@ -32,10 +35,106 @@ const recipient = {
   tourTitle: z.string().min(1).optional(),
 };
 
+// --- Reusable moderation schemas (camelCase). See docs/02-design/moderation-architecture.md §6.1. ---
+
+// ISO 8601 UTC timestamp; zod's default rejects offsets, so the string must end with `Z`.
+export const isoUtc = z.string().datetime();
+
+export const MODERATION_CATEGORIES = [
+  'hate', 'violence', 'sexual', 'scam', 'misleading', 'irrelevant', 'other', 'route',
+];
+
+// One moderation finding. `source` tells whether it comes from the AI or from Moderation's geo rules.
+export const reasonSchema = z.object({
+  field: z.string().min(1).max(100),
+  category: z.enum(MODERATION_CATEGORIES),
+  message: z.string().min(1).max(500),
+  source: z.enum(['ai', 'geo']),
+  severity: z.number().min(0).max(1).optional(),
+});
+
+export const imageSchema = z.object({
+  url: z.string().url(),
+  caption: z.string().max(300).optional(),
+});
+
+const lat = z.number().min(-90).max(90);
+const lng = z.number().min(-180).max(180);
+const severity = z.number().min(0).max(1);
+const reasons = z.array(reasonSchema).max(50);
+
+// Keys shared by place.ai_passed and place.ai_rejected.
+const placeResult = {
+  placeId: z.string().min(1),
+  tourId: z.string().min(1),
+  revision: isoUtc,
+  at: isoUtc.optional(),
+};
+
+// Place summary carried inside tour.submitted (the tour scan does not rescan places).
+const tourPlace = z.object({
+  placeId: z.string().min(1),
+  name: z.string().min(1).max(200),
+  type: z.string().optional(),
+  description: z.string().max(2000),
+  lat,
+  lng,
+  sequence: z.number().int().nonnegative(),
+});
+
 export const schemas = {
-  [EVENTS.TOUR_SUBMITTED]: base.extend({ contributorId: z.string().min(1) }),
-  [EVENTS.TOUR_AI_PASSED]: base,
-  [EVENTS.TOUR_AI_REJECTED]: base.extend({ reason: z.string(), ...recipient }),
+  [EVENTS.PLACE_SUBMITTED]: z.object({
+    placeId: z.string().min(1),
+    tourId: z.string().min(1),
+    contributorId: z.string().min(1),
+    revision: isoUtc,
+    name: z.string().min(1).max(200),
+    type: z.string().optional(),
+    description: z.string().min(1).max(2000),
+    language: z.string().min(2).max(10),
+    lat,
+    lng,
+    city: z.string().optional(),
+    images: z.array(imageSchema).max(5).optional(),
+    at: isoUtc.optional(),
+  }),
+  [EVENTS.PLACE_AI_PASSED]: z.object({
+    ...placeResult,
+    warning: z.boolean().optional(),
+    severity: severity.optional(),
+    reasons: reasons.optional(),
+  }),
+  [EVENTS.PLACE_AI_REJECTED]: z.object({
+    ...placeResult,
+    reason: z.string().min(1).max(1000),
+    reasons: reasons.optional(),
+  }),
+  // Old keys unchanged; new content keys are optional so existing publishers keep working.
+  [EVENTS.TOUR_SUBMITTED]: base.extend({
+    contributorId: z.string().min(1),
+    revision: isoUtc.optional(),
+    title: z.string().min(1).max(200).optional(),
+    description: z.string().max(5000).optional(),
+    language: z.string().min(2).max(10).optional(),
+    city: z.string().optional(),
+    type: z.enum(['walking', 'driving', 'cycling', 'indoor']).optional(),
+    durationMinutes: z.number().int().nonnegative().optional(),
+    places: z.array(tourPlace).max(50).optional(),
+  }),
+  [EVENTS.TOUR_AI_PASSED]: base.extend({
+    revision: isoUtc.optional(),
+    warning: z.boolean().optional(),
+    severity: severity.optional(),
+    reasons: reasons.optional(),
+    ...recipient,
+  }),
+  // `reason` stays a plain string: Notification depends on it.
+  [EVENTS.TOUR_AI_REJECTED]: base.extend({
+    reason: z.string(),
+    ...recipient,
+    revision: isoUtc.optional(),
+    reasons: reasons.optional(),
+  }),
   [EVENTS.TOUR_APPROVED]: base.extend({ adminId: z.string().min(1), ...recipient }),
   [EVENTS.TOUR_REJECTED]: base.extend({ reason: z.string(), ...recipient }),
   [EVENTS.TOUR_REPORTED]: base.extend({ count: z.number().int().nonnegative() }),

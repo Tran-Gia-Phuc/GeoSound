@@ -1,0 +1,2 @@
+TODO(#AI-22): system prompt for tour moderation.
+Fields: title, description, coherence (description contradicts its places).
