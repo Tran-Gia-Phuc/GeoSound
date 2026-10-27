@@ -13,6 +13,7 @@ class FallbackLLM:
 
     Non-retryable errors (bad request, blocked content, malformed output) are
     raised as is, because another provider would not fix them.
+    Requests with images (phase 2, #AI-41) go to the primary only: Groq is text only.
     """
 
     def __init__(self, primary: Any = None, secondary: Any = None) -> None:
@@ -40,6 +41,13 @@ class FallbackLLM:
         except LLMError as exc:
             primary_error = exc
             if not exc.fallback_eligible:
+                raise
+            if kwargs.get("images"):
+                logger.warning(
+                    "llm primary=%s failed (%s); no fallback for a request with images",
+                    self.primary.provider,
+                    exc,
+                )
                 raise
             if not getattr(self.secondary, "api_key", ""):
                 logger.warning(
