@@ -9,9 +9,9 @@
 // - execute() never throws: the shared consume() would drop the message (nack without requeue).
 //
 // Publish failure: the case stays done (or failed_permanent) with publishedAt = null. A redelivered or
-// duplicate event re-publishes it; the sweeper (#AI-38) must also pick up such cases.
-// Known limit: the repository port has no compare-and-set, so two concurrent deliveries of the same
-// revision can both call the AI; the result is the same case and Tour ignores the duplicate event.
+// duplicate event re-publishes it, and so does the sweeper (republish(), task #AI-38).
+// Entering reviewing is a compare-and-set claim (repo.claim), so two deliveries, or a delivery and the
+// sweeper (retry(), task #AI-38), never call the AI for the same case at the same time.
 import { MODERATION_EVENTS as EVENTS } from '../events.js';
 import { CASE_STATUS, SUBJECT, VERDICT } from '../../domain/entities/moderation-case.js';
 import { AiPermanentError, AiTemporaryError } from '../../domain/errors/index.js';
@@ -78,6 +78,24 @@ export function buildPlaceResultEvent(moderationCase, at) {
 }
 
 const errorText = (err) => truncate(`${err?.name ?? 'Error'}${err?.kind ? `(${err.kind})` : ''}: ${err?.message ?? ''}`, MAX_LAST_ERROR);
+const tagOf = (row) => `placeId=${row?.subjectId} revision=${row?.revision}`;
+
+export const STALE_REVIEWING_ERROR = 'Stale reviewing case (no result in time, worker probably crashed); retried by the sweeper';
+
+/**
+ * Compare-and-set transition: checks the move with the state machine, then claims the row only if it still has
+ * the status and updatedAt we read. Returns the claimed row, or null when another worker changed it first.
+ */
+export async function claimTransition(repo, row, to, { patch = {}, now }) {
+  const next = transition(row, to, patch);
+  return repo.claim(row.id, {
+    fromStatus: row.status,
+    fromUpdatedAt: row.updatedAt,
+    toStatus: next.status,
+    patch: { ...patch, attempts: next.attempts },
+    now,
+  });
+}
 
 export class RunPlaceReview {
   /**
@@ -115,15 +133,80 @@ export class RunPlaceReview {
         return;
       }
 
-      current = await this.#save(transition(current, CASE_STATUS.REVIEWING));
-      this.logger.info(`[moderation] reviewing place ${tag} attempt=${current.attempts}`);
+      const claimed = await claimTransition(this.repo, current, CASE_STATUS.REVIEWING, { now: this.clock.now() });
+      if (!claimed) {
+        this.logger.info(`[moderation] place ${tag} claimed by another worker, skipped`);
+        return;
+      }
+      current = null; // #review owns the case from here and handles its own errors
+      await this.#review(claimed, payload, tag);
+    } catch (err) {
+      this.logger.error(`[moderation] place review failed ${tag}: ${errorText(err)}`);
+      await this.#markFailed(current, err, tag);
+    }
+  }
 
+  /**
+   * Sweeper retry of a stored place case (pending, reviewing or ai_failed), from its stored payload.
+   * A stale reviewing case (crash during the AI call) goes reviewing -> ai_failed -> reviewing.
+   * Every status change is a compare-and-set claim, so a case taken by someone else is skipped.
+   * Never throws.
+   * @returns {Promise<'done'|'failed_permanent'|'ai_failed'|'skipped'|'error'>}
+   */
+  async retry(row) {
+    const tag = tagOf(row);
+    try {
+      const now = this.clock.now();
+      let current = row;
+      if (current.status === CASE_STATUS.REVIEWING) {
+        current = await claimTransition(this.repo, current, CASE_STATUS.AI_FAILED, {
+          patch: { lastError: STALE_REVIEWING_ERROR }, now,
+        });
+        if (!current) return 'skipped';
+      }
+      if (!canTransition(current.status, CASE_STATUS.REVIEWING)) return 'skipped';
+      const claimed = await claimTransition(this.repo, current, CASE_STATUS.REVIEWING, { now });
+      if (!claimed) return 'skipped';
+      this.logger.info(`[moderation] sweeper retries place ${tag}`);
+      return await this.#review(claimed, claimed.payload, tag);
+    } catch (err) {
+      this.logger.error(`[moderation] place retry failed ${tag}: ${errorText(err)}`);
+      return 'error';
+    }
+  }
+
+  /**
+   * Sweeper re-publish of a stored result (done or failed_permanent) whose publish failed. No AI call.
+   * The case is leased first (claim without a status change), so it is re-published by one sweep only.
+   * Never throws.
+   * @returns {Promise<'republished'|'failed'|'skipped'|'error'>}
+   */
+  async republish(row) {
+    const tag = tagOf(row);
+    try {
+      if (row.status !== CASE_STATUS.DONE && row.status !== CASE_STATUS.FAILED_PERMANENT) return 'skipped';
+      const leased = await this.repo.claim(row.id, {
+        fromStatus: row.status, fromUpdatedAt: row.updatedAt, now: this.clock.now(),
+      });
+      if (!leased) return 'skipped';
+      this.logger.info(`[moderation] sweeper re-publishes place ${tag} stored ${leased.verdict}`);
+      return (await this.#publishResult(leased, tag)) ? 'republished' : 'failed';
+    } catch (err) {
+      this.logger.error(`[moderation] place re-publish failed ${tag}: ${errorText(err)}`);
+      return 'error';
+    }
+  }
+
+  // AI call + result for a case already claimed in status reviewing. Never throws.
+  async #review(reviewing, payload, tag) {
+    let current = reviewing;
+    try {
+      this.logger.info(`[moderation] reviewing place ${tag} attempt=${current.attempts}`);
       let aiResult;
       try {
         aiResult = await this.aiReviewer.reviewPlace(payload);
       } catch (err) {
-        await this.#onAiError(current, err, tag);
-        return;
+        return await this.#onAiError(current, err, tag);
       }
 
       const merged = mergeVerdicts([{ ...aiResult, source: 'ai' }]);
@@ -137,9 +220,11 @@ export class RunPlaceReview {
       }));
       this.logger.info(`[moderation] place ${tag} verdict=${merged.verdict} severity=${merged.severity} model=${current.model}`);
       await this.#publishResult(current, tag);
+      return CASE_STATUS.DONE;
     } catch (err) {
       this.logger.error(`[moderation] place review failed ${tag}: ${errorText(err)}`);
       await this.#markFailed(current, err, tag);
+      return 'error';
     }
   }
 
@@ -154,23 +239,26 @@ export class RunPlaceReview {
         checkedAt: this.clock.now(),
       }));
       await this.#publishResult(failed, tag);
-      return;
+      return CASE_STATUS.FAILED_PERMANENT;
     }
-    if (!(err instanceof AiTemporaryError)) throw err; // unexpected: handled by execute()
+    if (!(err instanceof AiTemporaryError)) throw err; // unexpected: handled by #review()
     this.logger.warn(`[moderation] place ${tag} AI unavailable, ai_failed (sweeper retries): ${errorText(err)}`);
     await this.#save(transition(current, CASE_STATUS.AI_FAILED, { lastError: errorText(err) }));
+    return CASE_STATUS.AI_FAILED;
   }
 
   // Publish failure is logged, not thrown: the case keeps publishedAt = null so it can be re-published.
+  // Returns true when the event was published.
   async #publishResult(moderationCase, tag) {
     const { eventName, payload } = buildPlaceResultEvent(moderationCase, this.clock.now().toISOString());
     try {
       await this.publisher.publish(eventName, payload);
     } catch (err) {
       this.logger.error(`[moderation] publish ${eventName} failed ${tag}: ${errorText(err)}`);
-      return;
+      return false;
     }
     if (!moderationCase.publishedAt) await this.repo.update(moderationCase.id, { publishedAt: this.clock.now() });
+    return true;
   }
 
   async #markFailed(current, err, tag) {
