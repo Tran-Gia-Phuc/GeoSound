@@ -137,9 +137,9 @@ Response `200`:
 | --- | --- | --- | --- |
 | `tour_id` | string | yes | |
 | `title` | string | yes | 200 |
-| `description` | string | yes | 5000 |
+| `description` | string | no (default empty) | 5000 |
 | `language` | `vi` or `en` | yes | |
-| `city` | string | no | |
+| `city` | string | no | 100 |
 | `type` | string | no | |
 | `duration_minutes` | integer | no | |
 | `places` | `[{place_id, name, type?, description}]` | yes | 50 places; AI cuts each `description` to 300 characters |
