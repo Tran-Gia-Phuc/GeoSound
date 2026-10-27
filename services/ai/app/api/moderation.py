@@ -1,4 +1,4 @@
-"""Moderation endpoints (task #AI-30). POST /moderate/tour follows in #AI-31.
+"""Moderation endpoints: POST /moderate/place (task #AI-30), POST /moderate/tour (task #AI-31).
 
 Every route requires the internal service token (#AI-28).
 422 is raised by FastAPI for invalid input (permanent, do not retry).
@@ -14,7 +14,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.middleware.auth import require_internal_token
 from app.moderation.pipeline import ModerationUnavailableError, run_moderation
 from app.moderation.place_service import PlaceModerator
-from app.moderation.schema import PlaceModerationRequest, PlaceModerationResponse
+from app.moderation.schema import (
+    PlaceModerationRequest,
+    PlaceModerationResponse,
+    TourModerationRequest,
+    TourModerationResponse,
+)
+from app.moderation.tour_service import TourModerator
 
 logger = logging.getLogger(__name__)
 
@@ -57,4 +63,25 @@ async def moderate_place(
         return await run_moderation(lambda: moderator.moderate_place(request))
     except ModerationUnavailableError as exc:
         logger.error("moderation place=%s unavailable: %s", request.place_id, describe_failure(exc))
+        raise HTTPException(status_code=503, detail=UNAVAILABLE_DETAIL) from exc
+
+
+@lru_cache
+def get_tour_moderator() -> TourModerator:
+    return TourModerator()
+
+
+@router.post("/moderate/tour", response_model=TourModerationResponse)
+async def moderate_tour(
+    request: TourModerationRequest,
+    moderator: TourModerator = Depends(get_tour_moderator),
+) -> TourModerationResponse:
+    """Scan the title, description and place coherence of one tour with one LLM call.
+
+    The places themselves are not moderated again here.
+    """
+    try:
+        return await run_moderation(lambda: moderator.moderate_tour(request))
+    except ModerationUnavailableError as exc:
+        logger.error("moderation tour=%s unavailable: %s", request.tour_id, describe_failure(exc))
         raise HTTPException(status_code=503, detail=UNAVAILABLE_DETAIL) from exc

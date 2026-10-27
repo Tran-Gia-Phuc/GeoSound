@@ -12,9 +12,19 @@ Any doubt ends up with a human (Warning), never with an automatic Pass.
 
 from collections.abc import Sequence
 
+from pydantic import BaseModel
+
 from app.config import get_settings
-from app.moderation.schema import ModerationResponse, Reason, Verdict
-from app.moderation.service import Finding
+from app.moderation.schema import Category, Verdict
+
+
+class Finding(BaseModel):
+    """One problem reported by the LLM (before the policy decides)."""
+
+    field: str
+    category: Category
+    severity: float
+    message: str
 
 
 def resolve_thresholds(
@@ -58,17 +68,3 @@ def flagged(findings: Sequence[Finding], warning_threshold: float) -> list[Findi
 def max_severity(findings: Sequence[Finding]) -> float:
     return max((f.severity for f in findings), default=0.0)
 
-
-def build_response(
-    tour_id: str,
-    findings: Sequence[Finding],
-    reject_threshold: float | None = None,
-    warning_threshold: float | None = None,
-) -> ModerationResponse:
-    reject, warning = resolve_thresholds(reject_threshold, warning_threshold)
-    verdict = decide(findings, reject, warning)
-    reasons = [
-        Reason(field=f.field, category=f.category, message=f.message)
-        for f in flagged(findings, warning)
-    ]
-    return ModerationResponse(tour_id=tour_id, verdict=verdict, reasons=reasons)
