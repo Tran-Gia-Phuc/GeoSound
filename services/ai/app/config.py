@@ -1,6 +1,7 @@
 from functools import lru_cache
 from urllib.parse import urlsplit
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -43,6 +44,13 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     image_max_bytes: int = 3 * 1024 * 1024
     image_fetch_timeout_seconds: float = 10.0
+
+    # Optional LangSmith tracing of moderation calls (#AI-32). Off by default;
+    # `langsmith` is only imported when this is true. The key is a SecretStr so
+    # it never shows up in a repr, a log line or a settings dump.
+    langsmith_tracing: bool = False
+    langsmith_project: str = "geosound-ai"
+    langsmith_api_key: SecretStr = SecretStr("")
 
     def allowed_image_hosts(self) -> frozenset[str]:
         """Hosts images may be fetched from. Empty set = every image is refused."""

@@ -1,6 +1,7 @@
 """Moderation endpoints: POST /moderate/place (task #AI-30), POST /moderate/tour (task #AI-31).
 
 Every route requires the internal service token (#AI-28).
+Each call is traced in LangSmith only when LANGSMITH_TRACING=true (#AI-32).
 422 is raised by FastAPI for invalid input (permanent, do not retry).
 503 means the moderation could not finish now (all providers failed, malformed
 model output, or the time budget ran out): temporary, Moderation retries.
@@ -21,6 +22,7 @@ from app.moderation.schema import (
     TourModerationResponse,
 )
 from app.moderation.tour_service import TourModerator
+from app.moderation.tracing import trace_moderation
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +62,9 @@ async def moderate_place(
 ) -> PlaceModerationResponse:
     """Scan the name and description of one place with one LLM call."""
     try:
-        return await run_moderation(lambda: moderator.moderate_place(request))
+        return await run_moderation(
+            lambda: trace_moderation("place")(moderator.moderate_place)(request)
+        )
     except ModerationUnavailableError as exc:
         logger.error("moderation place=%s unavailable: %s", request.place_id, describe_failure(exc))
         raise HTTPException(status_code=503, detail=UNAVAILABLE_DETAIL) from exc
@@ -81,7 +85,9 @@ async def moderate_tour(
     The places themselves are not moderated again here.
     """
     try:
-        return await run_moderation(lambda: moderator.moderate_tour(request))
+        return await run_moderation(
+            lambda: trace_moderation("tour")(moderator.moderate_tour)(request)
+        )
     except ModerationUnavailableError as exc:
         logger.error("moderation tour=%s unavailable: %s", request.tour_id, describe_failure(exc))
         raise HTTPException(status_code=503, detail=UNAVAILABLE_DETAIL) from exc

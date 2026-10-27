@@ -203,8 +203,9 @@ Case states: `pending → reviewing → done | ai_failed | failed_permanent`; `a
 Moderation is one fixed step: one prompt, one structured answer, a deterministic policy. A graph framework adds
 dependencies without adding behaviour, and the existing tested `llm/*` clients (Gemini, Groq, fallback) already do
 what `with_fallbacks` would do. Decision: keep plain Python, and add **LangSmith tracing** through the
-`langsmith` package (`@traceable`) behind `LANGSMITH_TRACING=false` by default, so prompts, latency and token
-usage of each moderation call can be inspected. Tests never enable it.
+`langsmith` package (`@traceable`) behind `LANGSMITH_TRACING=false` by default, so the verdict, model and latency
+of each moderation call can be inspected. Only a summary of the input is recorded (ids, language, lengths, counts):
+no user text, prompt or key. Tests never enable it.
 
 ### 8.2 Chatbot (phase 3): LangGraph + LangChain + LangSmith
 
