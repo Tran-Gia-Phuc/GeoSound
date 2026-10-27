@@ -13,9 +13,16 @@
 // Entering reviewing is a compare-and-set claim (repo.claim), so two deliveries, or a delivery and the
 // sweeper (retry(), task #AI-38), never call the AI for the same case at the same time.
 // The case flow itself (execute / retry / republish) is shared with the tour review: review-case-flow.js.
+//
+// Images (phase 2, task #AI-42): the payload images go to the AI in the same call (ai-mapping, max 5) and
+// imagesChecked is stored on the case. A place is never Passed with unchecked images: if the AI says Pass but
+// checked fewer images than were sent, without an images[n] reason for each missing one, the result is
+// downgraded to a Warning for human review. A 503 (or any temporary error) on an image place is ai_failed and
+// retried by the sweeper like any other place.
 import { MODERATION_EVENTS as EVENTS } from '../events.js';
 import { SUBJECT, VERDICT } from '../../domain/entities/moderation-case.js';
 import { mergeVerdicts } from '../../domain/moderation/merge-verdicts.js';
+import { AI_LIMITS } from '../dtos/ai-mapping.js';
 import {
   ReviewCaseFlow, toEventReasons, joinReasons, PERMANENT_ERROR_SEVERITY,
 } from './review-case-flow.js';
@@ -32,6 +39,38 @@ export const PERMANENT_ERROR_REASON = Object.freeze({
   message: 'Automatic check could not process this place; needs human review.',
   source: 'ai',
 });
+
+export const UNCHECKED_IMAGES_REASON = Object.freeze({
+  field: 'images',
+  category: 'other',
+  message: 'Some images were not checked; needs human review.',
+  source: 'ai',
+});
+
+const IMAGE_FIELD = /^images\[(\d+)\]$/;
+
+/**
+ * Defensive check (never Pass a place whose images were not checked). Returns a Warning signal to merge with
+ * the AI result, or null. Only a Pass is downgraded; Warning and Reject already go to a human or are final.
+ * @param {object} payload place.submitted payload
+ * @param {{ verdict: string, imagesChecked?: number, reasons?: object[] }} aiResult
+ */
+export function uncheckedImagesSignal(payload, aiResult) {
+  if (aiResult?.verdict !== VERDICT.PASS) return null;
+  const sent = Math.min(Array.isArray(payload?.images) ? payload.images.length : 0, AI_LIMITS.images);
+  if (sent === 0) return null;
+  const checked = Number.isInteger(aiResult.imagesChecked) ? aiResult.imagesChecked : 0;
+  if (checked >= sent) return null;
+  const explained = new Set();
+  for (const r of aiResult.reasons ?? []) {
+    const m = IMAGE_FIELD.exec(r?.field ?? '');
+    if (m && Number(m[1]) < sent) explained.add(Number(m[1]));
+  }
+  if (explained.size >= sent - checked) return null;
+  return {
+    verdict: VERDICT.WARNING, severity: PERMANENT_ERROR_SEVERITY, reasons: [{ ...UNCHECKED_IMAGES_REASON }], source: 'ai',
+  };
+}
 
 /** Builds the result event from a stored case (done or failed_permanent). */
 export function buildPlaceResultEvent(moderationCase, at) {
@@ -74,7 +113,15 @@ export class RunPlaceReview extends ReviewCaseFlow {
 
   async check(payload) {
     const aiResult = await this.aiReviewer.reviewPlace(payload);
-    return { ...mergeVerdicts([{ ...aiResult, source: 'ai' }]), model: aiResult.model ?? null };
+    const imagesSignal = uncheckedImagesSignal(payload, aiResult);
+    if (imagesSignal) {
+      this.logger.warn(`[moderation] place ${this.tagOfPayload(payload)} Pass with unchecked images, downgraded to Warning`);
+    }
+    return {
+      ...mergeVerdicts([{ ...aiResult, source: 'ai' }, imagesSignal]),
+      model: aiResult.model ?? null,
+      imagesChecked: Number.isInteger(aiResult.imagesChecked) ? aiResult.imagesChecked : 0,
+    };
   }
 
   permanentResult() {
