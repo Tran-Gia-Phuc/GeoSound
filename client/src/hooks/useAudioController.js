@@ -158,6 +158,8 @@ export function useAudioController({ onEnded } = {}) {
           title,
           trackId,
         });
+        // A prior unlock may still be pending. A selected track must never stay muted.
+        a.muted = false;
         a.src = track.src;
         a.play().catch(() => {
           // Autoplay bị chặn hoặc file hỏng -> TTS fallback nếu có text.
@@ -224,12 +226,16 @@ export function useAudioController({ onEnded } = {}) {
   // Mở khóa phát trong cử chỉ người dùng (chính sách autoplay của trình duyệt).
   const unlock = useCallback(() => {
     const a = audioRef.current;
-    if (a) {
+    if (a && !trackRef.current) {
       a.muted = true;
       a.play()
         .then(() => {
-          a.pause();
-          a.currentTime = 0;
+          // A track may have been selected while play() was resolving. Do not
+          // pause it or reset its position in that case.
+          if (!trackRef.current) {
+            a.pause();
+            a.currentTime = 0;
+          }
           a.muted = false;
         })
         .catch(() => {
