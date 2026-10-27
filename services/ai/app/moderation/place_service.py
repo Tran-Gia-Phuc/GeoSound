@@ -5,7 +5,11 @@ policy decides. The LLM only reports findings; policy.py decides the verdict.
 LLMBlockedError is a Reject with category "other", never an infrastructure error.
 Other LLM errors (including malformed output) propagate: the endpoint answers
 503 and Moderation owns the retry, so this module never calls the LLM twice.
-Phase 2 (#AI-41) adds images through images.py; until then images_checked = 0.
+Phase 2 (#AI-41): images are fetched first (images.py). A temporary image
+problem raises ImagesUnavailableError (503, no LLM call). A permanently
+unreadable image is left out and gives a Warning finding on images[n], so a
+place is never Passed with unchecked images. The readable images go inline in
+the same single LLM call (Gemini only); images_checked counts them.
 """
 
 import logging
@@ -18,6 +22,13 @@ from app.llm.errors import LLMBlockedError, LLMResponseError
 from app.llm.fallback import FallbackLLM
 from app.llm.gemini_client import GeminiClient
 from app.moderation import policy
+from app.moderation.images import (
+    FetchedImage,
+    ImageFetcher,
+    ImageProblem,
+    ImagesUnavailableError,
+    make_image_fetcher,
+)
 from app.moderation.policy import Finding
 from app.moderation.schema import (
     Category,
@@ -36,6 +47,9 @@ DEFAULT_FIELD = "description"
 LABEL_MAX = 100  # type and city are short context labels
 MAX_MESSAGE_LENGTH = 500
 UNKNOWN_MODEL = "unknown"
+CAPTION_MAX = 300
+# Severity of an image that could not be checked: a Warning for a human.
+UNCHECKED_IMAGE_SEVERITY = 0.5
 
 _LANGUAGE_NAMES = {"vi": "Vietnamese", "en": "English"}
 
@@ -66,6 +80,30 @@ _BLOCKED_MESSAGES = {
 }
 
 
+_UNCHECKED_IMAGE_MESSAGES = {
+    "en": "Image {n} could not be checked automatically; a moderator must review it.",
+    "vi": "Không thể kiểm tra tự động ảnh {n}; người kiểm duyệt cần xem xét.",
+}
+
+
+def unchecked_image_severity() -> float:
+    """At least a Warning under the configured thresholds, never a Reject."""
+    reject, warning = policy.resolve_thresholds()
+    if warning <= UNCHECKED_IMAGE_SEVERITY < reject:
+        return UNCHECKED_IMAGE_SEVERITY
+    return warning
+
+
+def unchecked_image_message(index: int, language: str) -> str:
+    """Message for images[index]; the number shown to humans is 1-based."""
+    template = _UNCHECKED_IMAGE_MESSAGES.get(language, _UNCHECKED_IMAGE_MESSAGES["en"])
+    return template.format(n=index + 1)
+
+
+def image_field(index: int) -> str:
+    return f"images[{index}]"
+
+
 def fallback_message(category: Category, language: str) -> str:
     messages = _FALLBACK_MESSAGES.get(language, _FALLBACK_MESSAGES["en"])
     return messages[category]
@@ -81,10 +119,24 @@ def label(text: str | None) -> str:
     return cleaned[:LABEL_MAX]
 
 
-def build_place_prompt(request: PlaceModerationRequest) -> str:
-    """User message for the single LLM call. Every user value sits inside <place>."""
+def build_place_prompt(
+    request: PlaceModerationRequest, image_indexes: Sequence[int] = ()
+) -> str:
+    """User message for the single LLM call. Every user value sits inside <place>.
+
+    `image_indexes` are the original (0-based) indexes of the images attached
+    to the call, in attachment order.
+    """
     reply_language = _LANGUAGE_NAMES.get(request.language.value, "English")
-    lines = [f"Write each finding message in {reply_language}.", "", "<place>"]
+    lines = [f"Write each finding message in {reply_language}."]
+    if image_indexes:
+        attached = ", ".join(image_field(i) for i in image_indexes)
+        lines.append(
+            f"{len(image_indexes)} image(s) are attached after this text, in this order: {attached}."
+        )
+    else:
+        lines.append("No images are attached.")
+    lines += ["", "<place>"]
     place_type = label(request.type)
     city = label(request.city)
     if place_type:
@@ -94,6 +146,15 @@ def build_place_prompt(request: PlaceModerationRequest) -> str:
     # wrap() sanitises the text so it cannot open or close any prompt tag.
     lines.append(wrap("name", request.name))
     lines.append(wrap("description", request.description))
+    if image_indexes:
+        lines.append("<images>")
+        for position, index in enumerate(image_indexes, start=1):
+            caption = " ".join(sanitize_text(request.images[index].caption or "").split())
+            line = f"Attached image {position} is {image_field(index)}."
+            if caption:
+                line += f" Caption: {caption[:CAPTION_MAX]}"
+            lines.append(line)
+        lines.append("</images>")
     lines.append("</place>")
     return "\n".join(lines)
 
@@ -175,6 +236,7 @@ def build_place_response(
     model: str,
     reject_threshold: float | None = None,
     warning_threshold: float | None = None,
+    images_checked: int = 0,
 ) -> PlaceModerationResponse:
     reject, warning = policy.resolve_thresholds(reject_threshold, warning_threshold)
     reasons = [
@@ -186,17 +248,26 @@ def build_place_response(
         verdict=policy.decide(findings, reject, warning),
         severity=policy.max_severity(findings),
         reasons=reasons,
-        images_checked=0,
+        images_checked=images_checked,
         model=model,
     )
 
 
-async def call_llm(llm: Any, prompt: str, system: str) -> tuple[Any, str]:
-    """One LLM call; return (JSON data, name of the model that answered)."""
+async def call_llm(
+    llm: Any, prompt: str, system: str, images: Sequence[tuple[str, bytes]] | None = None
+) -> tuple[Any, str]:
+    """One LLM call; return (JSON data, name of the model that answered).
+
+    `images` is only passed when there are some, so text-only calls keep
+    their exact previous shape (and stay eligible for the Groq fallback).
+    """
+    kwargs: dict[str, Any] = {"system": system, "temperature": 0.0}
+    if images:
+        kwargs["images"] = list(images)
     with_model = getattr(llm, "generate_json_with_model", None)
     if with_model is not None:
-        return await with_model(prompt, system=system, temperature=0.0)
-    data = await llm.generate_json(prompt, system=system, temperature=0.0)
+        return await with_model(prompt, **kwargs)
+    data = await llm.generate_json(prompt, **kwargs)
     return data, getattr(llm, "model", UNKNOWN_MODEL)
 
 
@@ -209,27 +280,51 @@ def blocked_model(llm: Any, exc: LLMBlockedError) -> str:
 
 
 class PlaceModerator:
-    """Moderates the text of one place with exactly one LLM call."""
+    """Moderates one place (text and images) with exactly one LLM call."""
 
-    def __init__(self, llm: Any = None) -> None:
+    def __init__(self, llm: Any = None, image_fetcher: ImageFetcher | None = None) -> None:
         # BLOCK_NONE: Gemini must be able to read harmful text in order to flag it.
         self.llm = llm or FallbackLLM(primary=GeminiClient(safety_block_none=True))
+        self.image_fetcher = image_fetcher or make_image_fetcher()
         self.system_prompt = PROMPT_PATH.read_text(encoding="utf-8")
 
-    async def _call_llm(self, prompt: str) -> tuple[Any, str]:
-        return await call_llm(self.llm, prompt, self.system_prompt)
+    async def _call_llm(
+        self, prompt: str, images: Sequence[tuple[str, bytes]] | None = None
+    ) -> tuple[Any, str]:
+        return await call_llm(self.llm, prompt, self.system_prompt, images)
 
     def _blocked_model(self, exc: LLMBlockedError) -> str:
         return blocked_model(self.llm, exc)
 
-    async def scan_place(self, request: PlaceModerationRequest) -> tuple[list[Finding], str]:
-        """Return (raw findings, model name). Fields are "name" or "description"."""
+    async def fetch_images(
+        self, request: PlaceModerationRequest
+    ) -> tuple[list[FetchedImage], list[ImageProblem]]:
+        """Fetch the images. Raise ImagesUnavailableError on any temporary problem."""
+        if not request.images:
+            return [], []
+        results = await self.image_fetcher([image.url for image in request.images])
+        fetched = [r for r in results if isinstance(r, FetchedImage)]
+        problems = [r for r in results if isinstance(r, ImageProblem)]
+        temporary = [p.index for p in problems if p.kind == "temporary"]
+        if temporary:
+            raise ImagesUnavailableError(f"images temporarily unavailable: {temporary}")
+        return fetched, problems
+
+    async def scan_place(
+        self, request: PlaceModerationRequest, images: Sequence[FetchedImage] = ()
+    ) -> tuple[list[Finding], str, int]:
+        """Return (raw findings, model name, images checked) for one LLM call.
+
+        Fields are "name", "description" or "images[n]" for an attached image.
+        """
         language = request.language.value
-        prompt = build_place_prompt(request)
+        indexes = [image.index for image in images]
+        prompt = build_place_prompt(request, indexes)
+        inline = [(image.mime_type, image.data) for image in images]
         try:
-            data, model = await self._call_llm(prompt)
+            data, model = await self._call_llm(prompt, inline or None)
         except LLMBlockedError as exc:
-            # Text so harmful that the provider refuses to read it: reject it
+            # Content so harmful that the provider refuses to read it: reject it
             # instead of failing with a retryable infrastructure error.
             logger.warning("moderation place=%s blocked by provider: %s", request.place_id, exc)
             blocked = Finding(
@@ -238,21 +333,42 @@ class PlaceModerator:
                 severity=1.0,
                 message=blocked_message(language),
             )
-            return [blocked], self._blocked_model(exc)
-        return parse_findings(data, language), model
+            # The model refused, so no image was actually analysed.
+            return [blocked], self._blocked_model(exc), 0
+        fields = PLACE_FIELDS + tuple(image_field(i) for i in indexes)
+        return parse_findings(data, language, fields=fields), model, len(images)
 
     async def moderate_place(self, request: PlaceModerationRequest) -> PlaceModerationResponse:
-        findings, model = await self.scan_place(request)
-        response = build_place_response(request.place_id, findings, model)
+        fetched, problems = await self.fetch_images(request)
+        findings, model, images_checked = await self.scan_place(request, fetched)
+        language = request.language.value
+        if problems:
+            severity = unchecked_image_severity()
+            findings += [
+                Finding(
+                    field=image_field(problem.index),
+                    category=Category.OTHER,
+                    severity=severity,
+                    message=unchecked_image_message(problem.index, language),
+                )
+                for problem in problems
+            ]
+        response = build_place_response(
+            request.place_id, findings, model, images_checked=images_checked
+        )
         logger.info(
-            "moderation place=%s verdict=%s severity=%.2f model=%s",
+            "moderation place=%s verdict=%s severity=%.2f model=%s images=%d checked=%d",
             request.place_id,
             response.verdict,
             response.severity,
             model,
+            len(request.images),
+            images_checked,
         )
         return response
 
 
-async def moderate_place(request: PlaceModerationRequest, llm: Any = None) -> PlaceModerationResponse:
-    return await PlaceModerator(llm=llm).moderate_place(request)
+async def moderate_place(
+    request: PlaceModerationRequest, llm: Any = None, image_fetcher: ImageFetcher | None = None
+) -> PlaceModerationResponse:
+    return await PlaceModerator(llm=llm, image_fetcher=image_fetcher).moderate_place(request)

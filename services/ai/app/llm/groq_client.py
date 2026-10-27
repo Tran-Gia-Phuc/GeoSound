@@ -61,7 +61,11 @@ class GroqClient:
         system: str | None = None,
         temperature: float = 0.0,
         max_tokens: int = 2048,
+        images: Any = None,
     ) -> Any:
+        if images:
+            # Groq is text only; requests with images must stay on Gemini.
+            raise LLMBadRequestError("Groq does not accept images", provider=self.provider)
         text = await self._generate(
             prompt,
             system=system,

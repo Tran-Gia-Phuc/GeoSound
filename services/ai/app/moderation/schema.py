@@ -62,12 +62,12 @@ class PlaceModerationRequest(_Base):
     description: str = Field(min_length=1, max_length=PLACE_DESCRIPTION_MAX)
     language: Language
     city: str | None = Field(default=None, max_length=MAX_LABEL_LENGTH)
-    # Accepted but not checked in phase 1 (images_checked stays 0).
+    # Checked by Gemini in the same call (phase 2, #AI-41); see images.py.
     images: list[ImageInput] = Field(default_factory=list, max_length=MAX_IMAGES)
 
 
 class PlaceReason(_Base):
-    # "name", "description" or "images[<index>]" (phase 2)
+    # "name", "description" or "images[<n>]" (n = 0-based index in the request, phase 2)
     field: str = Field(pattern=PLACE_FIELD_PATTERN)
     category: Category
     message: str = Field(min_length=1, max_length=500)

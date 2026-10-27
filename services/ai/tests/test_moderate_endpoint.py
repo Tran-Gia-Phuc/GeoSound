@@ -93,13 +93,50 @@ def test_below_warning_threshold_is_pass(make_client):
     assert r.json()["reasons"] == []
 
 
-def test_images_are_accepted_but_not_checked_in_phase_1(make_client):
+def test_images_are_checked_in_the_same_call(make_client):
     client, llm = make_client(clean)
     images = [{"url": f"https://cdn.example.com/{i}.jpg"} for i in range(5)]
     r = client.post(URL, json={**BODY, "images": images})
     assert r.status_code == 200
-    assert r.json()["images_checked"] == 0
+    assert r.json()["verdict"] == "Pass"
+    assert r.json()["images_checked"] == 5
     assert len(llm.calls) == 1
+    assert len(llm.kwargs[0]["images"]) == 5
+
+
+def test_inappropriate_image_is_flagged_with_category_and_index(make_client):
+    client, llm = make_client(answer(finding(0.85, field="images[1]", category="violence")))
+    images = [{"url": f"https://cdn.example.com/{i}.jpg"} for i in range(2)]
+    r = client.post(URL, json={**BODY, "images": images})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["verdict"] == "Reject"
+    assert data["reasons"] == [
+        {"field": "images[1]", "category": "violence", "message": "Looks wrong."}
+    ]
+    assert data["images_checked"] == 2
+    assert len(llm.calls) == 1
+
+
+def test_permanently_unreadable_image_is_warning(make_client):
+    client, llm = make_client(clean, image_plan={0: "permanent"})
+    images = [{"url": "https://cdn.example.com/0.jpg"}]
+    r = client.post(URL, json={**BODY, "images": images})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["verdict"] == "Warning"
+    assert data["images_checked"] == 0
+    assert [(x["field"], x["category"]) for x in data["reasons"]] == [("images[0]", "other")]
+    assert len(llm.calls) == 1
+
+
+def test_temporary_image_error_returns_503_without_llm_call(make_client):
+    client, llm = make_client(clean, image_plan={1: "temporary"})
+    images = [{"url": f"https://cdn.example.com/{i}.jpg"} for i in range(2)]
+    r = client.post(URL, json={**BODY, "images": images})
+    assert r.status_code == 503
+    assert r.json() == {"detail": UNAVAILABLE_DETAIL}
+    assert llm.calls == []
 
 
 def test_provider_blocked_text_is_rejected(make_client):

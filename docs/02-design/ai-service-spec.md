@@ -129,7 +129,7 @@ Response `200`:
 }
 ```
 
-`field` is `name`, `description` or `images[n]`. `images_checked` is 0 in phase 1.
+`field` is `name`, `description` or `images[n]`. `images_checked` is the number of images sent to the model (0 without images or when the provider blocked the content).
 
 ### 3.2 `POST /moderate/tour`
 
@@ -188,7 +188,7 @@ Response `200`:
 | --- | --- | --- |
 | `200` | Verdict returned | Save and publish |
 | `401` | Missing or bad `x-internal-token` | Configuration error: case `ai_failed`, nothing published, sweeper retries after the token is fixed |
-| `422` | Invalid input (schema, limits, image rules) | Permanent, do not retry: publish a Warning for human review |
+| `422` | Invalid input (schema and limits, e.g. more than 5 images or a URL that is too long; an image that breaks the download rules gives 200 with a Warning on `images[n]`) | Permanent, do not retry: publish a Warning for human review |
 | `503` | Temporary failure: all providers failed, timeout or malformed model output (no provider details in the body) | Temporary, retry |
 
 ### 3.4 Image rules (phase 2)
@@ -199,8 +199,12 @@ Response `200`:
 | Size | At most 3 MB each |
 | Format | jpeg, png, webp |
 | Scheme | https only |
-| Host | Must be in `IMAGE_ALLOWED_HOSTS` (the storage host) |
+| Host | Must be in `IMAGE_ALLOWED_HOSTS` (the storage host; defaults to the host of `SUPABASE_URL`; an empty allowlist refuses every image). No userinfo, port 443 only |
 | Redirects | Not followed |
+| Content | Declared `content-type` and magic bytes must both be jpeg, png or webp |
+| Unreadable (permanent) | Bad URL or host, redirect, 403/404/410, wrong type, too large: the image is left out and gives a Warning reason `images[n]` (category `other`); never a Pass |
+| Unreadable (temporary) | 429, 5xx, timeout, network error: the request answers `503` and no LLM call is made |
+| Index | `n` in `images[n]` is the 0-based index of the image in the request |
 
 ## 4. Configuration
 
@@ -218,7 +222,10 @@ Names only; values live in the root `.env`, which is never committed.
 | `MODERATION_TIMEOUT_SECONDS` | Total time budget of one moderation request, including the wait for a slot |
 | `MODERATION_MAX_CONCURRENCY` | Moderation LLM calls running at the same time (quota, default 2) |
 | `INTERNAL_SERVICE_TOKEN` | Shared token checked on `/moderate/*` (secret) |
-| `IMAGE_ALLOWED_HOSTS` | Comma-separated hosts allowed for images (phase 2) |
+| `IMAGE_ALLOWED_HOSTS` | Comma-separated hosts allowed for images (phase 2); empty = host of `SUPABASE_URL`, and no host at all refuses every image |
+| `SUPABASE_URL` | Only its host is used, as the image allowlist when `IMAGE_ALLOWED_HOSTS` is empty (never logged) |
+| `IMAGE_MAX_BYTES` | Max size of one image in bytes (default 3145728 = 3 MB) |
+| `IMAGE_FETCH_TIMEOUT_SECONDS` | Total fetch time of one image (default 10) |
 | `LANGSMITH_TRACING` | Enables LangSmith tracing, `false` by default |
 
 ## 5. Observability

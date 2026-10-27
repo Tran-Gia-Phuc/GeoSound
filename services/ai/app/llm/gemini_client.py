@@ -1,6 +1,8 @@
+import base64
 import json
 import logging
 import re
+from collections.abc import Sequence
 from typing import Any
 
 import httpx
@@ -20,12 +22,29 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 _BLOCK_REASONS = {"SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII", "RECITATION"}
+# (mime_type, raw bytes) of one inline image, e.g. ("image/jpeg", b"...").
+InlineImage = tuple[str, bytes]
 _SAFETY_CATEGORIES = (
     "HARM_CATEGORY_HARASSMENT",
     "HARM_CATEGORY_HATE_SPEECH",
     "HARM_CATEGORY_SEXUALLY_EXPLICIT",
     "HARM_CATEGORY_DANGEROUS_CONTENT",
 )
+
+
+def _parts(prompt: str, images: Sequence[InlineImage] | None) -> list[dict[str, Any]]:
+    """Text part first, then one inline_data part per image (base64)."""
+    parts: list[dict[str, Any]] = [{"text": prompt}]
+    for mime_type, data in images or ():
+        parts.append(
+            {
+                "inline_data": {
+                    "mime_type": mime_type,
+                    "data": base64.b64encode(data).decode("ascii"),
+                }
+            }
+        )
+    return parts
 
 
 class GeminiClient:
@@ -72,13 +91,16 @@ class GeminiClient:
         system: str | None = None,
         temperature: float = 0.0,
         max_tokens: int = 2048,
+        images: Sequence[InlineImage] | None = None,
     ) -> Any:
+        """JSON answer. `images` are sent as inline parts after the prompt, in order."""
         text = await self._generate(
             prompt,
             system=system,
             temperature=temperature,
             max_tokens=max_tokens,
             json_mode=True,
+            images=images,
         )
         cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
         try:
@@ -96,6 +118,7 @@ class GeminiClient:
         temperature: float,
         max_tokens: int,
         json_mode: bool,
+        images: Sequence[InlineImage] | None = None,
     ) -> str:
         if not self.api_key:
             raise LLMBadRequestError("GEMINI_API_KEY is not set", provider=self.provider)
@@ -108,7 +131,7 @@ class GeminiClient:
             generation_config["responseMimeType"] = "application/json"
 
         body: dict[str, Any] = {
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "contents": [{"role": "user", "parts": _parts(prompt, images)}],
             "generationConfig": generation_config,
         }
         if system:
@@ -145,7 +168,13 @@ class GeminiClient:
             ) from exc
 
         text = self._extract_text(data)
-        logger.info("gemini ok model=%s json_mode=%s chars=%d", self.model, json_mode, len(text))
+        logger.info(
+            "gemini ok model=%s json_mode=%s images=%d chars=%d",
+            self.model,
+            json_mode,
+            len(images or ()),
+            len(text),
+        )
         return text
 
     def _raise_for_status(self, response: httpx.Response) -> None:
