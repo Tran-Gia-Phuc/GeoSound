@@ -54,6 +54,9 @@ class Settings(BaseSettings):
 
     # Chatbot (phase 3, #AI-46): user turns kept in memory and sent to the LLM.
     chat_memory_turns: int = 6
+    # Chatbot indexer (#AI-44, D21): the only RabbitMQ consumer of the AI service.
+    # Off by default; nothing is started when false.
+    chatbot_indexer_enabled: bool = False
 
     def allowed_image_hosts(self) -> frozenset[str]:
         """Hosts images may be fetched from. Empty set = every image is refused."""

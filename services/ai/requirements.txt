@@ -11,3 +11,6 @@ langgraph-checkpoint==4.*
 langchain-core==1.6.*
 langchain-google-genai==3.0.*
 langchain-groq==1.0.*
+# TODO(#185 follow-up): chatbot index runtime, not installed yet (keeps the image small):
+#   local embeddings intfloat/multilingual-e5-small (sentence-transformers or an ONNX runtime),
+#   a Postgres driver with pgvector (asyncpg or psycopg 3), an AMQP client for the indexer (#188).
