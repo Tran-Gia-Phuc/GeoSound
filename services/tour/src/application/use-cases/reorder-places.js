@@ -1,18 +1,22 @@
 // =========================================================
 // UC10 / A2 — Sắp xếp lại thứ tự điểm dừng. Chỉ tác giả.
 // `order` phải là đúng tập id các điểm của tour (không thiếu/thừa).
+// UC15 (MODERATION_EVENTS_ENABLED): a tour in moderation goes back to draft (geo rules use the order).
 // =========================================================
 import {
   TourNotFoundError,
   NotTourOwnerError,
   ValidationError,
 } from '../../domain/errors/index.js';
+import { withdrawTourFromModeration } from './submit-for-moderation.js';
 
 export class ReorderPlaces {
-  /** @param {{ tourRepo, placeRepo }} deps */
-  constructor({ tourRepo, placeRepo }) {
+  /** @param {{ tourRepo, placeRepo, moderation?, logger? }} deps */
+  constructor({ tourRepo, placeRepo, moderation = null, logger = console }) {
     this.tourRepo = tourRepo;
     this.placeRepo = placeRepo;
+    this.moderation = moderation;
+    this.logger = logger;
   }
 
   /** @param {{ authorId, tourId, orderedIds: string[] }} input */
@@ -33,6 +37,7 @@ export class ReorderPlaces {
     }
 
     await this.placeRepo.reorder(tourId, orderedIds);
+    await withdrawTourFromModeration(this, tour);
     const updated = await this.placeRepo.listByTour(tourId);
     return updated.map((p) => p.toPublic());
   }
