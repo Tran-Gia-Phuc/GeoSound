@@ -15,6 +15,7 @@ import { useCountdown, formatCountdown } from '../../hooks/useCountdown.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { Field, PasswordField, ErrorAlert } from './fields.jsx';
 import { destinationFor, leadFor } from './redirect.js';
+import './login-a.css';
 
 const RESEND_LOCK_S = 30;
 
@@ -141,7 +142,7 @@ export default function LoginPage({ initialTab = 'login' }) {
   const roleMeta = ROLE_OPTIONS.find((o) => o.value === role);
 
   return (
-    <div className="screen auth">
+    <div className={`screen auth ${tab === 'login' ? 'auth-login-a' : ''}`}>
       <header className="auth__top">
         <Link to="/" className="brand" aria-label="Về trang chủ GeoSound">
           <span className="brand__logo"><Icon name="headphones" size={20} /></span>
@@ -150,6 +151,12 @@ export default function LoginPage({ initialTab = 'login' }) {
       </header>
 
       <main className="auth__main">
+        {tab === 'login' ? <section className="login-a-story" aria-label="GeoSound">
+          <span className="chip"><Icon name="headphones" size={16} /> Khám phá bằng âm thanh</span>
+          <h2>Mỗi bước chân,<br />một câu chuyện.</h2>
+          <p>Lắng nghe những câu chuyện về văn hóa và con người tại nơi bạn đến.</p>
+          <Link className="btn" to="/">Tiếp tục khám phá <Icon name="arrow-left" size={18} /></Link>
+        </section> : null}
         <div className="auth__card">
           {tab === 'register' && phase === 'otp' ? (
             <>
@@ -294,6 +301,7 @@ export default function LoginPage({ initialTab = 'login' }) {
                       {tab === 'login' ? 'Đăng nhập' : 'Tiếp tục'}
                     </button>
                   </form>
+                  {tab === 'login' ? <Link className="login-a-guest" to="/"><Icon name="headphones" size={24} /><span><b>Tiếp tục khám phá</b><span>Không cần tài khoản để tìm và nghe tour.</span></span><Icon name="chevron-down" size={18} /></Link> : null}
                 </>
               )}
             </>
