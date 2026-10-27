@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     langsmith_project: str = "geosound-ai"
     langsmith_api_key: SecretStr = SecretStr("")
 
+    # Chatbot (phase 3, #AI-46): user turns kept in memory and sent to the LLM.
+    chat_memory_turns: int = 6
     # Chatbot indexer (#AI-44, D21): the only RabbitMQ consumer of the AI service.
     # Off by default; nothing is started when false.
     chatbot_indexer_enabled: bool = False

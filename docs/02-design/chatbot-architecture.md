@@ -80,25 +80,44 @@ so nothing changes for other teammates.
 ### 3.2 Nodes and edges
 
 ```text
- START ─▶ classify ──(intent = smalltalk | out_of_scope)──────────────────────▶ answer ─▶ END
-              │
-              └──(search | detail | nearby)─▶ plan ─▶ retrieve ──(retrieved empty)──▶ answer (no data) ─▶ END
-                                                         │
-                                                         └──(retrieved non-empty)──▶ answer ─▶ cite ─▶ END
+ START ─▶ classify ──(intent = smalltalk | out_of_scope)──────────▶ answer
+              │                                                       │
+              └──(search | detail | nearby)─▶ plan ─▶ retrieve ─▶ answer
+                                                                      │
+                          answer ──(finish_reason = stop)──▶ cite ─▶ END
+                          answer ──(finish_reason = no_data | refused)──▶ END
 ```
 
 | Node | LLM call | Does |
 | --- | --- | --- |
-| `classify` | no | Rules: language detection, keyword lists per intent, known city and place-type names from graph nodes. Prompt-injection markers in the user text do not change the intent |
-| `plan` | no by default; 1 only if rules found no filter and no seed text | Builds `filters` and the search text; calls the tools below directly (deterministic tool use) |
-| `retrieve` | no | Hybrid retrieval (section 5) |
-| `answer` | **yes, 1** | One prompt: system rules, trimmed memory, retrieved items wrapped as data, user question. Streams tokens |
-| `cite` | no | Keeps only ids that are in `retrieved` and mentioned in the answer; drops anything else (no invented ids) |
+| `classify` | no | Rules: language detection, keyword lists per intent (vi and en, also matched without diacritics), city names (see "City filter" below). Prompt-injection markers in the user text do not change the intent |
+| `plan` | no | Builds `filters` and the search text with rules, then a deterministic tool plan run by `retrieve`. Rules always produce seed text (the sanitised message), so the optional planner LLM call of the first draft is **not implemented** |
+| `retrieve` | no | Runs the planned tools (section 3.4) over the retriever (section 5) and merges the rows into at most k = 5 items |
+| `answer` | **1** for small talk and for data answers; **0** otherwise | Small talk and questions with retrieved items: one prompt (system rules, trimmed memory, retrieved items wrapped as data, user question); `finish_reason = stop`. Out-of-scope questions and data questions with an empty retrieval get a canned, localised (`vi` / `en`) reply with **no LLM call**: `finish_reason = refused` or `no_data`. Content blocked by the provider (or an empty reply) also gives a canned `refused` reply |
+| `cite` | no | Runs only after `stop`. Keeps citation markers whose id is in `retrieved` and removes invented ones (see "Citation markers" below) |
 
-Budget: Gemini free tier is 5 requests per minute, shared with moderation. The normal turn uses **one** LLM call
-(`answer`); the optional planner call raises it to two, never more. Tools are called by code, not chosen by the
-LLM in a loop, because LLM tool calling needs at least two calls per turn. The tool definitions stay standard
-LangChain tools so that a paid tier can switch to LLM tool calling without changing them.
+Budget: Gemini free tier is 5 requests per minute, shared with moderation. A turn uses **at most one** LLM call
+(`answer`); the hard cap stays 2 per turn (`MAX_LLM_CALLS_PER_TURN`, enforced in the graph) so a later planner
+call would fit. Tools are called by code, not chosen by the LLM in a loop, because LLM tool calling needs at least
+two calls per turn. The tool definitions stay standard LangChain tools so that a paid tier can switch to LLM tool
+calling without changing them.
+
+**Citation markers.** The system prompt asks the model to write `[tour:ID]` or `[place:ID]` right after each
+tour or place it mentions, using only ids from the retrieved items. `cite` keeps markers of retrieved items,
+deletes markers with invented ids from the answer **and** from the stored memory (the stored answer message is
+replaced), and builds `citations` (`{kind, id, title}`, order of first mention, also matched on a bare id). The
+kept markers **stay in the answer text and in the history**, so `/chat` (#188) and the client must render them
+(for example as links) or strip them.
+
+**City filter.** Until the retriever supplies city names, a built-in alias table maps vi and en city names
+(with or without diacritics) to canonical English names (`Hanoi`, `Ho Chi Minh City`, `Hoi An`, `Hue`,
+`Da Nang`, ...). This is an interim measure: `ChatAgent(city_aliases=...)` lets the retriever (#186) pass names
+taken from `City` nodes instead. The retriever must match the canonical names it receives in the `city` filter.
+
+**Location.** The request `location` is kept in a per-turn context variable, never in the graph state or the
+checkpoint: the `plan` node stores only the radius, and `retrieve` fills `lat` / `lng` into the `nearby_places`
+call at run time. Note: with `LANGSMITH_TRACING=true`, tool inputs (`lat`, `lng`) could still be traced unless
+inputs are hidden; to address in #188.
 
 ### 3.3 Models and memory
 
@@ -117,9 +136,9 @@ All tools read only the `ai` schema, which contains only public data.
 
 | Tool | JSON schema (input) | Returns |
 | --- | --- | --- |
-| `search_tours` | `{"query": string (max 200), "city"?: string, "type"?: "walking" \| "driving" \| "cycling" \| "indoor", "max_duration_minutes"?: int >= 0, "topics"?: string[] (max 5), "language"?: "vi" \| "en", "k"?: int 1..10}` | `[{tour_id, title, city, type, duration_minutes, score, snippet}]` |
-| `search_places` | `{"query": string (max 200), "city"?: string, "place_type"?: string, "topics"?: string[] (max 5), "language"?: "vi" \| "en", "k"?: int 1..10}` | `[{place_id, tour_id, name, type, score, snippet}]` |
-| `nearby_places` | `{"place_id"?: string, "lat"?: number -90..90, "lng"?: number -180..180, "radius_m"?: int 1..1000 (default 500), "k"?: int 1..10}`; one of `place_id` or `lat`+`lng` is required | `[{place_id, tour_id, name, type, distance_m}]` |
+| `search_tours` | `{"query": string (max 200), "city"?: string, "type"?: "walking" \| "driving" \| "cycling" \| "indoor", "max_duration_minutes"?: int >= 0, "topics"?: string[] (max 5), "language"?: "vi" \| "en", "k"?: int 1..10}` | `[{tour_id, title, city, type, duration_minutes, score, snippet, hops}]` |
+| `search_places` | `{"query": string (max 200), "city"?: string, "place_type"?: string, "topics"?: string[] (max 5), "language"?: "vi" \| "en", "k"?: int 1..10}` | `[{place_id, tour_id, name, type, score, snippet, hops}]` |
+| `nearby_places` | `{"place_id"?: string, "lat"?: number -90..90, "lng"?: number -180..180, "radius_m"?: int 1..1000 (default 500), "k"?: int 1..10}`; one of `place_id` or `lat`+`lng` is required | `[{place_id, tour_id, name, type, distance_m, snippet, hops}]` (the anchor `place_id` itself is excluded) |
 
 ## 4. Multi-layer knowledge graph
 
@@ -271,7 +290,7 @@ becomes a problem.
 | `message` | string | required, 1 to 1000 characters |
 | `session_id` | string | optional; created by the server when missing and returned in `meta` |
 | `language` | `vi` or `en` | optional; detected when missing |
-| `location` | `{lat, lng}` | optional; used only for `nearby`, never stored |
+| `location` | `{lat, lng}` | optional; used only for `nearby`, never stored (per-turn context variable, section 3.2) |
 
 | SSE event | Data |
 | --- | --- |
@@ -283,6 +302,11 @@ becomes a problem.
 
 `GET /chat/history?session_id=...` (gateway: `GET /api/chat/history`) returns
 `{session_id, messages: [{role: "user" | "assistant", content, citations?, at}]}`, last N turns only.
+
+Citation markers: `token` text and history `content` contain the kept `[tour:ID]` / `[place:ID]` markers
+(section 3.2); invented ids are already removed. `/chat` (#188) must decide whether to stream them as is or strip
+them, and the client must render them (for example as links using `citations`) or hide them. Because markers can
+be split across tokens, stripping during streaming needs a small buffer.
 
 | Status | Meaning |
 | --- | --- |
