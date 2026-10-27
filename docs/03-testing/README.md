@@ -5,6 +5,7 @@ Automated tests follow **microservices + monolith per service**. Strategy and fo
 | File | Content |
 | --- | --- |
 | [strategy.md](strategy.md) | Layers, locations, what not to do |
+| [moderation-e2e.md](moderation-e2e.md) | Moderation end-to-end test (RabbitMQ + Moderation + AI stub): commands, scenarios, expected output |
 
 Expected later (not written in init):
 
