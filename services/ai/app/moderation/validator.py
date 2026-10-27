@@ -1,8 +1,7 @@
 """Input hardening for moderation text (task #AI-28).
 
-- length limits of the contract; the place schemas in schema.py import them
-  since #AI-29 (the tour and old /moderate models still keep their own copies
-  until #AI-31); 422 is raised by Pydantic
+- length limits of the contract; the place (#AI-29) and tour (#AI-31) schemas
+  in schema.py import them; 422 is raised by Pydantic
 - neutralise delimiter break-out (e.g. "</content>") before building prompts
 
 All functions are pure.
