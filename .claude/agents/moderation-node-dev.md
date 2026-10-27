@@ -24,6 +24,7 @@ Rules
 - Event handlers must not throw for work to be retried (shared `consume()` nacks without requeue).
 - Event `at` must end with `Z`. Event payloads are camelCase; AI HTTP body is snake_case; convert only in `application/dtos/ai-mapping.js`.
 - Tests: `node --test`, with fakes from `test/helpers/fakes.js`. No network, no real database.
+- CI runs tests from the repo layout, where `../shared` does not exist: only `src/index.js` may import `../shared/...`; inject `validateEvent` / `publish` everywhere else. Run tests in both layouts (image and repo) as shown in `.claude/skills/ai-task/SKILL.md` step 3.
 - Never read or print `.env`.
 
 Do not run any git write command. Report back (English, short): files changed, tests and result, conflicts found.
