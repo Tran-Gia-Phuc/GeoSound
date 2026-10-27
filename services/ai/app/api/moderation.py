@@ -1,41 +1,60 @@
+"""Moderation endpoints (task #AI-30). POST /moderate/tour follows in #AI-31.
+
+Every route requires the internal service token (#AI-28).
+422 is raised by FastAPI for invalid input (permanent, do not retry).
+503 means the moderation could not finish now (all providers failed, malformed
+model output, or the time budget ran out): temporary, Moderation retries.
+"""
+
 import logging
 from functools import lru_cache
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.llm.errors import LLMError
 from app.middleware.auth import require_internal_token
-from app.moderation.policy import build_response
-from app.moderation.schema import ModerationRequest, ModerationResponse
-from app.moderation.service import TextModerator
+from app.moderation.pipeline import ModerationUnavailableError, run_moderation
+from app.moderation.place_service import PlaceModerator
+from app.moderation.schema import PlaceModerationRequest, PlaceModerationResponse
 
 logger = logging.getLogger(__name__)
 
-# Every moderation route requires the internal service token (#AI-28).
+# Never leak provider details to the caller; they are logged instead.
+UNAVAILABLE_DETAIL = "Moderation is temporarily unavailable; retry later"
+
 router = APIRouter(dependencies=[Depends(require_internal_token)])
 
 
-@lru_cache
-def get_moderator() -> TextModerator:
-    return TextModerator()
+def describe_failure(exc: BaseException) -> str:
+    """Safe log text for a failure: class names, provider and HTTP status only.
 
-
-@router.post("/moderate", response_model=ModerationResponse)
-async def moderate(
-    request: ModerationRequest,
-    moderator: TextModerator = Depends(get_moderator),
-) -> ModerationResponse:
-    """Scan the text of a tour and return Pass / Warning / Reject with reasons.
-
-    422 is raised by FastAPI for invalid input. 503 means every LLM provider
-    failed, so the caller must keep the tour in "Waiting for AI" (UC#15 E2).
+    Provider messages are never logged here: they may echo request details.
     """
+    cause = exc.__cause__ or exc
+    parts = [type(exc).__name__]
+    if cause is not exc:
+        parts.append(f"cause={type(cause).__name__}")
+    provider = getattr(cause, "provider", None)
+    if provider:
+        parts.append(f"provider={provider}")
+    status = getattr(cause, "status_code", None)
+    if status:
+        parts.append(f"status={status}")
+    return " ".join(parts)
+
+
+@lru_cache
+def get_place_moderator() -> PlaceModerator:
+    return PlaceModerator()
+
+
+@router.post("/moderate/place", response_model=PlaceModerationResponse)
+async def moderate_place(
+    request: PlaceModerationRequest,
+    moderator: PlaceModerator = Depends(get_place_moderator),
+) -> PlaceModerationResponse:
+    """Scan the name and description of one place with one LLM call."""
     try:
-        findings = await moderator.scan_tour(request)
-    except LLMError as exc:
-        logger.error("moderation tour=%s failed: %s", request.tour_id, exc)
-        raise HTTPException(
-            status_code=503,
-            detail="All LLM providers failed; the tour stays in Waiting for AI",
-        ) from exc
-    return build_response(request.tour_id, findings)
+        return await run_moderation(lambda: moderator.moderate_place(request))
+    except ModerationUnavailableError as exc:
+        logger.error("moderation place=%s unavailable: %s", request.place_id, describe_failure(exc))
+        raise HTTPException(status_code=503, detail=UNAVAILABLE_DETAIL) from exc
