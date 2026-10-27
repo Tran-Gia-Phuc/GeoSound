@@ -28,7 +28,9 @@ Warning = ai_passed with warning:true and reasons. AI failure = publish nothing.
 
 - One LLM call per place and one per tour (Gemini free tier = 5 requests per minute). A tour scan does **not** rescan its places.
 - The LLM only reports findings (`category`, `severity` 0 to 1). `policy.py` decides: `severity >= 0.8` Reject, `>= 0.4` Warning, else Pass (`MODERATION_REJECT_THRESHOLD`, `MODERATION_WARNING_THRESHOLD`). Any doubt goes to a human, never to an automatic Pass.
-- Categories: `hate, violence, sexual, scam, misleading, irrelevant, other`.
+- Categories: `hate, violence, sexual, scam, misleading, irrelevant, other` (from AI), plus `route` (from Moderation geo rules).
+- Tour geo rules G1 to G6 run in Moderation (`domain/geo/tour-geo-rules.js`, pure JS, no LLM, limits per tour `type`). Only G1 (invalid coordinate) rejects; the rest are Warnings. Geo findings and the AI verdict are merged: worst verdict wins, max severity, reasons carry `source: ai | geo`. Forbidden zones are checked by Tour, not here.
+- A permanent AI error (422) is published as a Warning for human review; a temporary failure after retries publishes nothing (`ai_failed`, sweeper retries).
 - Text blocked by the provider (`LLMBlockedError`) is a **Reject** with category `other`, not an infrastructure error.
 - Fallback to Groq only on timeout, 429, 5xx, and only for text-only requests. 4xx and blocked content are never retried on another provider.
 - Phase 1 = text only (`imagesChecked` is 0). Phase 2 = place images (Gemini only; never Pass a place whose images were not checked). Phase 3 = chatbot.
@@ -39,10 +41,12 @@ Warning = ai_passed with warning:true and reasons. AI failure = publish nothing.
 
 | Event | Direction | Payload |
 | --- | --- | --- |
-| `place.submitted` | Tour → Moderation | `placeId`, `tourId?`, `contributorId`, `revision`, `name`, `description`, `language`, `images?[{url, caption?}]`, `at?` |
-| `tour.submitted` | Tour → Moderation | existing `tourId`, `contributorId`, `at?` plus `revision`, `title`, `description`, `language`, `city?`, `places[{placeId, name, description}]` |
-| `place.ai_passed`, `tour.ai_passed` | Moderation → Tour | id, `revision`, optional `warning`, `reasons[]`, `severity` |
+| `place.submitted` | Tour → Moderation | `placeId`, `tourId`, `contributorId`, `revision`, `name`, `type?`, `description`, `language`, `lat`, `lng`, `city?`, `images?[{url, caption?}]` (max 5), `at?` |
+| `tour.submitted` | Tour → Moderation | existing `tourId`, `contributorId`, `at?` plus optional `revision`, `title`, `description`, `language`, `city`, `type`, `durationMinutes`, `places[{placeId, name, type?, description, lat, lng, sequence}]` (max 50) |
+| `place.ai_passed`, `tour.ai_passed` | Moderation → Tour | id (`placeId` + `tourId`, or `tourId`), `revision`, optional `warning`, `severity`, `reasons[]` |
 | `place.ai_rejected`, `tour.ai_rejected` | Moderation → Tour | id, `revision`, `reason` (string, reasons joined, max 1000), optional `reasons[]` |
+
+`Reason` = `{ field, category, message, source: 'ai' | 'geo', severity? }`. Full contract: `docs/02-design/moderation-architecture.md` section 6.
 
 `revision` is set by Tour (its `updatedAt`) and echoed back; Tour ignores a result whose revision is stale. All new keys are optional or additive so existing consumers keep working.
 
@@ -55,7 +59,7 @@ Warning = ai_passed with warning:true and reasons. AI failure = publish nothing.
   "images_checked": 0, "model": "gemini-2.5-flash" }
 ```
 
-`POST /moderate/place` takes `place_id`, `tour_id?`, `name`, `description`, `language`, `images?[{url, caption?}]`. `POST /moderate/tour` takes `tour_id`, `title`, `description`, `language`, `city?`, `places[{place_id, name, description}]` (the old `stops` / `stop_id` of `POST /moderate` are replaced) and returns the same shape with `tour_id` and without `images_checked`; `field` is `title`, `description` or `coherence`. Errors: 401 bad token, 422 invalid input (permanent, do not retry), 503 all providers failed (temporary, retry). `message` is a short sentence in the request `language` (`vi` or `en`).
+`POST /moderate/place` takes `place_id`, `tour_id`, `name`, `type?`, `description`, `language`, `city?`, `images?[{url, caption?}]`. `POST /moderate/tour` takes `tour_id`, `title`, `description`, `language`, `city?`, `type?`, `duration_minutes?`, `places[{place_id, name, type?, description}]` (the old `stops` / `stop_id` of `POST /moderate` are replaced) and returns the same shape with `tour_id` and without `images_checked`; `field` is `title`, `description` or `coherence`. Errors: 401 bad token, 422 invalid input (permanent, do not retry), 503 all providers failed (temporary, retry). `message` is a short sentence in the request `language` (`vi` or `en`).
 
 Limits: title 200, tour description 5000, place name 200, place description 2000, at most 50 places per tour (AI cuts each place description to 300 characters for the tour scan), at most 5 images (phase 2: 3 MB each, jpeg/png/webp, allowed hosts only, https only, no redirects).
 
@@ -72,7 +76,7 @@ Limits: title 200, tour description 5000, place name 200, place description 2000
 - Never read, print, log or commit `.env` or any API key (`GEMINI_API_KEY`, `GROQ_API_KEY`, Supabase URLs). To check config, list key names only: `cut -d= -f1 .env`.
 - Tests never call real LLMs or the network: use `FakeLLM` (`services/ai/tests/conftest.py`) and `httpx.MockTransport` in Python; a fake `fetch` or small local server in Node.
 - Real-LLM smoke runs are allowed only when the user asks, and print results without the key. Gemini free tier is rate limited (429, 503 happen); this key works only with `gemini-2.5-flash`.
-- Do not change files owned by other services unless the task says so (Tour integration is task #AI-31, behind a feature flag).
+- Do not change files owned by other services unless the task says so (Tour integration is task #AI-39 / issue #180, behind a feature flag; its PR is reviewed by the Tour owner, never merged by us).
 
 ## 7. Commands
 
@@ -108,11 +112,14 @@ New files exist as stubs (`throw new Error('not implemented: #AI-xx')` or `NotIm
 services/ai/app/
   api/            moderation.py (to rewrite, #AI-21), translation.py (not ours)
   moderation/     schema.py policy.py (existing), place_service.py tour_service.py pipeline.py
-                  validator.py images.py (phase 2), prompts/{place,tour}_moderation.txt
+                  validator.py images.py (phase 2), tracing.py (LangSmith, optional),
+                  prompts/{place,tour}_moderation.txt
+  chatbot/        phase 3: LangGraph agent, LangChain models, graph + vector RAG (#AI-43 to #AI-48)
   middleware/     auth.py (x-internal-token, #AI-12)
 services/moderation/src/
   config.js  container.js  index.js
-  domain/         entities, errors, ports, moderation/{case-state-machine,merge-verdicts}.js (pure JS)
+  domain/         entities, errors, ports, moderation/{case-state-machine,merge-verdicts}.js,
+                  geo/{distance,tour-geo-rules}.js (pure JS)
   application/    dtos/ai-mapping.js, use-cases/{run-place-review,run-tour-review,retry-failed-cases}.js
   infrastructure/ ai/http-ai-reviewer.js, retry/with-retry.js, persistence/*, messaging/event-publisher.js
   interfaces/     events/{place,tour}-submitted-consumer.js, jobs/retry-sweeper.js
