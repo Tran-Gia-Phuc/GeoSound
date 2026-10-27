@@ -36,7 +36,7 @@ one form and request lifecycle stay together to avoid overlapping handlers.
 | 03 Discover tours | Existing discovery/map #73/#83; A layout [#91](https://github.com/Tran-Gia-Phuc/GeoSound/issues/91), retry [#92](https://github.com/Tran-Gia-Phuc/GeoSound/issues/92). | Offline package and favorites are unavailable. |
 | 04 Tour detail | Existing detail #53/#74; A layout [#93](https://github.com/Tran-Gia-Phuc/GeoSound/issues/93), language failure [#94](https://github.com/Tran-Gia-Phuc/GeoSound/issues/94). | Author profile, review/report and offline download are separate dependencies. |
 | 05 Offline | [#103](https://github.com/Tran-Gia-Phuc/GeoSound/issues/103), interrupted/quota state [#104](https://github.com/Tran-Gia-Phuc/GeoSound/issues/104). | Download package, per-language audio, byte sizes, resumability and map strategy. |
-| 06 Player | Existing GPS/remote player #49/#52; labeled controls [#101](https://github.com/Tran-Gia-Phuc/GeoSound/issues/101). | TTS pre-render/offline support remains unavailable. |
+| 06 Player | Existing GPS/remote player #49/#52; labeled controls [#101](https://github.com/Tran-Gia-Phuc/GeoSound/issues/101), first-gesture audio race [#155](https://github.com/Tran-Gia-Phuc/GeoSound/issues/155). | TTS pre-render/offline support remains unavailable. |
 | 07 Player states | Existing mode/permission/preview UI; audio retry [#102](https://github.com/Tran-Gia-Phuc/GeoSound/issues/102). | Reliable offline playback requires #103. |
 | 08 Review and report | Review [#105](https://github.com/Tran-Gia-Phuc/GeoSound/issues/105), report [#106](https://github.com/Tran-Gia-Phuc/GeoSound/issues/106). | No review CRUD, report submission or duplicate-report contract. |
 | 09 Place exploration | Existing exploration and quick-add #73/#75/#83; discovery A and retry #91/#92. | User-created private/public place semantics must remain those enforced by the existing API. |
@@ -76,6 +76,9 @@ one form and request lifecycle stay together to avoid overlapping handlers.
 - Browser tests on individual branches use real code with explicit HTTP fixtures
   for failure/edge cases. Separate optional browser reads target the live
   gateway. Fixture success does not verify SMTP delivery or an absent API.
+- A real-audio browser test reproduced a first-gesture unlock race on `develop`:
+  a pending unlock could reset the active track after a seek. The independent
+  fix and regression test are tracked in #155.
 - No production backend code or database schema was changed by these tasks.
   The auth container was started with `npm start` to avoid its default `db push`
   against the configured shared database.
