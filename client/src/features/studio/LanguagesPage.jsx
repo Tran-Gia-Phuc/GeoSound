@@ -6,7 +6,8 @@
 //     bản gốc (thu gọn) ↔ bản dịch, trạng thái Máy dịch / Đã sửa / Chưa dịch,
 //     nghe thử (A1), lưu khi có sửa (A2; text gốc sửa ở bước Điểm dừng).
 // =========================================================
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createLanguagePreview, audioReadiness } from './language-preview.js';
 import { Link, useParams } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import { langLabel } from '../../lib/format.js';
@@ -16,27 +17,12 @@ import {
   getLanguageConfig, setTourLanguages, previewTts, updateTranslation,
 } from '../../lib/studio.js';
 
-// Nghe thử: audio thật nếu là http(s); nếu là placeholder tts:// hoặc lỗi thì
-// đọc text bằng Web Speech (khớp adapter TTS giả ở dev).
-function playPreview(url, text, lang) {
-  if (url && /^https?:/i.test(url)) {
-    try {
-      new Audio(url).play();
-      return;
-    } catch {
-      /* rơi xuống Web Speech */
-    }
-  }
-  if (text && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = lang;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
-  }
-}
-
 export default function LanguagesPage() {
   const { id } = useParams();
+  const player=useRef(null);
+  if(!player.current)player.current=createLanguagePreview();
+  const previewGeneration=useRef(0);
+  useEffect(()=>()=>{previewGeneration.current += 1;player.current.cancel();},[]);
   const [config, setConfig] = useState(null);
   const [loadError, setLoadError] = useState('');
   const [secondary, setSecondary] = useState([]);
@@ -88,7 +74,7 @@ export default function LanguagesPage() {
         voice: { gender, ...(region.trim() ? { region: region.trim() } : {}) },
       });
       hydrate(cfg);
-      setNotice('Đã lưu ngôn ngữ & giọng đọc — đã dịch và tạo giọng đọc cho các điểm.');
+      setNotice('Đã lưu cấu hình ngôn ngữ. Tiến độ bản dịch và tệp âm thanh hiển thị theo dữ liệu đã lưu.');
     } catch (e) {
       setSaveError(e.message || 'Lưu cấu hình ngôn ngữ thất bại');
     } finally {
@@ -129,13 +115,18 @@ export default function LanguagesPage() {
 
   async function onPreview(placeId, lang) {
     const key = `${placeId}:${lang}`;
+    const generation=++previewGeneration.current;
+    player.current.cancel();
     setRowBusy((s) => ({ ...s, [key]: 'preview' }));
     setRowError((s) => ({ ...s, [key]: '' }));
     try {
       const res = await previewTts(id, placeId, lang);
-      playPreview(res.url, drafts[key], lang);
+      if(generation !== previewGeneration.current)return;
+      const saved = config.places.find((item)=>item.placeId === placeId)?.translations.find((t)=>t.languageCode === lang);
+      player.current.play({url:res.url,text:saved?.text,lang,onError:(message)=>{if(generation === previewGeneration.current)setRowError((current)=>({...current,[key]:message}));}});
+      setNotice(res.prerendered && /^https?:/i.test(res.url || '') ? 'Đang nghe tệp âm thanh đã tạo.' : 'Bản nghe thử không xác nhận tour đã sẵn sàng offline. Giọng trên thiết bị có thể khác cấu hình nam/nữ và vùng miền.');
     } catch (e) {
-      setRowError((s) => ({ ...s, [key]: e.message || 'Không tạo được bản nghe thử' }));
+      if(generation === previewGeneration.current)setRowError((s) => ({ ...s, [key]: e.message || 'Không tạo được bản nghe thử' }));
     } finally {
       setRowBusy((s) => ({ ...s, [key]: undefined }));
     }
@@ -177,7 +168,7 @@ export default function LanguagesPage() {
         <section className="studio-section">
           <h2 className="studio__h2"><Icon name="languages" size={16} /> Ngôn ngữ & giọng đọc</h2>
           <p className="muted small">
-            Ngôn ngữ gốc: <b>{langLabel(source)}</b>. Chọn thêm ngôn ngữ phụ để hệ thống tự dịch &amp; tạo giọng đọc máy.
+            Ngôn ngữ gốc: <b>{langLabel(source)}</b>. Thêm ngôn ngữ phụ để dịch nội dung và nghe thử.
           </p>
 
           <div className="field">
@@ -234,14 +225,14 @@ export default function LanguagesPage() {
             </ul>
           ) : null}
 
-          <p className="muted small">Lưu sẽ dịch các điểm mới hoặc vừa sửa mô tả và tạo giọng đọc — bản bạn đã chỉnh tay được giữ nguyên.</p>
+          <p className="muted small">Lưu sẽ dịch các điểm mới hoặc vừa sửa mô tả. Bản bạn đã chỉnh tay được giữ nguyên. Tệp âm thanh được xác nhận riêng theo từng bản dịch.</p>
           {saveError ? (
             <div className="alert alert--warn" role="alert"><Icon name="alert-triangle" size={18} className="alert__icon" /><div>{saveError}</div></div>
           ) : null}
           <div className="studio-form__actions">
             <button className="btn btn--primary" onClick={onSaveLanguages} disabled={saving}>
               {saving ? <Icon name="loader" size={18} className="spin" /> : <Icon name="check-circle" size={18} />}
-              {saving ? 'Đang dịch & tạo giọng đọc…' : 'Lưu & tạo bản dịch'}
+              {saving ? 'Đang lưu & dịch…' : 'Lưu & tạo bản dịch'}
             </button>
           </div>
         </section>
@@ -317,9 +308,11 @@ export default function LanguagesPage() {
                               onChange={(e) => setDrafts((st) => ({ ...st, [key]: e.target.value }))}
                               aria-label={`Bản dịch ${langLabel(activeLang)} của ${p.name}`}
                             />
+                            {changed ? <p className="muted small">Lưu bản dịch để nghe thử nội dung vừa sửa.</p> : null}
                             {rowError[key] ? <span className="field__err">{rowError[key]}</span> : null}
+                            <p className="muted small">{audioReadiness(tx)}</p>
                             <div className="tx-row__actions">
-                              <button className="btn btn--ghost btn--sm" onClick={() => onPreview(p.placeId, activeLang)} disabled={!!rowBusy[key]}>
+                              <button className="btn btn--ghost btn--sm" onClick={() => onPreview(p.placeId, activeLang)} disabled={!!rowBusy[key] || changed} title={changed ? 'Lưu bản dịch trước khi nghe bản đã lưu' : undefined}>
                                 {rowBusy[key] === 'preview' ? <Icon name="loader" size={16} className="spin" /> : <Icon name="volume" size={16} />} Nghe thử
                               </button>
                               {changed ? (
