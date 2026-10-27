@@ -10,7 +10,7 @@ Phase 2 (#AI-41) adds images through images.py; until then images_checked = 0.
 
 import logging
 import math
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -18,13 +18,13 @@ from app.llm.errors import LLMBlockedError, LLMResponseError
 from app.llm.fallback import FallbackLLM
 from app.llm.gemini_client import GeminiClient
 from app.moderation import policy
+from app.moderation.policy import Finding
 from app.moderation.schema import (
     Category,
     PlaceModerationRequest,
     PlaceModerationResponse,
     PlaceReason,
 )
-from app.moderation.service import Finding
 from app.moderation.validator import sanitize_text, wrap
 
 logger = logging.getLogger(__name__)
@@ -71,7 +71,11 @@ def fallback_message(category: Category, language: str) -> str:
     return messages[category]
 
 
-def _label(text: str | None) -> str:
+def blocked_message(language: str) -> str:
+    return _BLOCKED_MESSAGES.get(language, _BLOCKED_MESSAGES["en"])
+
+
+def label(text: str | None) -> str:
     """Sanitise a short context label (type, city) and keep it on one line."""
     cleaned = " ".join(sanitize_text(text or "").split())
     return cleaned[:LABEL_MAX]
@@ -81,8 +85,8 @@ def build_place_prompt(request: PlaceModerationRequest) -> str:
     """User message for the single LLM call. Every user value sits inside <place>."""
     reply_language = _LANGUAGE_NAMES.get(request.language.value, "English")
     lines = [f"Write each finding message in {reply_language}.", "", "<place>"]
-    place_type = _label(request.type)
-    city = _label(request.city)
+    place_type = label(request.type)
+    city = label(request.city)
     if place_type:
         lines.append(f"Type: {place_type}")
     if city:
@@ -103,11 +107,11 @@ def _parse_category(value: Any) -> Category:
     return Category.OTHER
 
 
-def _parse_field(value: Any) -> str:
-    if isinstance(value, str) and value.strip().lower() in PLACE_FIELDS:
+def _parse_field(value: Any, fields: Sequence[str], default_field: str) -> str:
+    if isinstance(value, str) and value.strip().lower() in fields:
         return value.strip().lower()
     # Never drop a finding because of a bad field name: keep the signal.
-    return DEFAULT_FIELD
+    return default_field
 
 
 def _parse_severity(value: Any) -> float:
@@ -124,11 +128,17 @@ def _parse_severity(value: Any) -> float:
     return min(max(severity, 0.0), 1.0)
 
 
-def parse_findings(data: Any, language: str) -> list[Finding]:
-    """Turn the model JSON into findings.
+def parse_findings(
+    data: Any,
+    language: str,
+    fields: Sequence[str] = PLACE_FIELDS,
+    default_field: str = DEFAULT_FIELD,
+    fallback: Callable[[Category, str], str] = fallback_message,
+) -> list[Finding]:
+    """Turn the model JSON into findings (shared by place and tour scans).
 
-    Lenient where it is safe (unknown category -> "other", unknown field ->
-    "description", severity clamped to 0..1, missing message -> fallback text).
+    Lenient where it is safe (unknown category -> "other", field not in
+    `fields` -> `default_field`, severity clamped to 0..1, missing message -> fallback text).
     Strict where a lost signal could become a wrong Pass: a body that is not
     {"findings": [...]}, or a finding without a numeric severity, raises
     LLMResponseError (temporary, Moderation retries).
@@ -150,10 +160,10 @@ def parse_findings(data: Any, language: str) -> list[Finding]:
         message = message.strip()[:MAX_MESSAGE_LENGTH] if isinstance(message, str) else ""
         findings.append(
             Finding(
-                field=_parse_field(item.get("field")),
+                field=_parse_field(item.get("field"), fields, default_field),
                 category=category,
                 severity=_parse_severity(item.get("severity")),
-                message=message or fallback_message(category, language),
+                message=message or fallback(category, language),
             )
         )
     return findings
@@ -181,6 +191,23 @@ def build_place_response(
     )
 
 
+async def call_llm(llm: Any, prompt: str, system: str) -> tuple[Any, str]:
+    """One LLM call; return (JSON data, name of the model that answered)."""
+    with_model = getattr(llm, "generate_json_with_model", None)
+    if with_model is not None:
+        return await with_model(prompt, system=system, temperature=0.0)
+    data = await llm.generate_json(prompt, system=system, temperature=0.0)
+    return data, getattr(llm, "model", UNKNOWN_MODEL)
+
+
+def blocked_model(llm: Any, exc: LLMBlockedError) -> str:
+    """Model that refused the text. Blocked content never falls back, so with
+    FallbackLLM it is always the primary client's model."""
+    primary = getattr(llm, "primary", None)
+    model = getattr(primary, "model", None) or getattr(llm, "model", None)
+    return model or exc.provider or UNKNOWN_MODEL
+
+
 class PlaceModerator:
     """Moderates the text of one place with exactly one LLM call."""
 
@@ -190,18 +217,10 @@ class PlaceModerator:
         self.system_prompt = PROMPT_PATH.read_text(encoding="utf-8")
 
     async def _call_llm(self, prompt: str) -> tuple[Any, str]:
-        with_model = getattr(self.llm, "generate_json_with_model", None)
-        if with_model is not None:
-            return await with_model(prompt, system=self.system_prompt, temperature=0.0)
-        data = await self.llm.generate_json(prompt, system=self.system_prompt, temperature=0.0)
-        return data, getattr(self.llm, "model", UNKNOWN_MODEL)
+        return await call_llm(self.llm, prompt, self.system_prompt)
 
     def _blocked_model(self, exc: LLMBlockedError) -> str:
-        """Model that refused the text. Blocked content never falls back, so with
-        FallbackLLM it is always the primary client's model."""
-        primary = getattr(self.llm, "primary", None)
-        model = getattr(primary, "model", None) or getattr(self.llm, "model", None)
-        return model or exc.provider or UNKNOWN_MODEL
+        return blocked_model(self.llm, exc)
 
     async def scan_place(self, request: PlaceModerationRequest) -> tuple[list[Finding], str]:
         """Return (raw findings, model name). Fields are "name" or "description"."""
@@ -217,7 +236,7 @@ class PlaceModerator:
                 field=DEFAULT_FIELD,
                 category=Category.OTHER,
                 severity=1.0,
-                message=_BLOCKED_MESSAGES.get(language, _BLOCKED_MESSAGES["en"]),
+                message=blocked_message(language),
             )
             return [blocked], self._blocked_model(exc)
         return parse_findings(data, language), model

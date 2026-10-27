@@ -1,8 +1,7 @@
 import pytest
 
-from app.moderation.policy import build_response, decide
+from app.moderation.policy import Finding, decide, flagged, max_severity
 from app.moderation.schema import Category, Verdict
-from app.moderation.service import Finding
 
 REJECT = 0.8
 WARNING = 0.4
@@ -38,7 +37,7 @@ def test_threshold_boundaries():
 
 
 def test_worst_finding_wins():
-    findings = [mk(0.5, field="title"), mk(0.9, field="stops[1].description")]
+    findings = [mk(0.5, field="title"), mk(0.9, field="coherence")]
     assert verdict(findings) == Verdict.REJECT
 
 
@@ -46,17 +45,18 @@ def test_reasons_only_flagged_and_sorted():
     findings = [
         mk(0.2, field="title"),
         mk(0.5, field="description", category=Category.MISLEADING),
-        mk(0.9, field="stops[1].description"),
+        mk(0.9, field="coherence"),
     ]
-    resp = build_response("t1", findings, REJECT, WARNING)
-    assert resp.verdict == Verdict.REJECT
-    assert [r.field for r in resp.reasons] == ["stops[1].description", "description"]
+    assert verdict(findings) == Verdict.REJECT
+    assert [f.field for f in flagged(findings, WARNING)] == ["coherence", "description"]
+    assert max_severity(findings) == 0.9
 
 
 def test_pass_has_no_reasons():
-    resp = build_response("t1", [mk(0.1)], REJECT, WARNING)
-    assert resp.verdict == Verdict.PASS
-    assert resp.reasons == []
+    findings = [mk(0.1)]
+    assert verdict(findings) == Verdict.PASS
+    assert flagged(findings, WARNING) == []
+    assert max_severity([]) == 0.0
 
 
 def test_custom_thresholds():
