@@ -10,6 +10,7 @@ import StudioHeader, { StatusChip } from './StudioHeader.jsx';
 import { langLabel } from '../../lib/format.js';
 import { TOUR_TYPE_LABELS } from '../../lib/tours.js';
 import { listMyTours, statusMeta } from '../../lib/studio.js';
+import './studio-library-a.css';
 
 // Bước tiếp theo của một tour (số điểm lấy từ danh sách, không gọi thêm API).
 function nextAction(t) {
@@ -28,6 +29,8 @@ function progressOf(t) {
 export default function StudioToursPage() {
   const [list, setList] = useState(null); // null = đang tải
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
 
   async function load() {
     setError('');
@@ -42,8 +45,10 @@ export default function StudioToursPage() {
     load();
   }, []);
 
+  const statuses = [...new Set((list || []).map((t)=>t.status))];
+  const filtered = (list || []).filter((t)=>(!status || t.status === status) && [t.title,t.city,t.description].filter(Boolean).join(' ').toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi')));
   return (
-    <div className="screen studio">
+    <div className="screen studio studio-library-a">
       <StudioHeader />
 
       <main className="studio__main">
@@ -57,10 +62,19 @@ export default function StudioToursPage() {
           </Link>
         </div>
 
+        {list ? <>
+          <div className="studio-library-a__summary" aria-label="Tổng quan tour của tôi">{[
+            { value:'', label:'Tất cả', count:list.length },
+            { value:'draft', label:'Bản nháp', count:list.filter((t)=>t.status === 'draft').length },
+            { value:'public', label:'Đang công khai', count:list.filter((t)=>t.status === 'public').length },
+          ].map((item)=><button key={item.value} className={'studio-library-a__stat ' + (status === item.value ? 'is-active' : '')} aria-pressed={status === item.value} onClick={()=>setStatus(item.value)}><span>{item.label}</span><b>{item.count}</b></button>)}</div>
+          <section className="studio-library-a__filters" aria-label="Lọc tour của tôi"><label className="sr-only" htmlFor="studio-a-search">Tìm tour của tôi</label><input id="studio-a-search" type="search" className="input" placeholder="Tìm tên tour, thành phố hoặc mô tả…" value={search} onChange={(e)=>setSearch(e.target.value)} /><label className="sr-only" htmlFor="studio-a-status">Trạng thái tour</label><select id="studio-a-status" className="input" value={status} onChange={(e)=>setStatus(e.target.value)}><option value="">Tất cả trạng thái</option>{statuses.map((value)=><option key={value} value={value}>{statusMeta(value).label}</option>)}</select></section>
+          <p className="muted small" role="status">{filtered.length}/{list.length} tour</p>
+        </> : null}
         {error ? (
           <div className="alert alert--warn" role="alert">
             <Icon name="alert-triangle" size={18} className="alert__icon" />
-            <div>{error}</div>
+            <div>{error}</div><button className="btn btn--sm" onClick={load}>Thử lại danh sách</button>
           </div>
         ) : null}
 
@@ -68,7 +82,7 @@ export default function StudioToursPage() {
           <p className="muted studio__loading">
             <Icon name="loader" size={18} className="spin" /> Đang tải…
           </p>
-        ) : list.length === 0 ? (
+        ) : list.length === 0 && error ? <p className="muted">Chưa tải được tour của bạn.</p> : list.length === 0 ? (
           <div className="emptybox studio__empty">
             <Icon name="map-pin" size={40} />
             <h2>Chưa có tour nào</h2>
@@ -78,8 +92,10 @@ export default function StudioToursPage() {
             </Link>
           </div>
         ) : (
+          <>
+          {!filtered.length ? <div className="emptybox"><Icon name="search" size={36} /><h2>Không có tour khớp bộ lọc</h2><button className="btn" onClick={()=>{setSearch('');setStatus('');}}>Xóa bộ lọc</button></div> : null}
           <ul className="studio-cards">
-            {list.map((t) => {
+            {filtered.map((t) => {
               const next = nextAction(t);
               const p = progressOf(t);
               return (
@@ -96,6 +112,7 @@ export default function StudioToursPage() {
                     <span className="studio-card__titlerow">
                       <span className="studio-card__title">{t.title}</span>
                       <StatusChip meta={statusMeta(t.status)} />
+                      {t.updatedAt ? <time className="studio-library-a__updated muted small" dateTime={t.updatedAt}>{new Date(t.updatedAt).toLocaleDateString('vi-VN')}</time> : null}
                     </span>
                     <span className="studio-card__meta muted small">
                       <span><Icon name="languages" size={13} /> {langLabel(t.originalLanguage)}</span>
@@ -117,6 +134,7 @@ export default function StudioToursPage() {
               );
             })}
           </ul>
+          </>
         )}
       </main>
     </div>
