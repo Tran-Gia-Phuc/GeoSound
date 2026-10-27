@@ -11,7 +11,8 @@ import AppHeader from '../../components/shell/AppHeader.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { formatDistance, formatMinutes } from '../../lib/format.js';
-import { listMyItineraries, createItinerary, deleteItinerary } from '../../lib/itineraries.js';
+import './itinerary-library-a.css';
+import { listMyItineraries, createItinerary, deleteItinerary, renameItinerary } from '../../lib/itineraries.js';
 
 export default function ItinerariesPage() {
   const navigate = useNavigate();
@@ -20,6 +21,9 @@ export default function ItinerariesPage() {
   const [error, setError] = useState('');
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [renaming, setRenaming] = useState(null);
+  const [renameDraft, setRenameDraft] = useState('');
+  const [renameBusy, setRenameBusy] = useState(false);
   const [confirmDel, setConfirmDel] = useState(null); // { id, name }
 
   async function load() {
@@ -52,6 +56,18 @@ export default function ItinerariesPage() {
     }
   };
 
+  async function onRename(e) {
+    e.preventDefault();
+    if (renameBusy || !renameDraft.trim()) return;
+    setRenameBusy(true);setError('');
+    try {
+      const saved = await renameItinerary(renaming, renameDraft.trim());
+      setList((current)=>current.map((item)=>item.id === renaming ? { ...item, name:saved.name, updatedAt:saved.updatedAt || item.updatedAt } : item));
+      setRenaming(null);
+    } catch (err) { setError(err.message || 'Chưa đổi được tên. Bản nhập vẫn được giữ.'); }
+    finally { setRenameBusy(false); }
+  }
+
   const onDelete = async () => {
     const { id } = confirmDel;
     setConfirmDel(null);
@@ -64,7 +80,7 @@ export default function ItinerariesPage() {
   };
 
   return (
-    <div className="screen itin">
+    <div className="screen itin itinerary-library-a">
       <AppHeader title="Lịch trình của tôi" subtitle="Tự lên kế hoạch chuyến đi từ các địa điểm bạn quan tâm." large />
 
       {!authenticated ? (
@@ -83,6 +99,7 @@ export default function ItinerariesPage() {
         </section>
       ) : (
       <main className="itin__main">
+        {list ? <div className="itinerary-library-a__overview" aria-label="Tổng quan lịch trình"><Icon name="route" size={32} /><div><b>{list.length} lịch trình</b><p className="muted small">Những hành trình do bạn sắp xếp và lưu lại.</p></div><Link to="/?tab=places" className="btn btn--ghost">Khám phá địa điểm</Link></div> : null}
 
         <form className="itin__create" onSubmit={onCreate}>
           <label htmlFor="itin-name" className="sr-only">Tên lịch trình mới</label>
@@ -96,7 +113,7 @@ export default function ItinerariesPage() {
           />
           <button className="btn btn--primary" type="submit" disabled={!name.trim() || creating}>
             {creating ? <Icon name="loader" size={18} className="spin" /> : <Icon name="plus" size={18} />}
-            Tạo
+            Tạo lịch trình
           </button>
         </form>
 
@@ -120,7 +137,12 @@ export default function ItinerariesPage() {
           <ul className="itin__list">
             {list.map((it) => (
               <li key={it.id} className="itin-card">
-                <Link to={`/itineraries/${it.id}`} className="itin-card__main">
+                {renaming === it.id ? <form className="itinerary-library-a__rename" onSubmit={onRename}>
+                  <label htmlFor={'rename-' + it.id}>Đổi tên lịch trình</label>
+                  <input className="input" id={'rename-' + it.id} value={renameDraft} maxLength={120} onChange={(e)=>setRenameDraft(e.target.value)} autoFocus disabled={renameBusy} />
+                  <div className="row"><button className="btn btn--primary" disabled={renameBusy || !renameDraft.trim()} type="submit">{renameBusy ? 'Đang lưu…' : 'Lưu tên'}</button><button className="btn" type="button" disabled={renameBusy} onClick={()=>setRenaming(null)}>Hủy</button></div>
+                </form> : <Link to={'/itineraries/' + it.id} className="itin-card__main">
+                  {it.coverImageUrl ? <img className="itinerary-library-a__cover" src={it.coverImageUrl} alt="" loading="lazy" /> : null}
                   <span className="itin-card__title">{it.name}</span>
                   <span className="itin-card__meta">
                     <span><Icon name="map-pin" size={14} /> {it.placeCount} điểm</span>
@@ -133,7 +155,9 @@ export default function ItinerariesPage() {
                   ) : (
                     <span className="itin-card__preview muted">Chưa có điểm nào</span>
                   )}
-                </Link>
+                  {it.updatedAt ? <time className="muted small" dateTime={it.updatedAt}>Cập nhật {new Date(it.updatedAt).toLocaleDateString('vi-VN')}</time> : null}
+                </Link>}
+                <button className="iconbtn" aria-label={'Đổi tên ' + it.name} disabled={renameBusy} onClick={()=>{setRenaming(it.id);setRenameDraft(it.name);}}><Icon name="edit" size={18} /></button>
                 <button
                   className="iconbtn itin-card__del"
                   onClick={() => setConfirmDel({ id: it.id, name: it.name })}
