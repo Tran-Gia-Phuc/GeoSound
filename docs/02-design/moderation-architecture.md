@@ -238,6 +238,10 @@ like "a food tour near Ben Thanh market that also passes historic sites", which 
 
 ### 8.4 Phase 3 open decisions (decided at the start of phase 3)
 
+Status: **proposed** in [chatbot-architecture.md](chatbot-architecture.md) section 6 (#184): pgvector in schema
+`ai`, content-carrying `tour.published` / `tour.unpublished` events (needs Tour owner agreement; fallback is a
+nightly pull from Tour's public API), local multilingual embeddings. The table below is the original proposal.
+
 | Question | Proposed default |
 | --- | --- |
 | Where to store vectors and graph | AI-owned schema `ai` in the existing Postgres with `pgvector` (build a small image `postgis + pgvector`) and edge tables; no Neo4j. Alternative: Chroma inside the AI container |
