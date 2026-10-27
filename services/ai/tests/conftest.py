@@ -14,6 +14,8 @@ AUTH_HEADERS = {"x-internal-token": TEST_TOKEN}
 class FakeLLM:
     """Scripted stand-in for FallbackLLM. Never touches the network."""
 
+    model = "fake-model"
+
     def __init__(self, responder):
         self.responder = responder
         self.calls = []

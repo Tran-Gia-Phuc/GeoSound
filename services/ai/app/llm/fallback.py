@@ -20,16 +20,23 @@ class FallbackLLM:
         self.secondary = secondary or GroqClient()
 
     async def generate_text(self, prompt: str, **kwargs: Any) -> str:
-        return await self._run("generate_text", prompt, **kwargs)
+        result, _ = await self._run("generate_text", prompt, **kwargs)
+        return result
 
     async def generate_json(self, prompt: str, **kwargs: Any) -> Any:
-        return await self._run("generate_json", prompt, **kwargs)
+        result, _ = await self._run("generate_json", prompt, **kwargs)
+        return result
 
-    async def _run(self, method: str, prompt: str, **kwargs: Any) -> Any:
+    async def generate_json_with_model(self, prompt: str, **kwargs: Any) -> tuple[Any, str]:
+        """Like generate_json, but also return the model name that answered."""
+        result, client = await self._run("generate_json", prompt, **kwargs)
+        return result, getattr(client, "model", client.provider)
+
+    async def _run(self, method: str, prompt: str, **kwargs: Any) -> tuple[Any, Any]:
         try:
             result = await getattr(self.primary, method)(prompt, **kwargs)
             logger.info("llm provider=%s fallback=false", self.primary.provider)
-            return result
+            return result, self.primary
         except LLMError as exc:
             primary_error = exc
             if not exc.fallback_eligible:
@@ -54,4 +61,4 @@ class FallbackLLM:
             logger.error("llm all providers failed: primary=%s secondary=%s", primary_error, exc)
             raise exc from primary_error
         logger.info("llm provider=%s fallback=true", self.secondary.provider)
-        return result
+        return result, self.secondary
