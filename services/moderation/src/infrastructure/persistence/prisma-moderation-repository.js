@@ -4,7 +4,7 @@ import { CASE_STATUS } from '../../domain/entities/moderation-case.js';
 
 // Fields a use-case may change after creation; anything else in a patch is ignored.
 export const MUTABLE_FIELDS = Object.freeze([
-  'status', 'verdict', 'severity', 'reasons', 'attempts', 'model', 'lastError',
+  'status', 'verdict', 'severity', 'reasons', 'attempts', 'model', 'imagesChecked', 'lastError',
   'payload', 'publishedAt', 'checkedAt', 'tourId',
 ]);
 export const DEFAULT_RETRY_LIMIT = 50;
@@ -35,6 +35,7 @@ export class PrismaModerationRepository {
       reasons: Array.isArray(row.reasons) ? row.reasons : [],
       attempts: row.attempts ?? 0,
       model: row.model ?? null,
+      imagesChecked: row.imagesChecked ?? 0,
       lastError: row.lastError ?? null,
       payload: row.payload ?? null,
       publishedAt: row.publishedAt ?? null,
