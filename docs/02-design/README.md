@@ -12,6 +12,7 @@ Expected later:
 
 ## Documents
 
-- [AI Service Specification](ai-service-spec.md)
+- [AI Service Specification (v3.0)](ai-service-spec.md)
+- [AI and Moderation Architecture (V4)](moderation-architecture.md)
 - [OTP email templates and SMTP verification](notification-otp-design.md)
 - [General ERD — supplied reference (draw.io)](drawio/erd-general.drawio)
