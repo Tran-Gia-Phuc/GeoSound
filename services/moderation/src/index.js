@@ -1,5 +1,6 @@
 // =========================================================
-// Moderation service entry point: starts HTTP (/health) and the RabbitMQ consumers (task #AI-36).
+// Moderation service entry point: starts HTTP (/health), the RabbitMQ consumers (task #AI-36) and the
+// retry sweeper (task #AI-38).
 // Wiring lives in container.js; this file only starts things. It is the only module that imports shared/
 // (it runs in the Docker image, where shared/ sits next to src/); everything else gets it injected.
 // =========================================================
@@ -9,6 +10,7 @@ import { connect, consume, publish } from '../shared/rabbitmq/index.js';
 import { EVENTS, validateEvent } from '../shared/events/index.js';
 import { loadConfig } from './config.js';
 import { buildContainer } from './container.js';
+import { startRetrySweeper } from './interfaces/jobs/retry-sweeper.js';
 
 const config = loadConfig();
 const app = express();
@@ -37,6 +39,9 @@ app.listen(config.port, () => console.log(`[moderation] listening on :${config.p
       console.log(`[moderation] got ${event}:`, payload);
       // TODO(UC15): Gemini text + NSFW + turf.js -> publish tour.ai_passed / tour.ai_rejected
     });
+
+    // Sweeper: retries ai_failed / stale cases, re-publishes unpublished results (#AI-38, D11).
+    startRetrySweeper({ retryFailedCases: container.retryFailedCases, intervalMs: config.sweep.intervalMs });
   } catch (err) {
     console.error('[moderation] rabbitmq init failed:', err.message);
   }

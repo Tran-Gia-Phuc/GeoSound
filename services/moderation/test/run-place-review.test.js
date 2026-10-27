@@ -196,3 +196,12 @@ test('repository failure is logged and never thrown', async () => {
   assert.equal(ai.calls.length, 0);
   assert.ok(logger.lines.some(([level, m]) => level === 'error' && /db down/.test(m)));
 });
+
+test('two concurrent deliveries of one revision call the AI once (compare-and-set claim, #AI-38)', async () => {
+  const { uc, ai, publisher, logger, caseOf } = setup(() => aiResult());
+  await Promise.all([uc.execute(place()), uc.execute(place())]);
+  assert.equal(ai.calls.length, 1);
+  assert.equal(publisher.events.length, 1);
+  assert.equal((await caseOf()).attempts, 1);
+  assert.ok(logger.lines.some(([level, m]) => level === 'info' && /claimed by another worker/.test(m)));
+});

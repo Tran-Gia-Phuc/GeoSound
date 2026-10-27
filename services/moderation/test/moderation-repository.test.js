@@ -22,6 +22,7 @@ class FakePrisma {
       async create(args) { self.calls.push(['create', args]); return self.create(args); },
       async update(args) { self.calls.push(['update', args]); return self.update(args); },
       async findMany(args) { self.calls.push(['findMany', args]); return self.findMany(args); },
+      async updateMany(args) { self.calls.push(['updateMany', args]); return self.updateMany(args); },
     };
   }
 
@@ -56,10 +57,21 @@ class FakePrisma {
     return structuredClone(this.rows[i]);
   }
 
+  // Only the CAS shape the repository sends: where { id, status, updatedAt } (exact match).
+  updateMany({ where, data }) {
+    assert.deepEqual(Object.keys(where).sort(), ['id', 'status', 'updatedAt']);
+    const i = this.rows.findIndex((r) => r.id === where.id && r.status === where.status
+      && r.updatedAt.getTime() === where.updatedAt.getTime());
+    if (i < 0) return { count: 0 };
+    this.rows[i] = { ...this.rows[i], ...structuredClone(data), updatedAt: data.updatedAt ?? this.clock.now() };
+    return { count: 1 };
+  }
+
   findMany({ where, orderBy, take }) {
     const match = (r, c) => {
       const statusOk = typeof c.status === 'string' ? r.status === c.status : c.status.in.includes(r.status);
-      return statusOk && r.updatedAt < c.updatedAt.lt;
+      const publishedOk = !('publishedAt' in c) || r.publishedAt === c.publishedAt;
+      return statusOk && publishedOk && r.updatedAt < c.updatedAt.lt;
     };
     assert.deepEqual(orderBy, { updatedAt: 'asc' });
     return this.rows
@@ -174,7 +186,9 @@ for (const [name, make] of Object.entries(impls)) {
       const { repo } = make(clock);
       const mk = async (id, status) => {
         const c = await repo.createPending(place(id));
-        if (status !== 'pending') await repo.update(c.id, { status });
+        // Published finished cases are never retried; publishedAt is set together with the status here.
+        const publishedAt = status === 'done' || status === 'failed_permanent' ? clock.now() : undefined;
+        if (status !== 'pending') await repo.update(c.id, { status, publishedAt });
         clock.advance(MIN);
         return c.id;
       };
@@ -182,8 +196,8 @@ for (const [name, make] of Object.entries(impls)) {
       await mk('failedOld', 'ai_failed'); // t0
       await mk('pendingOld', 'pending'); // t1
       await mk('reviewingOld', 'reviewing'); // t2
-      await mk('doneOld', 'done'); // t3, never retried
-      await mk('permanentOld', 'failed_permanent'); // t4, never retried
+      await mk('doneOld', 'done'); // t3, published: never retried
+      await mk('permanentOld', 'failed_permanent'); // t4, published: never retried
       await mk('failedNew', 'ai_failed'); // t5
       // ai_failed updated before t3, pending/reviewing updated before t2 (strictly less than).
       const t0 = new FakeClock().now().getTime();
@@ -201,6 +215,80 @@ for (const [name, make] of Object.entries(impls)) {
         ['failedOld', 'pendingOld'],
       );
       assert.deepEqual(await repo.listRetryable({ failedBefore: new Date(t0), staleBefore: new Date(t0) }), []);
+    });
+
+    test('listRetryable: done/failed_permanent with publishedAt null are returned once stale', async () => {
+      const clock = new FakeClock();
+      const { repo } = make(clock);
+      const t0 = clock.now().getTime();
+      const done = await repo.createPending(place('doneUnpublished'));
+      await repo.update(done.id, { status: 'done', verdict: 'Pass' });
+      const perm = await repo.createPending(place('permUnpublished'));
+      await repo.update(perm.id, { status: 'failed_permanent', verdict: 'Warning' });
+      const pub = await repo.createPending(place('donePublished'));
+      await repo.update(pub.id, { status: 'done', verdict: 'Pass', publishedAt: clock.now() });
+      clock.advance(MIN);
+      const ids = (rows) => rows.map((r) => r.subjectId).sort();
+      // failedBefore does not matter for finished cases; staleBefore does.
+      assert.deepEqual(ids(await repo.listRetryable({ failedBefore: new Date(t0 + MIN), staleBefore: new Date(t0) })), []);
+      assert.deepEqual(
+        ids(await repo.listRetryable({ failedBefore: new Date(t0), staleBefore: new Date(t0 + MIN) })),
+        ['doneUnpublished', 'permUnpublished'],
+      );
+    });
+
+    test('claim: compare-and-set on status and updatedAt, moves status, applies patch, sets updatedAt', async () => {
+      const clock = new FakeClock();
+      const { repo } = make(clock);
+      const c = await repo.createPending(place());
+      const failed = await repo.update(c.id, { status: 'ai_failed', attempts: 1 });
+      clock.advance(MIN);
+      const now = clock.now();
+      const claimed = await repo.claim(c.id, {
+        fromStatus: 'ai_failed', fromUpdatedAt: failed.updatedAt, toStatus: 'reviewing',
+        patch: { attempts: 2, id: 'hacked', status: 'done' }, now,
+      });
+      assert.equal(claimed.id, c.id);
+      assert.equal(claimed.status, 'reviewing');
+      assert.equal(claimed.attempts, 2);
+      assert.deepEqual(claimed.updatedAt, now);
+      assert.deepEqual(await repo.find({ subjectType: 'place', subjectId: 'p1', revision: c.revision }), claimed);
+    });
+
+    test('claim: a second claim with the same snapshot loses (returns null, row unchanged)', async () => {
+      const clock = new FakeClock();
+      const { repo } = make(clock);
+      const c = await repo.createPending(place());
+      clock.advance(MIN);
+      const snapshot = { fromStatus: 'pending', fromUpdatedAt: c.updatedAt, toStatus: 'reviewing', now: clock.now() };
+      const first = await repo.claim(c.id, { ...snapshot, patch: { attempts: 1 } });
+      assert.ok(first);
+      assert.equal(await repo.claim(c.id, { ...snapshot, patch: { attempts: 1 } }), null);
+      assert.deepEqual(await repo.find({ subjectType: 'place', subjectId: 'p1', revision: c.revision }), first);
+    });
+
+    test('claim: null on a status or updatedAt mismatch and for an unknown id', async () => {
+      const clock = new FakeClock();
+      const { repo } = make(clock);
+      const c = await repo.createPending(place());
+      clock.advance(MIN);
+      const now = clock.now();
+      assert.equal(await repo.claim(c.id, { fromStatus: 'ai_failed', fromUpdatedAt: c.updatedAt, toStatus: 'reviewing', now }), null);
+      assert.equal(await repo.claim(c.id, { fromStatus: 'pending', fromUpdatedAt: new Date(c.updatedAt.getTime() - 1), now }), null);
+      assert.equal(await repo.claim('nope', { fromStatus: 'pending', fromUpdatedAt: c.updatedAt, now }), null);
+      assert.equal((await repo.find({ subjectType: 'place', subjectId: 'p1', revision: c.revision })).status, 'pending');
+    });
+
+    test('claim without toStatus keeps the status and only refreshes updatedAt (lease)', async () => {
+      const clock = new FakeClock();
+      const { repo } = make(clock);
+      const c = await repo.createPending(place());
+      const done = await repo.update(c.id, { status: 'done', verdict: 'Pass' });
+      clock.advance(MIN);
+      const leased = await repo.claim(c.id, { fromStatus: 'done', fromUpdatedAt: done.updatedAt, now: clock.now() });
+      assert.equal(leased.status, 'done');
+      assert.equal(leased.verdict, 'Pass');
+      assert.ok(leased.updatedAt > done.updatedAt);
     });
   });
 }
@@ -258,11 +346,36 @@ describe('PrismaModerationRepository query shapes', () => {
         OR: [
           { status: 'ai_failed', updatedAt: { lt: failedBefore } },
           { status: { in: ['pending', 'reviewing'] }, updatedAt: { lt: staleBefore } },
+          { status: { in: ['done', 'failed_permanent'] }, publishedAt: null, updatedAt: { lt: staleBefore } },
         ],
       },
       orderBy: { updatedAt: 'asc' },
       take: 50,
     }]]);
+  });
+
+  test('claim sends updateMany with the CAS where and only mutable fields, then findUnique by id', async () => {
+    const prisma = new FakePrisma(new FakeClock());
+    const repo = new PrismaModerationRepository(prisma);
+    const c = await repo.createPending(place());
+    prisma.calls.length = 0;
+    const now = new Date('2026-01-01T00:10:00.000Z');
+    await repo.claim(c.id, {
+      fromStatus: 'pending', fromUpdatedAt: c.updatedAt, toStatus: 'reviewing', patch: { attempts: 1, bogus: 1 }, now,
+    });
+    assert.deepEqual(prisma.calls, [
+      ['updateMany', {
+        where: { id: c.id, status: 'pending', updatedAt: c.updatedAt },
+        data: { attempts: 1, status: 'reviewing', updatedAt: now },
+      }],
+      ['findUnique', { where: { id: c.id } }],
+    ]);
+  });
+
+  test('claim with count 0 returns null without reading the row', async () => {
+    const prisma = { moderationCase: { async updateMany() { return { count: 0 }; }, async findUnique() { throw new Error('must not read'); } } };
+    const res = await new PrismaModerationRepository(prisma).claim('id-1', { fromStatus: 'pending', fromUpdatedAt: new Date(0), now: new Date() });
+    assert.equal(res, null);
   });
 
   test('toPlain maps missing json reasons to [] and null to null', () => {
