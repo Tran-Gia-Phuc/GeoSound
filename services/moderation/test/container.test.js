@@ -1,4 +1,4 @@
-// Composition root (task #AI-36): wiring with fakes, no network, no database.
+// Composition root (tasks #AI-36, #AI-37): wiring with fakes, no network, no database.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildContainer } from '../src/container.js';
@@ -29,4 +29,16 @@ test('wires the retry sweeper use-case from config.sweep (#AI-38)', () => {
   const d = build({ RETRY_FAILED_AFTER_MS: '1000' });
   assert.equal(d.retryFailedCases.staleAfterMs, 1000, 'stale cutoff defaults to the failed cutoff');
   assert.equal(d.retryFailedCases.batchSize, 10);
+});
+
+test('wires the tour flow: handler, use-case with config.geo, sweeper (#AI-37)', () => {
+  const config = loadConfig({ GEO_LEG_MAX_M_WALKING: '1234' });
+  const c = buildContainer({ prisma: {}, publish: async () => {}, validateEvent, config, clock: new FakeClock(), logger: new FakeLogger() });
+  assert.equal(typeof c.handlers.tourSubmitted, 'function');
+  assert.equal(typeof c.runTourReview.execute, 'function');
+  assert.equal(c.runTourReview.geoLimits, config.geo);
+  assert.equal(c.runTourReview.geoLimits.legMaxM.walking, 1234);
+  assert.equal(c.runTourReview.aiReviewer, c.aiReviewer);
+  assert.equal(c.runTourReview.repo, c.repo);
+  assert.equal(c.retryFailedCases.runTourReview, c.runTourReview);
 });
