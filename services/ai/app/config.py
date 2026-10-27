@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     database_url: str = ""
 
     jwt_access_secret: str = ""
+    # Shared secret checked on /moderate/* (header x-internal-token). Empty = reject all.
+    internal_service_token: str = ""
 
     moderation_reject_threshold: float = 0.8
     moderation_warning_threshold: float = 0.4
