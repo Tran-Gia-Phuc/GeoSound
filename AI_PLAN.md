@@ -79,3 +79,6 @@ Known limits (accepted for now):
 | all Node tasks | Only `src/index.js` may import `../shared/...`; inject `validateEvent` / `publish` elsewhere (CI runs tests from the repo layout, where `../shared` does not exist). Test helpers load shared with a dynamic import that tries the repo path, then the image path |
 | all tasks | Merge only when no CI check fails; for the known flaky UI test, rerun the failed job first (`gh run rerun <id> --failed`) |
 | #185 to #189 | Follow `chatbot-architecture.md`. One LLM call per normal turn; tests use FakeLLM and a fake retriever/embedder; no real Gemini |
+| #186 | Match the canonical English city names used by the agent (`rules.py` alias table) or pass `city_aliases` from City nodes to `ChatAgent` |
+| #188 | Render or strip `[tour:ID]` / `[place:ID]` markers; on a provider error remove the just-saved user message from memory; hide tool inputs (lat/lng) from LangSmith traces; Postgres checkpointer, session TTL, `CHATBOT_ENABLED`, global chat cap; stream tokens only after `cite` (or buffer markers) so invented markers never reach the client; history entries need `citations?` and `at` |
+| #219 | pgvector store, e5 embedding runtime in the image, AMQP transport for the indexer |
