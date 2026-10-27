@@ -43,7 +43,7 @@ class FakePrisma {
     const now = this.clock.now();
     const row = {
       id: `id-${this.nextId++}`, tourId: null, status: 'pending', verdict: null, severity: null,
-      reasons: [], attempts: 0, model: null, lastError: null, publishedAt: null, checkedAt: null,
+      reasons: [], attempts: 0, model: null, imagesChecked: 0, lastError: null, publishedAt: null, checkedAt: null,
       ...structuredClone(data), createdAt: now, updatedAt: now,
     };
     this.rows.push(row);
@@ -169,6 +169,15 @@ for (const [name, make] of Object.entries(impls)) {
       assert.deepEqual(u.checkedAt, checkedAt);
       assert.ok(u.updatedAt > c.updatedAt);
       assert.deepEqual(await repo.find({ subjectType: 'place', subjectId: 'p1', revision: c.revision }), u);
+    });
+
+    test('imagesChecked defaults to 0 and is stored by update', async () => {
+      const { repo } = make(new FakeClock());
+      const c = await repo.createPending(place());
+      assert.equal(c.imagesChecked, 0);
+      const u = await repo.update(c.id, { status: 'done', verdict: 'Pass', imagesChecked: 3 });
+      assert.equal(u.imagesChecked, 3);
+      assert.equal((await repo.find({ subjectType: 'place', subjectId: 'p1', revision: c.revision })).imagesChecked, 3);
     });
 
     test('returned rows are copies, not live references', async () => {
@@ -384,5 +393,6 @@ describe('PrismaModerationRepository query shapes', () => {
     assert.deepEqual(plain.reasons, []);
     assert.equal(plain.tourId, null);
     assert.equal(plain.attempts, 0);
+    assert.equal(plain.imagesChecked, 0);
   });
 });
