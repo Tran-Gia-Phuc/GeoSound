@@ -47,6 +47,7 @@ export default function PlayerBar({ audio, engine, hideTitle = false }) {
         </div>
       )}
 
+      {state.status === 'error' ? <div className="alert alert--warn" role="alert"><Icon name="alert-triangle" size={20} /><div><b>Không thể phát âm thanh</b><p>Bạn vẫn có thể đọc nội dung và xem ảnh của điểm dừng.</p><button className="btn btn--primary btn--sm" onClick={audio.retry}>Thử lại âm thanh</button></div></div> : null}
       {/* Thanh tiến độ */}
       {state.canSeek ? (
         <div className="scrub">

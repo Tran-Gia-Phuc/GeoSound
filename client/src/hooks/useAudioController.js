@@ -14,6 +14,7 @@ const isPlayableUrl = (src) => typeof src === 'string' && /^(https?:|blob:|data:
 export function useAudioController({ onEnded } = {}) {
   const ttsSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
   const audioRef = useRef(null);
+  const requestedTrack = useRef(null);
   const trackRef = useRef(null); // track đang phát (để biết nguồn khi 'ended')
   const endedRef = useRef(onEnded);
   const ttsKeepAlive = useRef(null);
@@ -141,6 +142,7 @@ export function useAudioController({ onEnded } = {}) {
   const playTrack = useCallback(
     (track) => {
       if (!track) return;
+      requestedTrack.current = { ...track };
       const title = track.title || '';
       const trackId = track.id ?? null;
       // URL thật -> thử phát; lỗi thì lùi TTS (E3).
@@ -176,6 +178,10 @@ export function useAudioController({ onEnded } = {}) {
     },
     [clearTts, patch, speak],
   );
+
+  const retry = useCallback(() => {
+    if(requestedTrack.current)playTrack(requestedTrack.current);
+  }, [playTrack]);
 
   const pause = useCallback(() => {
     if (trackRef.current?.kind === 'tts') {
@@ -218,6 +224,7 @@ export function useAudioController({ onEnded } = {}) {
       a.removeAttribute('src');
     }
     trackRef.current = null;
+    requestedTrack.current = null;
     patch({ status: 'idle', currentTime: 0, duration: 0, title: '', trackId: null });
   }, [clearTts, patch]);
 
@@ -246,11 +253,15 @@ export function useAudioController({ onEnded } = {}) {
     }
   }, [ttsSupported]);
 
-  useEffect(() => () => clearTts(), [clearTts]);
+  useEffect(() => () => {
+    clearTts();
+    const a=audioRef.current;
+    if(a){a.onerror=null;a.pause();a.removeAttribute('src');}
+  }, [clearTts]);
 
   return useMemo(
-    () => ({ state, playTrack, toggle, pause, resume, seek, stop, unlock, ttsSupported }),
-    [state, playTrack, toggle, pause, resume, seek, stop, unlock, ttsSupported],
+    () => ({ state, playTrack, retry, toggle, pause, resume, seek, stop, unlock, ttsSupported }),
+    [state, playTrack, retry, toggle, pause, resume, seek, stop, unlock, ttsSupported],
   );
 }
 
