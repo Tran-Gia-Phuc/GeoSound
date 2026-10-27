@@ -14,6 +14,7 @@ import { PrismaModerationRepository } from './infrastructure/persistence/prisma-
 import { HttpAiReviewer } from './infrastructure/ai/http-ai-reviewer.js';
 import { EventPublisher } from './infrastructure/messaging/event-publisher.js';
 import { RunPlaceReview } from './application/use-cases/run-place-review.js';
+import { RetryFailedCases } from './application/use-cases/retry-failed-cases.js';
 import { createPlaceSubmittedHandler } from './interfaces/events/place-submitted-consumer.js';
 
 const systemClock = Object.freeze({ now: () => new Date() });
@@ -41,11 +42,23 @@ export function buildContainer({
 
   // --- application ---
   const runPlaceReview = new RunPlaceReview({ repo, aiReviewer, publisher, clock, logger });
+  // Sweeper use-case (#AI-38); index.js starts its timer.
+  const retryFailedCases = new RetryFailedCases({
+    repo,
+    runPlaceReview,
+    clock,
+    config: {
+      failedAfterMs: config.sweep.failedAfterMs,
+      staleAfterMs: config.sweep.staleAfterMs ?? config.sweep.failedAfterMs,
+      batchSize: config.sweep.batchSize,
+    },
+    logger,
+  });
 
   // --- interfaces ---
   const handlers = Object.freeze({
     placeSubmitted: createPlaceSubmittedHandler({ runPlaceReview, validate: validateEvent, logger }),
   });
 
-  return { repo, aiReviewer, publisher, runPlaceReview, handlers };
+  return { repo, aiReviewer, publisher, runPlaceReview, retryFailedCases, handlers };
 }

@@ -44,6 +44,10 @@ export function loadConfig(env = process.env) {
     sweep: Object.freeze({
       intervalMs: int(env.RETRY_SWEEP_INTERVAL_MS, 60000),
       failedAfterMs: int(env.RETRY_FAILED_AFTER_MS, 300000),
+      // Stale pending/reviewing and unpublished results; defaults to RETRY_FAILED_AFTER_MS (task #AI-38).
+      // Must exceed the worst-case review time (AI_MAX_ATTEMPTS x AI_TIMEOUT_MS + backoff), or the sweeper may retry a case that is still being reviewed.
+      staleAfterMs: int(env.RETRY_STALE_AFTER_MS, int(env.RETRY_FAILED_AFTER_MS, 300000)),
+      batchSize: int(env.RETRY_SWEEP_BATCH_SIZE, 10),
     }),
     geo: loadGeo(env),
   });

@@ -15,3 +15,18 @@ test('builds the place flow and maps the AI config', async () => {
   assert.equal(c.aiReviewer.token, 'tkn');
   assert.ok(!JSON.stringify(c.aiReviewer).includes('tkn'), 'token is not enumerable');
 });
+
+test('wires the retry sweeper use-case from config.sweep (#AI-38)', () => {
+  const build = (env) => buildContainer({ prisma: {}, publish: async () => {}, validateEvent, config: loadConfig(env), clock: new FakeClock(), logger: new FakeLogger() });
+  const c = build({ RETRY_FAILED_AFTER_MS: '1000', RETRY_STALE_AFTER_MS: '2000', RETRY_SWEEP_BATCH_SIZE: '7' });
+  assert.equal(typeof c.retryFailedCases.execute, 'function');
+  assert.equal(c.retryFailedCases.runPlaceReview, c.runPlaceReview);
+  assert.equal(c.retryFailedCases.repo, c.repo);
+  assert.equal(c.retryFailedCases.failedAfterMs, 1000);
+  assert.equal(c.retryFailedCases.staleAfterMs, 2000);
+  assert.equal(c.retryFailedCases.batchSize, 7);
+
+  const d = build({ RETRY_FAILED_AFTER_MS: '1000' });
+  assert.equal(d.retryFailedCases.staleAfterMs, 1000, 'stale cutoff defaults to the failed cutoff');
+  assert.equal(d.retryFailedCases.batchSize, 10);
+});
