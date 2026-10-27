@@ -1,5 +1,5 @@
 // =========================================================
-// Moderation service entry point: starts HTTP (/health), the RabbitMQ consumers (task #AI-36) and the
+// Moderation service entry point: starts HTTP (/health), the RabbitMQ consumers (tasks #AI-36, #AI-37) and the
 // retry sweeper (task #AI-38).
 // Wiring lives in container.js; this file only starts things. It is the only module that imports shared/
 // (it runs in the Docker image, where shared/ sits next to src/); everything else gets it injected.
@@ -34,11 +34,9 @@ app.listen(config.port, () => console.log(`[moderation] listening on :${config.p
     await consume('moderation.place-submitted', [EVENTS.PLACE_SUBMITTED], container.handlers.placeSubmitted,
       { prefetch: config.prefetch });
 
-    // tour.submitted: logging only until the tour flow lands (#AI-37, issue #178).
-    await consume('moderation.tour-submitted', [EVENTS.TOUR_SUBMITTED], async (event, payload) => {
-      console.log(`[moderation] got ${event}:`, payload);
-      // TODO(UC15): Gemini text + NSFW + turf.js -> publish tour.ai_passed / tour.ai_rejected
-    });
+    // tour.submitted -> geo rules + AI text check (#AI-37). Same queue name as before.
+    await consume('moderation.tour-submitted', [EVENTS.TOUR_SUBMITTED], container.handlers.tourSubmitted,
+      { prefetch: config.prefetch });
 
     // Sweeper: retries ai_failed / stale cases, re-publishes unpublished results (#AI-38, D11).
     startRetrySweeper({ retryFailedCases: container.retryFailedCases, intervalMs: config.sweep.intervalMs });

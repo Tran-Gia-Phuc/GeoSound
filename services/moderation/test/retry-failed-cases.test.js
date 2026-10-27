@@ -1,9 +1,10 @@
-// RetryFailedCases sweeper use-case (task #AI-38): fake clock, in-memory repo, fake AI, contract-validating
+// RetryFailedCases sweeper use-case (tasks #AI-38, #AI-37): fake clock, in-memory repo, fake AI, contract-validating
 // fake publisher. No network, no database.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RetryFailedCases, DEFAULT_BATCH_SIZE } from '../src/application/use-cases/retry-failed-cases.js';
 import { RunPlaceReview, STALE_REVIEWING_ERROR } from '../src/application/use-cases/run-place-review.js';
+import { RunTourReview } from '../src/application/use-cases/run-tour-review.js';
 import { AiPermanentError, AiTemporaryError } from '../src/domain/errors/index.js';
 import { InMemoryModerationRepository } from './helpers/in-memory-moderation-repository.js';
 import { FakeAiReviewer, FakeClock, FakeLogger, FakePublisher } from './helpers/fakes.js';
@@ -34,12 +35,14 @@ function setup({ staleAfterMs = STALE_AFTER } = {}) {
   const publisher = new FakePublisher();
   const logger = new FakeLogger();
   const runPlaceReview = new RunPlaceReview({ repo, aiReviewer: ai, publisher, clock, logger });
+  const runTourReview = new RunTourReview({ repo, aiReviewer: ai, publisher, clock, logger });
   const sweeper = new RetryFailedCases({
-    repo, runPlaceReview, clock, logger,
+    repo, runPlaceReview, runTourReview, clock, logger,
     config: { failedAfterMs: FAILED_AFTER, staleAfterMs, batchSize: 50 },
   });
   const caseOf = (placeId = 'p1') => repo.find({ subjectType: 'place', subjectId: placeId, revision: REV });
-  return { clock, repo, ai, publisher, logger, runPlaceReview, sweeper, caseOf };
+  const tourCaseOf = (tourId = 'tour1') => repo.find({ subjectType: 'tour', subjectId: tourId, revision: REV });
+  return { clock, repo, ai, publisher, logger, runPlaceReview, runTourReview, sweeper, caseOf, tourCaseOf };
 }
 
 // A place case left ai_failed by the normal flow (AI down during the consumer run).
@@ -248,15 +251,55 @@ test('a sweep and a consumer redelivery never review the same case twice', async
   assert.equal((await ctx.caseOf()).attempts, 2);
 });
 
-test('tour cases are skipped with a debug log (tour flow is #AI-37)', async () => {
+const tour = (tourId = 'tour1') => ({
+  tourId, contributorId: 'u1', revision: REV, title: 'Saigon walk', language: 'vi', type: 'walking',
+  places: [{ placeId: 'p1', name: 'Ben Thanh Market', description: 'Market.', lat: 10.77, lng: 106.69, sequence: 0 }],
+});
+
+test('tour ai_failed case is retried through RunTourReview and publishes tour.ai_passed once', async () => {
   const ctx = setup();
-  await ctx.repo.createPending({ subjectType: 'tour', subjectId: 'tour1', revision: REV, payload: { tourId: 'tour1' } });
+  ctx.ai.mode = 'down';
+  await ctx.runTourReview.execute(tour());
+  ctx.ai.mode = 'ok';
+  assert.equal((await ctx.tourCaseOf()).status, 'ai_failed');
+  ctx.clock.advance(FAILED_AFTER + 1);
+
+  assert.deepEqual(await ctx.sweeper.execute(), { ...zero, retried: 1 });
+  assert.deepEqual(ctx.ai.calls.map(([kind]) => kind), ['tour', 'tour'], 'never a place call');
+  assert.equal(ctx.publisher.events.length, 1);
+  assert.equal(ctx.publisher.events[0].eventName, 'tour.ai_passed');
+  assert.equal(ctx.publisher.events[0].payload.tourId, 'tour1');
+  const c = await ctx.tourCaseOf();
+  assert.equal(c.status, 'done');
+  assert.equal(c.attempts, 2);
+});
+
+test('tour done but unpublished is re-published without an AI call', async () => {
+  const ctx = setup();
+  ctx.publisher.failNext = 1;
+  await ctx.runTourReview.execute(tour());
+  assert.equal((await ctx.tourCaseOf()).publishedAt, null);
   ctx.clock.advance(STALE_AFTER + 1);
-  assert.deepEqual(await ctx.sweeper.execute(), { ...zero, skipped: 1 });
+
+  assert.deepEqual(await ctx.sweeper.execute(), { ...zero, republished: 1 });
+  assert.equal(ctx.ai.calls.length, 1);
+  assert.equal(ctx.publisher.events.length, 1);
+  assert.equal(ctx.publisher.events[0].eventName, 'tour.ai_passed');
+  assert.ok((await ctx.tourCaseOf()).publishedAt instanceof Date);
+});
+
+test('a case whose subject type has no reviewer is skipped with a warning', async () => {
+  const ctx = setup();
+  const sweeper = new RetryFailedCases({
+    repo: ctx.repo, runPlaceReview: ctx.runPlaceReview, clock: ctx.clock, logger: ctx.logger,
+    config: { failedAfterMs: FAILED_AFTER, staleAfterMs: STALE_AFTER },
+  });
+  await ctx.repo.createPending({ subjectType: 'tour', subjectId: 'tour1', revision: REV, payload: tour() });
+  ctx.clock.advance(STALE_AFTER + 1);
+  assert.deepEqual(await sweeper.execute(), { ...zero, skipped: 1 });
   assert.equal(ctx.ai.calls.length, 0);
-  assert.equal(ctx.publisher.events.length, 0);
-  assert.equal((await ctx.repo.find({ subjectType: 'tour', subjectId: 'tour1', revision: REV })).status, 'pending');
-  assert.ok(ctx.logger.lines.some(([level, m]) => level === 'debug' && /tour1/.test(m) && /#AI-37/.test(m)));
+  assert.equal((await ctx.tourCaseOf()).status, 'pending');
+  assert.ok(ctx.logger.lines.some(([level, m]) => level === 'warn' && /tour1/.test(m)));
 });
 
 test('cutoffs and batch size are passed to listRetryable; staleAfterMs defaults to failedAfterMs', async () => {

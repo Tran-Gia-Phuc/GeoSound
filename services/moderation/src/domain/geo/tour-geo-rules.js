@@ -40,8 +40,9 @@ export function isValidCoordinate(p) {
   return !(lat === 0 && lng === 0);
 }
 
-// Stable sort by sequence; a missing sequence goes last, keeping input order.
-function sortBySequence(places) {
+// Stable sort by sequence; a missing sequence goes last, keeping input order. Exported so callers can map
+// a `places[i]` field (index after this sort) back to its placeId.
+export function sortBySequence(places) {
   const key = (p) => (Number.isFinite(p?.sequence) ? p.sequence : Number.POSITIVE_INFINITY);
   return places
     .map((p, i) => ({ p, i }))

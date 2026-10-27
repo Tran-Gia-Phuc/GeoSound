@@ -21,6 +21,8 @@ export const AI_LIMITS = Object.freeze({
   images: 5,
   imageCaption: 300,
   reasonMessage: 500,
+  // place / tour `type` and `city` (AI schema MAX_LABEL_LENGTH)
+  label: 100,
 });
 
 const AI_CATEGORIES = new Set(['hate', 'violence', 'sexual', 'scam', 'misleading', 'irrelevant', 'other']);
@@ -42,10 +44,10 @@ export function toPlaceRequest(p) {
     place_id: p.placeId,
     tour_id: p.tourId,
     name: truncate(p.name, AI_LIMITS.placeName),
-    type: p.type,
+    type: truncate(p.type, AI_LIMITS.label),
     description: truncate(p.description, AI_LIMITS.placeDescription),
     language: p.language,
-    city: p.city,
+    city: truncate(p.city, AI_LIMITS.label),
     images: Array.isArray(p.images)
       ? p.images.slice(0, AI_LIMITS.images).map((img) => compact({
         url: img.url,
@@ -62,13 +64,13 @@ export function toTourRequest(t) {
     title: truncate(t.title, AI_LIMITS.title),
     description: truncate(t.description, AI_LIMITS.tourDescription),
     language: t.language,
-    city: t.city,
-    type: t.type,
+    city: truncate(t.city, AI_LIMITS.label),
+    type: truncate(t.type, AI_LIMITS.label),
     duration_minutes: t.durationMinutes,
     places: (Array.isArray(t.places) ? t.places : []).slice(0, AI_LIMITS.places).map((pl) => compact({
       place_id: pl.placeId,
       name: truncate(pl.name, AI_LIMITS.placeName),
-      type: pl.type,
+      type: truncate(pl.type, AI_LIMITS.label),
       description: truncate(pl.description, AI_LIMITS.placeDescription),
     })),
   });
