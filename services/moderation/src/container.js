@@ -1,30 +1,51 @@
 // =========================================================
-// Composition Root (moderation) — ráp (wire) các tầng tại MỘT chỗ duy nhất.
-// DI thủ công: infrastructure (impl ports) → use-case → controller/consumer.
+// Composition root (Moderation): the ONLY place that wires the layers (task #AI-36).
+// Manual DI: infrastructure (port implementations) -> use-cases -> event handlers.
 //
-//   domain         : state machine trạng thái tour + rule kiểm duyệt (thuần JS)
-//   application     : use-case (chạy AI tầng 1, duyệt/từ chối, xử lý report)
-//   infrastructure  : implement ports (Prisma / Gemini client / publish event)
-//   interfaces/http : controller (hàng chờ Admin, duyệt/từ chối)
+//   domain          : case state machine, merge rules, geo rules (pure JS)
+//   application     : use-cases (run place review; tour review is #AI-37)
+//   infrastructure  : Prisma repository, HTTP AI reviewer, event publisher
+//   interfaces      : RabbitMQ event handlers
 //
-// Moderation vừa nhận REST (Admin) vừa consume event (tour.submitted).
-// Consumer event để ở interfaces (bổ sung khi code UC15).
+// Prisma, the raw publish() and the shared validateEvent are passed in by index.js, so this module never
+// imports shared/ (it does not exist in the repo layout used by CI) and tests can wire it with fakes.
 // =========================================================
+import { PrismaModerationRepository } from './infrastructure/persistence/prisma-moderation-repository.js';
+import { HttpAiReviewer } from './infrastructure/ai/http-ai-reviewer.js';
+import { EventPublisher } from './infrastructure/messaging/event-publisher.js';
+import { RunPlaceReview } from './application/use-cases/run-place-review.js';
+import { createPlaceSubmittedHandler } from './interfaces/events/place-submitted-consumer.js';
 
-export function buildContainer(/* { prisma, env, publish } */) {
+const systemClock = Object.freeze({ now: () => new Date() });
+
+/**
+ * @param {{ prisma: object, publish: (eventName: string, payload: object) => Promise<void>,
+ *           validateEvent: (eventName: string, payload: object) => object,
+ *           config: ReturnType<typeof import('./config.js').loadConfig>, fetchImpl?: typeof fetch,
+ *           clock?: { now: () => Date }, logger?: Pick<Console, 'info' | 'warn' | 'error'> }} deps
+ */
+export function buildContainer({
+  prisma, publish, validateEvent, config, fetchImpl = globalThis.fetch, clock = systemClock, logger = console,
+}) {
   // --- infrastructure ---
-  // const tourStateRepo = new PrismaModerationRepository(prisma);
-  // const aiReviewer    = new GeminiTextReviewer(env);
-  // const eventBus      = new RabbitmqPublisher(publish);
+  const repo = new PrismaModerationRepository(prisma);
+  const aiReviewer = new HttpAiReviewer({
+    baseUrl: config.ai.baseUrl,
+    token: config.ai.internalToken,
+    timeoutMs: config.ai.timeoutMs,
+    maxAttempts: config.ai.maxAttempts,
+    retryDelayMs: config.ai.retryDelayMs,
+    fetchImpl,
+  });
+  const publisher = new EventPublisher({ publish, validate: validateEvent });
 
-  // --- application (use-cases) ---
-  // const runAiReview = new RunAiReview({ tourStateRepo, aiReviewer, eventBus });
-  // const approveTour = new ApproveTour({ tourStateRepo, eventBus });
-  // const rejectTour  = new RejectTour({ tourStateRepo, eventBus });
+  // --- application ---
+  const runPlaceReview = new RunPlaceReview({ repo, aiReviewer, publisher, clock, logger });
 
   // --- interfaces ---
-  // const moderationController = new ModerationController({ approveTour, rejectTour });
+  const handlers = Object.freeze({
+    placeSubmitted: createPlaceSubmittedHandler({ runPlaceReview, validate: validateEvent, logger }),
+  });
 
-  // return { moderationController, runAiReview };
-  return {};
+  return { repo, aiReviewer, publisher, runPlaceReview, handlers };
 }
