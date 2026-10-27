@@ -31,6 +31,10 @@ class Settings(BaseSettings):
 
     moderation_reject_threshold: float = 0.8
     moderation_warning_threshold: float = 0.4
+    # Total time budget of one /moderate/* request (slot wait + LLM work).
+    moderation_timeout_seconds: float = 30.0
+    # Concurrent LLM-backed moderation calls in this process (quota, D13).
+    moderation_max_concurrency: int = 2
 
 
 @lru_cache
