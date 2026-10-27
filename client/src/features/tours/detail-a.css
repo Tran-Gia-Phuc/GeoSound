@@ -1,0 +1,14 @@
+.detail-a { width:100%; }
+.detail-a__route { width:100%; min-width:0; padding:0 20px 110px; display:grid; grid-template-columns:minmax(0,1fr); align-content:start; gap:24px; }
+.detail-a__route .detail__section, .detail-a__route .stops, .detail-a__route .detail__map { min-width:0; }
+.detail-a.detail--withbar .intro__body { padding-bottom:var(--sp-4); }
+.detail-a__overview { min-width:0; }.detail-a__stopimage { width:64px; height:60px; object-fit:cover; border-radius:10px; }
+.detail-a .detail-stop { padding:12px 0; }.detail-a .detail__map { height:320px; }
+@media(min-width:1000px) {
+ .detail-a { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:start; gap:32px; max-width:1240px; padding:32px 24px 120px; margin:0 auto; overflow:visible; }
+ .detail-a__overview { border:1px solid var(--border); background:var(--surface); border-radius:18px; overflow:hidden; }
+ .detail-a .intro__cover { height:330px; min-height:330px; }.detail-a.detail--withbar .intro__body { padding:24px; }
+ .detail-a__route { padding:0; gap:28px; }.detail-a .detail__map { height:360px; border-radius:16px; overflow:hidden; }
+ .detail-a .intro__title { font-size:30px; }.detail-a .detail__bar { max-width:none; width:calc(100% - 48px); left:24px; right:24px; bottom:16px; padding:16px; border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-lg); }
+ .detail-a .detail__bar .modepicker { max-width:640px; margin:0 auto; }
+}
