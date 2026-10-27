@@ -8,7 +8,7 @@
 //     thẳng theo ?mode= (không còn màn intro thứ hai). Tải offline (UC03) ẩn.
 //   - E3: tour không còn khả dụng → thông báo + quay lại danh sách.
 // =========================================================
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { fetchTourDetail } from '../../lib/api.js';
@@ -36,6 +36,10 @@ export default function TourDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null); // { message, offline, notFound }
   const [langBusy, setLangBusy] = useState(false);
+  const [languageError, setLanguageError] = useState(null);
+  const [langRetry, setLangRetry] = useState(0);
+  const requestedLanguage = sp.get('lang') || '';
+  const loadedTour = useRef(null);
   const [previewing, setPreviewing] = useState(null); // id điểm đang nghe thử
   const [adding, setAdding] = useState(null); // { placeId, name } cho sheet "Thêm vào…"
 
@@ -56,47 +60,23 @@ export default function TourDetailPage() {
 
   useEffect(() => {
     const abort = new AbortController();
-    setLoading(true);
-    setError(null);
-    load(sp.get('lang') || undefined, { signal: abort.signal })
-      .then((t) => {
-        setTour(t);
-        setLoading(false);
-      })
+    const hasPrevious = loadedTour.current?.id === tourId;
+    setLoading(!hasPrevious); setLangBusy(hasPrevious); setError(null); setLanguageError(null);
+    load(requestedLanguage || undefined, { signal:abort.signal })
+      .then((result) => { if (!abort.signal.aborted) { loadedTour.current=result; setTour(result); } })
       .catch((e) => {
-        if (e.name === 'AbortError') return; // huỷ do đổi route/StrictMode — giữ loading, KHÔNG set lỗi
-        setError({
-          message: e.offline ? 'Mất kết nối mạng' : e.status === 404 ? 'Tour không còn khả dụng' : e.message,
-          offline: e.offline,
-          notFound: e.status === 404,
-        });
-        setLoading(false);
-      });
+        if (abort.signal.aborted || e.name === 'AbortError') return;
+        if (hasPrevious && e.status !== 404) setLanguageError({ requested:requestedLanguage, message:e.message || 'Không đổi được ngôn ngữ. Nội dung trước vẫn được giữ.' });
+        else setError({ message:e.offline ? 'Mất kết nối mạng' : e.status === 404 ? 'Tour không còn khả dụng' : e.message, offline:e.offline, notFound:e.status === 404 });
+      })
+      .finally(() => { if (!abort.signal.aborted) { setLoading(false); setLangBusy(false); } });
     return () => abort.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tourId]);
+  }, [tourId, requestedLanguage, langRetry, load]);
 
-  const changeLang = async (code) => {
-    if (code === tour?.selectedLanguage || langBusy) return;
-    stopPreview();
-    setPreviewing(null);
-    setLangBusy(true);
-    try {
-      const t = await load(code);
-      setTour(t);
-      setSp(
-        (prev) => {
-          const n = new URLSearchParams(prev);
-          n.set('lang', t.selectedLanguage);
-          return n;
-        },
-        { replace: true },
-      );
-    } catch {
-      /* giữ nội dung cũ nếu lỗi */
-    } finally {
-      setLangBusy(false);
-    }
+  const changeLang = (code) => {
+    if (langBusy || code === tour?.selectedLanguage) return;
+    stopPreview();setPreviewing(null);
+    setSp((prev) => { const n=new URLSearchParams(prev);n.set('lang',code);return n; });
   };
 
   // ---------- Tải / lỗi ----------
@@ -188,6 +168,7 @@ export default function TourDetailPage() {
           <span className="muted small"><Icon name="volume" size={13} /> {voiceLabel(tour.voiceLabel)}</span>
         </div>
 
+        {languageError ? <div className="alert alert--warn" role="alert"><Icon name="alert-triangle" size={18} /><div><b>Chưa đổi được ngôn ngữ</b><p>{languageError.message}</p><p>Đang hiển thị {langLabel(tour.selectedLanguage)}.</p><button className="btn btn--sm" onClick={()=>setLangRetry((n)=>n+1)}>Thử lại ngôn ngữ</button><button className="btn btn--ghost btn--sm" onClick={()=>setSp((prev)=>{const n=new URLSearchParams(prev);n.set('lang',tour.selectedLanguage);return n;})}>Giữ ngôn ngữ hiện tại</button></div></div> : null}
         {/* Chọn ngôn ngữ nghe (A2) — đặt gần nút hành động */}
         {tour.availableLanguages?.length > 1 ? (
           <div className="langpick" role="group" aria-label="Ngôn ngữ nghe">
