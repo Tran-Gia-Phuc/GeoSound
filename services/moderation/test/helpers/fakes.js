@@ -43,6 +43,7 @@ export class FakeAiReviewer {
 // Logger that records lines instead of printing them.
 export class FakeLogger {
   constructor() { this.lines = []; }
+  debug(m) { this.lines.push(['debug', m]); }
   info(m) { this.lines.push(['info', m]); }
   warn(m) { this.lines.push(['warn', m]); }
   error(m) { this.lines.push(['error', m]); }
