@@ -23,7 +23,7 @@ from app.moderation.schema import (
     PlaceModerationRequest,
     Verdict,
 )
-from tests.conftest import FakeLLM
+from tests.conftest import FakeImageFetcher, FakeLLM
 
 
 def make_request(**overrides):
@@ -44,9 +44,10 @@ def finding(severity, field="description", category="misleading", message="Looks
     return {"field": field, "category": category, "severity": severity, "message": message}
 
 
-def run(request, responder):
+def run(request, responder, image_plan=None):
     llm = FakeLLM(responder)
-    response = asyncio.run(PlaceModerator(llm=llm).moderate_place(request))
+    fetcher = FakeImageFetcher(image_plan)
+    response = asyncio.run(PlaceModerator(llm=llm, image_fetcher=fetcher).moderate_place(request))
     return response, llm
 
 
@@ -105,7 +106,8 @@ def test_exactly_one_llm_call_even_with_images():
     images = [{"url": f"https://example.test/{i}.jpg"} for i in range(5)]
     resp, llm = run(make_request(images=images), answer())
     assert len(llm.calls) == 1
-    assert resp.images_checked == 0
+    assert resp.images_checked == 5
+    assert resp.verdict == Verdict.PASS
 
 
 def test_module_level_helper():
