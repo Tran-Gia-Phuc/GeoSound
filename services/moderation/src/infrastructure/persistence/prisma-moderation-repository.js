@@ -78,11 +78,29 @@ export class PrismaModerationRepository {
         OR: [
           { status: CASE_STATUS.AI_FAILED, updatedAt: { lt: failedBefore } },
           { status: { in: [CASE_STATUS.PENDING, CASE_STATUS.REVIEWING] }, updatedAt: { lt: staleBefore } },
+          // Result saved but its publish failed: the sweeper re-publishes it.
+          {
+            status: { in: [CASE_STATUS.DONE, CASE_STATUS.FAILED_PERMANENT] },
+            publishedAt: null,
+            updatedAt: { lt: staleBefore },
+          },
         ],
       },
       orderBy: { updatedAt: 'asc' },
       take: limit,
     });
     return rows.map(PrismaModerationRepository.toPlain);
+  }
+
+  // Compare-and-set: writes only if the row still has fromStatus and fromUpdatedAt (nobody touched it since it
+  // was read). updatedAt becomes `now`, so every other holder of the old snapshot loses. Returns the row or null.
+  async claim(id, { fromStatus, fromUpdatedAt, toStatus = fromStatus, patch = {}, now = new Date() }) {
+    const { count } = await this.prisma.moderationCase.updateMany({
+      where: { id, status: fromStatus, updatedAt: fromUpdatedAt },
+      data: { ...pickMutable(patch), status: toStatus, updatedAt: now },
+    });
+    if (count === 0) return null;
+    const row = await this.prisma.moderationCase.findUnique({ where: { id } });
+    return PrismaModerationRepository.toPlain(row);
   }
 }

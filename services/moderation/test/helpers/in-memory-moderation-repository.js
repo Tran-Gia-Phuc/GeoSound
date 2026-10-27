@@ -44,11 +44,22 @@ export class InMemoryModerationRepository {
 
   async listRetryable({ failedBefore, staleBefore, limit = DEFAULT_RETRY_LIMIT }) {
     const stale = [CASE_STATUS.PENDING, CASE_STATUS.REVIEWING];
+    const finished = [CASE_STATUS.DONE, CASE_STATUS.FAILED_PERMANENT];
     return [...this.rows.values()]
       .filter((r) => (r.status === CASE_STATUS.AI_FAILED && r.updatedAt < failedBefore)
-        || (stale.includes(r.status) && r.updatedAt < staleBefore))
+        || (stale.includes(r.status) && r.updatedAt < staleBefore)
+        || (finished.includes(r.status) && r.publishedAt === null && r.updatedAt < staleBefore))
       .sort((a, b) => a.updatedAt - b.updatedAt)
       .slice(0, limit)
       .map(copy);
+  }
+
+  // Compare-and-set, same contract as PrismaModerationRepository.claim.
+  async claim(id, { fromStatus, fromUpdatedAt, toStatus = fromStatus, patch = {}, now = this.clock.now() }) {
+    const row = this.rows.get(id);
+    if (!row || row.status !== fromStatus || row.updatedAt.getTime() !== new Date(fromUpdatedAt).getTime()) return null;
+    const next = { ...row, ...structuredClone(pickMutable(patch)), status: toStatus, updatedAt: now };
+    this.rows.set(id, next);
+    return copy(next);
   }
 }

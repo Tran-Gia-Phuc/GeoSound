@@ -26,13 +26,19 @@
  * Unique key = (subjectType, subjectId, revision).
  * createPending is idempotent: if the key already exists it returns the existing row unchanged.
  * update only writes known mutable fields and refreshes updatedAt.
- * listRetryable returns ai_failed cases with updatedAt < failedBefore, plus pending/reviewing cases
- * with updatedAt < staleBefore, oldest first, at most `limit` (sweeper, task #AI-38).
+ * listRetryable returns, oldest first, at most `limit` (sweeper, task #AI-38):
+ *   - ai_failed cases with updatedAt < failedBefore,
+ *   - pending/reviewing cases with updatedAt < staleBefore (crash before or during the AI call),
+ *   - done/failed_permanent cases with publishedAt null and updatedAt < staleBefore (publish failed).
+ * claim is a compare-and-set: it writes `toStatus` (default: unchanged), the mutable fields of `patch` and
+ * updatedAt = now only if the row still has fromStatus and fromUpdatedAt; it returns the updated row, or null
+ * when someone else changed the case first. Two sweeps, or a sweep and a consumer, never process one case at once.
  * @typedef {Object} ModerationRepository
  * @property {(key: {subjectType: string, subjectId: string, revision: string}) => Promise<ModerationCaseRow|null>} find
  * @property {(row: {subjectType: string, subjectId: string, tourId?: string|null, revision: string, payload: object}) => Promise<ModerationCaseRow>} createPending
  * @property {(id: string, patch: Partial<ModerationCaseRow>) => Promise<ModerationCaseRow>} update
  * @property {(opts: {failedBefore: Date, staleBefore: Date, limit?: number}) => Promise<ModerationCaseRow[]>} listRetryable
+ * @property {(id: string, opts: {fromStatus: string, fromUpdatedAt: Date, toStatus?: string, patch?: Partial<ModerationCaseRow>, now?: Date}) => Promise<ModerationCaseRow|null>} claim
  */
 
 /**
