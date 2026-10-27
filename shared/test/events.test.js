@@ -110,3 +110,61 @@ test('other events keep their behaviour', () => {
   bad(EVENTS.TOUR_AI_REJECTED, { tourId: 't1' });
   bad(EVENTS.TOUR_SUBMITTED, { tourId: 't1' });
 });
+
+// --- Chatbot index events (tour.published / tour.unpublished) ---
+
+const publishedPlace = (i = 0, over = {}) => ({
+  placeId: `p${i}`, name: `Place ${i}`, type: 'market', description: 'A market.', lat: 10.77, lng: 106.69, sequence: i,
+  translations: [{ language: 'en', text: 'A market.' }], ...over,
+});
+
+const published = (over = {}) => ({
+  tourId: 't1', revision: AT, status: 'public', title: 'Old town walk', description: 'Street food and history.',
+  language: 'vi', city: 'HCMC', type: 'walking', durationMinutes: 90, languages: ['vi', 'en'],
+  places: [publishedPlace(0), publishedPlace(1)], at: AT, ...over,
+});
+
+test('chatbot event names', () => {
+  assert.equal(EVENTS.TOUR_PUBLISHED, 'tour.published');
+  assert.equal(EVENTS.TOUR_UNPUBLISHED, 'tour.unpublished');
+  assert.equal(EVENTS.TOUR_HIDDEN, 'tour.hidden');
+});
+
+test('tour.published: full and minimal payloads validate', () => {
+  ok(EVENTS.TOUR_PUBLISHED, published());
+  ok(EVENTS.TOUR_PUBLISHED, {
+    tourId: 't1', revision: AT, status: 'public', title: 'T', description: '', language: 'en', type: 'indoor',
+    places: [publishedPlace(0, { type: undefined, translations: undefined })],
+  });
+  ok(EVENTS.TOUR_PUBLISHED, published({ places: [] }));
+});
+
+test('tour.published: status, revision, limits and required keys are enforced', () => {
+  bad(EVENTS.TOUR_PUBLISHED, published({ status: 'draft' }));
+  bad(EVENTS.TOUR_PUBLISHED, published({ revision: OFFSET }));
+  bad(EVENTS.TOUR_PUBLISHED, published({ at: OFFSET }));
+  bad(EVENTS.TOUR_PUBLISHED, published({ type: 'flying' }));
+  bad(EVENTS.TOUR_PUBLISHED, published({ title: 'x'.repeat(201) }));
+  bad(EVENTS.TOUR_PUBLISHED, published({ description: 'x'.repeat(5001) }));
+  bad(EVENTS.TOUR_PUBLISHED, published({ places: Array.from({ length: 51 }, (_, i) => publishedPlace(i)) }));
+  ok(EVENTS.TOUR_PUBLISHED, published({ places: Array.from({ length: 50 }, (_, i) => publishedPlace(i)) }));
+  bad(EVENTS.TOUR_PUBLISHED, published({ places: [publishedPlace(0, { lat: 91 })] }));
+  bad(EVENTS.TOUR_PUBLISHED, published({ places: [publishedPlace(0, { description: 'x'.repeat(2001) })] }));
+  bad(EVENTS.TOUR_PUBLISHED, published({ places: [publishedPlace(0, { translations: [{ language: 'en' }] })] }));
+  for (const key of ['tourId', 'revision', 'status', 'title', 'description', 'language', 'type', 'places']) {
+    const p = published();
+    delete p[key];
+    bad(EVENTS.TOUR_PUBLISHED, p);
+  }
+});
+
+test('tour.unpublished: reason enum, optional revision', () => {
+  for (const reason of ['unpublished', 'edited', 'hidden', 'restricted', 'deleted']) {
+    ok(EVENTS.TOUR_UNPUBLISHED, { tourId: 't1', reason });
+  }
+  ok(EVENTS.TOUR_UNPUBLISHED, { tourId: 't1', revision: AT, reason: 'hidden', at: AT });
+  bad(EVENTS.TOUR_UNPUBLISHED, { tourId: 't1', reason: 'other' });
+  bad(EVENTS.TOUR_UNPUBLISHED, { tourId: 't1' });
+  bad(EVENTS.TOUR_UNPUBLISHED, { tourId: 't1', reason: 'hidden', revision: OFFSET });
+  bad(EVENTS.TOUR_UNPUBLISHED, { reason: 'hidden' });
+});
