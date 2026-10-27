@@ -1,0 +1,14 @@
+.registration-a .auth__card { display:grid; gap:16px; }
+.registration-a__steps { display:flex; justify-content:space-between; list-style:none; margin:0 0 8px; padding:0; gap:12px; font-size:12px; color:var(--fg-muted); }
+.registration-a__steps li { display:flex; align-items:center; gap:6px; }
+.registration-a__steps span { display:grid; place-items:center; width:26px; height:26px; border-radius:50%; background:var(--surface-2); }
+.registration-a__steps [aria-current] { color:var(--primary); font-weight:700; }
+.registration-a__steps [aria-current] span { color:var(--primary-fg); background:var(--primary); }
+.registration-a__roles { display:grid; gap:16px; border:0; margin:0; padding:0; }
+.registration-a__role { position:relative; display:grid; gap:10px; padding:20px; border:1px solid var(--border-strong); border-radius:14px; cursor:pointer; }
+.registration-a__role input { position:absolute; top:20px; right:20px; width:20px; height:20px; accent-color:var(--primary); }
+.registration-a__role span { color:var(--fg-muted); line-height:1.6; font-size:14px; }
+.registration-a__role.is-active { border-color:var(--primary); background:var(--primary-soft); }
+.registration-a__login { text-align:center; font-size:14px; }
+.registration-a__success { display:grid; gap:24px; justify-items:center; text-align:center; padding:24px 0; }
+.registration-a__success svg { color:var(--primary); }
