@@ -17,6 +17,7 @@ import ShareDialog from './ShareDialog.jsx';
 import ModePicker from '../player/ModePicker.jsx';
 import PlaceDetailSheet from '../discover/PlaceDetailSheet.jsx';
 import { useBack } from '../../components/shell/AppHeader.jsx';
+import './itinerary-editor-a.css';
 
 export default function ItineraryEditorPage() {
   const { id } = useParams();
@@ -96,11 +97,11 @@ export default function ItineraryEditorPage() {
     e.preventDefault();
     const v = nameDraft.trim();
     if (!v) return;
-    await persist(async () => {
+    const saved = await persist(async () => {
       await renameItinerary(id, v);
       return getItinerary(id);
     });
-    setEditingName(false);
+    if (saved) setEditingName(false);
   };
 
   if (error && !view) {
@@ -110,6 +111,7 @@ export default function ItineraryEditorPage() {
           <Icon name="alert-triangle" size={18} className="alert__icon" />
           <div>{error}</div>
         </div>
+        <button className="btn btn--primary" onClick={load}>Thử lại lịch trình</button>
         <Link to="/itineraries" className="btn">Về danh sách</Link>
       </div>
     );
@@ -123,7 +125,7 @@ export default function ItineraryEditorPage() {
   }
 
   return (
-    <div className="screen itin-edit">
+    <div className="screen itin-edit itinerary-editor-a">
       <header className="itin__top">
         <button className="iconbtn" onClick={back} aria-label="Quay lại">
           <Icon name="arrow-left" size={18} />
@@ -138,8 +140,8 @@ export default function ItineraryEditorPage() {
               autoFocus
               aria-label="Tên lịch trình"
             />
-            <button className="btn btn--primary" type="submit" disabled={!nameDraft.trim()}>Lưu</button>
-            <button className="btn" type="button" onClick={() => setEditingName(false)}>Huỷ</button>
+            <button className="btn btn--primary" type="submit" disabled={busy || !nameDraft.trim()}>Lưu</button>
+            <button className="btn" type="button" onClick={() => setEditingName(false)} disabled={busy}>Huỷ</button>
           </form>
         ) : (
           <button className="itin-edit__title" onClick={startRename} title="Đổi tên">
