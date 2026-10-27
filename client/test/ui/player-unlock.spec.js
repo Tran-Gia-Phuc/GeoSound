@@ -33,7 +33,7 @@ test('first gesture and late unlock do not reset a selected track', async ({ pag
   const slider=page.getByRole('slider',{name:'Tua audio',exact:true});
   await expect(slider).toBeVisible();
   await expect.poll(() => page.evaluate(() => typeof window.resolvePendingUnlock)).toBe('function');
-  await page.getByRole('button',{name:'Tua tới 10 giây'}).click();
+  await page.getByRole('button',{name:/Tua tới (10|15) giây/}).click();
   await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThanOrEqual(9.5);
   await page.evaluate(() => window.resolvePendingUnlock());
   await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThanOrEqual(9.5);
