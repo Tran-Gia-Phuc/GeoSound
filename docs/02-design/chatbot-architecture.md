@@ -276,6 +276,8 @@ a later `tour.published` or `tour.unpublished` repairs it.
 | Gemini `text-embedding-004` | 768 | Free tier, rate limited; every chat turn needs one query embedding | Multilingual. Google has announced its retirement in favour of `gemini-embedding-001` (768 to 3072 via output dimensionality); must be checked. The project key is known to work only with `gemini-2.5-flash` (CLAUDE.md section 6), so embedding access is unverified |
 | **Local multilingual model**, e.g. `intfloat/multilingual-e5-small` (or `paraphrase-multilingual-MiniLM-L12-v2`) through an ONNX runtime | 384 | No quota, no key, no network at query time | Good enough for vi and en on a small corpus; adds roughly 100 to 500 MB to the AI image depending on runtime |
 
+Measured (#219): onnxruntime + tokenizers, fp32 `model.onnx` baked in at build time, no runtime download: the AI image grows by about 730 MB (runtime 241 MB, model 487 MB). Possible reductions: int8 quantization at build time (about 120 MB model, needs a quality check) and dropping unused onnxruntime extras.
+
 **Recommendation: local `multilingual-e5-small`, dimension 384.** It keeps the chat LLM quota for the one
 `answer` call, works offline in tests, and does not depend on unverified key access. One model per index:
 a "fallback" embedding model is not possible, because vectors from two models are not comparable; switching
