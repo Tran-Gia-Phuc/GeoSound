@@ -36,7 +36,7 @@ Branch names: see `AI_PLAN.md` section 4 (`feature/…`, `docs/…`, `test/…`,
 | `services/tour` (only #180) | `general-purpose`, "small reviewable diff, another teammate owns Tour" |
 | `docs/` only | `docs-writer` |
 
-The prompt always contains: working directory / worktree, issue number and code, files to read first, the acceptance criteria, "no git write commands, never read .env, no real LLM, no network in tests", the CI rule for Node ("only `src/index.js` imports `../shared`"), the exact test commands below, and "report files changed, counts, conflicts with docs".
+Keep prompts tight (token budget): list the exact files and doc sections to read (never a whole design doc). The prompt always contains: working directory / worktree, issue number and code, files to read first, the acceptance criteria, "no git write commands, never read .env, no real LLM, no network in tests", the CI rule for Node ("only `src/index.js` imports `../shared`"), the exact test commands below, and "report files changed, counts, conflicts with docs".
 
 ## 3. Test (test-runner)
 
@@ -61,7 +61,7 @@ MSYS_NO_PATHCONV=1 docker run --rm -v "<root>/services/ai:/src:ro" -w /src -e PY
   --entrypoint sh cnpm-main-ai:latest -c "pip install -q pytest; python -m pytest tests -q -p no:cacheprovider -rs"
 ```
 
-`<root>` is `E:/CNPM/git/CNPM-main` or the worktree `E:/CNPM/git/wt-<N>`. Fail: send the failure back to the same dev agent (SendMessage), at most 2 rounds, then mark the task blocked.
+`<root>` is `E:/CNPM/git/CNPM-main` or the worktree `E:/CNPM/git/wt-<N>`. Run each suite once (twice only for timing-sensitive tests). Fail: send the failure back to the same dev agent (SendMessage), at most 2 rounds, then mark the task blocked. An agent stopped by a usage limit is resumed with SendMessage, never restarted.
 
 ## 4. Review (contract-reviewer)
 
