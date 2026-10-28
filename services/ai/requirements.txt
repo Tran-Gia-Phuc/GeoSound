@@ -14,4 +14,5 @@ langchain-groq==1.0.*
 # Chatbot index store (#219): pgvector in schema "ai" through asyncpg (binary wheels, no compiler).
 asyncpg==0.30.*
 # Local embeddings (ONNX runtime) live in requirements-embeddings.txt (#219), installed by the Dockerfile.
-# TODO(#219): an AMQP client for the chatbot indexer.
+# AMQP client of the chatbot indexer (#219, D21): the only RabbitMQ consumer of this service.
+aio-pika==9.4.*

@@ -230,7 +230,10 @@ Names only; values live in the root `.env`, which is never committed.
 | `LANGSMITH_API_KEY` | LangSmith key (secret, never logged); empty with tracing on = untraced plus one warning |
 | `LANGSMITH_PROJECT` | LangSmith project of the traces (default `geosound-ai`) |
 | `CHAT_MEMORY_TURNS` | Chat turns kept per session and sent to the LLM (default 6) |
-| `CHATBOT_INDEXER_ENABLED` | Starts the chatbot indexer (`tour.published` / `tour.unpublished`), `false` by default |
+| `CHATBOT_INDEXER_ENABLED` | Starts the chatbot indexer (`tour.published` / `tour.unpublished` / `tour.hidden`), `false` by default; needs `DATABASE_URL_AI` and the embedder |
+| `CHATBOT_INDEXER_QUEUE` | Durable queue of the indexer, default `ai.chatbot-indexer` |
+| `CHATBOT_INDEXER_MAX_RETRIES` | Re-sends of a message whose indexing failed with a temporary error before it is rejected, default 3 |
+| `CHATBOT_INDEXER_RETRY_DELAY_SECONDS` | Wait before each re-send, default 5 |
 | `CHATBOT_ENABLED` | Enables `POST /chat` and `GET /chat/history`; `false` by default (both answer 404, nothing is built) |
 | `CHAT_GLOBAL_RATE_LIMIT_PER_MIN` | LLM-backed chat turns per minute across all users, in-process sliding window (default 2); over it the turn runs on Groq only (text, outside the cap and the moderation slot), or `/chat` answers 429 with `Retry-After` when `GROQ_API_KEY` is empty |
 | `CHAT_SESSION_TTL_HOURS` | Idle chat sessions are deleted after this many hours (default 24) |
