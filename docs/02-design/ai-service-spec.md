@@ -236,6 +236,10 @@ Names only; values live in the root `.env`, which is never committed.
 | `CHAT_SESSION_TTL_HOURS` | Idle chat sessions are deleted after this many hours (default 24) |
 | `CHAT_MESSAGE_MAX_CHARS` | Max length of a chat message (default 1000) |
 | `DATABASE_URL_AI` | pgvector store of the chatbot index (D22); empty or not yet implemented (#219) = chat runs with an empty retriever and logs one warning |
+| `EMBEDDING_PROVIDER` | Chatbot embeddings: `local` (default, ONNX `multilingual-e5-small`, runtime in `requirements-embeddings.txt`) or `fake` (tests only). `local` without its runtime fails with a clear error; there is no silent fallback |
+| `EMBEDDING_MODEL` | Embeddings model (default `intfloat/multilingual-e5-small`, dimension 384); downloaded once at image build (`ARG EMBEDDING_MODEL`), never at runtime. Changing it means a full re-embed |
+| `EMBEDDING_CACHE_DIR` | Folder holding the baked model, `<dir>/<org>/<name>/onnx/` (default `/app/models`) |
+| `EMBEDDING_BATCH_SIZE` | Texts per ONNX inference call when embedding (default 16) |
 
 ## 5. Observability
 

@@ -69,6 +69,13 @@ class Settings(BaseSettings):
     # pgvector store of the chatbot index (D22). The store is TODO(#219): until
     # then the chat agent runs over an empty retriever.
     database_url_ai: str = ""
+    # Chatbot embeddings (decision 6c, #219). `local` = ONNX multilingual-e5-small baked
+    # into the image under EMBEDDING_CACHE_DIR at build time; `fake` = tests only.
+    # Changing the model means a full re-embed of the index.
+    embedding_provider: str = "local"
+    embedding_model: str = "intfloat/multilingual-e5-small"
+    embedding_cache_dir: str = "/app/models"
+    embedding_batch_size: int = 16
 
     def allowed_image_hosts(self) -> frozenset[str]:
         """Hosts images may be fetched from. Empty set = every image is refused."""

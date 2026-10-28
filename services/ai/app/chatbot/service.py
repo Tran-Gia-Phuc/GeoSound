@@ -155,12 +155,13 @@ def build_retriever(settings: Settings) -> Retriever:
     """HybridRetriever over pgvector when available, else NullRetriever (one warning)."""
     if settings.database_url_ai:
         try:
-            from app.chatbot.rag.embedder import E5_DIMENSION, LocalE5Embedder
+            from app.chatbot.rag.embedder import build_embedder
             from app.chatbot.rag.hybrid_retriever import HybridRetriever
             from app.chatbot.rag.store import PgVectorIndexStore
 
-            return HybridRetriever(PgVectorIndexStore(settings.database_url_ai, E5_DIMENSION),
-                                   LocalE5Embedder())
+            embedder = build_embedder(settings)
+            return HybridRetriever(PgVectorIndexStore(settings.database_url_ai, embedder.dimension),
+                                   embedder)
         except Exception as exc:  # store or embedder runtime not there yet (TODO #219)
             logger.warning("chatbot index unavailable (%s); chat runs with an empty retriever",
                            type(exc).__name__)

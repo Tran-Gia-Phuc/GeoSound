@@ -278,14 +278,12 @@ def test_fake_embedder_is_deterministic_and_normalised():
     assert len(a.embed_query("")) == 384
 
 
-def test_local_e5_embedder_is_not_loaded_without_runtime():
-    try:
-        import sentence_transformers  # noqa: F401
-    except ImportError:
-        with pytest.raises(NotImplementedError):
-            LocalE5Embedder()
-    else:  # pragma: no cover - the runtime is not installed in this image
-        pytest.skip("sentence-transformers installed; constructing it is still lazy")
+def test_local_e5_embedder_is_not_loaded_without_runtime(monkeypatch):
+    from app.chatbot.rag import embedder as embedder_module
+
+    monkeypatch.setattr(embedder_module, "runtime_installed", lambda: False)
+    with pytest.raises(NotImplementedError):  # EmbedderUnavailableError subclasses it
+        LocalE5Embedder(model_name="m", cache_dir="/nowhere", batch_size=4)
 
 
 def test_pgvector_store_is_a_skeleton():
