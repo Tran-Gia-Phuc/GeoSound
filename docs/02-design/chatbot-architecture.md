@@ -126,10 +126,17 @@ inputs are hidden; to address in #188.
   blocked by the provider is not retried and returns a polite refusal. Chat is text-only, so Groq is allowed.
 - **Concurrency**: the chat path shares the AI service semaphore (D13) with moderation; when it is full, `/chat`
   returns 429 with `Retry-After` instead of queueing.
-- **Memory**: LangGraph checkpointer per `session_id`. Today it is the in-process `MemorySaver`, with message
-  metadata (`at`, citations) kept beside it; sessions idle longer than `CHAT_SESSION_TTL_HOURS` (default 24) are
-  evicted on the next request. Only the last N turns are sent to the LLM. A Postgres checkpointer in schema `ai`
-  (shared by several AI replicas) is deferred to #219.
+- **Memory**: LangGraph checkpointer per `session_id` (`thread_id`), selected by `CHAT_MEMORY_BACKEND`.
+  `memory` (default) is the in-process `MemorySaver` with an in-memory metadata store. `postgres` is the official
+  `AsyncPostgresSaver` (`langgraph-checkpoint-postgres`) over a psycopg 3 pool on `DATABASE_URL_DIRECT_AI`, shared
+  by every AI replica. Its tables live in a dedicated schema `ai_chat` (each connection sets
+  `search_path TO ai_chat`), never in schema `ai`, which `prisma db push` manages. Message metadata (`at`,
+  citations) is kept in `ai_chat.chat_messages` and joined by message id; `ai_chat.chat_sessions` holds the last
+  activity. Schema, checkpoint tables and metadata tables are created at startup (idempotent); `postgres` without
+  `DATABASE_URL_DIRECT_AI` stops the service (no silent fallback). Sessions idle longer than
+  `CHAT_SESSION_TTL_HOURS` (default 24) are deleted, checkpoints included: a sweep runs on a request at most once
+  a minute per replica (`DELETE ... RETURNING`, so each session is claimed once), and the session of the request
+  is always checked. Only the last N turns are sent to the LLM.
 
 ### 3.4 Tools
 

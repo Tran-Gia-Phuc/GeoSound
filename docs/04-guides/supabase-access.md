@@ -72,5 +72,8 @@ MSYS_NO_PATHCONV=1 docker run --rm --env-file .env -v "$PWD/services/ai/prisma:/
   `extensions`; if `vector` is already installed in `public`, move it to `extensions` first) and you run the command again.
 - `post-push.sql` adds the CHECK constraints and the vector index.
 - The command passes `.env` to the container and never prints it.
+- The chat memory (`CHAT_MEMORY_BACKEND=postgres`) uses a separate schema `ai_chat`, created by the AI service
+  itself at startup through `DATABASE_URL_DIRECT_AI`. It is not part of `schema.prisma`, so `db push` never
+  touches it.
 
 The other services push their own schema when they start (`prisma db push` in their Dockerfile).
