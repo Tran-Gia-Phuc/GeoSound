@@ -17,6 +17,7 @@ Contract: docs/02-design/chatbot-architecture.md section 8 (snake_case on the wi
   `error` event replaces the rest if something fails mid-stream.
 """
 
+import asyncio
 import json
 import logging
 import re
@@ -79,14 +80,29 @@ class ChatRequest(BaseModel):
 _service: Any = None
 
 
-def get_chat_service():
-    """The ChatService, built on the first request (never at import)."""
-    global _service
-    if _service is None:
-        from app.chatbot.service import build_chat_service
+_service_lock: asyncio.Lock | None = None
 
-        _service = build_chat_service(get_settings())
+
+async def get_chat_service():
+    """The ChatService, built on the first request (never at import)."""
+    global _service, _service_lock
+    if _service is None:
+        if _service_lock is None:
+            _service_lock = asyncio.Lock()
+        async with _service_lock:
+            if _service is None:
+                from app.chatbot.service import abuild_chat_service
+
+                _service = await abuild_chat_service(get_settings())
     return _service
+
+
+async def close_chat_service() -> None:
+    """Close the chat service's store pool on shutdown, if the service was built."""
+    global _service
+    service, _service = _service, None
+    if service is not None and hasattr(service, "aclose"):
+        await service.aclose()
 
 
 def split_tokens(text: str) -> list[str]:

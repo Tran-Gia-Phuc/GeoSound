@@ -57,6 +57,11 @@ class Settings(BaseSettings):
     # Chatbot indexer (#AI-44, D21): the only RabbitMQ consumer of the AI service.
     # Off by default; nothing is started when false.
     chatbot_indexer_enabled: bool = False
+    # Durable queue bound to tour.published / tour.unpublished / tour.hidden.
+    chatbot_indexer_queue: str = "ai.chatbot-indexer"
+    # Temporary indexing failures are re-sent at most this many times, each after the delay.
+    chatbot_indexer_max_retries: int = 3
+    chatbot_indexer_retry_delay_seconds: float = 5.0
     # Chat API (#AI-47, #188). Off by default: /chat and /chat/history answer 404
     # and nothing of the chatbot is built.
     chatbot_enabled: bool = False
@@ -66,8 +71,8 @@ class Settings(BaseSettings):
     # Idle sessions are forgotten after this many hours (checked on each request).
     chat_session_ttl_hours: float = 24.0
     chat_message_max_chars: int = 1000
-    # pgvector store of the chatbot index (D22). The store is TODO(#219): until
-    # then the chat agent runs over an empty retriever.
+    # pgvector store of the chatbot index (D22). Empty = the chat agent runs over an
+    # empty retriever and the indexer does not start. Never log this value.
     database_url_ai: str = ""
     # Chatbot embeddings (decision 6c, #219). `local` = ONNX multilingual-e5-small baked
     # into the image under EMBEDDING_CACHE_DIR at build time; `fake` = tests only.

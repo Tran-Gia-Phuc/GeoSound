@@ -150,9 +150,23 @@ class ChatService:
             out.append(entry)
         return out
 
+    async def aclose(self) -> None:
+        """Close the retriever's store pool, if it has one (app shutdown)."""
+        store = getattr(self.agent.retriever, "store", None)
+        close = getattr(store, "aclose", None)
+        if close is not None:
+            try:
+                await close()
+            except Exception as exc:
+                logger.warning("chatbot store close failed (%s)", type(exc).__name__)
+
 
 def build_retriever(settings: Settings) -> Retriever:
-    """HybridRetriever over pgvector when available, else NullRetriever (one warning)."""
+    """HybridRetriever over pgvector when DATABASE_URL_AI is set, else NullRetriever (one warning).
+
+    Nothing connects here: the asyncpg pool opens on the first query and is closed
+    by `ChatService.aclose()` on app shutdown.
+    """
     if settings.database_url_ai:
         try:
             from app.chatbot.rag.embedder import build_embedder
@@ -162,7 +176,7 @@ def build_retriever(settings: Settings) -> Retriever:
             embedder = build_embedder(settings)
             return HybridRetriever(PgVectorIndexStore(settings.database_url_ai, embedder.dimension),
                                    embedder)
-        except Exception as exc:  # store or embedder runtime not there yet (TODO #219)
+        except Exception as exc:  # embedder runtime missing: never echo the DSN
             logger.warning("chatbot index unavailable (%s); chat runs with an empty retriever",
                            type(exc).__name__)
     else:
@@ -170,7 +184,20 @@ def build_retriever(settings: Settings) -> Retriever:
     return NullRetriever()
 
 
-def build_chat_service(settings: Settings | None = None) -> ChatService:
+async def load_city_aliases(retriever: Retriever) -> dict[str, str] | None:
+    """City aliases from the index (City nodes) when the retriever has them, else None."""
+    load = getattr(retriever, "city_aliases_from_index", None)
+    if load is None:
+        return None
+    try:
+        return await load()
+    except Exception as exc:  # index not reachable yet: keep the built-in aliases
+        logger.warning("chatbot city aliases not loaded from the index (%s)", type(exc).__name__)
+        return None
+
+
+def build_chat_service(settings: Settings | None = None, *, retriever: Retriever | None = None,
+                       city_aliases: dict[str, str] | None = None) -> ChatService:
     """Production wiring, called lazily on the first chat request."""
     settings = settings or get_settings()
 
@@ -189,5 +216,15 @@ def build_chat_service(settings: Settings | None = None) -> ChatService:
         SlidingWindowLimiter(settings.chat_global_rate_limit_per_min),
         overflow_factory=overflow_factory if settings.groq_api_key else None,
     )
-    agent = ChatAgent(build_retriever(settings), model=model, callbacks=list(chat_callbacks()))
+    retriever = retriever if retriever is not None else build_retriever(settings)
+    agent = ChatAgent(retriever, model=model, callbacks=list(chat_callbacks()),
+                      city_aliases=city_aliases)
     return ChatService(agent, ttl_seconds=settings.chat_session_ttl_hours * 3600)
+
+
+async def abuild_chat_service(settings: Settings | None = None) -> ChatService:
+    """`build_chat_service` plus the city aliases read from the index (first chat request)."""
+    settings = settings or get_settings()
+    retriever = build_retriever(settings)
+    aliases = await load_city_aliases(retriever)
+    return build_chat_service(settings, retriever=retriever, city_aliases=aliases)

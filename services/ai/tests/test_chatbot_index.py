@@ -474,4 +474,4 @@ def test_dispatcher_routes_and_decodes():
 
 def test_indexer_flag_off_by_default_starts_nothing():
     assert Settings(_env_file=None).chatbot_indexer_enabled is False
-    assert start_indexer(Settings(_env_file=None)) is None
+    assert run(start_indexer(Settings(_env_file=None))) is None
