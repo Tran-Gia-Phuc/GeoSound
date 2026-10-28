@@ -126,9 +126,10 @@ inputs are hidden; to address in #188.
   blocked by the provider is not retried and returns a polite refusal. Chat is text-only, so Groq is allowed.
 - **Concurrency**: the chat path shares the AI service semaphore (D13) with moderation; when it is full, `/chat`
   returns 429 with `Retry-After` instead of queueing.
-- **Memory**: LangGraph checkpointer per `session_id` (`langgraph-checkpoint-postgres` in schema `ai`;
-  `MemorySaver` in tests). Only the last N turns are sent to the LLM. Sessions expire after
-  `CHAT_SESSION_TTL_HOURS` (default 24) and are deleted by a cleanup job.
+- **Memory**: LangGraph checkpointer per `session_id`. Today it is the in-process `MemorySaver`, with message
+  metadata (`at`, citations) kept beside it; sessions idle longer than `CHAT_SESSION_TTL_HOURS` (default 24) are
+  evicted on the next request. Only the last N turns are sent to the LLM. A Postgres checkpointer in schema `ai`
+  (shared by several AI replicas) is deferred to #219.
 
 ### 3.4 Tools
 
@@ -324,9 +325,10 @@ becomes a problem.
 `{session_id, messages: [{role: "user" | "assistant", content, citations?, at}]}`, last N turns only.
 
 Citation markers: `token` text and history `content` contain the kept `[tour:ID]` / `[place:ID]` markers
-(section 3.2); invented ids are already removed. `/chat` (#188) must decide whether to stream them as is or strip
-them, and the client must render them (for example as links using `citations`) or hide them. Because markers can
-be split across tokens, stripping during streaming needs a small buffer.
+(section 3.2); invented ids are already removed. Implemented in #188: `/chat` runs the whole turn (including
+`cite`) before the stream starts, then streams the cleaned answer split on whitespace, so markers are kept as is
+and never split across `token` events; the client renders them (for example as links using `citations`) or hides
+them. Errors before the stream (422, 429, 503) are therefore plain JSON responses.
 
 | Status | Meaning |
 | --- | --- |
