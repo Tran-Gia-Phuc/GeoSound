@@ -11,11 +11,20 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Chatbot indexer (D21): only when CHATBOT_INDEXER_ENABLED=true; nothing runs otherwise.
+    app.state.chatbot_indexer = None
     if settings.chatbot_indexer_enabled:
         from app.chatbot.rag.consumer import start_indexer
 
-        app.state.chatbot_indexer = start_indexer(settings)
-    yield
+        app.state.chatbot_indexer = await start_indexer(settings)
+    try:
+        yield
+    finally:
+        indexer = app.state.chatbot_indexer
+        app.state.chatbot_indexer = None
+        if indexer is not None:
+            await indexer.aclose()
+        # The chat service (and its pgvector pool) exists only after a first chat request.
+        await chat.close_chat_service()
 
 
 app = FastAPI(title="GeoSound AI Service", version="0.1.0", lifespan=lifespan)
