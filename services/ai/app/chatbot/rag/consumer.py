@@ -68,5 +68,5 @@ def start_indexer(settings) -> object | None:
     if not getattr(settings, "chatbot_indexer_enabled", False):
         return None
     # TODO(#188): build PgVectorIndexStore + LocalE5Embedder + Indexer and an AMQP consumer here.
-    log.warning("CHATBOT_INDEXER_ENABLED is true but the indexer transport is not wired yet (TODO #188)")
+    log.warning("CHATBOT_INDEXER_ENABLED is true but the indexer transport is not wired yet (TODO #219)")
     return None
