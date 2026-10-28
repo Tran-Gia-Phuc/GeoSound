@@ -1,0 +1,34 @@
+{"id": "q01", "category": "area_topic", "lang": "en", "question": "Are there any street food tours in Hanoi?", "expect": "answer", "expected_ids": ["tour:t-hn-food", "place:p-hn-pho", "place:p-hn-bun-cha", "place:p-hn-market"]}
+{"id": "q02", "category": "area_topic", "lang": "en", "question": "I want a history walk in Hanoi with temples", "expect": "answer", "expected_ids": ["tour:t-hn-history", "place:p-hn-temple", "place:p-hn-literature", "place:p-hn-museum"]}
+{"id": "q03", "category": "area_topic", "lang": "en", "question": "Show me French architecture in Hanoi by bike", "expect": "answer", "expected_ids": ["tour:t-hn-architecture", "place:p-hn-opera", "place:p-hn-cathedral", "place:p-hn-long-bien"]}
+{"id": "q04", "category": "area_topic", "lang": "en", "question": "Is there a street food tour in Saigon?", "expect": "answer", "expected_ids": ["tour:t-hcm-food", "place:p-hcm-ben-thanh", "place:p-hcm-com-tam", "place:p-hcm-banh-mi"]}
+{"id": "q05", "category": "area_topic", "lang": "en", "question": "Historic colonial buildings to visit in Ho Chi Minh City", "expect": "answer", "expected_ids": ["tour:t-hcm-history", "place:p-hcm-palace", "place:p-hcm-post", "place:p-hcm-notre-dame"]}
+{"id": "q06", "category": "area_topic", "lang": "en", "question": "Parks and gardens for nature lovers in Ho Chi Minh City", "expect": "answer", "expected_ids": ["tour:t-hcm-nature", "place:p-hcm-tao-dan", "place:p-hcm-botanical", "place:p-hcm-river"]}
+{"id": "q07", "category": "area_topic", "lang": "en", "question": "What food should I eat in Hoi An?", "expect": "answer", "expected_ids": ["tour:t-ha-food", "place:p-ha-cao-lau", "place:p-ha-banh-mi", "place:p-ha-market"]}
+{"id": "q08", "category": "area_topic", "lang": "en", "question": "A heritage tour of the old houses in Hoi An", "expect": "answer", "expected_ids": ["tour:t-ha-oldtown", "place:p-ha-bridge", "place:p-ha-tan-ky", "place:p-ha-assembly"]}
+{"id": "q09", "category": "area_topic", "lang": "en", "question": "Cycling to the beach and rice fields in Hoi An", "expect": "answer", "expected_ids": ["tour:t-ha-nature", "place:p-ha-rice", "place:p-ha-beach", "place:p-ha-coconut"]}
+{"id": "q10", "category": "area_topic", "lang": "en", "question": "A walking food tour in Hanoi under 2 hours", "expect": "answer", "expected_ids": ["tour:t-hn-food", "place:p-hn-pho", "place:p-hn-bun-cha", "place:p-hn-market"]}
+{"id": "q11", "category": "area_topic", "lang": "vi", "question": "Có tour ẩm thực nào ở Hà Nội không?", "expect": "answer", "expected_ids": ["tour:t-hn-food", "place:p-hn-pho", "place:p-hn-bun-cha", "place:p-hn-market"]}
+{"id": "q12", "category": "area_topic", "lang": "vi", "question": "Mình muốn đi tour lịch sử ở Hà Nội", "expect": "answer", "expected_ids": ["tour:t-hn-history", "place:p-hn-temple", "place:p-hn-literature", "place:p-hn-museum"]}
+{"id": "q13", "category": "area_topic", "lang": "vi", "question": "Ăn bánh mì và cơm tấm ở Sài Gòn thì đi tour nào?", "expect": "answer", "expected_ids": ["tour:t-hcm-food", "place:p-hcm-ben-thanh", "place:p-hcm-com-tam", "place:p-hcm-banh-mi"]}
+{"id": "q14", "category": "area_topic", "lang": "vi", "question": "Tham quan kiến trúc nhà cổ ở Hội An", "expect": "answer", "expected_ids": ["tour:t-ha-oldtown", "place:p-ha-bridge", "place:p-ha-tan-ky", "place:p-ha-assembly"]}
+{"id": "q15", "category": "area_topic", "lang": "vi", "question": "Đi xe đạp ngắm thiên nhiên và biển ở Hội An", "expect": "answer", "expected_ids": ["tour:t-ha-nature", "place:p-ha-rice", "place:p-ha-beach", "place:p-ha-coconut"]}
+{"id": "q16", "category": "area_topic", "lang": "vi", "question": "Di tích lịch sử ở Hồ Chí Minh có gì?", "expect": "answer", "expected_ids": ["tour:t-hcm-history", "place:p-hcm-palace", "place:p-hcm-post", "place:p-hcm-notre-dame"]}
+{"id": "q17", "category": "area_topic", "lang": "vi", "question": "Chợ Bến Thành có món ăn gì ngon?", "expect": "answer", "expected_ids": ["place:p-hcm-ben-thanh", "tour:t-hcm-food"]}
+{"id": "q18", "category": "detail", "lang": "en", "question": "Tell me about the Japanese Covered Bridge in Hoi An", "expect": "answer", "expected_ids": ["place:p-ha-bridge", "tour:t-ha-oldtown"]}
+{"id": "q19", "category": "detail", "lang": "vi", "question": "Giới thiệu Văn Miếu ở Hà Nội", "expect": "answer", "expected_ids": ["place:p-hn-literature", "tour:t-hn-history"]}
+{"id": "q20", "category": "detail", "lang": "en", "question": "Tell me about the Hanoi Opera House", "expect": "answer", "expected_ids": ["place:p-hn-opera", "tour:t-hn-architecture"]}
+{"id": "q21", "category": "nearby", "lang": "en", "question": "What places are near me?", "location": {"lat": 21.0300, "lng": 105.8520}, "expect": "answer", "expected_ids": ["place:p-hn-temple", "place:p-hn-cathedral"]}
+{"id": "q22", "category": "nearby", "lang": "vi", "question": "Có địa điểm nào gần đây không?", "location": {"lat": 10.7728, "lng": 106.6985}, "expect": "answer", "expected_ids": ["place:p-hcm-ben-thanh"]}
+{"id": "q23", "category": "nearby", "lang": "en", "question": "Places near the Central Post Office in Saigon", "expect": "answer", "expected_ids": ["place:p-hcm-notre-dame"]}
+{"id": "q24", "category": "nearby", "lang": "vi", "question": "Địa điểm gần Chùa Cầu ở Hội An", "expect": "answer", "expected_ids": ["place:p-ha-tan-ky", "place:p-ha-cao-lau"]}
+{"id": "q25", "category": "smalltalk", "lang": "en", "question": "Hello!", "expect": "smalltalk", "expected_ids": []}
+{"id": "q26", "category": "smalltalk", "lang": "vi", "question": "Xin chào bạn", "expect": "smalltalk", "expected_ids": []}
+{"id": "q27", "category": "smalltalk", "lang": "en", "question": "Thank you so much", "expect": "smalltalk", "expected_ids": []}
+{"id": "q28", "category": "out_of_scope", "lang": "en", "question": "What is the weather forecast in Hanoi tomorrow?", "expect": "refuse", "expected_ids": []}
+{"id": "q29", "category": "out_of_scope", "lang": "en", "question": "Write Python code to sort a list", "expect": "refuse", "expected_ids": []}
+{"id": "q30", "category": "out_of_scope", "lang": "vi", "question": "Giá vé máy bay đi Đà Nẵng bao nhiêu tiền?", "expect": "refuse", "expected_ids": []}
+{"id": "q31", "category": "out_of_scope", "lang": "vi", "question": "Chứng khoán hôm nay thế nào?", "expect": "refuse", "expected_ids": []}
+{"id": "q32", "category": "unknown_city", "lang": "en", "question": "Are there food tours in Da Lat?", "expect": "no_data", "expected_ids": []}
+{"id": "q33", "category": "unknown_city", "lang": "vi", "question": "Tour lịch sử ở Huế", "expect": "no_data", "expected_ids": []}
+{"id": "q34", "category": "unknown_city", "lang": "en", "question": "A walking tour in Nha Trang", "expect": "no_data", "expected_ids": []}
