@@ -28,3 +28,6 @@ export async function rateLimit(req, res, next) {
     next(); // fail-open
   }
 }
+
+// Client Redis dùng chung (null nếu Redis chưa sẵn sàng) — cho rate-limit chat.
+export const getRedis = () => redis;
