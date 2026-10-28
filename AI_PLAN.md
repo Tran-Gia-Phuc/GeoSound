@@ -43,34 +43,24 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 | D20 | Tour side (PR #213, owner reviews) | Tour stores `moderationRevision` before publishing and applies a result with a conditional update on it; editing a tour or its places while in moderation sends it back to `draft` |
 
 
-## 3. Current state (2026-10-27)
+## 3. Current state (2026-10-28)
 
-**Phase 1 and 2 are done end to end** (place text and images, tour content and geo rules). Proven by `tests/e2e/moderation-e2e.mjs` against the stack with the AI stub: 9/9 PASS.
+- **Phases 1 and 2 done** (place text and images, tour content and geo rules), proven by the e2e with the AI stub (9/9 PASS).
+- **Phase 3 in progress:** design (#184), tracing (#173), index logic (#185), agent (#187) and hybrid retriever (#186) merged; #188 chat API in progress (AI part, plus gateway PR #227 for its owner).
+- Waiting for other owners: **PR #213** (Tour moderation events, #180) and **PR #227** (gateway chat route); requests in `docs/02-design/ai-integration-requests.md`.
+- Owner actions: `INTERNAL_SERVICE_TOKEN` in `.env`; never run real Gemini without an explicit request.
 
-- Merged: #166 to #172, #174 to #179, #181 to #183 (PRs #191 to #196, #203 to #212, #214). Superseded and closed: #15 to #22, #60 to #65.
-- Open, not ours to merge: **#180 Tour integration, PR #213** (CI green). The Tour owner reviews it, runs `npx prisma db push` for schema `tour`, then sets `MODERATION_EVENTS_ENABLED=true`.
-- Not done: #173 LangSmith tracing (optional), #184 to #189 chatbot (phase 3).
-- Owner actions on the local stack: set `INTERNAL_SERVICE_TOKEN` in `.env`; after `docker compose up --build moderation`, `docker compose logs moderation` must show the Prisma schema in sync.
-- Never run against real Gemini without an explicit request (rate limits, cost). The e2e uses the stub.
-
-Known limits (accepted for now):
-- A `place.submitted` / `tour.submitted` that arrives while the moderation DB is down is acked and lost (shared `consume()` has no requeue / DLQ). Tour can resubmit.
-- If more than 50 reasons are merged for a tour, the cap may hide geo reasons (the verdict is still correct).
-- CI: `Client — browser smoke tests` (`player-controls.spec.js`) is flaky and unrelated to our code; rerun the failed job before merging.
+Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a tour with more than 50 merged reasons may hide geo reasons; the pgvector store, embedding runtime and indexer transport are stubs until #219.
 
 ## 4. Tasks (label `ai-service`)
 
 | Code | Issue | Branch | Status |
 | --- | --- | --- | --- |
-| AI-25 to AI-38, AI-40 to AI-42 | #166 to #179, #181 to #183 | | merged |
-| AI-39 Tour integration (flag) | #180 | `feature/tour-moderation-integration` | PR #213 open, Tour owner reviews and merges |
-| AI-43 chatbot design | #184 | `docs/chatbot-architecture` | merged (PR #217) |
-| AI-32 LangSmith tracing | #173 | | merged (PR #216) |
-| AI-46 LangGraph agent (fake retriever) | #187 | `feature/chatbot-agent` | next (no external dependency) |
-| AI-44 knowledge graph and vector index | #185 | `feature/chatbot-index` | next; Tour events and pgvector image as separate PRs for their owners |
-| AI-45 hybrid retriever | #186 | `feature/chatbot-retriever` | after #185 |
-| AI-47 `POST /chat` and gateway route | #188 | `feature/chatbot-api` | after #186, #187 |
+| AI-25 to AI-38, AI-40 to AI-46 | #166 to #179, #181 to #187 | | merged |
+| AI-39 Tour integration (flag) | #180 | `feature/tour-moderation-integration` | PR #213, Tour owner merges |
+| AI-47 `POST /chat` + gateway route | #188 | `feature/chatbot-api`, `feature/gateway-chat-route` | in progress; gateway PR #227 merged by its owner |
 | AI-48 chatbot evaluation | #189 | `test/chatbot-eval` | after #188 |
+| AI-49 pgvector store, embeddings, indexer transport | #219 | `feature/chatbot-pgvector` | after the pgvector image and Tour events are agreed |
 
 ## 5. Notes for the next tasks
 
@@ -79,6 +69,5 @@ Known limits (accepted for now):
 | all Node tasks | Only `src/index.js` may import `../shared/...`; inject `validateEvent` / `publish` elsewhere (CI runs tests from the repo layout, where `../shared` does not exist). Test helpers load shared with a dynamic import that tries the repo path, then the image path |
 | all tasks | Merge only when no CI check fails; for the known flaky UI test, rerun the failed job first (`gh run rerun <id> --failed`) |
 | #185 to #189 | Follow `chatbot-architecture.md`. One LLM call per normal turn; tests use FakeLLM and a fake retriever/embedder; no real Gemini |
-| #186 | Match the canonical English city names used by the agent (`rules.py` alias table) or pass `city_aliases` from City nodes to `ChatAgent` |
 | #188 | Render or strip `[tour:ID]` / `[place:ID]` markers; on a provider error remove the just-saved user message from memory; hide tool inputs (lat/lng) from LangSmith traces; Postgres checkpointer, session TTL, `CHATBOT_ENABLED`, global chat cap; stream tokens only after `cite` (or buffer markers) so invented markers never reach the client; history entries need `citations?` and `at` |
 | #219 | pgvector store, e5 embedding runtime in the image, AMQP transport for the indexer |
