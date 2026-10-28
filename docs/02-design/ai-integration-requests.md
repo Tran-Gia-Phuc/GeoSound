@@ -49,23 +49,17 @@ The chatbot must only answer about **public** tours, so Tour tells the AI servic
 All services already use the shared Supabase Postgres, one schema per service (moderation moved there on 2026-10-28).
 The chatbot stores text chunks, vectors and a small graph in the same database, schema `ai`.
 
-On the Supabase dashboard, once:
+Once per Supabase project:
 
-1. Database -> Extensions: enable `vector`.
-2. SQL editor: `create schema if not exists ai;`
-3. In `.env`: `DATABASE_URL_AI` (transaction pooler 6543, `pgbouncer=true&schema=ai`) and `DATABASE_URL_DIRECT_AI` (session pooler 5432, also with `?schema=ai`, otherwise `db push` writes to `public`) for schema changes, written like the other services and without quotes (`docker --env-file` keeps them).
-
-Then push the schema once (and after every change of `services/ai/prisma/`), from the repo root. The root `.env` is
-passed to the container and never printed:
-
-```bash
-MSYS_NO_PATHCONV=1 docker run --rm --env-file .env -v "$PWD/services/ai/prisma:/p:ro" -w /app cnpm-main-auth \
-  sh -c 'export DATABASE_URL="$DATABASE_URL_DIRECT_AI"; npx prisma db push --skip-generate --schema /p/schema.prisma \
-  && npx prisma db execute --file /p/post-push.sql --schema /p/schema.prisma'
-```
+1. In `.env`: `DATABASE_URL_AI` (transaction pooler 6543, `pgbouncer=true&schema=ai`) and `DATABASE_URL_DIRECT_AI` (session pooler 5432, also with `?schema=ai`, otherwise `db push` writes to `public`) for schema changes, written like the other services and without quotes (`docker --env-file` keeps them).
+2. Push the schema with the command in `docs/04-guides/supabase-access.md` section 4. It runs `pre-push.sql`
+   (enables `vector` in schema `extensions` and creates schema `ai`), then `prisma db push`, then `post-push.sql`.
+   Only if `pre-push.sql` fails with a permission error does a dashboard Owner need to enable `vector` in
+   Database -> Extensions.
 
 Tables are defined in `services/ai/prisma/schema.prisma`; `post-push.sql` adds the CHECK constraints, the place geo
-index and the HNSW vector index. No custom Postgres image is needed for the team; the local `postgres` container
+index and the HNSW vector index. How teammates get dashboard access and connection strings:
+`docs/04-guides/supabase-access.md`. No custom Postgres image is needed for the team; the local `postgres` container
 stays for offline development only (it has no pgvector, so the chatbot store runs only against Supabase).
 
 Media storage (owned by the media service): images are still stored on local disk because `SUPABASE_URL` is not set.
