@@ -1,5 +1,5 @@
 -- Run after `prisma db push` of schema.prisma (idempotent). Adds what Prisma cannot express.
--- Search path is set to schema "ai" by the connection URL; pgvector lives in schema "extensions".
+-- All names are schema-qualified (ai.*, extensions.*); pgvector lives in schema "extensions".
 
 DO $$
 BEGIN
