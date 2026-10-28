@@ -71,6 +71,14 @@ class Settings(BaseSettings):
     # Idle sessions are forgotten after this many hours (checked on each request).
     chat_session_ttl_hours: float = 24.0
     chat_message_max_chars: int = 1000
+    # Chat memory (#219): `memory` = in this process (default, tests); `postgres` = LangGraph
+    # Postgres checkpointer + message metadata in schema `ai_chat`, shared by every replica.
+    # `postgres` needs DATABASE_URL_DIRECT_AI and fails at startup without it.
+    chat_memory_backend: str = "memory"
+    # Session pooler URL (5432) of the AI database, `?schema=ai` style; Prisma-only query keys
+    # are dropped before connecting. Used by `prisma db push` and the Postgres chat memory.
+    # Never log this value.
+    database_url_direct_ai: str = ""
     # pgvector store of the chatbot index (D22). Empty = the chat agent runs over an
     # empty retriever and the indexer does not start. Never log this value.
     database_url_ai: str = ""

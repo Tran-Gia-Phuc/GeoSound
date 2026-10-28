@@ -238,6 +238,8 @@ Names only; values live in the root `.env`, which is never committed.
 | `CHAT_GLOBAL_RATE_LIMIT_PER_MIN` | LLM-backed chat turns per minute across all users, in-process sliding window (default 2); over it the turn runs on Groq only (text, outside the cap and the moderation slot), or `/chat` answers 429 with `Retry-After` when `GROQ_API_KEY` is empty |
 | `CHAT_SESSION_TTL_HOURS` | Idle chat sessions are deleted after this many hours (default 24) |
 | `CHAT_MESSAGE_MAX_CHARS` | Max length of a chat message (default 1000) |
+| `CHAT_MEMORY_BACKEND` | Chat memory: `memory` (default, in this process) or `postgres` (LangGraph `AsyncPostgresSaver` plus message metadata in schema `ai_chat`, shared by every replica). `postgres` without `DATABASE_URL_DIRECT_AI` stops the service at startup; there is no silent fallback |
+| `DATABASE_URL_DIRECT_AI` | Session pooler URL (5432, `?schema=ai` style) of the AI database: `prisma db push` and the Postgres chat memory. Prisma-only query keys (`schema`, `pgbouncer`, `connection_limit`) are dropped before connecting; never logged |
 | `DATABASE_URL_AI` | pgvector store of the chatbot index (D22); empty or not yet implemented (#219) = chat runs with an empty retriever and logs one warning |
 | `EMBEDDING_PROVIDER` | Chatbot embeddings: `local` (default, ONNX `multilingual-e5-small`, runtime in `requirements-embeddings.txt`) or `fake` (tests only). `local` without its runtime fails with a clear error; there is no silent fallback |
 | `EMBEDDING_MODEL` | Embeddings model (default `intfloat/multilingual-e5-small`, dimension 384); downloaded once at image build (`ARG EMBEDDING_MODEL`), never at runtime. Changing it means a full re-embed |
