@@ -2,7 +2,7 @@
 
 `TourDoc` / `PlaceDoc` are the public content carried by `tour.published`
 (camelCase on the wire, see shared/events/index.js). `Node`, `Edge` and
-`Chunk` mirror the tables of schema `ai` (sql/schema.sql and
+`Chunk` mirror the tables of schema `ai` (prisma/schema.prisma and
 docs/02-design/chatbot-architecture.md section 4).
 
 Only tour and place content is kept: never a contributor id, email or any

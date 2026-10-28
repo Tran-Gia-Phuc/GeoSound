@@ -5,7 +5,7 @@ retriever (reads, task #AI-45). Two implementations:
 
 - `InMemoryIndexStore`: complete, used by tests (and handy for local demos).
 - `PgVectorIndexStore`: pgvector in the shared Postgres, schema `ai`
-  (decision 6a, DDL in sql/schema.sql). Skeleton only: no DB driver is in
+  (decision 6a, DDL in services/ai/prisma/schema.prisma). Skeleton only: no DB driver is in
   requirements.txt yet. TODO(#185 follow-up).
 
 Rules every implementation keeps:
@@ -325,7 +325,7 @@ class InMemoryIndexStore:
 
 
 class PgVectorIndexStore:
-    """pgvector store in schema `ai` (sql/schema.sql).
+    """pgvector store in schema `ai` (services/ai/prisma/schema.prisma).
 
     TODO(#185 follow-up): implement with an async driver (asyncpg or
     psycopg 3 + pgvector), once `DATABASE_URL_AI` and the pgvector Postgres
