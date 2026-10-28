@@ -57,6 +57,18 @@ class Settings(BaseSettings):
     # Chatbot indexer (#AI-44, D21): the only RabbitMQ consumer of the AI service.
     # Off by default; nothing is started when false.
     chatbot_indexer_enabled: bool = False
+    # Chat API (#AI-47, #188). Off by default: /chat and /chat/history answer 404
+    # and nothing of the chatbot is built.
+    chatbot_enabled: bool = False
+    # LLM-backed chat turns per minute across all users (in-process sliding window),
+    # so chat never eats the Gemini quota shared with moderation. Over it: 429.
+    chat_global_rate_limit_per_min: int = 2
+    # Idle sessions are forgotten after this many hours (checked on each request).
+    chat_session_ttl_hours: float = 24.0
+    chat_message_max_chars: int = 1000
+    # pgvector store of the chatbot index (D22). The store is TODO(#219): until
+    # then the chat agent runs over an empty retriever.
+    database_url_ai: str = ""
 
     def allowed_image_hosts(self) -> frozenset[str]:
         """Hosts images may be fetched from. Empty set = every image is refused."""

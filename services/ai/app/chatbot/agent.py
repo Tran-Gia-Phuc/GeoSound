@@ -12,11 +12,19 @@
 - `checkpointer`: LangGraph checkpointer; default in-memory `MemorySaver`.
   Memory is keyed by `session_id` (LangGraph `thread_id`) and trimmed to
   CHAT_MEMORY_TURNS turns.
+- `callbacks`: LangChain callbacks added to every turn (the redacting
+  LangSmith tracer of `chatbot/tracing.py` when LANGSMITH_TRACING is on).
+
+If a turn fails (provider error, chat cap, ...), the user message that was
+already checkpointed is removed again (#188), so memory never keeps a
+question without its answer.
 """
 
+import logging
+import uuid
 from typing import Any
 
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage
 from langgraph.checkpoint.memory import MemorySaver
 
 from app.chatbot.graph import rules
@@ -31,6 +39,8 @@ from app.chatbot.tools.search import build_tools
 from app.config import get_settings
 from app.moderation.validator import clip, sanitize_text
 
+logger = logging.getLogger(__name__)
+
 
 class ChatAgent:
     def __init__(
@@ -41,7 +51,9 @@ class ChatAgent:
         *,
         memory_turns: int | None = None,
         city_aliases: dict[str, str] | None = None,
+        callbacks: list[Any] | None = None,
     ) -> None:
+        self.callbacks = list(callbacks or [])
         self.retriever = retriever or NullRetriever()
         self._model = model
         self.checkpointer = checkpointer or MemorySaver()
@@ -64,9 +76,11 @@ class ChatAgent:
             self._model = build_chat_model()
         return self._model
 
-    @staticmethod
-    def _config(session_id: str) -> dict:
-        return {"configurable": {"thread_id": session_id}}
+    def _config(self, session_id: str) -> dict:
+        config: dict = {"configurable": {"thread_id": session_id}}
+        if self.callbacks:
+            config["callbacks"] = self.callbacks
+        return config
 
     async def run(
         self,
@@ -83,14 +97,18 @@ class ChatAgent:
             raise ValueError("message is empty")
         lang = language if language in ("vi", "en") else rules.detect_language(text)
 
+        message_id = str(uuid.uuid4())
         token = current_location.set(
             {"lat": float(location["lat"]), "lng": float(location["lng"])} if location else None
         )
         try:
             state = await self.graph.ainvoke(
-                new_turn(session_id, lang, HumanMessage(content=text)),
+                new_turn(session_id, lang, HumanMessage(content=text, id=message_id)),
                 self._config(session_id),
             )
+        except Exception:
+            await self._forget(session_id, message_id)
+            raise
         finally:
             current_location.reset(token)
 
@@ -105,16 +123,40 @@ class ChatAgent:
             "finish_reason": state["finish_reason"],
             "llm_calls": state["llm_calls"],
             "tools_called": state.get("tools_called", []),
+            "user_message_id": message_id,
+            "answer_id": state.get("answer_id", ""),
         }
 
+    async def _forget(self, session_id: str, message_id: str) -> None:
+        """Remove one stored message (the user message of a failed turn)."""
+        try:
+            snapshot = await self.graph.aget_state(self._config(session_id))
+            messages = (snapshot.values or {}).get("messages", []) if snapshot else []
+            if any(m.id == message_id for m in messages):
+                # As `cite` (edge to END): the failed run is closed, nothing is resumed.
+                await self.graph.aupdate_state(
+                    self._config(session_id),
+                    {"messages": [RemoveMessage(id=message_id)]},
+                    as_node="cite",
+                )
+        except Exception as exc:  # never hide the original error
+            logger.warning("chat memory rollback failed (%s)", type(exc).__name__)
+
+    async def delete_session(self, session_id: str) -> None:
+        """Drop every checkpoint of a session (TTL eviction)."""
+        await self.checkpointer.adelete_thread(session_id)
+
     async def history(self, session_id: str) -> list[dict[str, str]]:
-        """Stored (trimmed) messages of a session, oldest first; [] when unknown."""
+        """Stored (trimmed) messages of a session, oldest first; [] when unknown.
+
+        Each entry is {"id", "role", "content"}.
+        """
         snapshot = await self.graph.aget_state(self._config(session_id))
         messages = (snapshot.values or {}).get("messages", []) if snapshot else []
         out = []
         for m in messages:
             if isinstance(m, HumanMessage):
-                out.append({"role": "user", "content": m.content})
+                out.append({"id": m.id, "role": "user", "content": m.content})
             elif isinstance(m, AIMessage):
-                out.append({"role": "assistant", "content": m.content})
+                out.append({"id": m.id, "role": "assistant", "content": m.content})
         return out

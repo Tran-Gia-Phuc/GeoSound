@@ -70,4 +70,4 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | all tasks | Merge only when no CI check fails; for the known flaky UI test, rerun the failed job first (`gh run rerun <id> --failed`) |
 | #185 to #189 | Follow `chatbot-architecture.md`. One LLM call per normal turn; tests use FakeLLM and a fake retriever/embedder; no real Gemini |
 | #188 | Render or strip `[tour:ID]` / `[place:ID]` markers; on a provider error remove the just-saved user message from memory; hide tool inputs (lat/lng) from LangSmith traces; Postgres checkpointer, session TTL, `CHATBOT_ENABLED`, global chat cap; stream tokens only after `cite` (or buffer markers) so invented markers never reach the client; history entries need `citations?` and `at` |
-| #219 | pgvector store, e5 embedding runtime in the image, AMQP transport for the indexer |
+| #219 | pgvector store, e5 embedding runtime in the image, AMQP transport for the indexer, Postgres chat checkpointer with message metadata (`at`, citations) |

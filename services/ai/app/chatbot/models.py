@@ -51,9 +51,18 @@ def build_chat_model(settings: Settings | None = None) -> Any:
     if not settings.groq_api_key:
         return primary
 
+    secondary = build_groq_chat_model(settings)
+    return primary.with_fallbacks([secondary], exceptions_to_handle=fallback_exceptions())
+
+
+def build_groq_chat_model(settings: Settings | None = None) -> Any:
+    """Groq-only chat model (text only). Also used alone when the global Gemini
+    chat cap is reached (chatbot-architecture.md section 7), so overflow turns
+    never spend the Gemini quota shared with moderation."""
+    settings = settings or get_settings()
     from langchain_groq import ChatGroq
 
-    secondary = ChatGroq(
+    return ChatGroq(
         model=settings.groq_model,
         api_key=settings.groq_api_key,
         temperature=TEMPERATURE,
@@ -61,4 +70,3 @@ def build_chat_model(settings: Settings | None = None) -> Any:
         timeout=settings.llm_timeout_seconds,
         max_retries=0,
     )
-    return primary.with_fallbacks([secondary], exceptions_to_handle=fallback_exceptions())
