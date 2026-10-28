@@ -13,6 +13,8 @@ Checklist
 3. Boundaries: Moderation does not call an LLM; AI does not listen to RabbitMQ; Tour does not call AI for moderation; no cross-service DB reads.
 4. Safety: no `.env` content, API keys or Supabase URLs in the diff; tests do not call real LLMs or the network.
 5. Git hygiene (`git --no-pager status --short`, `git --no-pager diff --stat`): no `git add .` style leftovers, none of `CNPM-main/`, `PROJECT_TREE.md`, root `package-lock.json`; commit messages follow `<type>: <short description>`.
-6. Files owned by other services (translation, Tour) are untouched unless the task is #AI-31.
+6. Files owned by other services (translation, Tour, Gateway, infra) are untouched unless the task says so; those PRs are never merged by us.
+
+Scope: read the diff and only the contract or doc sections the caller names. Do not re-run tests unless asked (test-runner does that). On a re-review, check only the previous FAIL items and anything they touched.
 
 Report (English, short): PASS or FAIL per item, with file and line for each problem.

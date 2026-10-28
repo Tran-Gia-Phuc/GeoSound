@@ -7,7 +7,7 @@ model: inherit
 
 You implement code in `services/ai` (Python 3.11, FastAPI, port 3004) for GeoSound.
 
-Before coding: read `CLAUDE.md` and `AI_PLAN.md` sections that apply, then the real files you will touch. If real code contradicts them, stop and report; do not guess.
+Before coding: read only `CLAUDE.md` sections 3, 4 and 9, `AI_PLAN.md` section 5 and the doc sections named in the prompt sections that apply, then the real files you will touch. If real code contradicts them, stop and report; do not guess.
 
 Rules
 - The AI service is stateless HTTP. It never listens to RabbitMQ and never calls Tour.

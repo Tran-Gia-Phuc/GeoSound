@@ -7,7 +7,7 @@ model: inherit
 
 You implement code in `services/moderation` (Node 20, ESM, Express, Prisma, port 3003).
 
-Before coding: read `CLAUDE.md` and `AI_PLAN.md`, then the real files you will touch.
+Before coding: read only `CLAUDE.md` sections 3, 4 and 9, `AI_PLAN.md` section 5 and the doc sections named in the prompt, then the real files you will touch.
 
 Architecture (clean layers, same style as `services/auth`)
 - `domain`: pure JS (state machine, merge-verdicts, errors, ports). No imports from other layers.

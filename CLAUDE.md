@@ -2,7 +2,7 @@
 
 Read this file first in every session, then read `AI_PLAN.md` (decisions, current state, task list, notes for the next tasks). One task per branch, in the order of `AI_PLAN.md` section 4. Several tasks in one session only when the user asks for it. **Run tasks with the project skill `/ai-task <N>`** (`.claude/skills/ai-task/SKILL.md`): it holds the full branch → agent → test → review → commit → PR → merge procedure.
 
-**Priority:** place moderation (text and images) and tour moderation (content and geo rules) are done end to end (phases 1 and 2). Tracing (#173) and the chatbot design (#184) are merged. Next: chatbot #187 and #185, then #186, #188, #189 (`AI_PLAN.md` section 4).
+**Priority:** phases 1 and 2 (place and tour moderation) are done end to end; tracing (#173) and the chatbot design, index, agent and retriever (#184 to #187) are merged. Next: #188 chat API, #189 evaluation, #219 pgvector wiring (`AI_PLAN.md` section 4).
 
 ## 1. Role and language
 
@@ -83,43 +83,13 @@ Limits: title 200, tour description 5000, place name 200, place description 2000
 
 ## 7. Commands
 
-```bash
-# whole stack (needs root .env, which you must not read)
-docker compose up -d --build
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build ai   # dev, mounts services/ai/app only
+The host has no `node_modules` or Python deps: tests run in throwaway containers from the built images. The exact commands (AI pytest, Node tests in the image and repo layouts, Prisma validate) are in `.claude/agents/test-runner.md` and `.claude/skills/ai-task/SKILL.md` step 3; the e2e with the AI stub is in `docs/03-testing/moderation-e2e.md`.
 
-# The host has no node_modules / Python deps: run tests in throwaway containers from the built images (Git Bash).
-# AI tests (network only for `pip install pytest`; tests themselves use FakeLLM)
-MSYS_NO_PATHCONV=1 docker run --rm -v "E:/CNPM/git/CNPM-main/services/ai:/src:ro" -w /src -e PYTHONDONTWRITEBYTECODE=1 \
-  --entrypoint sh cnpm-main-ai:latest -c "pip install -q pytest; python -m pytest tests -q -p no:cacheprovider"
-
-# Moderation tests (no network; unfinished tests are { todo } until their task lands)
-MSYS_NO_PATHCONV=1 docker run --rm --network none -v "E:/CNPM/git/CNPM-main/shared:/app/shared:ro" \
-  -v "E:/CNPM/git/CNPM-main/services/moderation/src:/app/src:ro" -v "E:/CNPM/git/CNPM-main/services/moderation/test:/app/test:ro" \
-  -w /app cnpm-main-moderation node --test
-
-# Shared event schema tests
-MSYS_NO_PATHCONV=1 docker run --rm --network none -v "E:/CNPM/git/CNPM-main/shared:/app/shared:ro" -w /app/shared cnpm-main-moderation node --test
-
-# Node tests in the repo layout, the way CI runs them (must also pass; <svc> = moderation or tour)
-MSYS_NO_PATHCONV=1 docker run --rm --network none -v "E:/CNPM/git/CNPM-main:/repo:ro" --entrypoint sh cnpm-main-<svc> -c \n  "mkdir -p /tmp/r && cp -r /repo/shared /repo/services /tmp/r/ && ln -s /app/node_modules /tmp/r/node_modules && cd /tmp/r/services/<svc> && node --test"
-
-# End-to-end with the AI stub (no real LLM): see docs/03-testing/moderation-e2e.md
-docker compose -f docker-compose.yml -f tests/e2e/docker-compose.e2e.yml up -d --build ai-stub moderation
-docker compose -f docker-compose.yml -f tests/e2e/docker-compose.e2e.yml --profile e2e run --rm --build --no-deps e2e
-docker compose up -d moderation && docker compose -f docker-compose.yml -f tests/e2e/docker-compose.e2e.yml rm -sf ai-stub   # restore
-
-# Prisma validate (the moderation image has no prisma CLI)
-MSYS_NO_PATHCONV=1 docker run --rm --network none -e DATABASE_URL="postgresql://ci:ci@localhost:5432/ci?schema=moderation" \
-  -v "E:/CNPM/git/CNPM-main/services/moderation/prisma:/p:ro" -w /app cnpm-main-auth npx prisma validate --schema /p/schema.prisma
-
-docker compose -f docker-compose.yml config -q   # validate compose; never run `config` without -q (prints secrets)
-docker compose logs --tail 30 <service>
-```
+- Whole stack: `docker compose up -d --build` (needs the root `.env`, which you must not read). Add `--build` after changing `requirements.txt` or `package.json`.
+- Compose check: `docker compose -f docker-compose.yml config -q`; never run `config` without `-q` (it prints secrets).
+- Logs: `docker compose logs --tail 30 <service>`. Use `git --no-pager`. The root `.env` must have no duplicated keys.
 
 **CI rule for Node services:** CI runs `npm test` from the repo layout, where `services/<svc>/../shared` does not exist. Only `src/index.js` may import `../shared/...`; everything else gets `validateEvent` / `publish` injected, and test helpers load shared with a dynamic import (repo path first, then image path).
-
-Add `--build` after changing `requirements.txt` or `package.json`. Use `exec -T` with pipes or heredocs. Use `git --no-pager`. The root `.env` must have no duplicated keys.
 
 ## 8. How to work on a task
 
@@ -131,7 +101,7 @@ Add `--build` after changing `requirements.txt` or `package.json`. Use `exec -T`
 
 ## 9. Layout of the AI and Moderation code
 
-Phases 1 and 2 are implemented; chatbot files under `services/ai/app/chatbot/` are still stubs. Do not move files.
+Do not move files.
 
 ```text
 services/ai/app/
@@ -139,7 +109,8 @@ services/ai/app/
   moderation/     schema.py policy.py place_service.py tour_service.py pipeline.py
                   validator.py images.py, tracing.py (LangSmith, optional, #AI-32),
                   prompts/{place,tour}_moderation.txt
-  chatbot/        phase 3: LangGraph agent, LangChain models, graph + vector RAG (#AI-43 to #AI-48)
+  chatbot/        agent.py models.py graph/{builder,rules,state}.py tools/search.py
+                  rag/{models,chunker,embedder,graph_builder,store,indexer,consumer,retriever,hybrid_retriever}.py
   middleware/     auth.py (x-internal-token)
 services/moderation/src/
   config.js  container.js  index.js
@@ -168,3 +139,5 @@ The main agent owns git, the issue, and the final answer to the user. Delegate w
 Typical task (automated by `/ai-task`): dev agent implements (code plus tests) -> `test-runner` -> `contract-reviewer` (fix every FAIL, review again) -> main agent commits, shows `git log --oneline` and waits for the user (or pushes and merges when the user allowed it for that run). Independent tasks run in parallel in git worktrees (`/e/CNPM/git/wt-<N>`).
 
 If `ai-python-dev` or `moderation-node-dev` is not available in the session, use `general-purpose` and paste the rules from the matching `.claude/agents/*.md` file into its prompt.
+
+**Token budget for sub-agents:** name the exact files and doc sections to read; never ask an agent to read a whole design doc (`chatbot-architecture.md` and `moderation-architecture.md` are 300+ lines). `test-runner` runs each suite once (twice only for timing-sensitive tests). A re-review checks only the previous FAIL items. Resume a stopped agent with SendMessage instead of starting a new one.
