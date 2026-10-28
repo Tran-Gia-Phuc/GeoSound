@@ -166,7 +166,7 @@ Storage sketch (schema `ai`, section 6a):
 | `ai.tour_index` | `tour_id`, `revision`, `state` (`indexed`, `deleted`); a tombstone so a late, older `tour.published` cannot re-index a tour after `tour.unpublished` |
 | `ai.index_meta` | `embedding_model`, `dimension` (a model change means a full re-embed) |
 
-Implementation notes (#185): `ai.nodes` also stores `lat` / `lng` for the bounding-box prefilter of `near`; `ai.chunks` also stores `tour_id` for fast deletes; a `tour.unpublished` older than the indexed revision is ignored, one without `revision` always deletes; tours indexed without a topic extractor are marked `topics_pending`. DDL: `services/ai/app/chatbot/rag/sql/schema.sql`.
+Implementation notes (#185): `ai.nodes` also stores `lat` / `lng` for the bounding-box prefilter of `near`; `ai.chunks` also stores `tour_id` for fast deletes; a `tour.unpublished` older than the indexed revision is ignored, one without `revision` always deletes; tours indexed without a topic extractor are marked `topics_pending`. Schema: `services/ai/prisma/schema.prisma` plus `post-push.sql`.
 
 No contributor id, email or any user field is stored (section 7).
 
