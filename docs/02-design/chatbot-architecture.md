@@ -220,6 +220,8 @@ Implementation notes (#186): `services/ai/app/chatbot/rag/hybrid_retriever.py` o
 
 ### 6a. Vector and graph store
 
+Update 2026-10-28: the team database is Supabase, which ships the `vector` extension, so pgvector is enabled there (schema `ai`); the custom local Postgres image below is no longer needed. Steps: `ai-integration-requests.md` section 3.
+
 | Option | For | Against |
 | --- | --- | --- |
 | **pgvector in the existing Postgres**, schema `ai`, graph as edge tables | One store for chunks, graph and checkpoints, so ingest and delete are one transaction; SQL joins for filters and hops; Supabase supports the `vector` extension; backups and ops already exist | Local image must change (`postgis/postgis:16-3.4` has no pgvector) |

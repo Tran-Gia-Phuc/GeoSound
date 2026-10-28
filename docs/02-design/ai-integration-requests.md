@@ -13,7 +13,7 @@ The AI team writes the code where it says so and opens a PR for your review; we 
 | --- | --- | --- | --- | --- | --- |
 | 1 | Tour | Review and merge PR #213 (moderation events) | `MODERATION_EVENTS_ENABLED` | AI team (done), Tour owner reviews | Moderation in production |
 | 2 | Tour | Publish `tour.published` / `tour.unpublished` | `CHATBOT_EVENTS_ENABLED` | AI team, Tour owner reviews | Chatbot index (#185) |
-| 3 | Infra | Postgres image with pgvector, schema `ai`, `DATABASE_URL_AI` | none | AI team, team reviews | Chatbot store (#185) |
+| 3 | Infra | Enable `vector` and schema `ai` on Supabase, `DATABASE_URL_AI` | none | Project owner on the Supabase dashboard | Chatbot store (#219) |
 | 4 | Gateway | `/api/chat` route (SSE, no buffering), chat rate limits, `x-internal-token` | `CHATBOT_ENABLED` | AI team, Gateway owner reviews | Chat API (#188) |
 | 5 | shared/events | Schemas for `tour.published` / `tour.unpublished` | none | AI team | Items 2 and 4 |
 
@@ -44,18 +44,24 @@ The chatbot must only answer about **public** tours, so Tour tells the AI servic
 - The AI indexer re-checks `status` and `revision` and deletes everything about a tour on `tour.unpublished`, so a
   duplicate or late event is harmless.
 
-## 3. Infrastructure: Postgres with pgvector
+## 3. Infrastructure: Supabase (pgvector)
 
-The chatbot stores text chunks, vectors and a small graph in Postgres, schema `ai` (no new database server).
+All services already use the shared Supabase Postgres, one schema per service (moderation moved there on 2026-10-28).
+The chatbot stores text chunks, vectors and a small graph in the same database, schema `ai`.
 
-- `infra/postgres/Dockerfile`: `FROM postgis/postgis:16-3.4` plus the `postgresql-16-pgvector` package; compose
-  uses it for the `postgres` service.
-- Init SQL: `CREATE EXTENSION IF NOT EXISTS vector;` and `CREATE SCHEMA IF NOT EXISTS ai;`.
-- Init scripts only run on a new volume: on existing local volumes and on Supabase, run the two statements once by
-  hand (Supabase: SQL editor).
-- New variable `DATABASE_URL_AI` (same host, `?schema=ai`) in the root `.env.example`.
+On the Supabase dashboard, once:
 
-Other schemas and services are not affected.
+1. Database -> Extensions: enable `vector`.
+2. SQL editor: `create schema if not exists ai;`
+3. In `.env`: `DATABASE_URL_AI` (transaction pooler 6543, `pgbouncer=true&schema=ai`) and `DATABASE_URL_DIRECT_AI` (session pooler 5432) for schema changes, written like the other services.
+
+Tables are created by the AI code (#219). No custom Postgres image is needed for the team; the local `postgres` container
+stays for offline development only (it has no pgvector, so the chatbot store runs only against Supabase).
+
+Media storage (owned by the media service): images are still stored on local disk because `SUPABASE_URL` is not set.
+To enable Supabase Storage, create a public bucket `geosound-media` and set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+and `SUPABASE_STORAGE_BUCKET`. Until then, AI image moderation refuses all image hosts and places with images get a
+human-review Warning.
 
 ## 4. Gateway: chat route
 

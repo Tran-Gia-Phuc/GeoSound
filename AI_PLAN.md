@@ -37,7 +37,7 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 | D18 | Images | AI fetches images itself (https, host allowlist, no redirects, type + magic bytes, 3 MB). Permanent image problem → Warning `images[n]`; temporary → 503. Moderation stores `imagesChecked` and downgrades a Pass with unexplained unchecked images to Warning |
 | D19 | Tour edge cases | No `revision` → skipped; missing title / language / places → human-review Warning without an AI call; temporary AI failure publishes nothing even when G1 fired (whole review retried) |
 | D21 | Chatbot data | Tour publishes `tour.published` / `tour.unpublished` behind `CHATBOT_EVENTS_ENABLED`; the AI indexer is the only RabbitMQ consumer in the AI service |
-| D22 | Chatbot store | pgvector in the shared Postgres (custom image), schema `ai`, `DATABASE_URL_AI`; graph as edge tables; local multilingual embeddings |
+| D22 | Chatbot store | pgvector on the shared Supabase Postgres (extension `vector`, schema `ai`, `DATABASE_URL_AI`); graph as edge tables; local multilingual embeddings. Moderation also runs on Supabase (schema `moderation`) since 2026-10-28 |
 | D23 | Chatbot auth | Gateway JWT checks skipped for now: anonymous sessions by `session_id`; gateway adds `x-internal-token` and chat rate limits |
 | D24 | Other services | Changes to Tour, Gateway and infra are written by the AI team behind flags and merged only by their owners; requests in `docs/02-design/ai-integration-requests.md` |
 | D20 | Tour side (PR #213, owner reviews) | Tour stores `moderationRevision` before publishing and applies a result with a conditional update on it; editing a tour or its places while in moderation sends it back to `draft` |
