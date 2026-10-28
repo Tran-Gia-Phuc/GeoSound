@@ -35,8 +35,8 @@ app.use(rateLimit);
 const geocoder = createGeocoder({ userAgent: process.env.GEOCODER_USER_AGENT || undefined });
 app.get('/api/geocode', geocoder.handler);
 
-// Chatbot (#188) — chỉ bật khi CHATBOT_ENABLED=true; tắt thì /api/chat trả 404 như cũ.
-// Proxy SSE không buffer, gateway tự gắn x-internal-token, rate-limit riêng theo IP.
+// Chatbot (#188): only when CHATBOT_ENABLED=true; otherwise /api/chat stays 404.
+// SSE proxy without buffering; the gateway adds x-internal-token and a per-IP chat limit.
 mountChat(app, {
   enabled: CHATBOT_ENABLED,
   target: TARGETS.ai,
