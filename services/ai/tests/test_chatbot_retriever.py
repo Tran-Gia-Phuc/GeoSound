@@ -15,7 +15,7 @@ from app.chatbot.rag.hybrid_retriever import HybridRetriever
 from app.chatbot.rag.indexer import OUTCOME_DELETED, OUTCOME_INDEXED, Indexer
 from app.chatbot.rag.models import TopicAssignment
 from app.chatbot.rag.retriever import Retriever, SearchFilters
-from app.chatbot.rag.store import InMemoryIndexStore, PgVectorIndexStore, TourIndexState
+from app.chatbot.rag.store import InMemoryIndexStore, TourIndexState
 
 R1 = "2026-10-01T00:00:00Z"
 R2 = "2026-10-02T00:00:00Z"
@@ -368,12 +368,6 @@ def test_city_aliases_from_index_keeps_canonical_names():
     retriever = HybridRetriever(store, embedder, city_aliases=table)
     ids = tour_ids(run(retriever.search_tours("street food", SearchFilters(city="Quy Nhơn"))))
     assert ids == ["t-hcm-food"]
-
-
-def test_pg_store_read_methods_are_todo():
-    for name in ("get_revisions", "vector_search", "get_nodes", "get_chunks", "list_nodes", "neighbours",
-                 "places_near"):
-        assert "TODO(#219)" in getattr(PgVectorIndexStore, name).__doc__
 
 
 # ---------- end to end with the chat agent ----------

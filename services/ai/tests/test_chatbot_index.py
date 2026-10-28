@@ -288,9 +288,10 @@ def test_local_e5_embedder_is_not_loaded_without_runtime():
         pytest.skip("sentence-transformers installed; constructing it is still lazy")
 
 
-def test_pgvector_store_is_a_skeleton():
-    with pytest.raises(NotImplementedError):
-        PgVectorIndexStore("postgresql://unused", 384)
+def test_pgvector_store_is_lazy_and_implements_the_port():
+    store = PgVectorIndexStore("postgresql://unused@localhost/x?schema=ai", 384)  # no connection yet
+    assert store.dimension == 384 and store._pool is None
+    asyncio.run(store.aclose())  # closing a never-opened store is a no-op
 
 
 def test_dimension_mismatch_is_refused():
