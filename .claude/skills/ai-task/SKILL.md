@@ -25,6 +25,8 @@ git switch <branch>                                          # single task
 git worktree add /e/CNPM/git/wt-<N> <branch>                 # parallel task: the agent edits only inside wt-<N>
 ```
 
+A task split over several PRs: only the last PR may close the issue. Create the other branches with `git switch -c <branch> develop` (not `gh issue develop`, whose link closes the issue on merge) and write "Part of #<N>" in the PR body.
+
 Branch names: see `AI_PLAN.md` section 4 (`feature/…`, `docs/…`, `test/…`, `chore/…`).
 
 ## 2. Implement with a sub-agent
