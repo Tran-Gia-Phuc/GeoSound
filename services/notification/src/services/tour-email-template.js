@@ -23,6 +23,13 @@ const specs = {
     body: (title) => `Rất tiếc, tour ${title} chưa được duyệt.`,
     reason: true,
   },
+  // UC19 / A3 — admin asked for changes; the author edits and submits again.
+  'tour.changes_requested': {
+    subject: 'Tour cần chỉnh sửa',
+    heading: 'Tour cần chỉnh sửa',
+    body: (title) => `Quản trị viên yêu cầu chỉnh sửa tour ${title}. Vui lòng cập nhật theo góp ý bên dưới và gửi duyệt lại.`,
+    reason: true,
+  },
   'tour.ai_rejected': {
     subject: 'Tour không qua kiểm duyệt tự động',
     heading: 'Kiểm duyệt nội dung tự động',
