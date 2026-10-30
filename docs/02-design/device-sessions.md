@@ -104,6 +104,45 @@ working for up to 15 minutes; that is the fallback if the team does not want the
 Old tokens without `sid` keep working until they expire (at most 7 days); the next login creates a
 session. No data migration is needed.
 
+### 5.6 Implementation notes (issue #247)
+
+Where the code differs from or adds to the text above:
+
+- `device_id` is nullable: a client that sends no `deviceId` gets a new session on every sign-in
+  (and a new-device alert). "One active session per (user_id, device_id)" is enforced in
+  `SessionManager.start` (Prisma cannot express the partial unique index); the table has plain
+  indexes on `user_id`, `(user_id, device_id)`, `revoked_at` and `expires_at`.
+- `expires_at` stores the earlier of "7 days after the last activity" and "30 days after sign-in"
+  (`AUTH_SESSION_IDLE_DAYS`, `AUTH_SESSION_MAX_DAYS`); it moves on every refresh. A refresh of an
+  expired session marks it `expired`.
+- A sign-in on the same `deviceId` revokes the old session with reason `user`. A device counts as
+  "new" for the alert (R10) only when no session row (any state, within retention) exists for that
+  `deviceId`, so signing out and back in on the same browser sends no email.
+- The refresh token carries `sub`, `sid` and a random `jti`; only its sha-256 is stored.
+- Old refresh tokens without `sid` (rollout, 5.5): the refresh creates a session for them (no alert)
+  so the device shows up in the list; the new tokens carry `sid`. Old access tokens without `sid`
+  are never checked against Redis and work until they expire.
+- `POST /refresh` with `sid` and an unknown, revoked, expired or reused token answers
+  401 `session_revoked` ("Phiên đăng nhập đã kết thúc"). Two refreshes racing with the same token
+  are seen as reuse (the second one signs the session out); the client must serialise refreshes.
+- Revocation (5.3): `verifyJwt(roles, { isRevoked })` or `setSessionRevocationCheck(fn)` (per process,
+  set in `src/index.js`), with `createRedisRevocationCheck(redis)` in `shared/middleware`. A Redis
+  error or a lookup slower than 300 ms lets the request through (fail open, warned once). Wired in
+  Auth and Tour; Media uses `verifyJwt` but has no Redis client, so its tokens stay valid until they
+  expire (at most `JWT_ACCESS_TTL`). The gateway does not verify JWTs.
+- Revocation key TTL = `JWT_ACCESS_TTL` in seconds. If writing the key fails the sign-out is still
+  saved; only the "at once" part is lost for that token.
+- Location (R12): `LocationResolver` port with a null implementation, so `location` is always null
+  for now (shown as "Không xác định"). The client IP is the first hop of `x-forwarded-for`; the
+  gateway now sets it for `/api/auth` (`xfwd`).
+- Ban (R7, R13): Auth has no ban endpoint yet; `RevokeAllSessions` (reason `banned` by default) is
+  ready for UC21. Password change while signed in is not built (no such endpoint).
+- Retention (R12): `PurgeEndedSessions` runs one minute after start, then hourly
+  (`AUTH_SESSION_RETENTION_DAYS`, default 30).
+- Event `auth.new_device_login` = `{ userId, email, deviceName, location?, at }`. Auth now connects to
+  RabbitMQ at start; a failed publish is only logged. Notification sends "Đăng nhập mới trên
+  <deviceName>" to `SECURITY_ALERT_TO` when set, else to `email`.
+
 ## 6. Out of scope
 
 Admin view of a user's devices, push notifications, per-device settings, limiting simultaneous audio
