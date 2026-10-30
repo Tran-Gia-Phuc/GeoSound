@@ -2,7 +2,7 @@
 
 Read this file first in every session, then read `AI_PLAN.md` (decisions, current state, task list, notes for the next tasks). One task per branch, in the order of `AI_PLAN.md` section 4. Several tasks in one session only when the user asks for it. **Run tasks with the project skill `/ai-task <N>`** (`.claude/skills/ai-task/SKILL.md`): it holds the full branch → agent → test → review → commit → PR → merge procedure.
 
-**Priority:** phases 1 and 2 (place and tour moderation) are done end to end; tracing (#173) and the chatbot design, index, agent and retriever (#184 to #187) are merged. Next: #188 chat API, #189 evaluation, #219 pgvector wiring (`AI_PLAN.md` section 4).
+**Priority:** phases 1, 2 and 3 (place moderation, tour moderation, chatbot) work end to end on the real stack, including the Tour side (#180, #240). Open: #188 waits for gateway PR #227 (its owner merges). Next work only on request: bugs found in the flow, real-model eval baseline, smaller AI image (`AI_PLAN.md` sections 3 and 4).
 
 ## 1. Role and language
 
@@ -79,7 +79,7 @@ Limits: title 200, tour description 5000, place name 200, place description 2000
 - Never read, print, log or commit `.env` or any API key (`GEMINI_API_KEY`, `GROQ_API_KEY`, Supabase URLs). To check config, list key names only: `cut -d= -f1 .env`.
 - Tests never call real LLMs or the network: use `FakeLLM` (`services/ai/tests/conftest.py`) and `httpx.MockTransport` in Python; a fake `fetch` or small local server in Node.
 - Real-LLM smoke runs are allowed only when the user asks, and print results without the key. Gemini free tier is rate limited (429, 503 happen); this key works only with `gemini-2.5-flash`.
-- Do not change files owned by other services unless the task says so (Tour integration is task #AI-39 / issue #180, behind a feature flag; its PR is reviewed by the Tour owner, never merged by us).
+- Do not change files owned by other services unless the task says so. Changes there stay behind a feature flag and are merged by their owner, unless the owner handed the task over (the Tour owner did for #180 and #240). Never push schema changes or test data to another service's Supabase schema without the user's explicit go-ahead; test on a disposable Postgres instead.
 
 ## 7. Commands
 

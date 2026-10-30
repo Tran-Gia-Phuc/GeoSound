@@ -39,28 +39,34 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 | D21 | Chatbot data | Tour publishes `tour.published` / `tour.unpublished` behind `CHATBOT_EVENTS_ENABLED`; the AI indexer is the only RabbitMQ consumer in the AI service |
 | D22 | Chatbot store | pgvector on the shared Supabase Postgres (extension `vector`, schema `ai`, `DATABASE_URL_AI`); graph as edge tables; local multilingual embeddings. Moderation also runs on Supabase (schema `moderation`) since 2026-10-28 |
 | D23 | Chatbot auth | Gateway JWT checks skipped for now: anonymous sessions by `session_id`; gateway adds `x-internal-token` and chat rate limits |
-| D24 | Other services | Changes to Tour, Gateway and infra are written by the AI team behind flags and merged only by their owners; requests in `docs/02-design/ai-integration-requests.md` |
-| D20 | Tour side (PR #213, owner reviews) | Tour stores `moderationRevision` before publishing and applies a result with a conditional update on it; editing a tour or its places while in moderation sends it back to `draft` |
+| D24 | Other services | Changes to Tour, Gateway and infra are written by the AI team behind flags and merged by their owners, or by us when the owner hands the task over (the Tour owner did on 2026-10-30 for #213 and #240); requests in `docs/02-design/ai-integration-requests.md` |
+| D20 | Tour side (PR #213, merged) | Tour stores `moderationRevision` before publishing and applies a result with a conditional update on it; editing a tour or its places while in moderation sends it back to `draft` |
+| D25 | Tour catalog events (#240) | Behind `CHATBOT_EVENTS_ENABLED`: `tour.published` when a tour becomes `public` and re-sent when a public tour's places, languages, translations or a place moderation result change; `tour.unpublished` on unpublish / edit back to draft / delete. Only places not `checking` / `rejected` are sent. `revision` = max(`updatedAt`, send time) so re-sends are never stale |
+| D26 | Chat model | `thinking_budget=0` for Gemini chat (#238): `gemini-2.5-flash` counts thinking in `max_output_tokens` and cut answers at 512 tokens |
 
 
-## 3. Current state (2026-10-28)
+## 3. Current state (2026-10-30)
 
-- **Phases 1 and 2 done** (place text and images, tour content and geo rules), proven by the e2e with the AI stub (9/9 PASS).
-- **Phase 3 in progress:** design (#184), tracing (#173), index logic (#185), agent (#187) and hybrid retriever (#186) merged; #188 chat API in progress (AI part, plus gateway PR #227 for its owner).
-- Waiting for other owners: **PR #213** (Tour moderation events, #180) and **PR #227** (gateway chat route); requests in `docs/02-design/ai-integration-requests.md`.
-- Owner actions: `INTERNAL_SERVICE_TOKEN` in `.env`; never run real Gemini without an explicit request.
+- **Phases 1, 2 and 3 work end to end on the real stack** (Supabase, RabbitMQ, real Gemini), checked on 2026-10-30:
+  - place moderation (approved / rejected with reasons, publish blocked by a rejected place), tour moderation (`ai_warning` / `pending_review`), edit while in review withdraws to `draft`;
+  - chatbot: Tour publish → `tour.published` → indexer (pgvector, schema `ai`) → `/chat` answers with citations; unpublish removes the tour.
+- Tour schema `tour` on Supabase has the moderation columns (pushed 2026-10-30, additive).
+- Both Tour flags are off by default. To turn the full flow on: `MODERATION_EVENTS_ENABLED=true` and `CHATBOT_EVENTS_ENABLED=true` in `.env`, plus `INTERNAL_SERVICE_TOKEN`, `CHATBOT_ENABLED`, `CHATBOT_INDEXER_ENABLED`, `DATABASE_URL_AI`, `DATABASE_URL_DIRECT_AI` (and `CHAT_MEMORY_BACKEND=postgres` for shared chat memory).
+- Waiting for other owners: **PR #227** (gateway chat route; close #188 after it) and **UC#19 admin approval** (with moderation on, a tour stops at `pending_review`; the approval must call `notifyTourPublished` when it sets `public`). The Supabase password shared in chat must be reset by the project owner.
+- Never run real Gemini without an explicit request.
 
-Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a tour with more than 50 merged reasons may hide geo reasons; the pgvector store, embedding runtime and indexer transport are stubs until #219.
+Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a tour with more than 50 merged reasons may hide geo reasons; "near X" questions use a 500 m radius (`NEARBY_RADIUS_M`).
 
 ## 4. Tasks (label `ai-service`)
 
 | Code | Issue | Branch | Status |
 | --- | --- | --- | --- |
-| AI-25 to AI-38, AI-40 to AI-46 | #166 to #179, #181 to #187 | | merged |
-| AI-39 Tour integration (flag) | #180 | `feature/tour-moderation-integration` | PR #213, Tour owner merges |
-| AI-47 `POST /chat` + gateway route | #188 | `feature/chatbot-api`, `feature/gateway-chat-route` | in progress; gateway PR #227 merged by its owner |
-| AI-48 chatbot evaluation | #189 | `test/chatbot-eval` | after #188 |
-| AI-49 pgvector store, embeddings, indexer transport | #219 | `feature/chatbot-pgvector` | after the pgvector image and Tour events are agreed |
+| AI-25 to AI-46 | #166 to #187 | | merged (AI-39 Tour integration: PR #213) |
+| AI-47 `POST /chat` + gateway route | #188 | `feature/chatbot-api`, `feature/gateway-chat-route` | AI part merged; open until gateway PR #227 is merged by its owner |
+| AI-48 chatbot evaluation | #189 | `test/chatbot-eval` | merged (offline; real-model baseline only on request) |
+| AI-49 pgvector store, embeddings, indexer transport, chat memory | #219 | | merged (PRs #232 to #237) |
+| full-flow fixes: chat thinking budget, app logs | #238 | `fix/chat-thinking-budget` | merged (PR #239) |
+| Tour `tour.published` / `tour.unpublished` | #240 | `feature/tour-chatbot-events` | merged (PR #241) |
 
 ## 5. Notes for the next tasks
 
@@ -69,6 +75,8 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | all Node tasks | Only `src/index.js` may import `../shared/...`; inject `validateEvent` / `publish` elsewhere (CI runs tests from the repo layout, where `../shared` does not exist). Test helpers load shared with a dynamic import that tries the repo path, then the image path |
 | all tasks | Merge only when no CI check fails; for the known flaky UI test, rerun the failed job first (`gh run rerun <id> --failed`) |
 | #185 to #189 | Follow `chatbot-architecture.md`. One LLM call per normal turn; tests use FakeLLM and a fake retriever/embedder; no real Gemini |
-| #188 | Render or strip `[tour:ID]` / `[place:ID]` markers; on a provider error remove the just-saved user message from memory; hide tool inputs (lat/lng) from LangSmith traces; Postgres checkpointer, session TTL, `CHATBOT_ENABLED`, global chat cap; stream tokens only after `cite` (or buffer markers) so invented markers never reach the client; history entries need `citations?` and `at` |
+| #188 | AI side done. When PR #227 is merged by the gateway owner, check `/api/chat` through the gateway once, then close #188 with "Done in PR #229 and PR #227" |
+| full-flow test | How it was run on 2026-10-30: Tour on a disposable Postgres (`postgis/postgis:16-3.4` on the compose network, `DATABASE_URL` and flags set in a compose override, never in `.env`), a contributor JWT signed inside the tour container with `JWT_ACCESS_SECRET`, calls through the gateway. Never write test data to the shared Supabase schemas of other services |
+| moderation tokens | Moderation calls Gemini through `GeminiClient.generate_json` (default `max_tokens` 2048) with thinking on. Fine for the tested tours; if a large tour (close to 50 places) returns invalid JSON, check `finish_reason=MAX_TOKENS` and set a thinking budget there too |
 | partial PRs | A branch made with `gh issue develop` is linked to the issue, and merging its PR closes the issue even with "Part of #N". For a partial PR create the branch with `git switch -c` and write "Part of #N" |
 | #219 | Schema `ai` is defined in `services/ai/prisma/schema.prisma` (tables) plus `prisma/pre-push.sql` (vector extension, schema `ai`) and `prisma/post-push.sql` (CHECK constraints, HNSW index), pushed with the auth image (`docs/04-guides/supabase-access.md` section 4); pgvector store, e5 embedding runtime in the image, AMQP transport for the indexer. Chat memory (part D): `CHAT_MEMORY_BACKEND=postgres` uses the official `AsyncPostgresSaver` (`langgraph-checkpoint-postgres` 3.2, psycopg 3.3) over `DATABASE_URL_DIRECT_AI`, in its own schema `ai_chat` (created at startup, never in Prisma-managed `ai`), plus `ai_chat.chat_sessions` / `chat_messages` for `at`, citations and TTL; `memory` stays the default. Integration tests need `AI_TEST_DATABASE_URL` (disposable DB) |
