@@ -23,9 +23,18 @@ export const resendOtpSchema = z.object({
   purpose: z.enum(['register', 'reset']).default('register'),
 });
 
+// UC23 / R1 — random id kept by the client (local storage); optional for old clients.
+const deviceId = z
+  .string({ invalid_type_error: 'Mã thiết bị không hợp lệ' })
+  .trim()
+  .min(8, 'Mã thiết bị không hợp lệ')
+  .max(100, 'Mã thiết bị không hợp lệ')
+  .optional();
+
 export const loginSchema = z.object({
   email,
   password: z.string({ required_error: 'Vui lòng nhập mật khẩu' }).min(1, 'Vui lòng nhập mật khẩu'),
+  deviceId,
 });
 
 export const forgotPasswordSchema = z.object({ email });
@@ -38,4 +47,5 @@ export const resetPasswordSchema = z.object({
 
 export const refreshSchema = z.object({
   refreshToken: z.string({ required_error: 'Thiếu refresh token' }).min(1, 'Thiếu refresh token'),
+  deviceId,
 });

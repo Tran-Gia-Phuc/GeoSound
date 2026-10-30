@@ -1,6 +1,8 @@
 // =========================================================
 // UC01 — Đăng nhập (Basic Course of Events).
 // Xử lý: sai thông tin (E2) + tạm khóa khi sai nhiều lần, tài khoản bị ban (E3).
+// UC23: with a SessionManager each sign-in creates (or replaces, R1) a device session and the
+// tokens carry its `sid`. Without one (old wiring, unit tests) tokens are issued as before.
 // =========================================================
 import {
   InvalidCredentialsError,
@@ -9,17 +11,18 @@ import {
 } from '../../domain/errors/index.js';
 
 export class Login {
-  /** @param {{ userRepo, hasher, tokens, policy: { maxAttempts: number, lockMs: number }, now?: () => Date }} deps */
-  constructor({ userRepo, hasher, tokens, policy, now }) {
+  /** @param {{ userRepo, hasher, tokens, policy: { maxAttempts: number, lockMs: number }, sessions?: import('../services/session-manager.js').SessionManager, now?: () => Date }} deps */
+  constructor({ userRepo, hasher, tokens, policy, sessions, now }) {
     this.userRepo = userRepo;
+    this.sessions = sessions ?? null;
     this.hasher = hasher;
     this.tokens = tokens;
     this.policy = policy;
     this.now = now ?? (() => new Date());
   }
 
-  /** @param {{ email: string, password: string }} input */
-  async execute({ email, password }) {
+  /** @param {{ email: string, password: string, deviceId?: string, userAgent?: string, ip?: string }} input */
+  async execute({ email, password, deviceId, userAgent, ip }) {
     const normalizedEmail = String(email ?? '').trim().toLowerCase();
     const user = await this.userRepo.findByEmail(normalizedEmail);
 
@@ -50,6 +53,10 @@ export class Login {
       await this.userRepo.save(user);
     }
 
+    if (this.sessions) {
+      const { tokens } = await this.sessions.start({ user, deviceId, userAgent, ip });
+      return { user: user.toPublic(), ...tokens };
+    }
     const tokens = this.tokens.issueTokens(user);
     return { user: user.toPublic(), ...tokens };
   }
