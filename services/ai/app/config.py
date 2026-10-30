@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "openai/gpt-oss-20b"
     llm_timeout_seconds: float = 10.0
+    # Level of the app.* loggers (DEBUG, INFO, WARNING, ERROR).
+    ai_log_level: str = "INFO"
 
     rabbitmq_url: str = "amqp://guest:guest@rabbitmq:5672"
     rabbitmq_exchange: str = "geosound.events"

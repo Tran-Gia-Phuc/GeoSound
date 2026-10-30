@@ -176,6 +176,9 @@ _MINUTES = re.compile(r"(?<!\w)(\d+)\s*(min|mins|minute|minutes|phut)(?!\w)")
 _HALF_DAY = Keywords(["half day", "half a day", "nửa ngày"])
 
 _MARKER = re.compile(r"\[(tour|place):([^\[\]\s]{1,100})\]")
+# Unfinished marker at the very end: "[", "[pla", "[tour:", "[place:p-1".
+_DANGLING_MARKER = re.compile(
+    r"\[(?:(?:tour|place):[^\[\]\s]{0,100}|t(?:o(?:ur?)?)?|p(?:l(?:a(?:ce?)?)?)?)?$")
 
 
 # ---------- classify ----------
@@ -359,6 +362,8 @@ def cite(answer: str, retrieved: list[dict]) -> tuple[str, list[dict]]:
         return match.group(0) if (match.group(1), match.group(2)) in known else ""
 
     cleaned = _MARKER.sub(_keep, answer)
+    # An answer cut by the token limit can end inside a marker ("[tour:abc-"): drop it.
+    cleaned = _DANGLING_MARKER.sub("", cleaned)
     cleaned = re.sub(r"[ \t]{2,}", " ", cleaned).replace(" .", ".").strip()
 
     positions: list[tuple[int, dict]] = []

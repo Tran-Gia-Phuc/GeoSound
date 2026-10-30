@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -6,6 +7,22 @@ from app.api import chat, health, moderation, translation
 from app.config import get_settings
 
 settings = get_settings()
+
+
+def configure_logging(level: str) -> None:
+    """Show `app.*` logs (indexer, chat, moderation) next to uvicorn's own logs.
+
+    Without a handler Python drops every INFO line of the app (issue #238).
+    """
+    app_logger = logging.getLogger("app")
+    app_logger.setLevel(getattr(logging, level.upper(), logging.INFO))
+    if not app_logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s: %(message)s"))
+        app_logger.addHandler(handler)
+
+
+configure_logging(settings.ai_log_level)
 
 
 async def open_chat_memory_at_startup() -> None:

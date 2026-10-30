@@ -111,6 +111,20 @@ def test_cite_keeps_only_retrieved_ids_and_strips_invented_markers():
     ]
 
 
+@pytest.mark.parametrize("tail", ["[", "[pla", "[tour", "[tour:", "[tour:flow-chat-", "[place:p"])
+def test_cite_drops_a_marker_cut_by_the_token_limit(tail):
+    # Issue #238: an answer cut by max_output_tokens can stop inside a marker.
+    retrieved = [{"kind": "tour", "id": "t1", "title": "Food tour", "text": "", "score": 1, "hops": 0}]
+    cleaned, citations = rules.cite("See [tour:t1] then " + tail, retrieved)
+    assert cleaned == "See [tour:t1] then"
+    assert citations == [{"kind": "tour", "id": "t1", "title": "Food tour"}]
+
+
+def test_cite_keeps_other_brackets_at_the_end():
+    cleaned, _ = rules.cite("Open daily [8am", [])
+    assert cleaned == "Open daily [8am"
+
+
 def test_merge_items_dedupes_and_caps():
     items = [
         {"kind": "tour", "id": f"t{i}", "title": "", "text": "", "score": i / 10, "hops": 0}

@@ -19,6 +19,9 @@ from app.config import Settings, get_settings
 # Short answers keep the prompt+output budget small (section 7).
 MAX_OUTPUT_TOKENS = 512
 TEMPERATURE = 0.3
+# gemini-2.5-flash counts thinking tokens in max_output_tokens: with thinking on, a
+# 512-token budget is spent on reasoning and the answer is cut (issue #238).
+THINKING_BUDGET = 0
 
 
 def fallback_exceptions() -> tuple[type[BaseException], ...]:
@@ -44,6 +47,7 @@ def build_chat_model(settings: Settings | None = None) -> Any:
         google_api_key=settings.gemini_api_key,
         temperature=TEMPERATURE,
         max_output_tokens=MAX_OUTPUT_TOKENS,
+        thinking_budget=THINKING_BUDGET,
         timeout=settings.llm_timeout_seconds,
         # One attempt: retries would spend the shared 5 requests per minute.
         max_retries=1,
