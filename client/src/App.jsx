@@ -2,6 +2,7 @@
 // thanh trên ở desktop); màn chi tiết có thanh hành động riêng dùng AppLayout
 // tabs={false}; trình phát / đăng nhập là toàn màn hình.
 //   /account            — tài khoản + giao diện sáng/tối
+//   /account/devices    — thiết bị đang đăng nhập (UC23, cần đăng nhập)
 //   /                   — Khám phá: tìm tour + địa điểm (UC02, UC07) — ?tab=&q=&city=…
 //   /login, /register   — đăng nhập / đăng ký (chọn vai trò) (UC01)
 //   /forgot-password    — quên mật khẩu (UC01 A2)
@@ -52,6 +53,8 @@ import LanguagesPage from './features/studio/LanguagesPage.jsx';
 import StudioTourLayout from './features/studio/StudioTourLayout.jsx';
 import PublishStepPage from './features/studio/PublishStepPage.jsx';
 import AccountPage from './features/account/AccountPage.jsx';
+import DevicesPage from './features/account/DevicesPage.jsx';
+import SessionWatcher from './auth/SessionWatcher.jsx';
 import AppLayout from './components/shell/AppLayout.jsx';
 import { previewTour } from './lib/studio.js';
 
@@ -99,7 +102,8 @@ function PreviewTourRoute() {
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <>
+    // SessionWatcher: sends the user to /login when the server ends the session (UC23).
+    <Route element={<SessionWatcher />}>
       {/* Màn gốc của các tab */}
       <Route element={<AppLayout />}>
         <Route path="/" element={<DiscoverPage />} />
@@ -107,6 +111,7 @@ const router = createBrowserRouter(
         <Route path="/explore" element={<RedirectToDiscover tab="places" />} />
         <Route path="/itineraries" element={<ItinerariesPage />} />
         <Route path="/account" element={<AccountPage />} />
+        <Route path="/account/devices" element={<RequireAuth><DevicesPage /></RequireAuth>} />
         <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />
         <Route path="/studio/tours/new" element={<RequireContributor><TourCreatePage /></RequireContributor>} />
         <Route path="/studio/tours/:id" element={<RequireContributor><StudioTourLayout /></RequireContributor>}>
@@ -134,7 +139,7 @@ const router = createBrowserRouter(
       <Route path="/shared/:token/go" element={<SharedItineraryPlayerPage />} />
       <Route path="/studio/tours/:tourId/preview" element={<RequireContributor><PreviewTourRoute /></RequireContributor>} />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </>,
+    </Route>,
   ),
 );
 

@@ -306,6 +306,56 @@
   color: var(--danger);
 }
 
+/* ---------- Signed-in devices (UC23) ---------- */
+.devices__loading {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.devices__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.device {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.device__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.device__icon {
+  flex: none;
+  color: var(--primary);
+}
+.device__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.device__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+.device__active {
+  color: var(--success);
+  font-weight: 600;
+}
+.device__signout {
+  align-self: flex-start;
+  margin-top: var(--sp-1);
+  color: var(--danger);
+}
+
 /* Thanh lưu dính đáy của Studio phải nằm trên thanh tab (điện thoại). */
 .app--tabs .studio-save {
   bottom: calc(var(--tabbar-h) + var(--sab));

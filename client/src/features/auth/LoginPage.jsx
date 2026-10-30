@@ -10,6 +10,7 @@
 // =========================================================
 import { useState } from 'react';
 import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { SESSION_ENDED_NOTICE } from '../../auth/SessionWatcher.jsx';
 import Icon from '../../components/Icon.jsx';
 import { useCountdown, formatCountdown } from '../../hooks/useCountdown.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
@@ -267,6 +268,10 @@ export default function LoginPage({ initialTab = 'login' }) {
                         : 'Lưu lịch trình và tiến độ nghe trên mọi thiết bị.'}
                   </p>
 
+                  {/* UC23: the server ended this device's session (SessionWatcher). */}
+                  {tab === 'login' && location.state?.sessionEnded && !serverError && !accessError ? (
+                    <p className="auth__notice" role="status">{SESSION_ENDED_NOTICE}</p>
+                  ) : null}
                   <ErrorAlert>{serverError}</ErrorAlert>
                   {tab === 'login' && accessError ? <section className="alert alert--warn" role="alert">
                     <Icon name="alert-triangle" size={22} />

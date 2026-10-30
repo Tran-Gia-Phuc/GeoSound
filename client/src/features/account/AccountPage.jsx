@@ -1,7 +1,7 @@
 // =========================================================
 // AccountPage (/account) — tab "Tài khoản":
 //   - Chưa đăng nhập: Đăng nhập / Đăng ký (khách không bắt buộc có tài khoản).
-//   - Đã đăng nhập: hồ sơ, lối tắt Lịch trình / Studio, trở thành tác giả, đăng xuất.
+//   - Đã đăng nhập: hồ sơ, lối tắt Lịch trình / Thiết bị (UC23) / Studio, trở thành tác giả, đăng xuất.
 //   - Giao diện sáng / tối / theo hệ thống (chuyển vào đây từ mọi header).
 // =========================================================
 import { Link, useNavigate } from 'react-router-dom';
@@ -50,6 +50,10 @@ export default function AccountPage() {
         <nav className="menu" aria-label="Lối tắt">
           <Link className="menu__item" to="/itineraries">
             <Icon name="route" size={20} /> <span>Lịch trình của tôi</span>
+            <Icon name="chevron-left" size={16} className="menu__chev" />
+          </Link>
+          <Link className="menu__item" to="/account/devices">
+            <Icon name="user" size={20} /> <span>Thiết bị đang đăng nhập</span>
             <Icon name="chevron-left" size={16} className="menu__chev" />
           </Link>
           {isContributor ? (

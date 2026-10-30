@@ -5,7 +5,8 @@
 //     và tự làm mới access token khi gặp 401 (refresh 1 lần rồi thử lại).
 // Dev: Vite proxy '/api' -> gateway:8080 (vite.config.js).
 // =========================================================
-import { readAuth, writeAuth, clearAuth, getAccessToken, getRefreshToken } from './token-store.js';
+import { readAuth, writeAuth, clearAuth, endSession, getAccessToken, getRefreshToken } from './token-store.js';
+import { getDeviceId } from './device-id.js';
 
 const BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -45,17 +46,32 @@ function fail(res, body) {
 // Chỉ chạy MỘT lần refresh đồng thời — nhiều request 401 cùng lúc chờ chung.
 let refreshing = null;
 
+// UC23: Auth rotates the refresh token and treats a second use of the old one as theft (the
+// session is signed out). Tabs share localStorage, so refreshes are serialised across tabs with
+// a Web Lock, and a tab that waited reuses the tokens another tab already rotated.
 async function refreshTokens() {
+  const seen = getRefreshToken();
+  if (!seen) return null;
+  const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined;
+  return locks?.request
+    ? locks.request('geosound-auth-refresh', () => rotateTokens(seen))
+    : rotateTokens(seen);
+}
+
+async function rotateTokens(seen) {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
+  if (refreshToken !== seen) return getAccessToken(); // another tab already rotated
   try {
     const res = await fetch(`${BASE}/api/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ refreshToken }),
+      body: JSON.stringify({ refreshToken, deviceId: getDeviceId() }),
     });
     if (!res.ok) {
-      clearAuth();
+      // 401 (e.g. code session_revoked): this device was signed out on the server.
+      if (res.status === 401) endSession();
+      else clearAuth();
       return null;
     }
     const body = await parse(res);

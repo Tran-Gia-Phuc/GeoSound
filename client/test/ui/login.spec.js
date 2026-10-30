@@ -34,7 +34,11 @@ test('guest action, password visibility and backend request', async ({ page }) =
   await expect(page.locator('#password')).toHaveAttribute('type', 'text');
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
   await expect(page).toHaveURL(/itineraries$/);
-  expect(payload).toEqual({ email: 'test@example.test', password: 'Password123' });
+  expect(payload).toEqual({
+    email: 'test@example.test',
+    password: 'Password123',
+    deviceId: expect.any(String),
+  });
 });
 test('login design fits desktop and phone', async ({ page }) => {
   for (const width of [1440, 390]) {

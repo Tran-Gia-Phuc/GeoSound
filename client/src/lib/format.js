@@ -65,3 +65,26 @@ export function stopNumbers(places = []) {
   const ordered = [...places].sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
   return new Map(ordered.map((p, i) => [p.id, i + 1]));
 }
+
+/**
+ * Relative last activity (UC23): "Đang hoạt động" under 2 minutes, then
+ * "x phút trước", "x giờ trước", "x ngày trước". Invalid date -> ''.
+ */
+export function formatLastActive(iso, now = Date.now()) {
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return '';
+  const min = Math.floor(Math.max(0, now - t) / 60000);
+  if (min < 2) return 'Đang hoạt động';
+  if (min < 60) return `${min} phút trước`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h} giờ trước`;
+  return `${Math.floor(h / 24)} ngày trước`;
+}
+
+/** ISO time -> "HH:mm dd/MM/yyyy" (vi-VN). Invalid date -> ''. */
+export function formatDateTime(iso) {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return '';
+  const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  return `${time} ${d.toLocaleDateString('vi-VN')}`;
+}
