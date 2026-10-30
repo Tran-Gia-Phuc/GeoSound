@@ -30,6 +30,7 @@ export class PrismaTourRepository {
       ratingCount: row.ratingCount,
       moderationReasons: Array.isArray(row.moderationReasons) ? row.moderationReasons : [],
       moderationRevision: row.moderationRevision ?? null,
+      reviewReason: row.reviewReason ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
@@ -109,6 +110,45 @@ export class PrismaTourRepository {
       data: { status, moderationReasons },
     });
     return count;
+  }
+
+  // ---------- UC19 — admin review ----------
+
+  /** Tours in the given statuses, oldest update first (the use-case puts ai_warning first). */
+  async listByStatuses(statuses) {
+    const rows = await this.prisma.tour.findMany({
+      where: { status: { in: [...statuses] } },
+      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+    });
+    return rows.map(PrismaTourRepository.toEntity);
+  }
+
+  /**
+   * UC19 — conditional admin decision: one UPDATE ... WHERE id AND status IN fromStatuses, and the
+   * log row in the same transaction (written only when the update won). Returns rows updated (0 | 1).
+   * @param {string} id @param {string[]} fromStatuses
+   * @param {{ status: string, reviewReason: string|null }} fields
+   * @param {{ adminId: string, action: string, reason: string|null, fromStatus: string }} log
+   */
+  async applyReviewDecisionIf(id, fromStatuses, { status, reviewReason }, log) {
+    return this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.tour.updateMany({
+        where: { id, status: { in: [...fromStatuses] } },
+        data: { status, reviewReason },
+      });
+      if (count) {
+        await tx.tourReviewAction.create({
+          data: {
+            tourId: id,
+            adminId: log.adminId,
+            action: log.action,
+            reason: log.reason ?? null,
+            fromStatus: log.fromStatus,
+          },
+        });
+      }
+      return count;
+    });
   }
 
   // ---------- UC02 — đọc công khai (chỉ tour status=public) ----------
