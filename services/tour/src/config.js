@@ -6,3 +6,8 @@
 export function isModerationEnabled(env = process.env) {
   return String(env.MODERATION_EVENTS_ENABLED ?? '').toLowerCase() === 'true';
 }
+
+// Chatbot index events (tour.published / tour.unpublished), OFF by default (#240).
+export function isChatbotEventsEnabled(env = process.env) {
+  return String(env.CHATBOT_EVENTS_ENABLED ?? '').toLowerCase() === 'true';
+}

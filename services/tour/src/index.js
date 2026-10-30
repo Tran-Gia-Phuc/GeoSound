@@ -8,7 +8,7 @@
 import express from 'express';
 import { logger, errorHandler } from '../shared/middleware/index.js';
 import { buildContainer } from './container.js';
-import { isModerationEnabled } from './config.js';
+import { isModerationEnabled, isChatbotEventsEnabled } from './config.js';
 import {
   MODERATION_RESULT_QUEUE,
   MODERATION_RESULT_BINDINGS,
@@ -17,10 +17,13 @@ import {
 const app = express();
 const PORT = process.env.PORT || 3002;
 
-// UC15 — RabbitMQ is loaded only when MODERATION_EVENTS_ENABLED=true (flag off: no connection at all).
+// UC15 / #240 — RabbitMQ is loaded only when MODERATION_EVENTS_ENABLED=true or
+// CHATBOT_EVENTS_ENABLED=true (both off: no connection at all).
 const moderationEnabled = isModerationEnabled(process.env);
-const rabbit = moderationEnabled ? await import('../shared/rabbitmq/index.js') : null;
-const events = moderationEnabled ? await import('../shared/events/index.js') : null;
+const chatbotEventsEnabled = isChatbotEventsEnabled(process.env);
+const brokerEnabled = moderationEnabled || chatbotEventsEnabled;
+const rabbit = brokerEnabled ? await import('../shared/rabbitmq/index.js') : null;
+const events = brokerEnabled ? await import('../shared/events/index.js') : null;
 
 const {
   tourRouter,
@@ -73,13 +76,16 @@ app.use(errorHandler);
 
 app.listen(PORT, () => console.log(`[tour] listening on :${PORT}`));
 
-// UC15 — connect to the broker in the background and consume AI results. A failure never stops HTTP;
-// until connected, sending place/tour.submitted fails -> logged only, status stays 'checking' / 'ai_checking'.
-if (moderationEnabled) {
+// UC15 / #240 — connect to the broker in the background; consume AI results only with the moderation
+// flag. A failure never stops HTTP; until connected, publishing fails -> logged only
+// (status stays 'checking' / 'ai_checking'; tour.published / tour.unpublished are not sent).
+if (brokerEnabled) {
   (async () => {
     try {
       await rabbit.connect();
-      await rabbit.consume(MODERATION_RESULT_QUEUE, MODERATION_RESULT_BINDINGS, moderationResultHandler);
+      if (moderationResultHandler) {
+        await rabbit.consume(MODERATION_RESULT_QUEUE, MODERATION_RESULT_BINDINGS, moderationResultHandler);
+      }
     } catch (err) {
       console.error('[tour] rabbitmq init failed:', err.message);
     }

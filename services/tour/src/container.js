@@ -25,7 +25,8 @@ import { EchoTranslator } from './infrastructure/i18n/echo-translator.js';
 import { AiTranslator } from './infrastructure/i18n/ai-translator.js';
 import { PlaceholderTtsSynthesizer } from './infrastructure/i18n/placeholder-tts.js';
 import { EventModerationGateway } from './infrastructure/messaging/event-moderation-gateway.js';
-import { isModerationEnabled } from './config.js';
+import { EventTourCatalogPublisher } from './infrastructure/messaging/event-tour-catalog-publisher.js';
+import { isModerationEnabled, isChatbotEventsEnabled } from './config.js';
 
 import { CreateTour } from './application/use-cases/create-tour.js';
 import { ListMyTours } from './application/use-cases/list-my-tours.js';
@@ -93,7 +94,7 @@ function selectTranslator(env) {
 
 /**
  * @param {object} env
- * @param {{ publish?, validateEvent? }} [shared] functions from ../shared (only index.js imports it), needed only when the flag is on
+ * @param {{ publish?, validateEvent? }} [shared] functions from ../shared (only index.js imports it), needed only when a flag is on
  */
 export function buildContainer(env = process.env, { publish = null, validateEvent = null } = {}) {
   // --- infrastructure (impl của domain/ports) ---
@@ -116,6 +117,10 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   // UC15 — gateway for place.submitted / tour.submitted; null when the flag is off -> behaviour as today.
   const moderation =
     isModerationEnabled(env) && publish ? new EventModerationGateway({ publish }) : null;
+  // #240 — publisher for tour.published / tour.unpublished (chatbot index); null when the flag is off.
+  const catalog =
+    isChatbotEventsEnabled(env) && publish ? new EventTourCatalogPublisher({ publish }) : null;
+  const i18nRepos = { tourLanguageRepo, placeTranslationRepo };
 
   // --- application (use-cases) ---
   const useCases = {
@@ -123,20 +128,20 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     createTour: new CreateTour({ tourRepo }),
     listMyTours: new ListMyTours({ tourRepo, placeRepo }),
     getMyTour: new GetMyTour({ tourRepo }),
-    updateTour: new UpdateTour({ tourRepo, moderation }),
-    deleteTour: new DeleteTour({ tourRepo }),
+    updateTour: new UpdateTour({ tourRepo, moderation, catalog }),
+    deleteTour: new DeleteTour({ tourRepo, catalog }),
     // UC09 / A3 — xuất bản thẳng (bỏ qua kiểm duyệt)
     getPublishReadiness: new GetPublishReadiness({ tourRepo, placeRepo, moderation }),
-    publishTour: new PublishTour({ tourRepo, placeRepo, moderation }),
-    unpublishTour: new UnpublishTour({ tourRepo }),
+    publishTour: new PublishTour({ tourRepo, placeRepo, moderation, catalog, ...i18nRepos }),
+    unpublishTour: new UnpublishTour({ tourRepo, catalog }),
   };
   const placeUseCases = {
     // UC10 — quản lý điểm dừng
-    addPlace: new AddPlace({ tourRepo, placeRepo, zoneChecker, moderation }),
+    addPlace: new AddPlace({ tourRepo, placeRepo, zoneChecker, moderation, catalog, ...i18nRepos }),
     listPlaces: new ListPlaces({ tourRepo, placeRepo }),
-    updatePlace: new UpdatePlace({ tourRepo, placeRepo, zoneChecker, moderation }),
-    deletePlace: new DeletePlace({ tourRepo, placeRepo, moderation }),
-    reorderPlaces: new ReorderPlaces({ tourRepo, placeRepo, moderation }),
+    updatePlace: new UpdatePlace({ tourRepo, placeRepo, zoneChecker, moderation, catalog, ...i18nRepos }),
+    deletePlace: new DeletePlace({ tourRepo, placeRepo, moderation, catalog, ...i18nRepos }),
+    reorderPlaces: new ReorderPlaces({ tourRepo, placeRepo, moderation, catalog, ...i18nRepos }),
   };
   const routeConfigUseCases = {
     // UC11 — route & vùng kích hoạt
@@ -167,9 +172,9 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   const languageUseCases = {
     // UC12 — đa ngôn ngữ & TTS
     getLanguageConfig: new GetLanguageConfig({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo }),
-    setTourLanguages: new SetTourLanguages({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, translator, ttsSynthesizer }),
+    setTourLanguages: new SetTourLanguages({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, translator, ttsSynthesizer, catalog }),
     previewTts: new PreviewTts({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, ttsSynthesizer }),
-    updateTranslation: new UpdateTranslation({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, ttsSynthesizer }),
+    updateTranslation: new UpdateTranslation({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, ttsSynthesizer, catalog }),
   };
 
   const itineraryUseCases = {
@@ -212,7 +217,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   // UC15 — AI result handler (queue tour.moderation-results), only when the flag is on.
   const moderationResultHandler = moderation
     ? buildModerationResultHandler({
-        applyModerationResult: new ApplyModerationResult({ tourRepo, placeRepo }),
+        applyModerationResult: new ApplyModerationResult({ tourRepo, placeRepo, catalog, ...i18nRepos }),
         validateEvent,
       })
     : null;

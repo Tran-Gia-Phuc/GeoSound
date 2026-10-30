@@ -8,6 +8,8 @@
 // extra checks (D5: no place 'checking'/'rejected'; at most 50 places), status = ai_checking and
 // tour.submitted is sent. The AI result comes back via ApplyModerationResult.
 // Without it: direct publish as today.
+// #240 (CHATBOT_EVENTS_ENABLED): with `catalog`, entering public sends tour.published and
+// UnpublishTour sends tour.unpublished (reason 'unpublished'), after the save.
 // =========================================================
 import { checkPublishReadiness } from '../../domain/tour/publish-readiness.js';
 import {
@@ -17,6 +19,7 @@ import {
   TourStatusTransitionError,
 } from '../../domain/errors/index.js';
 import { submitTourForModeration } from './submit-for-moderation.js';
+import { notifyTourPublished, notifyTourUnpublished } from './notify-tour-catalog.js';
 
 async function loadOwned(tourRepo, { authorId, tourId }) {
   const tour = await tourRepo.findById(tourId);
@@ -47,11 +50,22 @@ export class GetPublishReadiness {
 }
 
 export class PublishTour {
-  /** @param {{ tourRepo, placeRepo, moderation?, logger? }} deps */
-  constructor({ tourRepo, placeRepo, moderation = null, logger = console }) {
+  /** @param {{ tourRepo, placeRepo, moderation?, catalog?, tourLanguageRepo?, placeTranslationRepo?, logger? }} deps */
+  constructor({
+    tourRepo,
+    placeRepo,
+    moderation = null,
+    catalog = null,
+    tourLanguageRepo = null,
+    placeTranslationRepo = null,
+    logger = console,
+  }) {
     this.tourRepo = tourRepo;
     this.placeRepo = placeRepo;
     this.moderation = moderation;
+    this.catalog = catalog;
+    this.tourLanguageRepo = tourLanguageRepo;
+    this.placeTranslationRepo = placeTranslationRepo;
     this.logger = logger;
   }
 
@@ -84,14 +98,17 @@ export class PublishTour {
 
     tour.publish();
     const saved = await this.tourRepo.save(tour);
+    await notifyTourPublished(this, saved);
     return { tour: saved.toPublic(), changed: true };
   }
 }
 
 export class UnpublishTour {
-  /** @param {{ tourRepo }} deps */
-  constructor({ tourRepo }) {
+  /** @param {{ tourRepo, catalog?, logger? }} deps */
+  constructor({ tourRepo, catalog = null, logger = console }) {
     this.tourRepo = tourRepo;
+    this.catalog = catalog;
+    this.logger = logger;
   }
 
   /** @param {{ authorId: string, tourId: string }} input */
@@ -102,6 +119,7 @@ export class UnpublishTour {
     }
     tour.unpublish();
     const saved = await this.tourRepo.save(tour);
+    await notifyTourUnpublished(this, saved, 'unpublished');
     return { tour: saved.toPublic() };
   }
 }

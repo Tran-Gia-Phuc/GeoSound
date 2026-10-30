@@ -34,6 +34,10 @@ Behaviour with the flag on, and the four points for you to decide, are in the PR
 The chatbot must only answer about **public** tours, so Tour tells the AI service when a tour enters or leaves
 `public`.
 
+Status: implemented in #240 (`services/tour`, flag `CHATBOT_EVENTS_ENABLED`). Tour also re-sends `tour.published`
+when a place or translation of a public tour changes; `revision` is the later of `updatedAt` and the event time, so
+every re-send is newer than the indexed one.
+
 | Event | When | Payload (camelCase, `at` ends with `Z`) |
 | --- | --- | --- |
 | `tour.published` | A tour becomes `public` (publish, or Admin approval later) | `tourId`, `revision` (Tour `updatedAt`), `status` (`public`), `title`, `description`, `language`, `city?`, `type`, `durationMinutes?`, `languages?[]`, `places[{placeId, name, type?, description, lat, lng, sequence, translations?[{language, text}]}]` (max 50), `at?` |
