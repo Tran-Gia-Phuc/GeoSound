@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "openai/gpt-oss-20b"
     llm_timeout_seconds: float = 10.0
+    # Level of the app.* loggers (DEBUG, INFO, WARNING, ERROR).
+    ai_log_level: str = "INFO"
 
     rabbitmq_url: str = "amqp://guest:guest@rabbitmq:5672"
     rabbitmq_exchange: str = "geosound.events"
@@ -57,6 +59,38 @@ class Settings(BaseSettings):
     # Chatbot indexer (#AI-44, D21): the only RabbitMQ consumer of the AI service.
     # Off by default; nothing is started when false.
     chatbot_indexer_enabled: bool = False
+    # Durable queue bound to tour.published / tour.unpublished / tour.hidden.
+    chatbot_indexer_queue: str = "ai.chatbot-indexer"
+    # Temporary indexing failures are re-sent at most this many times, each after the delay.
+    chatbot_indexer_max_retries: int = 3
+    chatbot_indexer_retry_delay_seconds: float = 5.0
+    # Chat API (#AI-47, #188). Off by default: /chat and /chat/history answer 404
+    # and nothing of the chatbot is built.
+    chatbot_enabled: bool = False
+    # LLM-backed chat turns per minute across all users (in-process sliding window),
+    # so chat never eats the Gemini quota shared with moderation. Over it: 429.
+    chat_global_rate_limit_per_min: int = 2
+    # Idle sessions are forgotten after this many hours (checked on each request).
+    chat_session_ttl_hours: float = 24.0
+    chat_message_max_chars: int = 1000
+    # Chat memory (#219): `memory` = in this process (default, tests); `postgres` = LangGraph
+    # Postgres checkpointer + message metadata in schema `ai_chat`, shared by every replica.
+    # `postgres` needs DATABASE_URL_DIRECT_AI and fails at startup without it.
+    chat_memory_backend: str = "memory"
+    # Session pooler URL (5432) of the AI database, `?schema=ai` style; Prisma-only query keys
+    # are dropped before connecting. Used by `prisma db push` and the Postgres chat memory.
+    # Never log this value.
+    database_url_direct_ai: str = ""
+    # pgvector store of the chatbot index (D22). Empty = the chat agent runs over an
+    # empty retriever and the indexer does not start. Never log this value.
+    database_url_ai: str = ""
+    # Chatbot embeddings (decision 6c, #219). `local` = ONNX multilingual-e5-small baked
+    # into the image under EMBEDDING_CACHE_DIR at build time; `fake` = tests only.
+    # Changing the model means a full re-embed of the index.
+    embedding_provider: str = "local"
+    embedding_model: str = "intfloat/multilingual-e5-small"
+    embedding_cache_dir: str = "/app/models"
+    embedding_batch_size: int = 16
 
     def allowed_image_hosts(self) -> frozenset[str]:
         """Hosts images may be fetched from. Empty set = every image is refused."""

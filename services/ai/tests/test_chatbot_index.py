@@ -278,19 +278,18 @@ def test_fake_embedder_is_deterministic_and_normalised():
     assert len(a.embed_query("")) == 384
 
 
-def test_local_e5_embedder_is_not_loaded_without_runtime():
-    try:
-        import sentence_transformers  # noqa: F401
-    except ImportError:
-        with pytest.raises(NotImplementedError):
-            LocalE5Embedder()
-    else:  # pragma: no cover - the runtime is not installed in this image
-        pytest.skip("sentence-transformers installed; constructing it is still lazy")
+def test_local_e5_embedder_is_not_loaded_without_runtime(monkeypatch):
+    from app.chatbot.rag import embedder as embedder_module
+
+    monkeypatch.setattr(embedder_module, "runtime_installed", lambda: False)
+    with pytest.raises(NotImplementedError):  # EmbedderUnavailableError subclasses it
+        LocalE5Embedder(model_name="m", cache_dir="/nowhere", batch_size=4)
 
 
-def test_pgvector_store_is_a_skeleton():
-    with pytest.raises(NotImplementedError):
-        PgVectorIndexStore("postgresql://unused", 384)
+def test_pgvector_store_is_lazy_and_implements_the_port():
+    store = PgVectorIndexStore("postgresql://unused@localhost/x?schema=ai", 384)  # no connection yet
+    assert store.dimension == 384 and store._pool is None
+    asyncio.run(store.aclose())  # closing a never-opened store is a no-op
 
 
 def test_dimension_mismatch_is_refused():
@@ -475,4 +474,4 @@ def test_dispatcher_routes_and_decodes():
 
 def test_indexer_flag_off_by_default_starts_nothing():
     assert Settings(_env_file=None).chatbot_indexer_enabled is False
-    assert start_indexer(Settings(_env_file=None)) is None
+    assert run(start_indexer(Settings(_env_file=None))) is None

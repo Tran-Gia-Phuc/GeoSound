@@ -46,6 +46,13 @@ const PUBLISHABLE_FROM = new Set([
   TOUR_STATUS.PENDING_REVIEW,
 ]);
 
+// UC15 — statuses whose moderation result would be invalidated by a content edit.
+const IN_MODERATION = new Set([
+  TOUR_STATUS.AI_CHECKING,
+  TOUR_STATUS.AI_WARNING,
+  TOUR_STATUS.PENDING_REVIEW,
+]);
+
 export class Tour {
   /**
    * @param {{
@@ -69,6 +76,9 @@ export class Tour {
     // Hệ thống duy trì (UC05 cập nhật); mặc định 0 khi chưa có đánh giá.
     this.averageRating = props.averageRating ?? 0;
     this.ratingCount = props.ratingCount ?? 0;
+    // UC15 — AI/geo reasons of the last moderation result + revision sent in tour.submitted.
+    this.moderationReasons = props.moderationReasons ?? [];
+    this.moderationRevision = props.moderationRevision ?? null;
     this.createdAt = props.createdAt ?? null;
     this.updatedAt = props.updatedAt ?? null;
   }
@@ -114,6 +124,19 @@ export class Tour {
     this.status = TOUR_STATUS.PUBLIC;
   }
 
+  /**
+   * UC15 (MODERATION_EVENTS_ENABLED) — submit for AI moderation instead of direct publish.
+   * Allowed from the same statuses as publish(). Readiness is checked by the use-case.
+   */
+  submitForModeration() {
+    this.status = TOUR_STATUS.AI_CHECKING;
+  }
+
+  /** UC15 — the tour is waiting for / has passed AI moderation; editing it must withdraw it. */
+  isInModeration() {
+    return IN_MODERATION.has(this.status);
+  }
+
   /** Tác giả gỡ tour công khai về Nháp (khách không còn thấy). */
   unpublish() {
     this.status = TOUR_STATUS.DRAFT;
@@ -134,6 +157,7 @@ export class Tour {
       duration: this.duration,
       averageRating: this.averageRating,
       ratingCount: this.ratingCount,
+      moderationReasons: this.moderationReasons,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

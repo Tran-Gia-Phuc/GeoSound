@@ -13,7 +13,7 @@ The AI team writes the code where it says so and opens a PR for your review; we 
 | --- | --- | --- | --- | --- | --- |
 | 1 | Tour | Review and merge PR #213 (moderation events) | `MODERATION_EVENTS_ENABLED` | AI team (done), Tour owner reviews | Moderation in production |
 | 2 | Tour | Publish `tour.published` / `tour.unpublished` | `CHATBOT_EVENTS_ENABLED` | AI team, Tour owner reviews | Chatbot index (#185) |
-| 3 | Infra | Postgres image with pgvector, schema `ai`, `DATABASE_URL_AI` | none | AI team, team reviews | Chatbot store (#185) |
+| 3 | Infra | Enable `vector` and schema `ai` on Supabase, `DATABASE_URL_AI` | none | Project owner on the Supabase dashboard | Chatbot store (#219) |
 | 4 | Gateway | `/api/chat` route (SSE, no buffering), chat rate limits, `x-internal-token` | `CHATBOT_ENABLED` | AI team, Gateway owner reviews | Chat API (#188) |
 | 5 | shared/events | Schemas for `tour.published` / `tour.unpublished` | none | AI team | Items 2 and 4 |
 
@@ -34,6 +34,10 @@ Behaviour with the flag on, and the four points for you to decide, are in the PR
 The chatbot must only answer about **public** tours, so Tour tells the AI service when a tour enters or leaves
 `public`.
 
+Status: implemented in #240 (`services/tour`, flag `CHATBOT_EVENTS_ENABLED`). Tour also re-sends `tour.published`
+when a place or translation of a public tour changes; `revision` is the later of `updatedAt` and the event time, so
+every re-send is newer than the indexed one.
+
 | Event | When | Payload (camelCase, `at` ends with `Z`) |
 | --- | --- | --- |
 | `tour.published` | A tour becomes `public` (publish, or Admin approval later) | `tourId`, `revision` (Tour `updatedAt`), `status` (`public`), `title`, `description`, `language`, `city?`, `type`, `durationMinutes?`, `languages?[]`, `places[{placeId, name, type?, description, lat, lng, sequence, translations?[{language, text}]}]` (max 50), `at?` |
@@ -44,18 +48,28 @@ The chatbot must only answer about **public** tours, so Tour tells the AI servic
 - The AI indexer re-checks `status` and `revision` and deletes everything about a tour on `tour.unpublished`, so a
   duplicate or late event is harmless.
 
-## 3. Infrastructure: Postgres with pgvector
+## 3. Infrastructure: Supabase (pgvector)
 
-The chatbot stores text chunks, vectors and a small graph in Postgres, schema `ai` (no new database server).
+All services already use the shared Supabase Postgres, one schema per service (moderation moved there on 2026-10-28).
+The chatbot stores text chunks, vectors and a small graph in the same database, schema `ai`.
 
-- `infra/postgres/Dockerfile`: `FROM postgis/postgis:16-3.4` plus the `postgresql-16-pgvector` package; compose
-  uses it for the `postgres` service.
-- Init SQL: `CREATE EXTENSION IF NOT EXISTS vector;` and `CREATE SCHEMA IF NOT EXISTS ai;`.
-- Init scripts only run on a new volume: on existing local volumes and on Supabase, run the two statements once by
-  hand (Supabase: SQL editor).
-- New variable `DATABASE_URL_AI` (same host, `?schema=ai`) in the root `.env.example`.
+Once per Supabase project:
 
-Other schemas and services are not affected.
+1. In `.env`: `DATABASE_URL_AI` (transaction pooler 6543, `pgbouncer=true&schema=ai`) and `DATABASE_URL_DIRECT_AI` (session pooler 5432, also with `?schema=ai`, otherwise `db push` writes to `public`) for schema changes, written like the other services and without quotes (`docker --env-file` keeps them).
+2. Push the schema with the command in `docs/04-guides/supabase-access.md` section 4. It runs `pre-push.sql`
+   (enables `vector` in schema `extensions` and creates schema `ai`), then `prisma db push`, then `post-push.sql`.
+   Only if `pre-push.sql` fails with a permission error does a dashboard Owner need to enable `vector` in
+   Database -> Extensions.
+
+Tables are defined in `services/ai/prisma/schema.prisma`; `post-push.sql` adds the CHECK constraints, the place geo
+index and the HNSW vector index. How teammates get dashboard access and connection strings:
+`docs/04-guides/supabase-access.md`. No custom Postgres image is needed for the team; the local `postgres` container
+stays for offline development only (it has no pgvector, so the chatbot store runs only against Supabase).
+
+Media storage (owned by the media service): images are still stored on local disk because `SUPABASE_URL` is not set.
+To enable Supabase Storage, create a public bucket `geosound-media` and set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+and `SUPABASE_STORAGE_BUCKET`. Until then, AI image moderation refuses all image hosts and places with images get a
+human-review Warning.
 
 ## 4. Gateway: chat route
 

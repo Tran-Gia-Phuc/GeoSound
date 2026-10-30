@@ -19,6 +19,9 @@ from app.config import Settings, get_settings
 # Short answers keep the prompt+output budget small (section 7).
 MAX_OUTPUT_TOKENS = 512
 TEMPERATURE = 0.3
+# gemini-2.5-flash counts thinking tokens in max_output_tokens: with thinking on, a
+# 512-token budget is spent on reasoning and the answer is cut (issue #238).
+THINKING_BUDGET = 0
 
 
 def fallback_exceptions() -> tuple[type[BaseException], ...]:
@@ -44,6 +47,7 @@ def build_chat_model(settings: Settings | None = None) -> Any:
         google_api_key=settings.gemini_api_key,
         temperature=TEMPERATURE,
         max_output_tokens=MAX_OUTPUT_TOKENS,
+        thinking_budget=THINKING_BUDGET,
         timeout=settings.llm_timeout_seconds,
         # One attempt: retries would spend the shared 5 requests per minute.
         max_retries=1,
@@ -51,9 +55,18 @@ def build_chat_model(settings: Settings | None = None) -> Any:
     if not settings.groq_api_key:
         return primary
 
+    secondary = build_groq_chat_model(settings)
+    return primary.with_fallbacks([secondary], exceptions_to_handle=fallback_exceptions())
+
+
+def build_groq_chat_model(settings: Settings | None = None) -> Any:
+    """Groq-only chat model (text only). Also used alone when the global Gemini
+    chat cap is reached (chatbot-architecture.md section 7), so overflow turns
+    never spend the Gemini quota shared with moderation."""
+    settings = settings or get_settings()
     from langchain_groq import ChatGroq
 
-    secondary = ChatGroq(
+    return ChatGroq(
         model=settings.groq_model,
         api_key=settings.groq_api_key,
         temperature=TEMPERATURE,
@@ -61,4 +74,3 @@ def build_chat_model(settings: Settings | None = None) -> Any:
         timeout=settings.llm_timeout_seconds,
         max_retries=0,
     )
-    return primary.with_fallbacks([secondary], exceptions_to_handle=fallback_exceptions())

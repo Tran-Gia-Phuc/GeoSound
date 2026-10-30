@@ -2,6 +2,7 @@
 // UC12 / A2 — Chỉnh bản dịch của một điểm (tên riêng/thuật ngữ sai). Chỉ tác giả.
 // Đánh dấu 'edited' (sẽ được giữ khi lưu lại cấu hình) và render lại TTS.
 // Sửa text GỐC thì làm ở quản lý điểm (UC10) — không thuộc use case này.
+// #240 (CHATBOT_EVENTS_ENABLED): a public tour stays public -> tour.published is sent again (translations).
 // =========================================================
 import { Language } from '../../domain/value-objects/language.js';
 import { TtsVoice } from '../../domain/value-objects/tts-voice.js';
@@ -13,10 +14,13 @@ import {
   ValidationError,
   TtsError,
 } from '../../domain/errors/index.js';
+import { notifyTourPublished } from './notify-tour-catalog.js';
 
 export class UpdateTranslation {
-  /** @param {{ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, ttsSynthesizer }} deps */
-  constructor({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, ttsSynthesizer }) {
+  /** @param {{ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, ttsSynthesizer, catalog?, logger? }} deps */
+  constructor({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, ttsSynthesizer, catalog = null, logger = console }) {
+    this.catalog = catalog;
+    this.logger = logger;
     this.tourRepo = tourRepo;
     this.placeRepo = placeRepo;
     this.tourLanguageRepo = tourLanguageRepo;
@@ -58,6 +62,7 @@ export class UpdateTranslation {
     tx.ttsPrerendered = tts.prerendered;
 
     const saved = await this.placeTranslationRepo.upsert(tx);
+    await notifyTourPublished(this, tour);
     return saved.toPublic();
   }
 }

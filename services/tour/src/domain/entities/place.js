@@ -20,6 +20,21 @@ export const PLACE_TYPES = Object.freeze([
 // Nguồn audio của điểm: người thật (upload) hoặc máy đọc text (TTS — UC12).
 export const AUDIO_SOURCE = Object.freeze({ HUMAN: 'human', TTS: 'tts' });
 
+// UC15 — AI moderation status of a place (used only when MODERATION_EVENTS_ENABLED).
+// Default approved: existing rows / flag off behave as today.
+export const PLACE_MODERATION = Object.freeze({
+  CHECKING: 'checking',
+  APPROVED: 'approved',
+  WARNING: 'warning',
+  REJECTED: 'rejected',
+});
+
+// Changing these fields -> the place is sent to AI moderation again (content the AI reads).
+export const MODERATED_FIELDS = Object.freeze(['name', 'description', 'images']);
+
+// Changing these fields -> the tour scan input changes (tour.submitted carries them + geo).
+export const TOUR_SCAN_FIELDS = Object.freeze(['name', 'type', 'description', 'lat', 'lng', 'images']);
+
 // Trường contributor được sửa (A3).
 export const EDITABLE_FIELDS = Object.freeze([
   'name',
@@ -55,6 +70,9 @@ export class Place {
     // Suy ra nguồn audio theo có file người thật hay không (nếu không truyền sẵn).
     this.audioSource =
       props.audioSource ?? (props.audioUrl ? AUDIO_SOURCE.HUMAN : AUDIO_SOURCE.TTS);
+    this.moderationStatus = props.moderationStatus ?? PLACE_MODERATION.APPROVED;
+    this.moderationReasons = props.moderationReasons ?? [];
+    this.moderationRevision = props.moderationRevision ?? null;
     this.createdAt = props.createdAt ?? null;
     this.updatedAt = props.updatedAt ?? null;
   }
@@ -86,6 +104,8 @@ export class Place {
       images: this.images,
       audioUrl: this.audioUrl,
       audioSource: this.audioSource,
+      moderationStatus: this.moderationStatus,
+      moderationReasons: this.moderationReasons,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

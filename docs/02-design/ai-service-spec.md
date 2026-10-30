@@ -217,6 +217,7 @@ Names only; values live in the root `.env`, which is never committed.
 | `GROQ_API_KEY` | Groq key (secret) |
 | `GROQ_MODEL` | Groq model name |
 | `LLM_TIMEOUT_SECONDS` | Timeout of one provider call |
+| `AI_LOG_LEVEL` | Level of the `app.*` logs (default `INFO`) |
 | `MODERATION_REJECT_THRESHOLD` | Reject threshold (default 0.8) |
 | `MODERATION_WARNING_THRESHOLD` | Warning threshold (default 0.4) |
 | `MODERATION_TIMEOUT_SECONDS` | Total time budget of one moderation request, including the wait for a slot |
@@ -229,6 +230,22 @@ Names only; values live in the root `.env`, which is never committed.
 | `LANGSMITH_TRACING` | Enables LangSmith tracing, `false` by default |
 | `LANGSMITH_API_KEY` | LangSmith key (secret, never logged); empty with tracing on = untraced plus one warning |
 | `LANGSMITH_PROJECT` | LangSmith project of the traces (default `geosound-ai`) |
+| `CHAT_MEMORY_TURNS` | Chat turns kept per session and sent to the LLM (default 6) |
+| `CHATBOT_INDEXER_ENABLED` | Starts the chatbot indexer (`tour.published` / `tour.unpublished` / `tour.hidden`), `false` by default; needs `DATABASE_URL_AI` and the embedder |
+| `CHATBOT_INDEXER_QUEUE` | Durable queue of the indexer, default `ai.chatbot-indexer` |
+| `CHATBOT_INDEXER_MAX_RETRIES` | Re-sends of a message whose indexing failed with a temporary error before it is rejected, default 3 |
+| `CHATBOT_INDEXER_RETRY_DELAY_SECONDS` | Wait before each re-send, default 5 |
+| `CHATBOT_ENABLED` | Enables `POST /chat` and `GET /chat/history`; `false` by default (both answer 404, nothing is built) |
+| `CHAT_GLOBAL_RATE_LIMIT_PER_MIN` | LLM-backed chat turns per minute across all users, in-process sliding window (default 2); over it the turn runs on Groq only (text, outside the cap and the moderation slot), or `/chat` answers 429 with `Retry-After` when `GROQ_API_KEY` is empty |
+| `CHAT_SESSION_TTL_HOURS` | Idle chat sessions are deleted after this many hours (default 24) |
+| `CHAT_MESSAGE_MAX_CHARS` | Max length of a chat message (default 1000) |
+| `CHAT_MEMORY_BACKEND` | Chat memory: `memory` (default, in this process) or `postgres` (LangGraph `AsyncPostgresSaver` plus message metadata in schema `ai_chat`, shared by every replica). `postgres` without `DATABASE_URL_DIRECT_AI` stops the service at startup; there is no silent fallback |
+| `DATABASE_URL_DIRECT_AI` | Session pooler URL (5432, `?schema=ai` style) of the AI database: `prisma db push` and the Postgres chat memory. Prisma-only query keys (`schema`, `pgbouncer`, `connection_limit`) are dropped before connecting; never logged |
+| `DATABASE_URL_AI` | pgvector store of the chatbot index (D22); empty or not yet implemented (#219) = chat runs with an empty retriever and logs one warning |
+| `EMBEDDING_PROVIDER` | Chatbot embeddings: `local` (default, ONNX `multilingual-e5-small`, runtime in `requirements-embeddings.txt`) or `fake` (tests only). `local` without its runtime fails with a clear error; there is no silent fallback |
+| `EMBEDDING_MODEL` | Embeddings model (default `intfloat/multilingual-e5-small`, dimension 384); downloaded once at image build (`ARG EMBEDDING_MODEL`), never at runtime. Changing it means a full re-embed |
+| `EMBEDDING_CACHE_DIR` | Folder holding the baked model, `<dir>/<org>/<name>/onnx/` (default `/app/models`) |
+| `EMBEDDING_BATCH_SIZE` | Texts per ONNX inference call when embedding (default 16) |
 
 ## 5. Observability
 

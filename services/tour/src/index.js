@@ -8,9 +8,22 @@
 import express from 'express';
 import { logger, errorHandler } from '../shared/middleware/index.js';
 import { buildContainer } from './container.js';
+import { isModerationEnabled, isChatbotEventsEnabled } from './config.js';
+import {
+  MODERATION_RESULT_QUEUE,
+  MODERATION_RESULT_BINDINGS,
+} from './interfaces/events/moderation-result-handler.js';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
+
+// UC15 / #240 — RabbitMQ is loaded only when MODERATION_EVENTS_ENABLED=true or
+// CHATBOT_EVENTS_ENABLED=true (both off: no connection at all).
+const moderationEnabled = isModerationEnabled(process.env);
+const chatbotEventsEnabled = isChatbotEventsEnabled(process.env);
+const brokerEnabled = moderationEnabled || chatbotEventsEnabled;
+const rabbit = brokerEnabled ? await import('../shared/rabbitmq/index.js') : null;
+const events = brokerEnabled ? await import('../shared/events/index.js') : null;
 
 const {
   tourRouter,
@@ -22,7 +35,8 @@ const {
   itineraryRouter,
   exploreRouter,
   publicItineraryRouter,
-} = buildContainer(process.env);
+  moderationResultHandler,
+} = buildContainer(process.env, { publish: rabbit?.publish, validateEvent: events?.validateEvent });
 
 app.use(express.json());
 app.use(logger);
@@ -55,9 +69,25 @@ app.use('/', languageRouter);
 // UC13: /mine/:tourId/preview (GET) — xem thử tour của chính tác giả
 app.use('/', previewRouter);
 
-// TODO: publish tour.submitted (UC15); "tour gần tôi" chuyển PostGIS khi cần.
+// TODO: move "tours near me" to PostGIS when needed.
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
 
 app.listen(PORT, () => console.log(`[tour] listening on :${PORT}`));
+
+// UC15 / #240 — connect to the broker in the background; consume AI results only with the moderation
+// flag. A failure never stops HTTP; until connected, publishing fails -> logged only
+// (status stays 'checking' / 'ai_checking'; tour.published / tour.unpublished are not sent).
+if (brokerEnabled) {
+  (async () => {
+    try {
+      await rabbit.connect();
+      if (moderationResultHandler) {
+        await rabbit.consume(MODERATION_RESULT_QUEUE, MODERATION_RESULT_BINDINGS, moderationResultHandler);
+      }
+    } catch (err) {
+      console.error('[tour] rabbitmq init failed:', err.message);
+    }
+  })();
+}

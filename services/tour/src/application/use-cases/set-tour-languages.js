@@ -6,6 +6,7 @@
 //   - GIỮ bản dịch tác giả đã chỉnh tay (textSource='edited') khi lưu lại
 //   - bỏ ngôn ngữ phụ → xóa ngôn ngữ đó và bản dịch của nó
 // Ngôn ngữ gốc là nguồn; text gốc = mô tả điểm (UC10) — không dịch, chỉ TTS.
+// #240 (CHATBOT_EVENTS_ENABLED): a public tour stays public -> tour.published is sent again (translations).
 // =========================================================
 import { Language } from '../../domain/value-objects/language.js';
 import { TtsVoice } from '../../domain/value-objects/tts-voice.js';
@@ -18,11 +19,23 @@ import {
   TtsError,
 } from '../../domain/errors/index.js';
 import { buildLanguageConfig } from './get-language-config.js';
+import { notifyTourPublished } from './notify-tour-catalog.js';
 
 
 export class SetTourLanguages {
-  /** @param {{ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, translator, ttsSynthesizer }} deps */
-  constructor({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, translator, ttsSynthesizer }) {
+  /** @param {{ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, translator, ttsSynthesizer, catalog?, logger? }} deps */
+  constructor({
+    tourRepo,
+    placeRepo,
+    tourLanguageRepo,
+    placeTranslationRepo,
+    translator,
+    ttsSynthesizer,
+    catalog = null,
+    logger = console,
+  }) {
+    this.catalog = catalog;
+    this.logger = logger;
     this.tourRepo = tourRepo;
     this.placeRepo = placeRepo;
     this.tourLanguageRepo = tourLanguageRepo;
@@ -108,6 +121,7 @@ export class SetTourLanguages {
       this.tourLanguageRepo.listByTour(tourId),
       this.placeTranslationRepo.listByTour(tourId),
     ]);
+    await notifyTourPublished(this, tour);
     return buildLanguageConfig({ tour, langs, translations, places });
   }
 

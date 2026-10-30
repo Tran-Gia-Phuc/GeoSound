@@ -4,7 +4,12 @@
 //   - UnpublishTour      : public → draft (khách không còn thấy)
 //   - GetPublishReadiness: checklist sẵn sàng cho màn "Xuất bản" của Studio
 // Chỉ tác giả. Sửa tour đang công khai vẫn đưa về Nháp như cũ (Tour.applyEdits).
-// Khi làm lại kiểm duyệt (UC15) chỉ cần đổi PublishTour sang "gửi duyệt".
+// UC15 (MODERATION_EVENTS_ENABLED): with `moderation`, PublishTour becomes "submit for review":
+// extra checks (D5: no place 'checking'/'rejected'; at most 50 places), status = ai_checking and
+// tour.submitted is sent. The AI result comes back via ApplyModerationResult.
+// Without it: direct publish as today.
+// #240 (CHATBOT_EVENTS_ENABLED): with `catalog`, entering public sends tour.published and
+// UnpublishTour sends tour.unpublished (reason 'unpublished'), after the save.
 // =========================================================
 import { checkPublishReadiness } from '../../domain/tour/publish-readiness.js';
 import {
@@ -13,6 +18,8 @@ import {
   TourNotReadyError,
   TourStatusTransitionError,
 } from '../../domain/errors/index.js';
+import { submitTourForModeration } from './submit-for-moderation.js';
+import { notifyTourPublished, notifyTourUnpublished } from './notify-tour-catalog.js';
 
 async function loadOwned(tourRepo, { authorId, tourId }) {
   const tour = await tourRepo.findById(tourId);
@@ -22,10 +29,11 @@ async function loadOwned(tourRepo, { authorId, tourId }) {
 }
 
 export class GetPublishReadiness {
-  /** @param {{ tourRepo, placeRepo }} deps */
-  constructor({ tourRepo, placeRepo }) {
+  /** @param {{ tourRepo, placeRepo, moderation? }} deps */
+  constructor({ tourRepo, placeRepo, moderation = null }) {
     this.tourRepo = tourRepo;
     this.placeRepo = placeRepo;
+    this.moderation = moderation;
   }
 
   /** @param {{ authorId: string, tourId: string }} input */
@@ -36,16 +44,29 @@ export class GetPublishReadiness {
       status: tour.status,
       canPublish: tour.canPublish(),
       placeCount: places.length,
-      ...checkPublishReadiness({ tour, places }),
+      ...checkPublishReadiness({ tour, places, requireModeration: Boolean(this.moderation) }),
     };
   }
 }
 
 export class PublishTour {
-  /** @param {{ tourRepo, placeRepo }} deps */
-  constructor({ tourRepo, placeRepo }) {
+  /** @param {{ tourRepo, placeRepo, moderation?, catalog?, tourLanguageRepo?, placeTranslationRepo?, logger? }} deps */
+  constructor({
+    tourRepo,
+    placeRepo,
+    moderation = null,
+    catalog = null,
+    tourLanguageRepo = null,
+    placeTranslationRepo = null,
+    logger = console,
+  }) {
     this.tourRepo = tourRepo;
     this.placeRepo = placeRepo;
+    this.moderation = moderation;
+    this.catalog = catalog;
+    this.tourLanguageRepo = tourLanguageRepo;
+    this.placeTranslationRepo = placeTranslationRepo;
+    this.logger = logger;
   }
 
   /** @param {{ authorId: string, tourId: string }} input */
@@ -57,23 +78,37 @@ export class PublishTour {
     }
 
     const places = await this.placeRepo.listByTour(tour.id);
-    const { ready, checks } = checkPublishReadiness({ tour, places });
+    const { ready, checks } = checkPublishReadiness({
+      tour,
+      places,
+      requireModeration: Boolean(this.moderation),
+    });
     if (!ready) {
       throw new TourNotReadyError(
         checks.filter((c) => c.required && !c.ok).map(({ key, label }) => ({ key, label })),
       );
     }
 
+    if (this.moderation) {
+      tour.submitForModeration();
+      const saved = await this.tourRepo.save(tour);
+      const submitted = await submitTourForModeration(this, saved, places);
+      return { tour: submitted.toPublic(), changed: true };
+    }
+
     tour.publish();
     const saved = await this.tourRepo.save(tour);
+    await notifyTourPublished(this, saved);
     return { tour: saved.toPublic(), changed: true };
   }
 }
 
 export class UnpublishTour {
-  /** @param {{ tourRepo }} deps */
-  constructor({ tourRepo }) {
+  /** @param {{ tourRepo, catalog?, logger? }} deps */
+  constructor({ tourRepo, catalog = null, logger = console }) {
     this.tourRepo = tourRepo;
+    this.catalog = catalog;
+    this.logger = logger;
   }
 
   /** @param {{ authorId: string, tourId: string }} input */
@@ -84,6 +119,7 @@ export class UnpublishTour {
     }
     tour.unpublish();
     const saved = await this.tourRepo.save(tour);
+    await notifyTourUnpublished(this, saved, 'unpublished');
     return { tour: saved.toPublic() };
   }
 }

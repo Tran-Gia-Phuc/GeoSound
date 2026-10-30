@@ -12,7 +12,7 @@ Read `CLAUDE.md` and `AI_PLAN.md` (sections 4 and 5) first. Reply to the user in
 
 - `gh issue view <N> --json state,title,body`. Skip if CLOSED or a merged PR exists (`gh pr list --search "head:<branch>" --state all`).
 - Dependencies in `AI_PLAN.md` section 4 must be merged.
-- **#180 (Tour integration) and any file outside our services**: open the PR, never merge.
+- **Files outside our services** (Tour, Gateway, infra): open the PR and merge only when the owner handed the task over (Tour: #180, #240); otherwise the owner merges.
 - Push / PR / merge only when the user allowed it in this run; otherwise stop after commits and show `git --no-pager log --oneline origin/develop..HEAD`.
 
 ## 1. Branch (worktree when tasks run in parallel)
@@ -25,6 +25,8 @@ git switch <branch>                                          # single task
 git worktree add /e/CNPM/git/wt-<N> <branch>                 # parallel task: the agent edits only inside wt-<N>
 ```
 
+A task split over several PRs: only the last PR may close the issue. Create the other branches with `git switch -c <branch> develop` (not `gh issue develop`, whose link closes the issue on merge) and write "Part of #<N>" in the PR body.
+
 Branch names: see `AI_PLAN.md` section 4 (`feature/…`, `docs/…`, `test/…`, `chore/…`).
 
 ## 2. Implement with a sub-agent
@@ -33,10 +35,10 @@ Branch names: see `AI_PLAN.md` section 4 (`feature/…`, `docs/…`, `test/…`,
 | --- | --- |
 | `services/ai` | `ai-python-dev` |
 | `services/moderation`, `shared/` | `moderation-node-dev` |
-| `services/tour` (only #180) | `general-purpose`, "small reviewable diff, another teammate owns Tour" |
+| `services/tour` (Tour tasks only) | `general-purpose`, "small reviewable diff behind a flag, another teammate owns Tour" |
 | `docs/` only | `docs-writer` |
 
-The prompt always contains: working directory / worktree, issue number and code, files to read first, the acceptance criteria, "no git write commands, never read .env, no real LLM, no network in tests", the CI rule for Node ("only `src/index.js` imports `../shared`"), the exact test commands below, and "report files changed, counts, conflicts with docs".
+Keep prompts tight (token budget): list the exact files and doc sections to read (never a whole design doc). The prompt always contains: working directory / worktree, issue number and code, files to read first, the acceptance criteria, "no git write commands, never read .env, no real LLM, no network in tests", the CI rule for Node ("only `src/index.js` imports `../shared`"), the exact test commands below, and "report files changed, counts, conflicts with docs".
 
 ## 3. Test (test-runner)
 
@@ -61,7 +63,7 @@ MSYS_NO_PATHCONV=1 docker run --rm -v "<root>/services/ai:/src:ro" -w /src -e PY
   --entrypoint sh cnpm-main-ai:latest -c "pip install -q pytest; python -m pytest tests -q -p no:cacheprovider -rs"
 ```
 
-`<root>` is `E:/CNPM/git/CNPM-main` or the worktree `E:/CNPM/git/wt-<N>`. Fail: send the failure back to the same dev agent (SendMessage), at most 2 rounds, then mark the task blocked.
+`<root>` is `E:/CNPM/git/CNPM-main` or the worktree `E:/CNPM/git/wt-<N>`. Run each suite once (twice only for timing-sensitive tests). Fail: send the failure back to the same dev agent (SendMessage), at most 2 rounds, then mark the task blocked. An agent stopped by a usage limit is resumed with SendMessage, never restarted.
 
 ## 4. Review (contract-reviewer)
 

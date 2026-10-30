@@ -126,9 +126,17 @@ inputs are hidden; to address in #188.
   blocked by the provider is not retried and returns a polite refusal. Chat is text-only, so Groq is allowed.
 - **Concurrency**: the chat path shares the AI service semaphore (D13) with moderation; when it is full, `/chat`
   returns 429 with `Retry-After` instead of queueing.
-- **Memory**: LangGraph checkpointer per `session_id` (`langgraph-checkpoint-postgres` in schema `ai`;
-  `MemorySaver` in tests). Only the last N turns are sent to the LLM. Sessions expire after
-  `CHAT_SESSION_TTL_HOURS` (default 24) and are deleted by a cleanup job.
+- **Memory**: LangGraph checkpointer per `session_id` (`thread_id`), selected by `CHAT_MEMORY_BACKEND`.
+  `memory` (default) is the in-process `MemorySaver` with an in-memory metadata store. `postgres` is the official
+  `AsyncPostgresSaver` (`langgraph-checkpoint-postgres`) over a psycopg 3 pool on `DATABASE_URL_DIRECT_AI`, shared
+  by every AI replica. Its tables live in a dedicated schema `ai_chat` (each connection sets
+  `search_path TO ai_chat`), never in schema `ai`, which `prisma db push` manages. Message metadata (`at`,
+  citations) is kept in `ai_chat.chat_messages` and joined by message id; `ai_chat.chat_sessions` holds the last
+  activity. Schema, checkpoint tables and metadata tables are created at startup (idempotent); `postgres` without
+  `DATABASE_URL_DIRECT_AI` stops the service (no silent fallback). Sessions idle longer than
+  `CHAT_SESSION_TTL_HOURS` (default 24) are deleted, checkpoints included: a sweep runs on a request at most once
+  a minute per replica (`DELETE ... RETURNING`, so each session is claimed once), and the session of the request
+  is always checked. Only the last N turns are sent to the LLM.
 
 ### 3.4 Tools
 
@@ -165,7 +173,7 @@ Storage sketch (schema `ai`, section 6a):
 | `ai.tour_index` | `tour_id`, `revision`, `state` (`indexed`, `deleted`); a tombstone so a late, older `tour.published` cannot re-index a tour after `tour.unpublished` |
 | `ai.index_meta` | `embedding_model`, `dimension` (a model change means a full re-embed) |
 
-Implementation notes (#185): `ai.nodes` also stores `lat` / `lng` for the bounding-box prefilter of `near`; `ai.chunks` also stores `tour_id` for fast deletes; a `tour.unpublished` older than the indexed revision is ignored, one without `revision` always deletes; tours indexed without a topic extractor are marked `topics_pending`. DDL: `services/ai/app/chatbot/rag/sql/schema.sql`.
+Implementation notes (#185): `ai.nodes` also stores `lat` / `lng` for the bounding-box prefilter of `near`; `ai.chunks` also stores `tour_id` for fast deletes; a `tour.unpublished` older than the indexed revision is ignored, one without `revision` always deletes; tours indexed without a topic extractor are marked `topics_pending`. Schema: `services/ai/prisma/schema.prisma` plus `post-push.sql`.
 
 No contributor id, email or any user field is stored (section 7).
 
@@ -218,6 +226,8 @@ Implementation notes (#186): `services/ai/app/chatbot/rag/hybrid_retriever.py` o
 ## 6. Decisions (close section 8.4 of moderation-architecture.md)
 
 ### 6a. Vector and graph store
+
+Update 2026-10-28: the team database is Supabase, which ships the `vector` extension, so pgvector is enabled there (schema `ai`); the custom local Postgres image below is no longer needed. Steps: `ai-integration-requests.md` section 3.
 
 | Option | For | Against |
 | --- | --- | --- |
@@ -273,6 +283,8 @@ a later `tour.published` or `tour.unpublished` repairs it.
 | Gemini `text-embedding-004` | 768 | Free tier, rate limited; every chat turn needs one query embedding | Multilingual. Google has announced its retirement in favour of `gemini-embedding-001` (768 to 3072 via output dimensionality); must be checked. The project key is known to work only with `gemini-2.5-flash` (CLAUDE.md section 6), so embedding access is unverified |
 | **Local multilingual model**, e.g. `intfloat/multilingual-e5-small` (or `paraphrase-multilingual-MiniLM-L12-v2`) through an ONNX runtime | 384 | No quota, no key, no network at query time | Good enough for vi and en on a small corpus; adds roughly 100 to 500 MB to the AI image depending on runtime |
 
+Measured (#219): onnxruntime + tokenizers, fp32 `model.onnx` baked in at build time, no runtime download: the AI image grows by about 730 MB (runtime 241 MB, model 487 MB). Possible reductions: int8 quantization at build time (about 120 MB model, needs a quality check) and dropping unused onnxruntime extras.
+
 **Recommendation: local `multilingual-e5-small`, dimension 384.** It keeps the chat LLM quota for the one
 `answer` call, works offline in tests, and does not depend on unverified key access. One model per index:
 a "fallback" embedding model is not possible, because vectors from two models are not comparable; switching
@@ -324,9 +336,10 @@ becomes a problem.
 `{session_id, messages: [{role: "user" | "assistant", content, citations?, at}]}`, last N turns only.
 
 Citation markers: `token` text and history `content` contain the kept `[tour:ID]` / `[place:ID]` markers
-(section 3.2); invented ids are already removed. `/chat` (#188) must decide whether to stream them as is or strip
-them, and the client must render them (for example as links using `citations`) or hide them. Because markers can
-be split across tokens, stripping during streaming needs a small buffer.
+(section 3.2); invented ids are already removed. Implemented in #188: `/chat` runs the whole turn (including
+`cite`) before the stream starts, then streams the cleaned answer split on whitespace, so markers are kept as is
+and never split across `token` events; the client renders them (for example as links using `citations`) or hides
+them. Errors before the stream (422, 429, 503) are therefore plain JSON responses.
 
 | Status | Meaning |
 | --- | --- |

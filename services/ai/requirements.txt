@@ -11,6 +11,13 @@ langgraph-checkpoint==4.*
 langchain-core==1.6.*
 langchain-google-genai==3.0.*
 langchain-groq==1.0.*
-# TODO(#185 follow-up): chatbot index runtime, not installed yet (keeps the image small):
-#   local embeddings intfloat/multilingual-e5-small (sentence-transformers or an ONNX runtime),
-#   a Postgres driver with pgvector (asyncpg or psycopg 3), an AMQP client for the indexer (#188).
+# Chatbot index store (#219): pgvector in schema "ai" through asyncpg (binary wheels, no compiler).
+asyncpg==0.30.*
+# Local embeddings (ONNX runtime) live in requirements-embeddings.txt (#219), installed by the Dockerfile.
+# AMQP client of the chatbot indexer (#219, D21): the only RabbitMQ consumer of this service.
+aio-pika==9.4.*
+# Persistent chat memory (#219, CHAT_MEMORY_BACKEND=postgres): official LangGraph Postgres
+# checkpointer (3.2 needs langgraph-checkpoint>=4.3,<5) over psycopg 3 (binary wheels).
+langgraph-checkpoint-postgres==3.2.*
+psycopg[binary]==3.3.*
+psycopg-pool==3.3.*

@@ -1,0 +1,85 @@
+// AI service, schema "ai": chatbot index (task #AI-44 / #AI-49, issues #185 and #219).
+// Tables only. CHECK constraints, partial and HNSW indexes are in post-push.sql (Prisma cannot express them).
+// Needs the pgvector extension in schema "extensions" (pre-push.sql enables it).
+// The AI service is Python: this schema is only pushed, no client is generated.
+// Push: docs/04-guides/supabase-access.md section 4.
+// Only public tour and place content is stored: no contributor id, email or user field.
+// The dimension (384) matches intfloat/multilingual-e5-small; a model change means a full re-embed.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // ...?schema=ai (DATABASE_URL_DIRECT_AI when pushing)
+}
+
+// Embedding model of the whole index (one row, id = 1).
+model IndexMeta {
+  id             Int      @id @default(1) @db.SmallInt
+  embeddingModel String   @map("embedding_model")
+  dimension      Int
+  updatedAt      DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("index_meta")
+}
+
+// Last revision seen per tour. state = 'deleted' is a tombstone written on unpublish,
+// so a late older tour.published cannot index the tour again.
+model TourIndex {
+  tourId    String    @id @map("tour_id")
+  revision  DateTime? @db.Timestamptz(6)
+  state     String
+  updatedAt DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("tour_index")
+}
+
+// Graph nodes: tour:<id>, place:<id>, city:<slug>, type:<slug>, topic:<slug>.
+// tourId is null for shared nodes (city, type, topic); lat/lng only for places.
+model Node {
+  id            String    @id
+  kind          String
+  name          String
+  props         Json      @default("{}")
+  tourId        String?   @map("tour_id")
+  revision      DateTime? @db.Timestamptz(6)
+  topicsPending Boolean   @default(false) @map("topics_pending")
+  lat           Float?
+  lng           Float?
+
+  outEdges Edge[]  @relation("EdgeSource")
+  inEdges  Edge[]  @relation("EdgeTarget")
+  chunks   Chunk[]
+
+  @@index([tourId], map: "nodes_tour_id_idx")
+  @@map("nodes")
+}
+
+// Graph edges: has, has_stop {sequence}, is_a, near {meters}, about.
+model Edge {
+  src   String
+  dst   String
+  kind  String
+  props Json   @default("{}")
+
+  source Node @relation("EdgeSource", fields: [src], references: [id], onDelete: Cascade)
+  target Node @relation("EdgeTarget", fields: [dst], references: [id], onDelete: Cascade)
+
+  @@id([src, dst, kind])
+  @@index([dst, kind], map: "edges_dst_idx")
+  @@map("edges")
+}
+
+// Text chunks and their vectors.
+model Chunk {
+  id        String                                 @id
+  nodeId    String                                 @map("node_id")
+  tourId    String                                 @map("tour_id")
+  lang      String
+  source    String
+  text      String
+  embedding Unsupported("extensions.vector(384)")
+
+  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@index([tourId], map: "chunks_tour_id_idx")
+  @@map("chunks")
+}

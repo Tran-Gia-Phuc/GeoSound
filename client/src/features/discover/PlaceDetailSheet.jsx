@@ -20,7 +20,9 @@ export default function PlaceDetailSheet({ place, onClose, onAdd }) {
   }, [place?.placeId]);
 
   if (!place) return null;
-  const images = (place.images || []).map((im) => (typeof im === 'string' ? { url: im } : im)).filter((im) => im.url);
+  const images = (Array.isArray(place.images) ? place.images : [])
+    .map((im) => (typeof im === 'string' ? { url: im } : im))
+    .filter((im) => im && typeof im.url === 'string' && im.url);
 
   const toggle = () => {
     if (playing) {
