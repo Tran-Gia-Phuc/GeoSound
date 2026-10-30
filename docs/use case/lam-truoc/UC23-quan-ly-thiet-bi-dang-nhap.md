@@ -46,10 +46,10 @@
 - Đổi mật khẩu khi đang đăng nhập → đăng xuất tất cả thiết bị **trừ** thiết bị hiện tại.
 - Tài khoản bị ban (UC21) → đăng xuất tất cả thiết bị.
 - Thiết bị không hoạt động quá 7 ngày, hoặc đã đăng nhập quá 30 ngày → phiên hết hạn và biến mất khỏi danh sách.
-- Đăng nhập thiết bị thứ 11 → thiết bị lâu không hoạt động nhất bị đăng xuất.
+- Vượt giới hạn kỹ thuật 100 thiết bị (chỉ để chặn dữ liệu phình to, bản demo coi như không giới hạn) → thiết bị lâu không hoạt động nhất bị đăng xuất.
 - Phát hiện refresh token cũ bị dùng lại (dấu hiệu bị đánh cắp) → đăng xuất thiết bị đó.
 
-**A4. Cảnh báo đăng nhập trên thiết bị mới** *(P2)* → khi đăng nhập tạo ra một thiết bị mới, hệ thống gửi email *"Tài khoản của bạn vừa đăng nhập trên <thiết bị> tại <vị trí>"* kèm hướng dẫn vào UC23 để đăng xuất nếu không phải mình (UC16).
+**A4. Cảnh báo đăng nhập trên thiết bị mới** → khi đăng nhập tạo ra một thiết bị mới, hệ thống gửi email *"Tài khoản của bạn vừa đăng nhập trên <thiết bị> tại <vị trí>"* kèm hướng dẫn vào UC23 để đăng xuất nếu không phải mình (UC16).
 
 ## Exception Path
 
@@ -83,12 +83,12 @@ Người dùng muốn biết tài khoản đang đăng nhập ở đâu, hoặc 
 - Mỗi thiết bị là một phiên đăng nhập; đăng nhập lại trên cùng thiết bị thay phiên cũ, không tạo thêm thiết bị.
 - Danh sách chỉ hiển thị tên thiết bị, vị trí gần đúng và thời gian; **không hiển thị IP đầy đủ hay token**.
 - Đăng xuất từ xa có hiệu lực **ngay lập tức**.
-- Tối đa **10** thiết bị cùng lúc; vượt quá thì thiết bị lâu không hoạt động nhất bị đăng xuất.
+- **Không giới hạn** số thiết bị về nghiệp vụ; giới hạn kỹ thuật 100 thiết bị (cấu hình `AUTH_MAX_SESSIONS`), vượt quá thì thiết bị lâu không hoạt động nhất bị đăng xuất.
 - Phiên hết hạn sau **7 ngày không hoạt động**, tối đa **30 ngày** kể từ khi đăng nhập.
 - Đặt lại mật khẩu / bị ban → đăng xuất tất cả thiết bị; đổi mật khẩu → đăng xuất các thiết bị khác.
 - Dữ liệu IP và User-Agent chỉ lưu khi phiên còn hiệu lực và thêm 30 ngày sau khi kết thúc, rồi xóa.
 - Admin không xem được thiết bị của người dùng khác trong UC này.
-- *Cần nhóm chốt:* giới hạn 10 thiết bị, email cảnh báo thiết bị mới (P2), thời gian giữ dữ liệu 30 ngày.
+- Đăng nhập trên thiết bị mới → gửi email cảnh báo tới email tài khoản; bản demo chuyển mọi email cảnh báo về một hộp thư thử nghiệm cấu hình bằng `SECURITY_ALERT_TO` trong `.env`.
 
 ## Author(s)
 

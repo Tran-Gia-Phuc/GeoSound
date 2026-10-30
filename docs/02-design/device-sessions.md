@@ -1,6 +1,6 @@
 # Signed-in devices: business research and design (UC23)
 
-Status: proposal, 2026-10-30. Use case: [UC23](../use%20case/lam-truoc/UC23-quan-ly-thiet-bi-dang-nhap.md).
+Status: accepted 2026-10-30 (limit, alert and the remaining points decided by the AI owner for the demo). Use case: [UC23](../use%20case/lam-truoc/UC23-quan-ly-thiet-bi-dang-nhap.md).
 Owner of the code: Auth service (`services/auth`) plus a small change in `shared/middleware` and the client.
 
 ## 1. Goal
@@ -45,16 +45,16 @@ So the feature needs server-side sessions first; the screen is the small part.
 | R6 | Effect of a sign-out | The device can no longer refresh; its access token stops working at once (see 5.3) and the app returns to the sign-in screen |
 | R7 | Automatic sign-out of all devices | After a password reset (UC01 A2) and when an account is banned (UC21). After a password change while signed in: all devices except the current one |
 | R8 | Expiry | A session ends after 7 days without activity (= refresh TTL) and at most 30 days after sign-in; expired sessions leave the list |
-| R9 | Limit | At most 10 active sessions per account; an 11th sign-in signs out the least recently active one. Not a business limit (GeoSound sells nothing per device), only a bound on stored data |
-| R10 | New-device alert | Email "Đăng nhập mới trên <thiết bị>" when a sign-in creates a new device (P2, through Notification) |
+| R9 | Limit | No business limit. A technical cap of 100 active sessions per account (`AUTH_MAX_SESSIONS`, demo value) only bounds stored data; past it, the least recently active session is signed out |
+| R10 | New-device alert | Email "Đăng nhập mới trên <thiết bị>" when a sign-in creates a new device (P1, through Notification), sent to the account email. For the demo, `SECURITY_ALERT_TO` in `.env` sends every alert to one test inbox instead (never written in the repo) |
 | R11 | Stolen token | Refresh tokens rotate on every use; reuse of an old refresh token signs that session out (theft signal) |
 | R12 | Privacy | IP and User-Agent are kept only while the session lives and 30 days after it ends (security investigation), then deleted. Location is city level, from the IP, without a paid service at first (shown as "Không xác định" when unknown) |
 | R13 | Admin | An admin does not see other users' devices in this UC; UC21 (ban) signs out all devices of the banned account |
 
-Points for the team to confirm: R9 (limit 10 and auto sign-out), R10 (email alert, P2), R12 (retention
-30 days, location source).
+Decided on 2026-10-30: R9 cap 100, R10 email alert (P1, demo inbox through `SECURITY_ALERT_TO`), R12 retention
+30 days and city-level location from the IP, 5.3 immediate sign-out through Redis in `verifyJwt`.
 
-## 5. Technical design (proposal)
+## 5. Technical design
 
 ### 5.1 Data (schema `auth`)
 
@@ -70,7 +70,7 @@ sessions
   refresh_hash     text                     (sha-256 of the current refresh token)
   created_at, last_active_at, expires_at    timestamptz
   revoked_at       timestamptz?
-  revoke_reason    text?   user | user_all | password_reset | password_change | banned | limit | reuse
+  revoke_reason    text?   user | user_all | password_reset | password_change | banned | limit | reuse | expired
   unique (user_id, device_id) where revoked_at is null
 ```
 
