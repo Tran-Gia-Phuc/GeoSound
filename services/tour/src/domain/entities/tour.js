@@ -16,6 +16,7 @@ export const TOUR_STATUS = Object.freeze({
   REJECTED: 'rejected', // Bị từ chối
   RESTRICTED: 'restricted', // Truy cập hạn chế (UC14)
   HIDDEN: 'hidden', // Đang bị ẩn
+  CHANGES_REQUESTED: 'changes_requested', // UC19 / A3: admin asked for changes, the author edits and submits again (UC15)
 });
 
 export const TOUR_TYPES = Object.freeze(['walking', 'driving', 'cycling', 'indoor']);
@@ -44,6 +45,7 @@ const PUBLISHABLE_FROM = new Set([
   TOUR_STATUS.AI_CHECKING,
   TOUR_STATUS.AI_WARNING,
   TOUR_STATUS.PENDING_REVIEW,
+  TOUR_STATUS.CHANGES_REQUESTED,
 ]);
 
 // UC15 — statuses whose moderation result would be invalidated by a content edit.
@@ -52,6 +54,10 @@ const IN_MODERATION = new Set([
   TOUR_STATUS.AI_WARNING,
   TOUR_STATUS.PENDING_REVIEW,
 ]);
+
+// UC19 — statuses an admin can decide on (approve / reject / request changes).
+export const REVIEWABLE_STATUSES = Object.freeze([TOUR_STATUS.AI_WARNING, TOUR_STATUS.PENDING_REVIEW]);
+const REVIEWABLE = new Set(REVIEWABLE_STATUSES);
 
 export class Tour {
   /**
@@ -79,6 +85,8 @@ export class Tour {
     // UC15 — AI/geo reasons of the last moderation result + revision sent in tour.submitted.
     this.moderationReasons = props.moderationReasons ?? [];
     this.moderationRevision = props.moderationRevision ?? null;
+    // UC19 — reason of the last admin rejection / change request, shown to the author.
+    this.reviewReason = props.reviewReason ?? null;
     this.createdAt = props.createdAt ?? null;
     this.updatedAt = props.updatedAt ?? null;
   }
@@ -137,6 +145,11 @@ export class Tour {
     return IN_MODERATION.has(this.status);
   }
 
+  /** UC19 — an admin can approve / reject / request changes only in these statuses. */
+  isReviewable() {
+    return REVIEWABLE.has(this.status);
+  }
+
   /** Tác giả gỡ tour công khai về Nháp (khách không còn thấy). */
   unpublish() {
     this.status = TOUR_STATUS.DRAFT;
@@ -158,6 +171,7 @@ export class Tour {
       averageRating: this.averageRating,
       ratingCount: this.ratingCount,
       moderationReasons: this.moderationReasons,
+      reviewReason: this.reviewReason,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

@@ -12,7 +12,8 @@ datasource db {
 }
 
 // UC09 — Tour của contributor. Vòng đời status: draft|ai_checking|ai_warning|
-// pending_review|public|rejected|restricted|hidden (xem domain/entities/tour.js).
+// pending_review|public|rejected|restricted|hidden|changes_requested (xem domain/entities/tour.js).
+// UC19: an admin decides only from ai_warning / pending_review -> public | rejected | changes_requested.
 model Tour {
   id               String   @id @default(uuid())
   title            String
@@ -30,6 +31,8 @@ model Tour {
   // UC15 (MODERATION_EVENTS_ENABLED): AI/geo reasons of the last result, and the revision sent in tour.submitted.
   moderationReasons  Json    @default("[]") @map("moderation_reasons")
   moderationRevision String? @map("moderation_revision")
+  // UC19: reason of the last admin rejection / change request (shown to the author); null after approval.
+  reviewReason  String?  @map("review_reason")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -42,6 +45,24 @@ model Tour {
   // UC02 — lọc tour công khai theo thành phố.
   @@index([status, city])
   @@map("tours")
+}
+
+// UC19 — log of admin decisions (read by UC22). One row per decision, written in the same
+// transaction as the status change. tourId is a soft reference (no FK) so the log survives
+// the deletion of the tour.
+//   action = approve | reject | request_changes; fromStatus = ai_warning | pending_review
+model TourReviewAction {
+  id         String   @id @default(uuid())
+  tourId     String   @map("tour_id")
+  adminId    String   @map("admin_id")
+  action     String
+  reason     String?
+  fromStatus String   @map("from_status")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([tourId, createdAt])
+  @@index([createdAt])
+  @@map("tour_review_actions")
 }
 
 // UC10 — Điểm dừng trên tour. lat/lng lưu Float; cột geometry(Point) + chỉ mục
