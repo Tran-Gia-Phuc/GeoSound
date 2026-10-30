@@ -3,6 +3,7 @@
 // Đổi tọa độ → kiểm lại vùng cấm (E2).
 // UC15 (MODERATION_EVENTS_ENABLED): a name/description/images change resubmits the place
 // (place.submitted); a change of what the tour scan reads withdraws a tour in moderation.
+// #240 (CHATBOT_EVENTS_ENABLED): an edit of a public tour keeps it public -> tour.published is sent again.
 // =========================================================
 import { Coordinates } from '../../domain/value-objects/coordinates.js';
 import {
@@ -12,14 +13,27 @@ import {
 } from '../../domain/errors/index.js';
 import { MODERATED_FIELDS, TOUR_SCAN_FIELDS } from '../../domain/entities/place.js';
 import { submitPlaceForModeration, withdrawTourFromModeration } from './submit-for-moderation.js';
+import { notifyTourPublished } from './notify-tour-catalog.js';
 
 export class UpdatePlace {
-  /** @param {{ tourRepo, placeRepo, zoneChecker, moderation?, logger? }} deps */
-  constructor({ tourRepo, placeRepo, zoneChecker, moderation = null, logger = console }) {
+  /** @param {{ tourRepo, placeRepo, zoneChecker, moderation?, catalog?, tourLanguageRepo?, placeTranslationRepo?, logger? }} deps */
+  constructor({
+    tourRepo,
+    placeRepo,
+    zoneChecker,
+    moderation = null,
+    catalog = null,
+    tourLanguageRepo = null,
+    placeTranslationRepo = null,
+    logger = console,
+  }) {
     this.tourRepo = tourRepo;
     this.placeRepo = placeRepo;
     this.zoneChecker = zoneChecker;
     this.moderation = moderation;
+    this.catalog = catalog;
+    this.tourLanguageRepo = tourLanguageRepo;
+    this.placeTranslationRepo = placeTranslationRepo;
     this.logger = logger;
   }
 
@@ -49,6 +63,7 @@ export class UpdatePlace {
     const tourScanChanged = changed(TOUR_SCAN_FIELDS);
     place.applyEdits(fields);
     const saved = await this.placeRepo.save(place);
+    await notifyTourPublished(this, tour);
     if (!this.moderation) return saved.toPublic();
     if (tourScanChanged) await withdrawTourFromModeration(this, tour);
     if (!contentChanged) return saved.toPublic();

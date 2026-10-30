@@ -10,9 +10,12 @@
 // The write is conditional (repo.applyModerationResultIf = one UPDATE ... WHERE revision matches
 // [and status = 'ai_checking']), so an edit racing with the result can never be overwritten.
 // The reads before it only classify why a result is ignored (for the logs).
+// #240 (CHATBOT_EVENTS_ENABLED): a place result applied inside a public tour re-sends tour.published,
+// so an approved place enters the chatbot index (places still 'checking' are left out until then).
 // =========================================================
 import { PLACE_MODERATION } from '../../domain/entities/place.js';
 import { TOUR_STATUS } from '../../domain/entities/tour.js';
+import { notifyTourPublished } from './notify-tour-catalog.js';
 
 export const MODERATION_RESULT_EVENTS = Object.freeze({
   PLACE_AI_PASSED: 'place.ai_passed',
@@ -32,10 +35,15 @@ function reasonsOf(payload, rejected) {
 }
 
 export class ApplyModerationResult {
-  /** @param {{ tourRepo, placeRepo, logger? }} deps */
-  constructor({ tourRepo, placeRepo, logger = console }) {
+  /** @param {{ tourRepo, placeRepo, catalog?, tourLanguageRepo?, placeTranslationRepo?, logger? }} deps */
+  constructor({
+    tourRepo, placeRepo, catalog = null, tourLanguageRepo = null, placeTranslationRepo = null, logger = console,
+  }) {
     this.tourRepo = tourRepo;
     this.placeRepo = placeRepo;
+    this.catalog = catalog;
+    this.tourLanguageRepo = tourLanguageRepo;
+    this.placeTranslationRepo = placeTranslationRepo;
     this.logger = logger;
   }
 
@@ -74,6 +82,10 @@ export class ApplyModerationResult {
       moderationReasons: reasonsOf(payload, rejected),
     });
     if (!count) return this.ignore('stale', `place ${place.id} changed before the write`);
+    if (this.catalog) {
+      const tour = await this.tourRepo.findById(place.tourId);
+      if (tour) await notifyTourPublished(this, tour); // no-op unless the tour is public
+    }
     return { applied: true, status };
   }
 

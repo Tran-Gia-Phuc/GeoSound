@@ -5,19 +5,33 @@
 // UC15 (MODERATION_EVENTS_ENABLED): with `moderation` the place starts 'checking', place.submitted
 // is sent and a tour in moderation goes back to draft (see submit-for-moderation.js).
 // Without it: unchanged.
+// #240 (CHATBOT_EVENTS_ENABLED): an edit of a public tour keeps it public -> tour.published is sent again.
 // =========================================================
 import { Place, PLACE_MODERATION } from '../../domain/entities/place.js';
 import { Coordinates } from '../../domain/value-objects/coordinates.js';
 import { TourNotFoundError, NotTourOwnerError } from '../../domain/errors/index.js';
 import { submitPlaceForModeration, withdrawTourFromModeration } from './submit-for-moderation.js';
+import { notifyTourPublished } from './notify-tour-catalog.js';
 
 export class AddPlace {
-  /** @param {{ tourRepo, placeRepo, zoneChecker, moderation?, logger? }} deps */
-  constructor({ tourRepo, placeRepo, zoneChecker, moderation = null, logger = console }) {
+  /** @param {{ tourRepo, placeRepo, zoneChecker, moderation?, catalog?, tourLanguageRepo?, placeTranslationRepo?, logger? }} deps */
+  constructor({
+    tourRepo,
+    placeRepo,
+    zoneChecker,
+    moderation = null,
+    catalog = null,
+    tourLanguageRepo = null,
+    placeTranslationRepo = null,
+    logger = console,
+  }) {
     this.tourRepo = tourRepo;
     this.placeRepo = placeRepo;
     this.zoneChecker = zoneChecker;
     this.moderation = moderation;
+    this.catalog = catalog;
+    this.tourLanguageRepo = tourLanguageRepo;
+    this.placeTranslationRepo = placeTranslationRepo;
     this.logger = logger;
   }
 
@@ -45,8 +59,13 @@ export class AddPlace {
     if (this.moderation) place.moderationStatus = PLACE_MODERATION.CHECKING;
 
     const created = await this.placeRepo.create(place);
-    if (!this.moderation) return created.toPublic();
+    if (!this.moderation) {
+      await notifyTourPublished(this, tour);
+      return created.toPublic();
+    }
     await withdrawTourFromModeration(this, tour);
-    return (await submitPlaceForModeration(this, created, tour)).toPublic();
+    const submitted = await submitPlaceForModeration(this, created, tour);
+    await notifyTourPublished(this, tour);
+    return submitted.toPublic();
   }
 }
