@@ -53,7 +53,7 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
   - chatbot: Tour publish → `tour.published` → indexer (pgvector, schema `ai`) → `/chat` answers with citations; unpublish removes the tour.
 - Tour schema `tour` on Supabase has the moderation columns (pushed 2026-10-30, additive).
 - Both Tour flags are off by default. To turn the full flow on: `MODERATION_EVENTS_ENABLED=true` and `CHATBOT_EVENTS_ENABLED=true` in `.env`, plus `INTERNAL_SERVICE_TOKEN`, `CHATBOT_ENABLED`, `CHATBOT_INDEXER_ENABLED`, `DATABASE_URL_AI`, `DATABASE_URL_DIRECT_AI` (and `CHAT_MEMORY_BACKEND=postgres` for shared chat memory).
-- Waiting for other owners: **PR #227** (gateway chat route; close #188 after it). **UC#19** (#243) is ours now: with moderation on, a tour stops at `pending_review` until an admin decides. The Supabase password shared in chat must be reset by the project owner.
+- Nothing waits for other owners. With moderation on, a tour stops at `pending_review` until an admin decides through `/api/tours/admin/reviews` (UC#19, #243). The Supabase password shared in chat must be reset by the project owner.
 - Never run real Gemini without an explicit request.
 
 Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a tour with more than 50 merged reasons may hide geo reasons; "near X" questions use a 500 m radius (`NEARBY_RADIUS_M`).
@@ -63,12 +63,12 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | Code | Issue | Branch | Status |
 | --- | --- | --- | --- |
 | AI-25 to AI-46 | #166 to #187 | | merged (AI-39 Tour integration: PR #213) |
-| AI-47 `POST /chat` + gateway route | #188 | `feature/chatbot-api`, `feature/gateway-chat-route` | AI part merged; open until gateway PR #227 is merged by its owner |
+| AI-47 `POST /chat` + gateway route | #188 | `feature/chatbot-api`, `feature/gateway-chat-route` | merged (PR #229, PR #227) |
 | AI-48 chatbot evaluation | #189 | `test/chatbot-eval` | merged (offline; real-model baseline only on request) |
 | AI-49 pgvector store, embeddings, indexer transport, chat memory | #219 | | merged (PRs #232 to #237) |
 | full-flow fixes: chat thinking budget, app logs | #238 | `fix/chat-thinking-budget` | merged (PR #239) |
 | Tour `tour.published` / `tour.unpublished` | #240 | `feature/tour-chatbot-events` | merged (PR #241) |
-| UC19 admin review backend | #243 | `feature/uc19-admin-review` | PR open; schema `tour` push to Supabase after merge (new table `tour_review_actions`, column `review_reason`) |
+| UC19 admin review backend | #243 | `feature/uc19-admin-review` | merged (PR #244); schema `tour` pushed to Supabase 2026-10-30 |
 
 ## 5. Notes for the next tasks
 
@@ -77,7 +77,7 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | all Node tasks | Only `src/index.js` may import `../shared/...`; inject `validateEvent` / `publish` elsewhere (CI runs tests from the repo layout, where `../shared` does not exist). Test helpers load shared with a dynamic import that tries the repo path, then the image path |
 | all tasks | Merge only when no CI check fails; for the known flaky UI test, rerun the failed job first (`gh run rerun <id> --failed`) |
 | #185 to #189 | Follow `chatbot-architecture.md`. One LLM call per normal turn; tests use FakeLLM and a fake retriever/embedder; no real Gemini |
-| #188 | AI side done. When PR #227 is merged by the gateway owner, check `/api/chat` through the gateway once, then close #188 with "Done in PR #229 and PR #227" |
+| #188 | Done: `/api/chat` and `/api/chat/history` checked through the gateway on 2026-10-30 |
 | full-flow test | How it was run on 2026-10-30: Tour on a disposable Postgres (`postgis/postgis:16-3.4` on the compose network, `DATABASE_URL` and flags set in a compose override, never in `.env`), a contributor JWT signed inside the tour container with `JWT_ACCESS_SECRET`, calls through the gateway. Never write test data to the shared Supabase schemas of other services |
 | moderation tokens | Moderation calls Gemini through `GeminiClient.generate_json` (default `max_tokens` 2048) with thinking on. Fine for the tested tours; if a large tour (close to 50 places) returns invalid JSON, check `finish_reason=MAX_TOKENS` and set a thinking budget there too |
 | partial PRs | A branch made with `gh issue develop` is linked to the issue, and merging its PR closes the issue even with "Part of #N". For a partial PR create the branch with `git switch -c` and write "Part of #N" |

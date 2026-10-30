@@ -2,7 +2,7 @@
 
 Read this file first in every session, then read `AI_PLAN.md` (decisions, current state, task list, notes for the next tasks). One task per branch, in the order of `AI_PLAN.md` section 4. Several tasks in one session only when the user asks for it. **Run tasks with the project skill `/ai-task <N>`** (`.claude/skills/ai-task/SKILL.md`): it holds the full branch → agent → test → review → commit → PR → merge procedure.
 
-**Priority:** phases 1, 2 and 3 (place moderation, tour moderation, chatbot) work end to end on the real stack, including the Tour side (#180, #240). Open: #188 waits for gateway PR #227 (its owner merges). Next work only on request: bugs found in the flow, real-model eval baseline, smaller AI image (`AI_PLAN.md` sections 3 and 4).
+**Priority:** phases 1, 2 and 3 (place moderation, tour moderation, chatbot), the Tour side (#180, #240), the gateway chat route (#188) and UC#19 admin review (#243) are merged and checked on the real stack. Next work only on request: the follow-ups in `AI_PLAN.md` section 5, real-model eval baseline, smaller AI image.
 
 ## 1. Role and language
 
