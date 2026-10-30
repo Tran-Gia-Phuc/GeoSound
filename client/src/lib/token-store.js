@@ -32,6 +32,21 @@ export function clearAuth() {
   writeAuth(null);
 }
 
+// UC23: the server ended this device's session (refresh answered 401).
+const endedListeners = new Set();
+
+/** Clears the tokens and tells listeners the session was ended by the server. */
+export function endSession() {
+  clearAuth();
+  for (const fn of endedListeners) fn();
+}
+
+/** Subscribe to server-side session ends (SessionWatcher redirects to /login). */
+export function onSessionEnded(fn) {
+  endedListeners.add(fn);
+  return () => endedListeners.delete(fn);
+}
+
 export function getAccessToken() {
   return readAuth()?.accessToken ?? null;
 }

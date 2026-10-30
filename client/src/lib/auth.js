@@ -5,11 +5,12 @@
 // Lưu phiên vào token-store để api.request({ auth:true }) tự gắn Bearer.
 // =========================================================
 import { api } from './api.js';
-import { writeAuth, clearAuth } from './token-store.js';
+import { writeAuth, clearAuth, getAccessToken } from './token-store.js';
+import { getDeviceId } from './device-id.js';
 
 /** Đăng nhập, lưu phiên, trả về user. */
 export async function login({ email, password }) {
-  const body = await api.post('/api/auth/login', { email, password });
+  const body = await api.post('/api/auth/login', { email, password, deviceId: getDeviceId() });
   const { user, accessToken, refreshToken } = body;
   writeAuth({ user, accessToken, refreshToken });
   return user;
@@ -48,6 +49,14 @@ export async function resetPasswordAndLogin({ email, otp, newPassword }) {
   return login({ email, password: newPassword });
 }
 
+/**
+ * Sign out (UC23 A2): ask Auth to end this session, then clear the tokens.
+ * The request is best effort: it starts with the current token before the
+ * tokens are cleared and its errors are ignored, so sign-out never blocks.
+ */
 export function logout() {
+  if (getAccessToken()) {
+    api.post('/api/auth/logout', undefined, { auth: true }).catch(() => {});
+  }
   clearAuth();
 }
