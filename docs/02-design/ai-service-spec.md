@@ -217,6 +217,7 @@ Names only; values live in the root `.env`, which is never committed.
 | `GROQ_API_KEY` | Groq key (secret) |
 | `GROQ_MODEL` | Groq model name |
 | `LLM_TIMEOUT_SECONDS` | Timeout of one provider call |
+| `AI_LOG_LEVEL` | Level of the `app.*` logs (default `INFO`) |
 | `MODERATION_REJECT_THRESHOLD` | Reject threshold (default 0.8) |
 | `MODERATION_WARNING_THRESHOLD` | Warning threshold (default 0.4) |
 | `MODERATION_TIMEOUT_SECONDS` | Total time budget of one moderation request, including the wait for a slot |
