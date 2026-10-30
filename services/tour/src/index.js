@@ -6,7 +6,14 @@
 // Qua gateway: /api/tours/* -> ở đây là /* (vd /api/tours/mine -> /mine).
 // =========================================================
 import express from 'express';
-import { logger, errorHandler, verifyJwt } from '../shared/middleware/index.js';
+import Redis from 'ioredis';
+import {
+  logger,
+  errorHandler,
+  verifyJwt,
+  setSessionRevocationCheck,
+  createRedisRevocationCheck,
+} from '../shared/middleware/index.js';
 import { buildContainer } from './container.js';
 import { isModerationEnabled, isChatbotEventsEnabled } from './config.js';
 import {
@@ -16,6 +23,21 @@ import {
 
 const app = express();
 const PORT = process.env.PORT || 3002;
+
+// UC23 / design 5.3 — reject access tokens of signed-out sessions (key revoked:sid:<sid>, written by
+// Auth). No offline queue: while Redis is down the check fails at once and verifyJwt lets the
+// request through (fail open) instead of hanging.
+const revocationRedis = new Redis(process.env.REDIS_URL || 'redis://redis:6379', {
+  enableOfflineQueue: false,
+  maxRetriesPerRequest: 1,
+});
+let redisErrorLogged = false;
+revocationRedis.on('error', (err) => {
+  if (redisErrorLogged) return;
+  redisErrorLogged = true;
+  console.warn(`[tour] Redis unavailable for the session revocation check: ${err.message}`);
+});
+setSessionRevocationCheck(createRedisRevocationCheck(revocationRedis));
 
 // UC15 / #240 — RabbitMQ is loaded only when MODERATION_EVENTS_ENABLED=true or
 // CHATBOT_EVENTS_ENABLED=true (both off: no connection at all).

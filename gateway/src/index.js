@@ -49,13 +49,14 @@ mountChat(app, {
 });
 
 // Route /api/<service>/* -> service tương ứng, cắt bỏ tiền tố /api/<service>.
-const mount = (path, target) =>
+const mount = (path, target, extra = {}) =>
   app.use(
     path,
     createProxyMiddleware({
       target,
       changeOrigin: true,
       pathRewrite: (p) => p.replace(path, '') || '/',
+      ...extra,
     })
   );
 
@@ -74,7 +75,8 @@ const mountKeep = (path, target) =>
     })
   );
 
-mount('/api/auth', TARGETS.auth);
+// UC23: xfwd adds x-forwarded-for so Auth sees the client IP of a sign-in (device list, R2/R12).
+mount('/api/auth', TARGETS.auth, { xfwd: true });
 mount('/api/tours', TARGETS.tour);
 // UC07 — lịch trình cá nhân + khám phá địa điểm lẻ (cùng tour service).
 mountKeep('/api/itineraries', TARGETS.tour);
