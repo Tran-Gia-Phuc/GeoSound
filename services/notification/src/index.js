@@ -1,6 +1,7 @@
 // =========================================================
 // Notification worker (UC16). KHÔNG mở port.
 // Consume event kết quả -> gửi email báo contributor (kèm lý do nếu có).
+// UC23: auth.new_device_login -> security email ("Đăng nhập mới trên <thiết bị>").
 // =========================================================
 import { connect, consume } from '../shared/rabbitmq/index.js';
 import { EVENTS } from '../shared/events/index.js';
@@ -20,6 +21,7 @@ async function main() {
       EVENTS.TOUR_REPORTED,
       EVENTS.TOUR_HIDDEN,
       EVENTS.TTS_RENDER_COMPLETED,
+      EVENTS.AUTH_NEW_DEVICE_LOGIN, // UC23 / R10 — new-device sign-in alert
     ],
     (event, payload) => handleEvent(mailer, event, payload),
   );
