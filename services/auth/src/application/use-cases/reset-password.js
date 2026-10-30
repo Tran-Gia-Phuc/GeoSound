@@ -1,14 +1,17 @@
 // =========================================================
 // UC01 / A2.2 — Quên mật khẩu (bước 2): xác thực OTP & đặt mật khẩu mới.
 // Đặt lại mật khẩu đồng thời gỡ tạm khóa (nếu có).
+// UC23 / R7: a password reset signs out every device of the account (reason password_reset).
 // =========================================================
 import { Email } from '../../domain/value-objects/email.js';
 import { Password } from '../../domain/value-objects/password.js';
 import { InvalidOtpError, ChallengeNotFoundError } from '../../domain/errors/index.js';
+import { REVOKE_REASONS } from '../../domain/entities/session.js';
 
 export class ResetPassword {
-  /** @param {{ userRepo, hasher, challenges }} deps */
-  constructor({ userRepo, hasher, challenges }) {
+  /** @param {{ userRepo, hasher, challenges, sessions?: import('../services/session-manager.js').SessionManager }} deps */
+  constructor({ userRepo, hasher, challenges, sessions }) {
+    this.sessions = sessions ?? null;
     this.userRepo = userRepo;
     this.hasher = hasher;
     this.challenges = challenges;
@@ -33,6 +36,7 @@ export class ResetPassword {
     user.resetLockout();
     await this.userRepo.save(user);
     await this.challenges.delete('reset', emailVo.value);
+    if (this.sessions) await this.sessions.revokeAll(user.id, REVOKE_REASONS.PASSWORD_RESET);
 
     return { email: emailVo.value };
   }

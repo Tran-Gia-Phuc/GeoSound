@@ -20,8 +20,39 @@
 
 /**
  * @typedef {Object} TokenService
- * @property {(user: import('../entities/user.js').User) => { accessToken: string, refreshToken: string, expiresIn: string }} issueTokens
- * @property {(refreshToken: string) => { sub: string }} verifyRefresh
+ * @property {(user: import('../entities/user.js').User, opts?: { sid?: string }) => { accessToken: string, refreshToken: string, expiresIn: string }} issueTokens
+ *   // with `sid` (UC23): access token carries `sid`, refresh token carries `sub`, `sid` and a random `jti`
+ * @property {(refreshToken: string) => { sub: string, sid?: string }} verifyRefresh
+ * @property {(refreshToken: string) => string} hashRefresh  // sha-256 hex, stored in the session (R11)
+ */
+
+/**
+ * UC23 — signed-in device sessions (schema auth, table sessions).
+ * @typedef {Object} SessionRepository
+ * @property {(session: import('../entities/session.js').Session) => Promise<import('../entities/session.js').Session>} create
+ * @property {(session: import('../entities/session.js').Session) => Promise<import('../entities/session.js').Session>} save
+ * @property {(id: string) => Promise<import('../entities/session.js').Session|null>} findById
+ * @property {(userId: string, deviceId: string) => Promise<import('../entities/session.js').Session|null>} findLatestByDevice  // any state, newest first
+ * @property {(userId: string, now: Date) => Promise<import('../entities/session.js').Session[]>} listActiveByUser  // not revoked, not expired
+ * @property {(cutoff: Date) => Promise<number>} deleteEndedBefore  // revoked or expired before cutoff (R12)
+ */
+
+/**
+ * UC23 / 5.3 — makes a sign-out immediate: services reject access tokens whose `sid` is marked.
+ * @typedef {Object} RevocationStore
+ * @property {(sid: string) => Promise<void>} markRevoked
+ */
+
+/**
+ * UC23 / R12 — approximate location (city, country) from an IP; null when unknown.
+ * @typedef {Object} LocationResolver
+ * @property {(ip: string|null) => Promise<string|null>} resolve
+ */
+
+/**
+ * Publishes a domain event (RabbitMQ in production). Payload validated against shared/events.
+ * @typedef {Object} EventPublisher
+ * @property {(eventName: string, payload: object) => Promise<void>} publish
  */
 
 /**

@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildTourEmail } from '../src/services/tour-email-template.js';
-import { handleEvent } from '../src/notify.js';
+import { handleEvent, securityAlertRecipient } from '../src/notify.js';
+import { buildNewDeviceEmail, formatVietnamTime } from '../src/services/security-email-template.js';
 import { createMailer } from '../src/services/mailer.js';
 
 const silent = { log() {}, warn() {} };
@@ -104,4 +105,46 @@ test('handleEvent sends the changes-requested email', async () => {
   await handleEvent(mailer, 'tour.changes_requested', { tourId: 't1', contributorEmail: 'c@example.com', reason: 'Sửa mô tả' }, silent);
   assert.equal(sent.length, 1);
   assert.equal(sent[0].subject, 'Tour cần chỉnh sửa');
+});
+
+// ---------- UC23 / R10 — new-device sign-in alert ----------
+
+const newDevice = { userId: 'u1', email: 'an@mail.com', deviceName: 'Chrome trên Windows', at: '2026-10-30T07:05:00Z' };
+
+test('new-device email: subject, device, Vietnam time, unknown location, advice', () => {
+  const email = buildNewDeviceEmail(newDevice);
+  assert.equal(email.subject, 'Đăng nhập mới trên Chrome trên Windows');
+  assert.match(email.text, /Thiết bị: Chrome trên Windows/);
+  assert.match(email.text, /Thời gian: 14:05 30\/10\/2026 \(giờ Việt Nam\)/);
+  assert.match(email.text, /Vị trí: Không xác định/);
+  assert.match(email.text, /Thiết bị đang đăng nhập/);
+  assert.match(email.html, /lang="vi"/);
+  assert.match(email.html, /Không xác định/);
+  assert.match(buildNewDeviceEmail({ ...newDevice, location: 'Hà Nội, Việt Nam' }).text, /Vị trí: Hà Nội, Việt Nam/);
+  assert.equal(formatVietnamTime('bad'), 'Không xác định');
+});
+
+test('new-device email escapes device name and location in HTML', () => {
+  const email = buildNewDeviceEmail({ ...newDevice, deviceName: '<img src=x onerror=alert(1)>', location: '"><script>x</script>' });
+  assert.doesNotMatch(email.html, /<img src=x/);
+  assert.doesNotMatch(email.html, /<script>/);
+  assert.match(email.html, /&lt;img src=x onerror=alert\(1\)&gt;/);
+});
+
+test('security alert recipient: SECURITY_ALERT_TO overrides the account email', () => {
+  assert.equal(securityAlertRecipient(newDevice, {}), 'an@mail.com');
+  assert.equal(securityAlertRecipient(newDevice, { SECURITY_ALERT_TO: '  ' }), 'an@mail.com');
+  assert.equal(securityAlertRecipient(newDevice, { SECURITY_ALERT_TO: 'demo@inbox.test' }), 'demo@inbox.test');
+  assert.equal(securityAlertRecipient({}, {}), null);
+});
+
+test('handleEvent sends the new-device alert to the right address', async () => {
+  const sent = [];
+  const mailer = { send: async (m) => (sent.push(m), { status: 'sent' }) };
+  await handleEvent(mailer, 'auth.new_device_login', newDevice, silent, {});
+  await handleEvent(mailer, 'auth.new_device_login', newDevice, silent, { SECURITY_ALERT_TO: 'demo@inbox.test' });
+  assert.deepEqual(sent.map((m) => m.to), ['an@mail.com', 'demo@inbox.test']);
+  assert.equal(sent[0].subject, 'Đăng nhập mới trên Chrome trên Windows');
+  const skipped = await handleEvent(mailer, 'auth.new_device_login', { userId: 'u1', deviceName: 'x' }, silent, {});
+  assert.deepEqual(skipped, { skipped: 'no_recipient' });
 });

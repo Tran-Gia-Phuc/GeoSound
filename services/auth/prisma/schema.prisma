@@ -25,6 +25,33 @@ model User {
   lockedUntil    DateTime? @map("locked_until") // tạm khóa đăng nhập tới thời điểm này
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
+  sessions       Session[]
 
   @@map("users")
+}
+
+// UC23 — one row per signed-in device (docs/02-design/device-sessions.md section 5.1).
+// `id` is the `sid` carried in the tokens. "One active session per (user_id, device_id)" is a
+// partial unique rule that Prisma cannot express: the login use case enforces it (R1).
+model Session {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  deviceId     String?   @map("device_id") // random id kept by the client (R1); null when not sent
+  deviceName   String    @map("device_name") // parsed from the User-Agent (R2)
+  userAgent    String?   @map("user_agent")
+  ipAddress    String?   @map("ip_address") // last seen; never shown in full (R2, R12)
+  location     String? // city, country when known (R12)
+  refreshHash  String    @map("refresh_hash") // sha-256 of the current refresh token (R11)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastActiveAt DateTime  @default(now()) @map("last_active_at") @db.Timestamptz(3)
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3) // min(idle, absolute) limit (R8)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(3)
+  revokeReason String?   @map("revoke_reason") // user | user_all | password_reset | password_change | banned | limit | reuse | expired
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, deviceId])
+  @@index([revokedAt])
+  @@index([expiresAt])
+  @@map("sessions")
 }

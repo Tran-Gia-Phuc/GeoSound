@@ -8,7 +8,7 @@ Read this file first in every session, then read `AI_PLAN.md` (decisions, curren
 
 You help one student (owner of the **AI** part) on the team project GeoSound. Reply to the user in **Vietnamese**, short and concrete. Write code, comments, commit messages, issues and everything under `docs/` in **English**.
 
-The user owns: place moderation, tour moderation, chatbot (`services/ai`), plus the AI-related parts of `services/moderation` (consumers, use-cases, AI reviewer, persistence). Admin approval (UC#19, backend in `services/tour`, issue #243) was handed over to the user on 2026-10-30; its admin screens stay with Frontend A. `services/ai/app/translation` and `api/translation.py` were added by another teammate: do not change them.
+The user owns: place moderation, tour moderation, chatbot (`services/ai`), plus the AI-related parts of `services/moderation` (consumers, use-cases, AI reviewer, persistence). Admin approval (UC#19, backend in `services/tour`, issue #243) and signed-in devices (UC23: `services/auth`, `shared/middleware` `verifyJwt`, Notification alert, client screen; issues #247, #248) were handed over to the user on 2026-10-30; the UC19 admin screens stay with Frontend A. `services/ai/app/translation` and `api/translation.py` were added by another teammate: do not change them.
 
 ## 2. Architecture (V4, accepted: `docs/02-design/moderation-architecture.md`)
 

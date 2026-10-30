@@ -44,6 +44,7 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 | D25 | Tour catalog events (#240) | Behind `CHATBOT_EVENTS_ENABLED`: `tour.published` when a tour becomes `public` and re-sent when a public tour's places, languages, translations or a place moderation result change; `tour.unpublished` on unpublish / edit back to draft / delete. Only places not `checking` / `rejected` are sent. `revision` = max(`updatedAt`, send time) so re-sends are never stale |
 | D26 | Chat model | `thinking_budget=0` for Gemini chat (#238): `gemini-2.5-flash` counts thinking in `max_output_tokens` and cut answers at 512 tokens |
 | D27 | Admin review (UC#19, #243) | In Tour, routes `/admin/reviews` (role `admin`): queue (`ai_warning` first, then oldest), read-only dossier, approve -> `public` (`tour.approved` + `tour.published`), reject with reason -> `rejected` (`tour.rejected`), request changes with reason -> new status `changes_requested` (`tour.changes_requested`, author resubmits). Conditional writes from `ai_warning` / `pending_review` only (409 otherwise); every decision logged in `tour_review_actions` (UC22) |
+| D28 | Signed-in devices (UC23, #247 backend, #248 client) | Design `docs/02-design/device-sessions.md`: `auth.sessions`, `sid` in tokens, refresh rotation with reuse detection, revocation in Redis checked by `verifyJwt`, no business limit (cap `AUTH_MAX_SESSIONS`=100), new-device email (demo inbox `SECURITY_ALERT_TO` in `.env`, never in the repo) |
 
 
 ## 3. Current state (2026-10-30)
@@ -69,6 +70,8 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | full-flow fixes: chat thinking budget, app logs | #238 | `fix/chat-thinking-budget` | merged (PR #239) |
 | Tour `tour.published` / `tour.unpublished` | #240 | `feature/tour-chatbot-events` | merged (PR #241) |
 | UC19 admin review backend | #243 | `feature/uc19-admin-review` | merged (PR #244); schema `tour` pushed to Supabase 2026-10-30 |
+| UC23 signed-in devices, Auth backend | #247 | `feature/uc23-device-sessions` | in progress |
+| UC23 signed-in devices, client screen | #248 | | after #247 |
 
 ## 5. Notes for the next tasks
 

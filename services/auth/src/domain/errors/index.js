@@ -78,3 +78,24 @@ export class InvalidTokenError extends AppError {
     super(message, { status: 401, code: 'invalid_token' });
   }
 }
+
+// UC23 — the session behind a refresh token is signed out, expired or was reused (R6, R8, R11).
+export class SessionRevokedError extends AppError {
+  constructor(message = 'Phiên đăng nhập đã kết thúc') {
+    super(message, { status: 401, code: 'session_revoked' });
+  }
+}
+
+// UC23 — unknown session or one of another user (never tell which).
+export class SessionNotFoundError extends AppError {
+  constructor(message = 'Không tìm thấy phiên đăng nhập') {
+    super(message, { status: 404, code: 'session_not_found' });
+  }
+}
+
+// UC23 / R4 — the current device signs out with "Đăng xuất", not from the device list.
+export class CurrentSessionError extends AppError {
+  constructor(message = 'Đây là thiết bị hiện tại, vui lòng dùng Đăng xuất') {
+    super(message, { status: 409, code: 'current_session' });
+  }
+}
