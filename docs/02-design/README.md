@@ -17,5 +17,6 @@ Expected later:
 - [Chatbot Architecture (phase 3, accepted)](chatbot-architecture.md)
 - [AI integration: requests to other services](ai-integration-requests.md)
 - [Admin review API (UC19)](admin-review-api.md)
+- [Signed-in devices: research and design (UC23)](device-sessions.md)
 - [OTP email templates and SMTP verification](notification-otp-design.md)
 - [General ERD — supplied reference (draw.io)](drawio/erd-general.drawio)

@@ -1,13 +1,13 @@
 # Danh sách Use Case – Hệ thống GeoSound (audio guide du lịch)
 
 > Nguồn: [ustory.md](ustory.md). Đánh số UC theo **flow người dùng**: Tài khoản → Khách du lịch (Tourist) → Người đăng nội dung (Contributor) → Admin.
-> Tổng **22 use case** (đã gộp bớt các UC tách quá mịn), chia 2 thư mục theo thứ tự triển khai.
+> Tổng **23 use case** (đã gộp bớt các UC tách quá mịn), chia 2 thư mục theo thứ tự triển khai.
 
 ## Tổ chức thư mục
 
 | Thư mục | Nội dung |
 |---|---|
-| `lam-truoc/` | **13 UC làm trước** (danh sách đã chọn + UC08 để trọn nhánh lịch trình) |
+| `lam-truoc/` | **14 UC làm trước** (danh sách đã chọn + UC08 để trọn nhánh lịch trình + UC23 thêm 2026-10-30) |
 | `lam-sau/` | **9 UC làm sau** (phần còn lại) |
 
 ## Phân biệt Use Case vs Action
@@ -15,7 +15,7 @@
 - **Use case**: mục tiêu hoàn chỉnh, có điểm bắt đầu & kết thúc, kết quả quan sát được.
 - **Action**: một bước bên trong UC (vd *tua audio*, *thả pin*, *chọn ngôn ngữ*, *xem danh sách*) → thuộc Basic/Alternative/Exception flow, không tách thành UC riêng.
 
-## 🟢 Nhóm LÀM TRƯỚC (13 UC) — thư mục `lam-truoc/`
+## 🟢 Nhóm LÀM TRƯỚC (14 UC) — thư mục `lam-truoc/`
 
 | UC | Tên use case | Actor | Priority | Gộp từ (bản 28) |
 |---|---|---|---|---|
@@ -32,6 +32,7 @@
 | UC13 | [Xem thử tour (preview)](lam-truoc/UC13-xem-thu-tour.md) | Contributor | P1 | UC19 |
 | UC15 | [Gửi tour đi duyệt – kiểm duyệt AI](lam-truoc/UC15-gui-tour-di-duyet.md) | Contributor + Hệ thống AI | P0 | UC21 |
 | UC19 | [Duyệt / từ chối tour](lam-truoc/UC19-duyet-tu-choi-tour.md) | Admin | P0 | UC25 |
+| UC23 | [Quản lý thiết bị đang đăng nhập](lam-truoc/UC23-quan-ly-thiet-bi-dang-nhap.md) | Tourist / Contributor / Admin | P1 | mới (G1) |
 
 ## 🟡 Nhóm LÀM SAU (9 UC) — thư mục `lam-sau/`
 

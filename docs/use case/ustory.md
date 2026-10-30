@@ -206,6 +206,13 @@
 | A12 | Là admin, tôi muốn xem log các hành động của mình và các admin khác (ai duyệt tour nào, ai ban user nào, lúc nào) để minh bạch trong vận hành.                                                 |
 
 
+## Chung cho mọi vai trò (thêm 2026-10-30)
+
+| ID | User story |
+| --- | --- |
+| G1 | Là người dùng đã đăng nhập, tôi muốn xem các thiết bị đang đăng nhập vào tài khoản của mình (vd 3 điện thoại thì thấy 3 thiết bị) và đăng xuất từ xa một thiết bị hoặc tất cả thiết bị khác, để bảo vệ tài khoản khi mất máy hoặc nghi bị người khác dùng. (UC23) |
+
+
 ---
 
 
