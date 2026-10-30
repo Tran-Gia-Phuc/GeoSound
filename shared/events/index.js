@@ -23,6 +23,8 @@ export const EVENTS = {
   TOUR_UNPUBLISHED: 'tour.unpublished',
   TTS_RENDER_REQUESTED: 'tts.render.requested',
   TTS_RENDER_COMPLETED: 'tts.render.completed',
+  // UC23 / R10 — a sign-in created a new device session (Auth -> Notification email).
+  AUTH_NEW_DEVICE_LOGIN: 'auth.new_device_login',
 };
 
 // --- Payload schema (zod). Chi tiết sẽ bổ sung khi chốt data model (tech-stack.md §11). ---
@@ -185,6 +187,14 @@ export const schemas = {
   }),
   [EVENTS.TTS_RENDER_REQUESTED]: base.extend({ languages: z.array(z.string()).nonempty() }),
   [EVENTS.TTS_RENDER_COMPLETED]: base.extend({ assets: z.array(z.object({ lang: z.string(), url: z.string().url() })), ...recipient }),
+  // UC23 / R10. No tourId (not a tour event). `location` = "city, country" when known.
+  [EVENTS.AUTH_NEW_DEVICE_LOGIN]: z.object({
+    userId: z.string().min(1),
+    email: z.string().email(),
+    deviceName: z.string().min(1).max(200),
+    location: z.string().min(1).max(200).optional(),
+    at: isoUtc,
+  }),
 };
 
 /** Validate payload theo tên event; ném lỗi nếu sai schema. */

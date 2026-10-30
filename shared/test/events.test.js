@@ -179,3 +179,16 @@ test('tour.changes_requested (UC19): reason 1..1000, recipient optional', () => 
   bad(EVENTS.TOUR_CHANGES_REQUESTED, { tourId: 't1' });
   bad(EVENTS.TOUR_CHANGES_REQUESTED, { tourId: 't1', reason: 'x', at: OFFSET });
 });
+
+test('auth.new_device_login (UC23): userId, email, deviceName, at required; location optional', () => {
+  const ev = EVENTS.AUTH_NEW_DEVICE_LOGIN;
+  assert.equal(ev, 'auth.new_device_login');
+  const full = { userId: 'u1', email: 'an@mail.com', deviceName: 'Chrome trên Windows', location: 'Hà Nội, Việt Nam', at: AT };
+  ok(ev, full);
+  ok(ev, { ...full, location: undefined });
+  bad(ev, { ...full, at: OFFSET });
+  bad(ev, { ...full, at: undefined });
+  bad(ev, { ...full, email: 'not-an-email' });
+  bad(ev, { ...full, deviceName: '' });
+  bad(ev, { ...full, userId: undefined });
+});
