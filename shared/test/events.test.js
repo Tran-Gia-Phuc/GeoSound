@@ -168,3 +168,14 @@ test('tour.unpublished: reason enum, optional revision', () => {
   bad(EVENTS.TOUR_UNPUBLISHED, { tourId: 't1', reason: 'hidden', revision: OFFSET });
   bad(EVENTS.TOUR_UNPUBLISHED, { reason: 'hidden' });
 });
+
+test('tour.changes_requested (UC19): reason 1..1000, recipient optional', () => {
+  ok(EVENTS.TOUR_CHANGES_REQUESTED, { tourId: 't1', reason: 'Thêm ảnh cho điểm 2' });
+  ok(EVENTS.TOUR_CHANGES_REQUESTED, {
+    tourId: 't1', reason: 'x'.repeat(1000), contributorId: 'u1', tourTitle: 'T', at: AT,
+  });
+  bad(EVENTS.TOUR_CHANGES_REQUESTED, { tourId: 't1', reason: '' });
+  bad(EVENTS.TOUR_CHANGES_REQUESTED, { tourId: 't1', reason: 'x'.repeat(1001) });
+  bad(EVENTS.TOUR_CHANGES_REQUESTED, { tourId: 't1' });
+  bad(EVENTS.TOUR_CHANGES_REQUESTED, { tourId: 't1', reason: 'x', at: OFFSET });
+});

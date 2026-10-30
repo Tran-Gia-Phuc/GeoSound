@@ -20,7 +20,7 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 | D1 | Event contract | `docs/02-design/moderation-architecture.md` section 6.1. New keys on existing events are optional; `tour.ai_rejected.reason` stays a string (Notification consumes it) |
 | D2 | Who emits `*.submitted` | Tour, only when `MODERATION_EVENTS_ENABLED=true` (default false = today's direct publish). `place.submitted` on place create/edit; `tour.submitted` on submit, status `ai_checking` |
 | D3 | Who consumes results | Tour, queue `tour.moderation-results`. Tour: `ai_passed` → `pending_review` (or `ai_warning` when `warning`), `ai_rejected` → `draft` with reasons. Place gets `moderationStatus` (`checking`, `approved`, `warning`, `rejected`) and `moderationReasons` |
-| D4 | Who writes the Node part of Moderation | The AI owner. Admin queue and approve/reject (UC#19) are out of scope |
+| D4 | Who writes the Node part of Moderation | The AI owner. Admin queue and approve/reject (UC#19) were handed over on 2026-10-30 and live in Tour (#243), see D27 |
 | D5 | Tour submit while places are unchecked | Tour blocks submit if a place is `checking` or `rejected`; `warning` does not block |
 | D6 | Image URLs | Supabase Storage public URLs (`services/media/.../supabase-storage.js`); `IMAGE_ALLOWED_HOSTS` = the Supabase host |
 | D7 | Place without a tour | Dropped: `Place.tourId` is required in the Tour schema, so `tourId` is required in `place.submitted` |
@@ -43,6 +43,7 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 | D20 | Tour side (PR #213, merged) | Tour stores `moderationRevision` before publishing and applies a result with a conditional update on it; editing a tour or its places while in moderation sends it back to `draft` |
 | D25 | Tour catalog events (#240) | Behind `CHATBOT_EVENTS_ENABLED`: `tour.published` when a tour becomes `public` and re-sent when a public tour's places, languages, translations or a place moderation result change; `tour.unpublished` on unpublish / edit back to draft / delete. Only places not `checking` / `rejected` are sent. `revision` = max(`updatedAt`, send time) so re-sends are never stale |
 | D26 | Chat model | `thinking_budget=0` for Gemini chat (#238): `gemini-2.5-flash` counts thinking in `max_output_tokens` and cut answers at 512 tokens |
+| D27 | Admin review (UC#19, #243) | In Tour, routes `/admin/reviews` (role `admin`): queue (`ai_warning` first, then oldest), read-only dossier, approve -> `public` (`tour.approved` + `tour.published`), reject with reason -> `rejected` (`tour.rejected`), request changes with reason -> new status `changes_requested` (`tour.changes_requested`, author resubmits). Conditional writes from `ai_warning` / `pending_review` only (409 otherwise); every decision logged in `tour_review_actions` (UC22) |
 
 
 ## 3. Current state (2026-10-30)
@@ -52,7 +53,7 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
   - chatbot: Tour publish → `tour.published` → indexer (pgvector, schema `ai`) → `/chat` answers with citations; unpublish removes the tour.
 - Tour schema `tour` on Supabase has the moderation columns (pushed 2026-10-30, additive).
 - Both Tour flags are off by default. To turn the full flow on: `MODERATION_EVENTS_ENABLED=true` and `CHATBOT_EVENTS_ENABLED=true` in `.env`, plus `INTERNAL_SERVICE_TOKEN`, `CHATBOT_ENABLED`, `CHATBOT_INDEXER_ENABLED`, `DATABASE_URL_AI`, `DATABASE_URL_DIRECT_AI` (and `CHAT_MEMORY_BACKEND=postgres` for shared chat memory).
-- Waiting for other owners: **PR #227** (gateway chat route; close #188 after it) and **UC#19 admin approval** (with moderation on, a tour stops at `pending_review`; the approval must call `notifyTourPublished` when it sets `public`). The Supabase password shared in chat must be reset by the project owner.
+- Waiting for other owners: **PR #227** (gateway chat route; close #188 after it). **UC#19** (#243) is ours now: with moderation on, a tour stops at `pending_review` until an admin decides. The Supabase password shared in chat must be reset by the project owner.
 - Never run real Gemini without an explicit request.
 
 Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a tour with more than 50 merged reasons may hide geo reasons; "near X" questions use a 500 m radius (`NEARBY_RADIUS_M`).
@@ -67,6 +68,7 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | AI-49 pgvector store, embeddings, indexer transport, chat memory | #219 | | merged (PRs #232 to #237) |
 | full-flow fixes: chat thinking budget, app logs | #238 | `fix/chat-thinking-budget` | merged (PR #239) |
 | Tour `tour.published` / `tour.unpublished` | #240 | `feature/tour-chatbot-events` | merged (PR #241) |
+| UC19 admin review backend | #243 | `feature/uc19-admin-review` | PR open; schema `tour` push to Supabase after merge (new table `tour_review_actions`, column `review_reason`) |
 
 ## 5. Notes for the next tasks
 
@@ -80,3 +82,4 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | moderation tokens | Moderation calls Gemini through `GeminiClient.generate_json` (default `max_tokens` 2048) with thinking on. Fine for the tested tours; if a large tour (close to 50 places) returns invalid JSON, check `finish_reason=MAX_TOKENS` and set a thinking budget there too |
 | partial PRs | A branch made with `gh issue develop` is linked to the issue, and merging its PR closes the issue even with "Part of #N". For a partial PR create the branch with `git switch -c` and write "Part of #N" |
 | #219 | Schema `ai` is defined in `services/ai/prisma/schema.prisma` (tables) plus `prisma/pre-push.sql` (vector extension, schema `ai`) and `prisma/post-push.sql` (CHECK constraints, HNSW index), pushed with the auth image (`docs/04-guides/supabase-access.md` section 4); pgvector store, e5 embedding runtime in the image, AMQP transport for the indexer. Chat memory (part D): `CHAT_MEMORY_BACKEND=postgres` uses the official `AsyncPostgresSaver` (`langgraph-checkpoint-postgres` 3.2, psycopg 3.3) over `DATABASE_URL_DIRECT_AI`, in its own schema `ai_chat` (created at startup, never in Prisma-managed `ai`), plus `ai_chat.chat_sessions` / `chat_messages` for `at`, citations and TTL; `memory` stays the default. Integration tests need `AI_TEST_DATABASE_URL` (disposable DB) |
+| follow-ups | (1) Geo reasons from Moderation are always English while AI reasons follow the tour language: localise `tour-geo-rules.js` messages by `language`. (2) Tour events carry no `contributorEmail`, so Notification logs "thiếu contributorEmail" and sends no email (true for every tour event, not only UC19): Notification should look the email up by `contributorId` (Auth owner decides how) |

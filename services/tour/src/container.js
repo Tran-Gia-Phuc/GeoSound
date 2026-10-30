@@ -26,6 +26,8 @@ import { AiTranslator } from './infrastructure/i18n/ai-translator.js';
 import { PlaceholderTtsSynthesizer } from './infrastructure/i18n/placeholder-tts.js';
 import { EventModerationGateway } from './infrastructure/messaging/event-moderation-gateway.js';
 import { EventTourCatalogPublisher } from './infrastructure/messaging/event-tour-catalog-publisher.js';
+import { EventTourReviewPublisher } from './infrastructure/messaging/event-tour-review-publisher.js';
+import { PrismaTourReviewActionRepository } from './infrastructure/persistence/prisma-tour-review-action-repository.js';
 import { isModerationEnabled, isChatbotEventsEnabled } from './config.js';
 
 import { CreateTour } from './application/use-cases/create-tour.js';
@@ -36,6 +38,13 @@ import { DeleteTour } from './application/use-cases/delete-tour.js';
 import { GetPublishReadiness, PublishTour, UnpublishTour } from './application/use-cases/publish-tour.js';
 import { ApplyModerationResult } from './application/use-cases/apply-moderation-result.js';
 import { buildModerationResultHandler } from './interfaces/events/moderation-result-handler.js';
+import {
+  ListReviewQueue,
+  GetReviewDossier,
+  ApproveTour,
+  RejectTour,
+  RequestTourChanges,
+} from './application/use-cases/review-tour.js';
 
 import { AddPlace } from './application/use-cases/add-place.js';
 import { ListPlaces } from './application/use-cases/list-places.js';
@@ -84,6 +93,8 @@ import { buildItineraryRouter } from './interfaces/http/routes/itinerary-routes.
 import { ExploreController } from './interfaces/http/controllers/explore-controller.js';
 import { buildExploreRouter } from './interfaces/http/routes/explore-routes.js';
 import { buildPublicItineraryRouter } from './interfaces/http/routes/public-itinerary-routes.js';
+import { AdminReviewController } from './interfaces/http/controllers/admin-review-controller.js';
+import { buildAdminReviewRouter } from './interfaces/http/routes/admin-review-routes.js';
 
 // Dịch thật qua AI service khi có khoá Gemini (hoặc ép bằng TRANSLATOR=ai|echo).
 function selectTranslator(env) {
@@ -94,9 +105,10 @@ function selectTranslator(env) {
 
 /**
  * @param {object} env
- * @param {{ publish?, validateEvent? }} [shared] functions from ../shared (only index.js imports it), needed only when a flag is on
+ * @param {{ publish?, validateEvent?, verifyJwt? }} [shared] functions from ../shared (only index.js imports it);
+ *   publish / validateEvent are needed only when an event flag is on, verifyJwt guards the admin routes (UC19)
  */
-export function buildContainer(env = process.env, { publish = null, validateEvent = null } = {}) {
+export function buildContainer(env = process.env, { publish = null, validateEvent = null, verifyJwt = null } = {}) {
   // --- infrastructure (impl của domain/ports) ---
   const tourRepo = new PrismaTourRepository(prisma);
   const placeRepo = new PrismaPlaceRepository(prisma);
@@ -121,6 +133,10 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   const catalog =
     isChatbotEventsEnabled(env) && publish ? new EventTourCatalogPublisher({ publish }) : null;
   const i18nRepos = { tourLanguageRepo, placeTranslationRepo };
+  // UC19 — admin decision log + tour.approved / tour.rejected / tour.changes_requested for Notification.
+  // The broker is loaded when an event flag is on; otherwise no publish -> decisions send nothing.
+  const reviewActionRepo = new PrismaTourReviewActionRepository(prisma);
+  const reviewEvents = publish ? new EventTourReviewPublisher({ publish }) : null;
 
   // --- application (use-cases) ---
   const useCases = {
@@ -195,6 +211,16 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     getSharedItinerary: new GetSharedItinerary({ itineraryRepo }),
   };
 
+  const reviewDeps = { tourRepo, placeRepo, reviewEvents, catalog, ...i18nRepos };
+  const adminReviewUseCases = {
+    // UC19 — admin review queue and decisions
+    listReviewQueue: new ListReviewQueue({ tourRepo }),
+    getReviewDossier: new GetReviewDossier({ tourRepo, placeRepo, reviewActionRepo, routeConfigRepo }),
+    approveTour: new ApproveTour(reviewDeps),
+    rejectTour: new RejectTour(reviewDeps),
+    requestTourChanges: new RequestTourChanges(reviewDeps),
+  };
+
   // --- interfaces (controller + router) ---
   const tourController = new TourController(useCases);
   const tourRouter = buildTourRouter({ tourController });
@@ -213,6 +239,12 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   const exploreController = new ExploreController(exploreUseCases);
   const exploreRouter = buildExploreRouter({ exploreController });
   const publicItineraryRouter = buildPublicItineraryRouter({ exploreController });
+  const adminReviewRouter = verifyJwt
+    ? buildAdminReviewRouter({
+        adminReviewController: new AdminReviewController(adminReviewUseCases),
+        requireAdmin: verifyJwt(['admin']),
+      })
+    : null;
 
   // UC15 — AI result handler (queue tour.moderation-results), only when the flag is on.
   const moderationResultHandler = moderation
@@ -232,6 +264,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     itineraryRouter,
     exploreRouter,
     publicItineraryRouter,
+    adminReviewRouter,
     moderationResultHandler,
     prisma,
   };

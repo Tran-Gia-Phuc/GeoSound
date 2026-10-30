@@ -85,3 +85,23 @@ test('createMailer builds a real SMTP mailer when host and sender are set', () =
   assert.equal(typeof mailer.send, 'function');
   mailer.close();
 });
+
+test('tour.changes_requested (UC19) emails the contributor with the escaped reason', () => {
+  const email = buildTourEmail({
+    event: 'tour.changes_requested',
+    payload: { tourId: 't1', tourTitle: 'Phố cổ Hội An', reason: 'Thêm ảnh <b>điểm 2</b>' },
+  });
+  assert.equal(email.subject, 'Tour cần chỉnh sửa');
+  assert.match(email.text, /Phố cổ Hội An/);
+  assert.match(email.text, /Lý do: Thêm ảnh <b>điểm 2<\/b>/);
+  assert.match(email.html, /Thêm ảnh &lt;b&gt;điểm 2&lt;\/b&gt;/);
+  assert.doesNotMatch(email.html, /<b>điểm 2<\/b>/);
+});
+
+test('handleEvent sends the changes-requested email', async () => {
+  const sent = [];
+  const mailer = { send: async (m) => { sent.push(m); return { status: 'console_logged' }; } };
+  await handleEvent(mailer, 'tour.changes_requested', { tourId: 't1', contributorEmail: 'c@example.com', reason: 'Sửa mô tả' }, silent);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].subject, 'Tour cần chỉnh sửa');
+});

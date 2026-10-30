@@ -112,6 +112,13 @@ export class PlaceNotAddableError extends AppError {
   }
 }
 
+// UC19 — the tour is not waiting for an admin decision (or another decision won the race).
+export class TourNotReviewableError extends AppError {
+  constructor(message = 'Tour không ở trạng thái chờ duyệt') {
+    super(message, { status: 409, code: 'tour_not_reviewable' });
+  }
+}
+
 // UC12 / E1 — dịch vụ dịch không phản hồi (cho thử lại).
 export class TranslationError extends AppError {
   constructor(message = 'Dịch tự động thất bại, vui lòng thử lại') {

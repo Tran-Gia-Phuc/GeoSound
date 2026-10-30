@@ -20,6 +20,25 @@
  * // --- UC15 AI moderation: writes only status + moderationReasons/moderationRevision ---
  * @property {(id: string, fields: { status?, moderationReasons?, moderationRevision? }) => Promise<import('../entities/tour.js').Tour>} updateModeration
  * @property {(id: string, revision: string, fields: { status, moderationReasons }) => Promise<number>} applyModerationResultIf  // only while ai_checking + same revision; returns rows updated
+ * // --- UC19 admin review ---
+ * @property {(statuses: string[]) => Promise<import('../entities/tour.js').Tour[]>} listByStatuses  // updatedAt ascending
+ * @property {(id: string, fromStatuses: string[], fields: { status, reviewReason }, log: { adminId, action, reason, fromStatus }) => Promise<number>} applyReviewDecisionIf  // only while status IN fromStatuses; writes the log row in the same transaction; returns rows updated
+ */
+
+/**
+ * UC19 — admin decision log (read side; rows are written by TourRepository.applyReviewDecisionIf).
+ * @typedef {Object} TourReviewActionRepository
+ * @property {(tourId: string) => Promise<import('../entities/tour-review-action.js').TourReviewAction[]>} listByTour  // newest first
+ */
+
+/**
+ * UC19 — notifies the contributor of an admin decision (tour.approved / tour.rejected /
+ * tour.changes_requested). Impl: infrastructure/messaging/event-tour-review-publisher.js.
+ * Null when the broker is not loaded (both event flags off).
+ * @typedef {Object} TourReviewEvents
+ * @property {(tour, adminId: string) => Promise<object>} approved
+ * @property {(tour, reason: string) => Promise<object>} rejected
+ * @property {(tour, reason: string) => Promise<object>} changesRequested
  */
 
 /**

@@ -12,7 +12,7 @@ design and are superseded by the task list in section 10.
 | F2 | **Tour moderation**: tour content (title, description, coherence with its places) and route geometry (distances, spread, duration). Places are **not** moderated again | Tour publishes `tour.submitted` | `tour.ai_passed` / `tour.ai_rejected` back to Tour | 1 |
 | F3 | **Travel chatbot**: answers questions about public tours and places, using graph plus vector RAG | Client `POST /api/chat` | Streamed answer with cited tours and places | 3 (later) |
 
-Out of scope: Admin approval queue and decisions (UC#19, another teammate), translation (another teammate),
+Out of scope: translation (another teammate),
 forbidden-zone checks (already done synchronously by Tour in `add-place.js`).
 
 ## 2. What the real code says (checked on `develop`)
@@ -46,7 +46,7 @@ forbidden-zone checks (already done synchronously by Tour in `add-place.js`).
                         │                                                                   │  5. publish result        │      → policy.py
  Tour ◀── queue tour.moderation-results ◀── place.ai_passed|ai_rejected, tour.ai_passed|ai_rejected ◀────┘           │
    │  sets status, stores reasons, decides visibility                                                                  │
-   └──▶ (pending_review) ──▶ Admin approval (UC#19, not ours)                                                          │
+   └──▶ (pending_review) ──▶ Admin approval (UC#19, Tour #243)                                                         │
                                                                                                                        │
  Client ─▶ Gateway /api/chat ─▶ AI chatbot (phase 3): LangGraph agent ─▶ graph + vector retriever ─▶ Gemini           │
 ```
