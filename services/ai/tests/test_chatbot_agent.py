@@ -378,3 +378,29 @@ def test_fallback_only_on_timeout_429_and_5xx():
     assert not issubclass(gexc.InvalidArgument, handled)
     assert not issubclass(gexc.PermissionDenied, handled)
     assert not issubclass(gexc.Unauthenticated, handled)
+
+
+# The autouse fixture replaces build_chat_model; keep the real factory for this test only.
+_REAL_BUILD_CHAT_MODEL = chat_models.build_chat_model
+
+
+def test_gemini_chat_model_turns_thinking_off(monkeypatch):
+    # Issue #238: gemini-2.5-flash counts thinking tokens in max_output_tokens, which cut answers.
+    import types
+
+    from app.config import Settings
+
+    captured = {}
+
+    class FakeGemini:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+    fake_module = types.ModuleType("langchain_google_genai")
+    fake_module.ChatGoogleGenerativeAI = FakeGemini
+    monkeypatch.setitem(sys.modules, "langchain_google_genai", fake_module)
+
+    model = _REAL_BUILD_CHAT_MODEL(Settings(_env_file=None, gemini_api_key="k", groq_api_key=""))
+    assert isinstance(model, FakeGemini)
+    assert captured["thinking_budget"] == 0
+    assert captured["max_output_tokens"] == chat_models.MAX_OUTPUT_TOKENS
