@@ -15,6 +15,8 @@ export const EVENTS = {
   TOUR_AI_REJECTED: 'tour.ai_rejected',
   TOUR_APPROVED: 'tour.approved',
   TOUR_REJECTED: 'tour.rejected',
+  // UC19 / A3 — admin asked the author to edit and submit again (Tour -> Notification).
+  TOUR_CHANGES_REQUESTED: 'tour.changes_requested',
   TOUR_REPORTED: 'tour.reported',
   TOUR_HIDDEN: 'tour.hidden',
   TOUR_PUBLISHED: 'tour.published',
@@ -160,6 +162,7 @@ export const schemas = {
   }),
   [EVENTS.TOUR_APPROVED]: base.extend({ adminId: z.string().min(1), ...recipient }),
   [EVENTS.TOUR_REJECTED]: base.extend({ reason: z.string(), ...recipient }),
+  [EVENTS.TOUR_CHANGES_REQUESTED]: base.extend({ reason: z.string().min(1).max(1000), ...recipient }),
   [EVENTS.TOUR_REPORTED]: base.extend({ count: z.number().int().nonnegative() }),
   [EVENTS.TOUR_HIDDEN]: base.extend({ reason: z.string(), ...recipient }),
   // Published by Tour only when a tour enters `public` (flag CHATBOT_EVENTS_ENABLED).
