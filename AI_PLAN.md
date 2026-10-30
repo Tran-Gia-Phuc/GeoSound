@@ -68,7 +68,7 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | AI-49 pgvector store, embeddings, indexer transport, chat memory | #219 | | merged (PRs #232 to #237) |
 | full-flow fixes: chat thinking budget, app logs | #238 | `fix/chat-thinking-budget` | merged (PR #239) |
 | Tour `tour.published` / `tour.unpublished` | #240 | `feature/tour-chatbot-events` | merged (PR #241) |
-| UC19 admin review backend | #243 | `feature/uc19-admin-review` | in progress |
+| UC19 admin review backend | #243 | `feature/uc19-admin-review` | PR open; schema `tour` push to Supabase after merge (new table `tour_review_actions`, column `review_reason`) |
 
 ## 5. Notes for the next tasks
 
@@ -82,3 +82,4 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | moderation tokens | Moderation calls Gemini through `GeminiClient.generate_json` (default `max_tokens` 2048) with thinking on. Fine for the tested tours; if a large tour (close to 50 places) returns invalid JSON, check `finish_reason=MAX_TOKENS` and set a thinking budget there too |
 | partial PRs | A branch made with `gh issue develop` is linked to the issue, and merging its PR closes the issue even with "Part of #N". For a partial PR create the branch with `git switch -c` and write "Part of #N" |
 | #219 | Schema `ai` is defined in `services/ai/prisma/schema.prisma` (tables) plus `prisma/pre-push.sql` (vector extension, schema `ai`) and `prisma/post-push.sql` (CHECK constraints, HNSW index), pushed with the auth image (`docs/04-guides/supabase-access.md` section 4); pgvector store, e5 embedding runtime in the image, AMQP transport for the indexer. Chat memory (part D): `CHAT_MEMORY_BACKEND=postgres` uses the official `AsyncPostgresSaver` (`langgraph-checkpoint-postgres` 3.2, psycopg 3.3) over `DATABASE_URL_DIRECT_AI`, in its own schema `ai_chat` (created at startup, never in Prisma-managed `ai`), plus `ai_chat.chat_sessions` / `chat_messages` for `at`, citations and TTL; `memory` stays the default. Integration tests need `AI_TEST_DATABASE_URL` (disposable DB) |
+| follow-ups | (1) Geo reasons from Moderation are always English while AI reasons follow the tour language: localise `tour-geo-rules.js` messages by `language`. (2) Tour events carry no `contributorEmail`, so Notification logs "thiếu contributorEmail" and sends no email (true for every tour event, not only UC19): Notification should look the email up by `contributorId` (Auth owner decides how) |
