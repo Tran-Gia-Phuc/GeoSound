@@ -6,7 +6,7 @@
 // Qua gateway: /api/tours/* -> ở đây là /* (vd /api/tours/mine -> /mine).
 // =========================================================
 import express from 'express';
-import { logger, errorHandler } from '../shared/middleware/index.js';
+import { logger, errorHandler, verifyJwt } from '../shared/middleware/index.js';
 import { buildContainer } from './container.js';
 import { isModerationEnabled, isChatbotEventsEnabled } from './config.js';
 import {
@@ -35,8 +35,9 @@ const {
   itineraryRouter,
   exploreRouter,
   publicItineraryRouter,
+  adminReviewRouter,
   moderationResultHandler,
-} = buildContainer(process.env, { publish: rabbit?.publish, validateEvent: events?.validateEvent });
+} = buildContainer(process.env, { publish: rabbit?.publish, validateEvent: events?.validateEvent, verifyJwt });
 
 app.use(express.json());
 app.use(logger);
@@ -47,6 +48,11 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'tour' }));
 // contributor để GET công khai không bị chặn bởi verifyJwt; :id ràng buộc UUID
 // nên /mine... rơi xuống các router sau (vẫn giữ verifyJwt của chúng).
 app.use('/', publicTourRouter);
+
+// UC19: admin review queue + decisions (role admin) — /admin/reviews/*. MUST be mounted BEFORE the
+// contributor routers below (verifyJwt(['contributor']) at router level on '/' would answer 403 to
+// an admin). The public GET /:id above only matches a UUID, so /admin/... never reaches it.
+app.use('/admin/reviews', adminReviewRouter);
 
 // UC07: khám phá địa điểm lẻ (công khai) + lịch trình. PHẢI mount TRƯỚC các router
 // contributor bên dưới: chúng gắn ở '/' và có verifyJwt(['contributor']) cấp router,

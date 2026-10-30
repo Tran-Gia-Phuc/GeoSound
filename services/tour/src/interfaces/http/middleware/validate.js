@@ -14,12 +14,15 @@ function collect(error) {
   return { first, details };
 }
 
-export function validateBody(schema) {
+// `status` (optional) overrides the default 400, e.g. 422 for the UC19 admin endpoints.
+export function validateBody(schema, { status } = {}) {
   return (req, _res, next) => {
     const result = schema.safeParse(req.body ?? {});
     if (!result.success) {
       const { first, details } = collect(result.error);
-      return next(new ValidationError(first, details));
+      const err = new ValidationError(first, details);
+      if (status) err.status = status;
+      return next(err);
     }
     req.validated = result.data;
     next();
