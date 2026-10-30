@@ -17,6 +17,9 @@
  * @property {(filters: object) => Promise<string[]>} listPublicIds
  * @property {(ids: string[]) => Promise<import('../entities/tour.js').Tour[]>} findManyByIds
  * @property {(id: string) => Promise<import('../entities/tour.js').Tour|null>} findPublicById
+ * // --- UC15 AI moderation: writes only status + moderationReasons/moderationRevision ---
+ * @property {(id: string, fields: { status?, moderationReasons?, moderationRevision? }) => Promise<import('../entities/tour.js').Tour>} updateModeration
+ * @property {(id: string, revision: string, fields: { status, moderationReasons }) => Promise<number>} applyModerationResultIf  // only while ai_checking + same revision; returns rows updated
  */
 
 /**
@@ -34,6 +37,18 @@
  * // --- UC07 khám phá địa điểm lẻ (chỉ địa điểm thuộc tour công khai) ---
  * @property {(filters: object) => Promise<number>} countPublicPlaces
  * @property {(filters: object, page: { skip: number, take: number }) => Promise<Array<object>>} searchPublicPlaces
+ * // --- UC15 AI moderation: writes only the moderation* columns ---
+ * @property {(id: string, fields: { moderationStatus?, moderationReasons?, moderationRevision? }) => Promise<import('../entities/place.js').Place>} updateModeration
+ * @property {(id: string, revision: string, fields: { moderationStatus, moderationReasons }) => Promise<number>} applyModerationResultIf  // only when the revision matches; returns rows updated
+ */
+
+/**
+ * UC15 — sends content to AI moderation (MODERATION_EVENTS_ENABLED=true). Impl:
+ * infrastructure/messaging/event-moderation-gateway.js. Flag off -> not injected (null).
+ * `revision` is echoed back unchanged by Moderation in the result.
+ * @typedef {Object} ModerationGateway
+ * @property {(place, tour, revision: string) => Promise<object>} submitPlace  // place.submitted
+ * @property {(tour, places, revision: string) => Promise<object>} submitTour  // tour.submitted
  */
 
 /**

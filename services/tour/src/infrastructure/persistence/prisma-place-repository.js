@@ -26,6 +26,9 @@ export class PrismaPlaceRepository {
       images: Array.isArray(row.images) ? row.images : [],
       audioUrl: row.audioUrl,
       audioSource: row.audioSource,
+      moderationStatus: row.moderationStatus,
+      moderationReasons: Array.isArray(row.moderationReasons) ? row.moderationReasons : [],
+      moderationRevision: row.moderationRevision ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
@@ -49,6 +52,7 @@ export class PrismaPlaceRepository {
       data: {
         tourId: place.tourId,
         sequence: place.sequence,
+        moderationStatus: place.moderationStatus,
         ...PrismaPlaceRepository.toData(place),
       },
     });
@@ -78,6 +82,31 @@ export class PrismaPlaceRepository {
 
   async delete(id) {
     await this.prisma.place.delete({ where: { id } });
+  }
+
+  /**
+   * UC15 — writes ONLY the moderation columns (save() never touches them, so a content edit
+   * cannot overwrite a result that just arrived). undefined = keep.
+   * @param {string} id @param {{ moderationStatus?, moderationReasons?, moderationRevision? }} fields
+   */
+  async updateModeration(id, { moderationStatus, moderationReasons, moderationRevision }) {
+    const row = await this.prisma.place.update({
+      where: { id },
+      data: { moderationStatus, moderationReasons, moderationRevision },
+    });
+    return PrismaPlaceRepository.toEntity(row);
+  }
+
+  /**
+   * UC15 — conditional write of an AI result: only when the place still has the same revision
+   * (one atomic UPDATE, no read-then-write race). Returns the number of rows updated.
+   */
+  async applyModerationResultIf(id, revision, { moderationStatus, moderationReasons }) {
+    const { count } = await this.prisma.place.updateMany({
+      where: { id, moderationRevision: revision },
+      data: { moderationStatus, moderationReasons },
+    });
+    return count;
   }
 
   async nextSequence(tourId) {
