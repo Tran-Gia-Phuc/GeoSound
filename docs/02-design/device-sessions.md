@@ -97,6 +97,7 @@ working for up to 15 minutes; that is the fallback if the team does not want the
 | `DELETE` | `/sessions/:id` | | 204; 404 unknown or not yours; 409 when `:id` is the current session (use logout) |
 | `POST` | `/sessions/revoke-others` | | `{ revoked: n }` |
 | `POST` | `/logout` | | 204, revokes the current session |
+| `POST` | `/change-password` | `currentPassword`, `newPassword` | `{ message, revoked: n }`: other sessions revoked (`password_change`), the current one stays. Wrong current password: 400 `wrong_password`; the new password follows UC01 E6 and must differ (#256) |
 | `POST` | `/login`, `/refresh` | `deviceId` added (optional) | unchanged response, tokens now carry `sid` |
 
 ### 5.5 Rollout
@@ -136,7 +137,9 @@ Where the code differs from or adds to the text above:
   for now (shown as "Không xác định"). The client IP is the first hop of `x-forwarded-for`; the
   gateway now sets it for `/api/auth` (`xfwd`).
 - Ban (R7, R13): Auth has no ban endpoint yet; `RevokeAllSessions` (reason `banned` by default) is
-  ready for UC21. Password change while signed in is not built (no such endpoint).
+  ready for UC21.
+- Password change while signed in (R7, #256): `POST /change-password` (`ChangePassword` use case) signs
+  out every other device with reason `password_change`; the current device stays signed in.
 - Retention (R12): `PurgeEndedSessions` runs one minute after start, then hourly
   (`AUTH_SESSION_RETENTION_DAYS`, default 30).
 - Event `auth.new_device_login` = `{ userId, email, deviceName, location?, at }`. Auth now connects to
