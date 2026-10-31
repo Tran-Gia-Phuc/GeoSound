@@ -6,10 +6,31 @@
 //     Worker lỗi kết nối KHÔNG làm sập phần HTTP (thử lại sau).
 // =========================================================
 import express from 'express';
-import { logger, errorHandler } from '../shared/middleware/index.js';
+import Redis from 'ioredis';
+import {
+  logger,
+  errorHandler,
+  setSessionRevocationCheck,
+  createRedisRevocationCheck,
+} from '../shared/middleware/index.js';
 import { connect, consume, publish } from '../shared/rabbitmq/index.js';
 import { EVENTS } from '../shared/events/index.js';
 import { buildContainer } from './container.js';
+
+// UC23 — reject access tokens of signed-out sessions (key revoked:sid:<sid>, written by Auth).
+// No offline queue: while Redis is down the check fails at once and verifyJwt lets the request
+// through (fail open) instead of hanging an upload.
+const revocationRedis = new Redis(process.env.REDIS_URL || 'redis://redis:6379', {
+  enableOfflineQueue: false,
+  maxRetriesPerRequest: 1,
+});
+let redisErrorLogged = false;
+revocationRedis.on('error', (err) => {
+  if (redisErrorLogged) return;
+  redisErrorLogged = true;
+  console.warn(`[media] Redis unavailable for the session revocation check: ${err.message}`);
+});
+setSessionRevocationCheck(createRedisRevocationCheck(revocationRedis));
 
 const PORT = process.env.PORT || 3005;
 const { mediaRouter, localDir, storageName } = buildContainer(process.env);
