@@ -45,6 +45,14 @@ export const resetPasswordSchema = z.object({
   newPassword: z.string({ required_error: 'Vui lòng nhập mật khẩu mới' }).min(1, 'Vui lòng nhập mật khẩu mới'),
 });
 
+// UC23 / R7 — password change while signed in.
+export const changePasswordSchema = z.object({
+  currentPassword: z
+    .string({ required_error: 'Vui lòng nhập mật khẩu hiện tại' })
+    .min(1, 'Vui lòng nhập mật khẩu hiện tại'),
+  newPassword: z.string({ required_error: 'Vui lòng nhập mật khẩu mới' }).min(1, 'Vui lòng nhập mật khẩu mới'),
+});
+
 export const refreshSchema = z.object({
   refreshToken: z.string({ required_error: 'Thiếu refresh token' }).min(1, 'Thiếu refresh token'),
   deviceId,

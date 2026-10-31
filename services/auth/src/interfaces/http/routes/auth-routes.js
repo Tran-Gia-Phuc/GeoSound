@@ -12,6 +12,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   refreshSchema,
+  changePasswordSchema,
 } from '../../../application/dtos/schemas.js';
 
 // Express 4 không bắt rejection của async handler → tự bọc.
@@ -38,6 +39,7 @@ export function buildAuthRouter({ authController, requireAuth }) {
     r.post('/sessions/revoke-others', requireAuth, wrap(authController.revokeOtherSessions));
     r.delete('/sessions/:id', requireAuth, wrap(authController.revokeSession));
     r.post('/logout', requireAuth, wrap(authController.logout));
+    r.post('/change-password', requireAuth, validateBody(changePasswordSchema), wrap(authController.changePassword));
   }
 
   return r;
