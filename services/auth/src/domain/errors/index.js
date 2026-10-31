@@ -51,6 +51,13 @@ export class AccountBannedError extends AppError {
   }
 }
 
+// UC23 / R7 — wrong current password on a password change (400, not 401: the token itself is valid).
+export class WrongPasswordError extends AppError {
+  constructor(message = 'Mật khẩu hiện tại không đúng') {
+    super(message, { status: 400, code: 'wrong_password' });
+  }
+}
+
 // E7 — email đã tồn tại.
 export class EmailAlreadyExistsError extends AppError {
   constructor() {

@@ -36,6 +36,7 @@ import { ListSessions } from './application/use-cases/list-sessions.js';
 import { RevokeSession } from './application/use-cases/revoke-session.js';
 import { RevokeOtherSessions } from './application/use-cases/revoke-other-sessions.js';
 import { Logout } from './application/use-cases/logout.js';
+import { ChangePassword } from './application/use-cases/change-password.js';
 import { RevokeAllSessions } from './application/use-cases/revoke-all-sessions.js';
 import { PurgeEndedSessions } from './application/use-cases/purge-ended-sessions.js';
 import { sessionPolicy } from './config.js';
@@ -103,6 +104,7 @@ export function buildContainer(env = process.env, { verifyJwt = null, publish = 
     revokeSession: new RevokeSession({ sessionRepo, sessions }),
     revokeOtherSessions: new RevokeOtherSessions({ sessions }),
     logout: new Logout({ sessionRepo, sessions }),
+    changePassword: new ChangePassword({ userRepo, hasher, sessions }),
   };
   // UC21 (ban, not built in Auth yet) and the retention job use these directly.
   const revokeAllSessions = new RevokeAllSessions({ sessions });

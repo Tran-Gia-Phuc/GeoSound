@@ -21,6 +21,7 @@ import { RevokeSession } from '../src/application/use-cases/revoke-session.js';
 import { RevokeOtherSessions } from '../src/application/use-cases/revoke-other-sessions.js';
 import { Logout } from '../src/application/use-cases/logout.js';
 import { RevokeAllSessions } from '../src/application/use-cases/revoke-all-sessions.js';
+import { ChangePassword } from '../src/application/use-cases/change-password.js';
 import { PurgeEndedSessions } from '../src/application/use-cases/purge-ended-sessions.js';
 import { loginSchema, refreshSchema } from '../src/application/dtos/schemas.js';
 import { JwtTokenService } from '../src/infrastructure/security/jwt-token-service.js';
@@ -638,5 +639,88 @@ test('HTTP: session routes need a token; list / delete / revoke-others / logout 
     const s = k.sessionRepo.rows.get(sidOf(await login.json()));
     assert.equal(s.deviceName, 'Safari trên iPhone');
     assert.equal(s.ipAddress, '198.51.100.20');
+  });
+});
+
+// ---------- Password change while signed in (R7, #256) ----------
+test('change password: new hash, lockout cleared, other devices signed out, current one kept', async () => {
+  const k = makeKit();
+  await k.signIn('device-aaaa');
+  await k.signIn('device-bbbb');
+  const current = await k.signIn('device-cccc');
+  k.user.failedAttempts = 2;
+  const change = new ChangePassword({ userRepo: k.userRepo, hasher: fakeHasher, sessions: k.sessions });
+  const res = await change.execute({
+    userId: 'u1',
+    currentSid: sidOf(current),
+    currentPassword: 'abc12345',
+    newPassword: 'new12345',
+  });
+  assert.deepEqual(res, { revoked: 2 });
+  assert.equal(k.user.passwordHash, 'h:new12345');
+  assert.equal(k.user.failedAttempts, 0);
+  const active = await k.sessionRepo.listActiveByUser('u1', k.now());
+  assert.deepEqual(active.map((s) => s.id), [sidOf(current)]);
+  assert.deepEqual(k.revocations.marked.sort(), ['s1', 's2']);
+  assert.ok(
+    [...k.sessionRepo.rows.values()].filter((s) => s.id !== sidOf(current)).every((s) => s.revokeReason === 'password_change'),
+  );
+});
+
+test('change password: wrong current, weak or unchanged new password, banned or unknown user', async () => {
+  const k = makeKit();
+  await k.signIn('device-aaaa');
+  const change = new ChangePassword({ userRepo: k.userRepo, hasher: fakeHasher, sessions: k.sessions });
+  const run = (input) => change.execute({ userId: 'u1', currentSid: 's1', ...input });
+
+  await assert.rejects(run({ currentPassword: 'nope1234', newPassword: 'new12345' }), { status: 400, code: 'wrong_password' });
+  await assert.rejects(run({ currentPassword: 'abc12345', newPassword: 'short1' }), { code: 'validation_error' });
+  await assert.rejects(run({ currentPassword: 'abc12345', newPassword: 'abc12345' }), { code: 'validation_error' });
+  assert.equal(k.user.passwordHash, 'h:abc12345');
+  assert.equal((await k.sessionRepo.listActiveByUser('u1', k.now())).length, 1);
+
+  await assert.rejects(change.execute({ userId: 'ghost', currentPassword: 'abc12345', newPassword: 'new12345' }), {
+    code: 'invalid_token',
+  });
+  k.user.status = 'banned';
+  await assert.rejects(run({ currentPassword: 'abc12345', newPassword: 'new12345' }), { status: 403, code: 'account_banned' });
+});
+
+test('HTTP: POST /change-password needs a token and a body, then signs out the other devices', async () => {
+  const k = makeKit();
+  await k.signIn('device-aaaa');
+  const b = await k.signIn('device-bbbb');
+  const useCases = { changePassword: new ChangePassword({ userRepo: k.userRepo, hasher: fakeHasher, sessions: k.sessions }) };
+  const requireAuth = (req, res, next) => {
+    const h = req.headers.authorization || '';
+    if (!h.startsWith('Bearer ')) return res.status(401).json({ error: 'Missing token' });
+    const [sub, sid] = h.slice(7).split(':');
+    req.user = { sub, sid, role: 'tourist' };
+    next();
+  };
+  const app = express();
+  app.use(express.json());
+  app.use('/', buildAuthRouter({ authController: new AuthController(useCases), requireAuth }));
+  // eslint-disable-next-line no-unused-vars
+  app.use((err, _req, res, _next) => res.status(err.status || 500).json({ error: err.message, code: err.code }));
+
+  const post = (base, body, auth = true) =>
+    fetch(`${base}/change-password`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(auth ? { authorization: `Bearer u1:${sidOf(b)}` } : {}) },
+      body: JSON.stringify(body),
+    });
+  await withServer(app, async (base) => {
+    assert.equal((await post(base, { currentPassword: 'abc12345', newPassword: 'new12345' }, false)).status, 401);
+    assert.equal((await post(base, { newPassword: 'new12345' })).status, 400);
+    const wrong = await post(base, { currentPassword: 'nope1234', newPassword: 'new12345' });
+    assert.equal(wrong.status, 400);
+    assert.equal((await wrong.json()).code, 'wrong_password');
+
+    const ok = await post(base, { currentPassword: 'abc12345', newPassword: 'new12345' });
+    assert.equal(ok.status, 200);
+    assert.equal((await ok.json()).revoked, 1);
+    assert.equal(k.sessionRepo.rows.get('s1').revokeReason, 'password_change');
+    assert.equal(k.sessionRepo.rows.get(sidOf(b)).revokedAt, null);
   });
 });

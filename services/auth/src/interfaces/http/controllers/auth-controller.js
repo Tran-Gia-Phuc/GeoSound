@@ -6,7 +6,7 @@
 import { deviceContext, currentUser } from '../request-context.js';
 
 export class AuthController {
-  /** @param {{ registerUser, verifyRegistrationOtp, resendOtp, login, forgotPassword, resetPassword, refreshToken, listSessions?, revokeSession?, revokeOtherSessions?, logout? }} useCases */
+  /** @param {{ registerUser, verifyRegistrationOtp, resendOtp, login, forgotPassword, resetPassword, refreshToken, listSessions?, revokeSession?, revokeOtherSessions?, logout?, changePassword? }} useCases */
   constructor(useCases) {
     this.uc = useCases;
     // Giữ `this` khi truyền thẳng method làm route handler.
@@ -22,6 +22,7 @@ export class AuthController {
       'revokeSession',
       'revokeOtherSessions',
       'logout',
+      'changePassword',
     ]) {
       this[m] = this[m].bind(this);
     }
@@ -91,5 +92,11 @@ export class AuthController {
   async logout(req, res) {
     await this.uc.logout.execute(currentUser(req));
     res.status(204).end();
+  }
+
+  // UC23 / R7 — change the password; the other devices are signed out
+  async changePassword(req, res) {
+    const result = await this.uc.changePassword.execute({ ...currentUser(req), ...req.validated });
+    res.json({ message: 'Đổi mật khẩu thành công', ...result });
   }
 }
