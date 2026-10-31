@@ -19,7 +19,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const HOUR_MS = 60 * 60 * 1000;
 
-const { authRouter, redis, purgeEndedSessions } = buildContainer(process.env, { verifyJwt, publish });
+const { authRouter, internalRouter, redis, purgeEndedSessions } = buildContainer(process.env, { verifyJwt, publish });
 
 // UC23 / 5.3 — a signed-out session's access token is rejected at once (Redis key revoked:sid:<sid>).
 setSessionRevocationCheck(createRedisRevocationCheck(redis));
@@ -45,6 +45,8 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'auth' }));
 // UC01: /register /verify-otp /resend-otp /login /forgot-password /reset-password /refresh
 // UC23: GET /sessions, DELETE /sessions/:id, POST /sessions/revoke-others, POST /logout
 app.use('/', authRouter);
+// #258: GET /internal/users/:id/contact (x-internal-token; refused when forwarded by the gateway)
+app.use('/internal', internalRouter);
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);

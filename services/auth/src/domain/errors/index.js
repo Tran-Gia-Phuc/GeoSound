@@ -100,6 +100,13 @@ export class SessionNotFoundError extends AppError {
   }
 }
 
+// #258 — internal contact lookup of an unknown user.
+export class UserNotFoundError extends AppError {
+  constructor(message = 'Không tìm thấy người dùng') {
+    super(message, { status: 404, code: 'user_not_found' });
+  }
+}
+
 // UC23 / R4 — the current device signs out with "Đăng xuất", not from the device list.
 export class CurrentSessionError extends AppError {
   constructor(message = 'Đây là thiết bị hiện tại, vui lòng dùng Đăng xuất') {
