@@ -80,7 +80,7 @@ test('G1 invalid coordinate is published as tour.ai_rejected even when the AI pa
   assert.equal(ai.calls.length, 1);
   const { eventName, payload } = publisher.events[0];
   assert.equal(eventName, 'tour.ai_rejected');
-  assert.match(payload.reason, /invalid coordinate/);
+  assert.match(payload.reason, /tọa độ không hợp lệ/); // the tour language is vi (#253)
   assert.match(payload.reason, /placeId pB/);
   assert.equal(payload.reasons[0].source, 'geo');
   assert.equal(payload.contributorId, 'u1');
