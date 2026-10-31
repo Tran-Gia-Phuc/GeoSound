@@ -103,3 +103,15 @@ The team lead supplies the actual events/payloads before broker integration.
 Consumer setup, retries, duplicate handling, asynchronous expiry checks and UC16
 are outside this template-first change. No provisional event contract needs
 approval to review the templates and local SMTP test results.
+
+## Contributor email lookup (#258)
+
+Tour events (`tour.ai_rejected`, `tour.approved`, `tour.rejected`, `tour.changes_requested`, `tour.hidden`, ...)
+carry `contributorId` but no `contributorEmail`. When the email is missing, Notification asks Auth:
+
+- `GET http://auth:3001/internal/users/:id/contact` with header `x-internal-token` = `INTERNAL_SERVICE_TOKEN`
+  returns `{ id, email, fullName }` (no hash, role or status). Unknown user: 404.
+- Auth refuses the route when the token is not configured or the request comes through the gateway
+  (`x-forwarded-for`), so it is reachable only inside the Docker network. Token compare is constant time.
+- Notification uses `AUTH_SERVICE_URL` and `INTERNAL_SERVICE_TOKEN` (both in the root `.env`), a 3 s timeout
+  and no redirects. A failed or empty lookup is logged and the email is skipped; the worker never throws for it.

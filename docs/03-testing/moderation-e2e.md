@@ -123,7 +123,8 @@ Run on 2026-10-27 against `develop` (b8a549c) with the stub:
 ```
 
 `sev=-` means the event has no `severity` key (`*.ai_rejected` does not carry one). Notification logs
-`tour.ai_rejected thiếu contributorEmail` ("missing contributorEmail") for scenario 8: expected, the test tour has no contributor email.
+`tour.ai_rejected thiếu contributorEmail` ("missing contributorEmail") for scenario 8: expected, the test contributor
+has no account in Auth, so the email lookup (#258) finds nobody.
 
 ## Restore the normal stack
 
