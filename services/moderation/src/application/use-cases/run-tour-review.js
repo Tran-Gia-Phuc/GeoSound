@@ -151,7 +151,12 @@ export class RunTourReview extends ReviewCaseFlow {
 
   #geo(payload) {
     const result = evaluateTourGeo(
-      { type: payload?.type, durationMinutes: payload?.durationMinutes, places: payload?.places },
+      {
+        type: payload?.type,
+        durationMinutes: payload?.durationMinutes,
+        places: payload?.places,
+        language: payload?.language,
+      },
       this.geoLimits,
     );
     return { ...result, source: 'geo', reasons: withPlaceIds(result.reasons, payload?.places) };

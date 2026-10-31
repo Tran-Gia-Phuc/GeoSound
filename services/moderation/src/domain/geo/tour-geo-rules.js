@@ -28,7 +28,33 @@ const SEVERITY = Object.freeze({
 });
 
 const fmtDistance = (m) => (m >= 1000 ? `${(Math.round(m / 100) / 10).toString()} km` : `${Math.round(m)} m`);
-const fmtMinutes = (min) => `${Math.round(min)} min`;
+
+// Reason texts follow the tour language like the AI reasons (#253); anything but 'vi' gets English.
+const MESSAGES = Object.freeze({
+  en: {
+    minutes: (min) => `${Math.round(min)} min`,
+    mode: { walking: 'walking', cycling: 'cycling', driving: 'driving' },
+    invalid: (stop) => `Stop ${stop} has an invalid coordinate.`,
+    duplicate: (stop, d, other, min) => `Stop ${stop} is only ${d} from stop ${other} (minimum ${min}).`,
+    longLeg: (stop, d, max, mode) => `Stop ${stop} is ${d} from the previous stop (limit ${max} for ${mode}).`,
+    spread: (d, max, mode) => `The farthest stop is ${d} from the tour center (limit ${max} for ${mode}).`,
+    duration: (est, mode, declared) => `The route needs about ${est} for ${mode}, much more than the declared ${declared}.`,
+    zigzag: (route, nn) => `The stop order zig-zags: the route is ${route}, a shorter order would be about ${nn}.`,
+  },
+  vi: {
+    minutes: (min) => `${Math.round(min)} phút`,
+    mode: { walking: 'đi bộ', cycling: 'đạp xe', driving: 'lái xe' },
+    invalid: (stop) => `Điểm dừng ${stop} có tọa độ không hợp lệ.`,
+    duplicate: (stop, d, other, min) => `Điểm dừng ${stop} chỉ cách điểm dừng ${other} ${d} (tối thiểu ${min}).`,
+    longLeg: (stop, d, max, mode) => `Điểm dừng ${stop} cách điểm trước ${d} (giới hạn ${max} khi ${mode}).`,
+    spread: (d, max, mode) => `Điểm xa nhất cách tâm tour ${d} (giới hạn ${max} khi ${mode}).`,
+    duration: (est, mode, declared) => `Lộ trình cần khoảng ${est} khi ${mode}, dài hơn nhiều so với thời lượng khai báo ${declared}.`,
+    zigzag: (route, nn) => `Thứ tự điểm dừng đi vòng vèo: lộ trình dài ${route}, sắp xếp lại chỉ khoảng ${nn}.`,
+  },
+});
+
+export const messagesFor = (language) =>
+  (String(language ?? '').toLowerCase().startsWith('vi') ? MESSAGES.vi : MESSAGES.en);
 
 const finding = (field, severity, message) => ({ field, category: 'route', message, source: 'geo', severity });
 
@@ -71,10 +97,12 @@ function nearestNeighbourLength(points) {
   return total;
 }
 
-export function evaluateTourGeo({ type, durationMinutes, places } = {}, limits = DEFAULT_GEO_LIMITS) {
+export function evaluateTourGeo({ type, durationMinutes, places, language } = {}, limits = DEFAULT_GEO_LIMITS) {
   const sorted = sortBySequence(Array.isArray(places) ? places : []);
   const isIndoor = type === 'indoor';
   const mode = MOVING_TYPES.includes(type) ? type : 'walking';
+  const t = messagesFor(language);
+  const modeName = t.mode[mode];
   const reasons = [];
 
   // G1: invalid coordinates. Those stops are excluded from G2-G6.
@@ -85,7 +113,7 @@ export function evaluateTourGeo({ type, durationMinutes, places } = {}, limits =
       valid.push({ index: i, lat: p.lat, lng: p.lng });
     } else {
       hasInvalid = true;
-      reasons.push(finding(`places[${i}]`, SEVERITY.invalid, `Stop ${i + 1} has an invalid coordinate.`));
+      reasons.push(finding(`places[${i}]`, SEVERITY.invalid, t.invalid(i + 1)));
     }
   });
 
@@ -97,7 +125,7 @@ export function evaluateTourGeo({ type, durationMinutes, places } = {}, limits =
         reasons.push(finding(
           `places[${valid[b].index}]`,
           SEVERITY.duplicate,
-          `Stop ${valid[b].index + 1} is only ${fmtDistance(d)} from stop ${valid[a].index + 1} (minimum ${fmtDistance(limits.duplicateMinM)}).`,
+          t.duplicate(valid[b].index + 1, fmtDistance(d), valid[a].index + 1, fmtDistance(limits.duplicateMinM)),
         ));
         break;
       }
@@ -114,7 +142,7 @@ export function evaluateTourGeo({ type, durationMinutes, places } = {}, limits =
         reasons.push(finding(
           `places[${valid[k].index}]`,
           strong ? SEVERITY.longLegStrong : SEVERITY.longLeg,
-          `Stop ${valid[k].index + 1} is ${fmtDistance(d)} from the previous stop (limit ${fmtDistance(legMax)} for ${mode}).`,
+          t.longLeg(valid[k].index + 1, fmtDistance(d), fmtDistance(legMax), modeName),
         ));
       }
     }
@@ -127,7 +155,7 @@ export function evaluateTourGeo({ type, durationMinutes, places } = {}, limits =
       reasons.push(finding(
         'route',
         SEVERITY.spread,
-        `The farthest stop is ${fmtDistance(spread)} from the tour center (limit ${fmtDistance(spreadMax)} for ${mode}).`,
+        t.spread(fmtDistance(spread), fmtDistance(spreadMax), modeName),
       ));
     }
 
@@ -140,7 +168,7 @@ export function evaluateTourGeo({ type, durationMinutes, places } = {}, limits =
         reasons.push(finding(
           'route',
           SEVERITY.duration,
-          `The route needs about ${fmtMinutes(estimated)} for ${mode}, much more than the declared ${fmtMinutes(durationMinutes)}.`,
+          t.duration(t.minutes(estimated), modeName, t.minutes(durationMinutes)),
         ));
       }
     }
@@ -152,7 +180,7 @@ export function evaluateTourGeo({ type, durationMinutes, places } = {}, limits =
         reasons.push(finding(
           'route',
           SEVERITY.zigzag,
-          `The stop order zig-zags: the route is ${fmtDistance(routeM)}, a shorter order would be about ${fmtDistance(nn)}.`,
+          t.zigzag(fmtDistance(routeM), fmtDistance(nn)),
         ));
       }
     }

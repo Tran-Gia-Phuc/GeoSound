@@ -133,6 +133,23 @@ test('G3 message is short, rounded and names the limit and type', () => {
   assert.equal(only(out, 'G3')[0].message, 'Stop 3 is 4.2 km from the previous stop (limit 3 km for walking).');
 });
 
+test('#253: a Vietnamese tour gets Vietnamese geo messages', () => {
+  const out = evaluateTourGeo({ type: 'walking', language: 'vi', places: stops(0, 1000, 5200) });
+  const g3 = out.reasons.find((r) => r.field === 'places[2]');
+  assert.equal(g3.message, 'Điểm dừng 3 cách điểm trước 4.2 km (giới hạn 3 km khi đi bộ).');
+  const invalid = evaluateTourGeo({ type: 'driving', language: 'vi-VN', places: [at(0, 1), { ...at(10, 2), lat: 999 }] });
+  assert.equal(invalid.reasons[0].message, 'Điểm dừng 2 có tọa độ không hợp lệ.');
+  const slow = evaluateTourGeo({ type: 'walking', language: 'vi', durationMinutes: 10, places: stops(0, 2000, 4000) });
+  assert.ok(slow.reasons.some((r) => /^Lộ trình cần khoảng \d+ phút khi đi bộ, .* 10 phút\.$/.test(r.message)));
+});
+
+test('#253: English, unknown and missing languages keep the English text', () => {
+  for (const language of ['en', 'fr', undefined, '']) {
+    const out = evaluateTourGeo({ type: 'walking', language, places: stops(0, 1000, 5200) });
+    assert.equal(only(out, 'G3')[0].message, 'Stop 3 is 4.2 km from the previous stop (limit 3 km for walking).', `language ${language}`);
+  }
+});
+
 test('unknown or missing type uses walking limits', () => {
   for (const type of [undefined, 'boat', '']) {
     const out = evaluateTourGeo({ type, places: stops(0, L.legMaxM.walking + 1) });
