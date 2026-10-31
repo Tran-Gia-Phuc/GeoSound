@@ -2,13 +2,13 @@
 
 Read this file first in every session, then read `AI_PLAN.md` (decisions, current state, task list, notes for the next tasks). One task per branch, in the order of `AI_PLAN.md` section 4. Several tasks in one session only when the user asks for it. **Run tasks with the project skill `/ai-task <N>`** (`.claude/skills/ai-task/SKILL.md`): it holds the full branch → agent → test → review → commit → PR → merge procedure.
 
-**Priority:** phases 1, 2 and 3 (place moderation, tour moderation, chatbot), the Tour side (#180, #240), the gateway chat route (#188) and UC#19 admin review (#243) are merged and checked on the real stack. Next work only on request: the follow-ups in `AI_PLAN.md` section 5, real-model eval baseline, smaller AI image.
+**Priority:** phases 1, 2 and 3 (place moderation, tour moderation, chatbot), the Tour side (#180, #240), the gateway chat route (#188) UC#19 admin review (#243), UC23 signed-in devices (#247, #248, #251, #256) and the Notification email lookup (#258) are merged and checked on the real stack. Next work only on request: real-model eval baseline, smaller AI image, frontend (on hold), UC23 IP location.
 
 ## 1. Role and language
 
 You help one student (owner of the **AI** part) on the team project GeoSound. Reply to the user in **Vietnamese**, short and concrete. Write code, comments, commit messages, issues and everything under `docs/` in **English**.
 
-The user owns: place moderation, tour moderation, chatbot (`services/ai`), plus the AI-related parts of `services/moderation` (consumers, use-cases, AI reviewer, persistence). Admin approval (UC#19, backend in `services/tour`, issue #243) and signed-in devices (UC23: `services/auth`, `shared/middleware` `verifyJwt`, Notification alert, client screen; issues #247, #248) were handed over to the user on 2026-10-30; the UC19 admin screens stay with Frontend A. `services/ai/app/translation` and `api/translation.py` were added by another teammate: do not change them.
+The user owns: place moderation, tour moderation, chatbot (`services/ai`), plus the AI-related parts of `services/moderation` (consumers, use-cases, AI reviewer, persistence). Admin approval (UC#19, backend in `services/tour`, issue #243) and signed-in devices (UC23: `services/auth`, `shared/middleware` `verifyJwt`, Notification alert and contributor email lookup, client screen; issues #247, #248, #256, #258) were handed over to the user on 2026-10-30; the UC19 admin screens stay with Frontend A. `services/ai/app/translation` and `api/translation.py` were added by another teammate: do not change them.
 
 ## 2. Architecture (V4, accepted: `docs/02-design/moderation-architecture.md`)
 

@@ -47,12 +47,14 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 | D28 | Signed-in devices (UC23, #247 backend, #248 client) | Design `docs/02-design/device-sessions.md`: `auth.sessions`, `sid` in tokens, refresh rotation with reuse detection, revocation in Redis checked by `verifyJwt`, no business limit (cap `AUTH_MAX_SESSIONS`=100), new-device email (demo inbox `SECURITY_ALERT_TO` in `.env`, never in the repo) |
 
 
-## 3. Current state (2026-10-30)
+## 3. Current state (2026-10-31)
 
 - **Phases 1, 2 and 3 work end to end on the real stack** (Supabase, RabbitMQ, real Gemini), checked on 2026-10-30:
   - place moderation (approved / rejected with reasons, publish blocked by a rejected place), tour moderation (`ai_warning` / `pending_review`), edit while in review withdraws to `draft`;
   - chatbot: Tour publish → `tour.published` → indexer (pgvector, schema `ai`) → `/chat` answers with citations; unpublish removes the tour.
 - Tour schema `tour` on Supabase has the moderation columns (pushed 2026-10-30, additive).
+- Auth schema `app_auth` on Supabase has the UC23 table `sessions` (pushed by the user 2026-10-31); Auth runs on it.
+- Backend tasks handed over to the user are done: UC19 admin review, UC23 devices (including password change, #256), contributor email lookup for Notification (#258). Email delivery needs real SMTP values in `.env` (`SMTP_HOST` is still the placeholder).
 - Both Tour flags are off by default. To turn the full flow on: `MODERATION_EVENTS_ENABLED=true` and `CHATBOT_EVENTS_ENABLED=true` in `.env`, plus `INTERNAL_SERVICE_TOKEN`, `CHATBOT_ENABLED`, `CHATBOT_INDEXER_ENABLED`, `DATABASE_URL_AI`, `DATABASE_URL_DIRECT_AI` (and `CHAT_MEMORY_BACKEND=postgres` for shared chat memory).
 - Nothing waits for other owners. With moderation on, a tour stops at `pending_review` until an admin decides through `/api/tours/admin/reviews` (UC#19, #243). The Supabase password shared in chat must be reset by the project owner.
 - Never run real Gemini without an explicit request.
@@ -70,10 +72,12 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | full-flow fixes: chat thinking budget, app logs | #238 | `fix/chat-thinking-budget` | merged (PR #239) |
 | Tour `tour.published` / `tour.unpublished` | #240 | `feature/tour-chatbot-events` | merged (PR #241) |
 | UC19 admin review backend | #243 | `feature/uc19-admin-review` | merged (PR #244); schema `tour` pushed to Supabase 2026-10-30 |
-| UC23 signed-in devices, Auth backend | #247 | `feature/uc23-device-sessions` | merged (PR #249); schema `auth` (table `sessions`) still to push to Supabase by the user |
+| UC23 signed-in devices, Auth backend | #247 | `feature/uc23-device-sessions` | merged (PR #249); table `sessions` pushed to Supabase 2026-10-31 |
 | UC23 signed-in devices, client screen | #248 | `feature/uc23-devices-screen` | merged (PR #250) |
 | UC23 revocation check in Media | #251 | `fix/media-session-revocation` | merged (PR #252) |
 | geo reasons in the tour language | #253 | `fix/geo-reasons-language` | merged (PR #254) |
+| UC23 password change while signed in | #256 | `feature/uc23-change-password` | merged (PR #257) |
+| contributor email lookup (Notification -> Auth) | #258 | `feature/notification-contributor-email` | merged (PR #259) |
 
 ## 5. Notes for the next tasks
 
@@ -87,5 +91,5 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | moderation tokens | Moderation calls Gemini through `GeminiClient.generate_json` (default `max_tokens` 2048) with thinking on. Fine for the tested tours; if a large tour (close to 50 places) returns invalid JSON, check `finish_reason=MAX_TOKENS` and set a thinking budget there too |
 | partial PRs | A branch made with `gh issue develop` is linked to the issue, and merging its PR closes the issue even with "Part of #N". For a partial PR create the branch with `git switch -c` and write "Part of #N" |
 | #219 | Schema `ai` is defined in `services/ai/prisma/schema.prisma` (tables) plus `prisma/pre-push.sql` (vector extension, schema `ai`) and `prisma/post-push.sql` (CHECK constraints, HNSW index), pushed with the auth image (`docs/04-guides/supabase-access.md` section 4); pgvector store, e5 embedding runtime in the image, AMQP transport for the indexer. Chat memory (part D): `CHAT_MEMORY_BACKEND=postgres` uses the official `AsyncPostgresSaver` (`langgraph-checkpoint-postgres` 3.2, psycopg 3.3) over `DATABASE_URL_DIRECT_AI`, in its own schema `ai_chat` (created at startup, never in Prisma-managed `ai`), plus `ai_chat.chat_sessions` / `chat_messages` for `at`, citations and TTL; `memory` stays the default. Integration tests need `AI_TEST_DATABASE_URL` (disposable DB) |
-| follow-ups | (1) Done in #253. (2) Tour events carry no `contributorEmail`, so Notification logs "thiếu contributorEmail" and sends no email (true for every tour event, not only UC19): Notification should look the email up by `contributorId` (Auth owner decides how) |
-| UC23 | Push schema `auth` to Supabase before rebuilding Auth on it (new table `sessions`; the user runs it, the agent is not allowed to change shared schemas). Not built yet: password change while signed in (R7, no endpoint), the UC21 ban call to `RevokeAllSessions`, IP location (null resolver). Clients must not refresh in parallel: the web client serialises refreshes across tabs with a Web Lock (reuse of a rotated refresh token signs the session out) |
+| follow-ups | (1) Done in #253. (2) Done in #258: Notification asks Auth `GET /internal/users/:id/contact` (header `x-internal-token`, refused through the gateway) when an event has no `contributorEmail` |
+| UC23 | Schema pushed (2026-10-31). Password change while signed in: `POST /api/auth/change-password` (#256). Not built: the UC21 ban call to `RevokeAllSessions` (UC21 is not handed over; the use case is ready in `container.js`), IP location (null resolver). Clients must not refresh in parallel: the web client serialises refreshes across tabs with a Web Lock (reuse of a rotated refresh token signs the session out) |
