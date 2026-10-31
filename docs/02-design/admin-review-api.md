@@ -59,6 +59,6 @@ the request.
 | reject | `tour.rejected` | `tourId, reason, contributorId, tourTitle, at` | Notification (email with reason) |
 | request changes | `tour.changes_requested` (new) | `tourId, reason (1..1000), contributorId, tourTitle, at` | Notification (email "Tour cần chỉnh sửa" with reason) |
 
-`tour.changes_requested` is added to `shared/events/index.js` (additive). Notification sends an email
-only when the payload has `contributorEmail`; Tour does not know the email, so today these events
-carry `contributorId` only.
+`tour.changes_requested` is added to `shared/events/index.js` (additive). Tour does not know the email, so these events
+carry `contributorId` only; Notification looks the email up in Auth (`GET /internal/users/:id/contact`,
+header `x-internal-token`, #258) and skips the email when the lookup fails.

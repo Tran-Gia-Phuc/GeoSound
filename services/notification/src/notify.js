@@ -24,7 +24,23 @@ async function handleNewDeviceLogin(mailer, payload, logger, env) {
   return { sent: result };
 }
 
-export async function handleEvent(mailer, event, payload = {}, logger = console, env = process.env) {
+// #258 — no contributorEmail in the event: ask Auth by contributorId (best effort, never throws).
+async function contributorEmailOf(payload, lookupEmail, logger) {
+  if (payload.contributorEmail) return payload.contributorEmail;
+  if (!lookupEmail || !payload.contributorId) return null;
+  try {
+    return await lookupEmail(payload.contributorId);
+  } catch (err) {
+    logger.warn(`[notification] tra email contributorId=${payload.contributorId} thất bại: ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * @param {{ lookupEmail?: ((userId: string) => Promise<string|null>) | null }} [deps]
+ *   lookupEmail = contributor email lookup in Auth (services/contributor-lookup.js)
+ */
+export async function handleEvent(mailer, event, payload = {}, logger = console, env = process.env, deps = {}) {
   if (event === NEW_DEVICE_LOGIN) return handleNewDeviceLogin(mailer, payload, logger, env);
 
   const email = buildTourEmail({ event, payload });
@@ -32,7 +48,7 @@ export async function handleEvent(mailer, event, payload = {}, logger = console,
     logger.log(`[notification] ${event}: không có mẫu email cho contributor, bỏ qua.`);
     return { skipped: 'no_template' };
   }
-  const to = payload.contributorEmail;
+  const to = await contributorEmailOf(payload, deps.lookupEmail ?? null, logger);
   if (!to) {
     logger.warn(`[notification] ${event} thiếu contributorEmail (tourId=${payload.tourId}) -> không gửi được email.`);
     return { skipped: 'no_recipient' };

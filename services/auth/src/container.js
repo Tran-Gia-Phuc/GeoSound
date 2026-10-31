@@ -37,12 +37,14 @@ import { RevokeSession } from './application/use-cases/revoke-session.js';
 import { RevokeOtherSessions } from './application/use-cases/revoke-other-sessions.js';
 import { Logout } from './application/use-cases/logout.js';
 import { ChangePassword } from './application/use-cases/change-password.js';
+import { GetUserContact } from './application/use-cases/get-user-contact.js';
 import { RevokeAllSessions } from './application/use-cases/revoke-all-sessions.js';
 import { PurgeEndedSessions } from './application/use-cases/purge-ended-sessions.js';
 import { sessionPolicy } from './config.js';
 
 import { AuthController } from './interfaces/http/controllers/auth-controller.js';
 import { buildAuthRouter } from './interfaces/http/routes/auth-routes.js';
+import { buildInternalRouter } from './interfaces/http/routes/internal-routes.js';
 
 /**
  * @param {object} env
@@ -113,6 +115,11 @@ export function buildContainer(env = process.env, { verifyJwt = null, publish = 
   // --- interfaces (controller + router) ---
   const authController = new AuthController(useCases);
   const authRouter = buildAuthRouter({ authController, requireAuth: verifyJwt ? verifyJwt() : null });
+  // #258 — service-to-service lookups (Notification), guarded by INTERNAL_SERVICE_TOKEN.
+  const internalRouter = buildInternalRouter({
+    getUserContact: new GetUserContact({ userRepo }),
+    internalToken: env.INTERNAL_SERVICE_TOKEN,
+  });
 
-  return { authRouter, prisma, redis, revokeAllSessions, purgeEndedSessions };
+  return { authRouter, internalRouter, prisma, redis, revokeAllSessions, purgeEndedSessions };
 }
