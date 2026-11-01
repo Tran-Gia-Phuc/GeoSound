@@ -49,7 +49,7 @@ So the feature needs server-side sessions first; the screen is the small part.
 | R10 | New-device alert | Email "Đăng nhập mới trên <thiết bị>" when a sign-in creates a new device (P1, through Notification), sent to the account email. For the demo, `SECURITY_ALERT_TO` in `.env` sends every alert to one test inbox instead (never written in the repo) |
 | R11 | Stolen token | Refresh tokens rotate on every use; reuse of an old refresh token signs that session out (theft signal) |
 | R12 | Privacy | IP and User-Agent are kept only while the session lives and 30 days after it ends (security investigation), then deleted. Location is city level, from the IP, without a paid service at first (shown as "Không xác định" when unknown) |
-| R13 | Admin | An admin does not see other users' devices in this UC; UC21 (ban) signs out all devices of the banned account |
+| R13 | Admin | An admin sees how many devices are known, signed in and online now, and the list of online devices with their account (device name, email, name, role, location, sign-in time, last activity; never the IP or tokens; #265). An admin cannot sign out other users' devices here; UC21 (ban) signs out all devices of the banned account |
 
 Decided on 2026-10-30: R9 cap 100, R10 email alert (P1, demo inbox through `SECURITY_ALERT_TO`), R12 retention
 30 days and city-level location from the IP, 5.3 immediate sign-out through Redis in `verifyJwt`.
@@ -97,6 +97,8 @@ working for up to 15 minutes; that is the fallback if the team does not want the
 | `DELETE` | `/sessions/:id` | | 204; 404 unknown or not yours; 409 when `:id` is the current session (use logout) |
 | `POST` | `/sessions/revoke-others` | | `{ revoked: n }` |
 | `POST` | `/logout` | | 204, revokes the current session |
+| `POST` | `/sessions/heartbeat` | | 204; sets `last_active_at` of the current session, at most once per `AUTH_HEARTBEAT_MIN_SECONDS` (30). The web client sends it every 60 s while the tab is visible (#265) |
+| `GET` | `/admin/sessions` | role `admin` (403 otherwise) | `{ at, onlineWindowSeconds, totals: { devicesSeen, signedIn, online, onlineAccounts }, online: [{ id, deviceName, location, createdAt, lastActiveAt, user: { id, email, fullName, role } }] }` (#265) |
 | `POST` | `/change-password` | `currentPassword`, `newPassword` | `{ message, revoked: n }`: other sessions revoked (`password_change`), the current one stays. Wrong current password: 400 `wrong_password`; the new password follows UC01 E6 and must differ (#256) |
 | `POST` | `/login`, `/refresh` | `deviceId` added (optional) | unchanged response, tokens now carry `sid` |
 
@@ -140,6 +142,12 @@ Where the code differs from or adds to the text above:
   ready for UC21.
 - Password change while signed in (R7, #256): `POST /change-password` (`ChangePassword` use case) signs
   out every other device with reason `password_change`; the current device stays signed in.
+- Admin online view (R13, #265): no new table; the counts come from `app_auth.sessions`.
+  `devicesSeen` = distinct (account, `device_id`) among the kept rows (rows without `device_id` count
+  one each; ended rows leave after the retention below), `signedIn` = not revoked and not expired,
+  `online` = signed in and `last_active_at` within `AUTH_ONLINE_WINDOW_SECONDS` (120). Sign-in,
+  refresh and the heartbeat move `last_active_at`. The client page is `/admin/devices` (account menu,
+  admins only), refreshed every 30 s; the list is capped at 200 rows.
 - Retention (R12): `PurgeEndedSessions` runs one minute after start, then hourly
   (`AUTH_SESSION_RETENTION_DAYS`, default 30).
 - Event `auth.new_device_login` = `{ userId, email, deviceName, location?, at }`. Auth now connects to
