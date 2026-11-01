@@ -23,6 +23,9 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true, // lắng nghe 0.0.0.0 để truy cập được từ ngoài container.
+    // Extra host names allowed by the dev server (comma separated), e.g. an ngrok domain for phone demos.
+    // Empty = Vite default (localhost and IP addresses only).
+    allowedHosts: (process.env.VITE_ALLOWED_HOSTS || '').split(',').map((h) => h.trim()).filter(Boolean),
     // Proxy gọi API qua gateway để tránh CORS lúc dev.
     // Target cấu hình qua env: local dev -> localhost:8080; trong Docker -> gateway:8080.
     proxy: {
