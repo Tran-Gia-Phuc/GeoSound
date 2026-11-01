@@ -14,7 +14,7 @@ const ROLE_LABELS = { tourist: 'Khách du lịch', contributor: 'Tác giả tour
 
 export default function AccountPage() {
   const navigate = useNavigate();
-  const { authenticated, user, isContributor, logout } = useAuth();
+  const { authenticated, user, isContributor, isAdmin, logout } = useAuth();
   const { theme, setTheme } = useTheme();
 
   return (
@@ -56,6 +56,12 @@ export default function AccountPage() {
             <Icon name="user" size={20} /> <span>Thiết bị đang đăng nhập</span>
             <Icon name="chevron-left" size={16} className="menu__chev" />
           </Link>
+          {isAdmin ? (
+            <Link className="menu__item" to="/admin/devices">
+              <Icon name="eye" size={20} /> <span>Thiết bị đang online (Quản trị)</span>
+              <Icon name="chevron-left" size={16} className="menu__chev" />
+            </Link>
+          ) : null}
           {isContributor ? (
             <Link className="menu__item" to="/studio">
               <Icon name="mic" size={20} /> <span>Studio — tour của tôi</span>

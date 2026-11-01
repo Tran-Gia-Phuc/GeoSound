@@ -54,6 +54,7 @@ import StudioTourLayout from './features/studio/StudioTourLayout.jsx';
 import PublishStepPage from './features/studio/PublishStepPage.jsx';
 import AccountPage from './features/account/AccountPage.jsx';
 import DevicesPage from './features/account/DevicesPage.jsx';
+import OnlineDevicesPage from './features/admin/OnlineDevicesPage.jsx';
 import SessionWatcher from './auth/SessionWatcher.jsx';
 import AppLayout from './components/shell/AppLayout.jsx';
 import { previewTour } from './lib/studio.js';
@@ -112,6 +113,7 @@ const router = createBrowserRouter(
         <Route path="/itineraries" element={<ItinerariesPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/account/devices" element={<RequireAuth><DevicesPage /></RequireAuth>} />
+        <Route path="/admin/devices" element={<RequireAuth><OnlineDevicesPage /></RequireAuth>} />
         <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />
         <Route path="/studio/tours/new" element={<RequireContributor><TourCreatePage /></RequireContributor>} />
         <Route path="/studio/tours/:id" element={<RequireContributor><StudioTourLayout /></RequireContributor>}>

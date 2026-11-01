@@ -356,6 +356,66 @@
   color: var(--danger);
 }
 
+/* ---------- Admin: online devices (#265) ---------- */
+.admin-devices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+@media (min-width: 760px) {
+  .admin-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.admin-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.admin-stat__value {
+  font-size: 32px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.admin-stat--accent .admin-stat__value {
+  color: var(--success);
+}
+.admin-table__wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.admin-table th,
+.admin-table td {
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+.admin-table th {
+  color: var(--fg-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.admin-table__sub {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
 /* Thanh lưu dính đáy của Studio phải nằm trên thanh tab (điện thoại). */
 .app--tabs .studio-save {
   bottom: calc(var(--tabbar-h) + var(--sab));
