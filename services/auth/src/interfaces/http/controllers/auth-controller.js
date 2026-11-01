@@ -6,7 +6,7 @@
 import { deviceContext, currentUser } from '../request-context.js';
 
 export class AuthController {
-  /** @param {{ registerUser, verifyRegistrationOtp, resendOtp, login, forgotPassword, resetPassword, refreshToken, listSessions?, revokeSession?, revokeOtherSessions?, logout?, changePassword? }} useCases */
+  /** @param {{ registerUser, verifyRegistrationOtp, resendOtp, login, forgotPassword, resetPassword, refreshToken, listSessions?, revokeSession?, revokeOtherSessions?, logout?, changePassword?, sessionHeartbeat?, getOnlineDevices? }} useCases */
   constructor(useCases) {
     this.uc = useCases;
     // Giữ `this` khi truyền thẳng method làm route handler.
@@ -23,6 +23,8 @@ export class AuthController {
       'revokeOtherSessions',
       'logout',
       'changePassword',
+      'heartbeat',
+      'onlineDevices',
     ]) {
       this[m] = this[m].bind(this);
     }
@@ -92,6 +94,17 @@ export class AuthController {
   async logout(req, res) {
     await this.uc.logout.execute(currentUser(req));
     res.status(204).end();
+  }
+
+  // #265 — heartbeat of the current device (keeps it "online" for the admin view)
+  async heartbeat(req, res) {
+    await this.uc.sessionHeartbeat.execute(currentUser(req));
+    res.status(204).end();
+  }
+
+  // #265 — admin: devices known / signed in / online now, and the online list
+  async onlineDevices(_req, res) {
+    res.json(await this.uc.getOnlineDevices.execute());
   }
 
   // UC23 / R7 — change the password; the other devices are signed out

@@ -87,7 +87,7 @@ Người dùng muốn biết tài khoản đang đăng nhập ở đâu, hoặc 
 - Phiên hết hạn sau **7 ngày không hoạt động**, tối đa **30 ngày** kể từ khi đăng nhập.
 - Đặt lại mật khẩu / bị ban → đăng xuất tất cả thiết bị; đổi mật khẩu → đăng xuất các thiết bị khác.
 - Dữ liệu IP và User-Agent chỉ lưu khi phiên còn hiệu lực và thêm 30 ngày sau khi kết thúc, rồi xóa.
-- Admin không xem được thiết bị của người dùng khác trong UC này.
+- Admin xem được **số thiết bị** đã từng đăng nhập (30 ngày), đang đăng nhập và **đang online** (hoạt động trong 2 phút gần nhất), kèm danh sách thiết bị đang online và tài khoản của chúng (tên thiết bị, email, họ tên, vai trò, vị trí, thời gian); không hiển thị IP hay token. Admin không đăng xuất thiết bị của người khác ở đây (#265).
 - Đăng nhập trên thiết bị mới → gửi email cảnh báo tới email tài khoản; bản demo chuyển mọi email cảnh báo về một hộp thư thử nghiệm cấu hình bằng `SECURITY_ALERT_TO` trong `.env`.
 
 ## Author(s)

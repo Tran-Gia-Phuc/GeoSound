@@ -10,5 +10,8 @@ export function sessionPolicy(env = process.env) {
     maxDays: num(env.AUTH_SESSION_MAX_DAYS, 30),
     maxSessions: num(env.AUTH_MAX_SESSIONS, 100),
     retentionDays: num(env.AUTH_SESSION_RETENTION_DAYS, 30),
+    // #265 — "online" = active session seen within this window; heartbeats write at most this often.
+    onlineWindowSeconds: num(env.AUTH_ONLINE_WINDOW_SECONDS, 120),
+    heartbeatMinSeconds: num(env.AUTH_HEARTBEAT_MIN_SECONDS, 30),
   };
 }

@@ -19,10 +19,10 @@ import {
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 /**
- * @param {{ authController, requireAuth?: import('express').RequestHandler }} deps
+ * @param {{ authController, requireAuth?: import('express').RequestHandler, requireAdmin?: import('express').RequestHandler }} deps
  *   requireAuth = shared verifyJwt() (any role), injected by index.js -> container (UC23 routes).
  */
-export function buildAuthRouter({ authController, requireAuth }) {
+export function buildAuthRouter({ authController, requireAuth, requireAdmin }) {
   const r = Router();
 
   r.post('/register', validateBody(registerSchema), wrap(authController.register));
@@ -40,6 +40,13 @@ export function buildAuthRouter({ authController, requireAuth }) {
     r.delete('/sessions/:id', requireAuth, wrap(authController.revokeSession));
     r.post('/logout', requireAuth, wrap(authController.logout));
     r.post('/change-password', requireAuth, validateBody(changePasswordSchema), wrap(authController.changePassword));
+    // #265 — keeps lastActiveAt fresh for the admin online view.
+    r.post('/sessions/heartbeat', requireAuth, wrap(authController.heartbeat));
+  }
+
+  // #265 — admin: devices known / signed in / online now (role admin only).
+  if (requireAdmin) {
+    r.get('/admin/sessions', requireAdmin, wrap(authController.onlineDevices));
   }
 
   return r;

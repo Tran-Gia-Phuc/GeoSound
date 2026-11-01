@@ -68,6 +68,42 @@ export class PrismaSessionRepository {
     return rows.map(PrismaSessionRepository.toEntity);
   }
 
+  // #265 — heartbeat: one conditional write, skipped when the session is ended or was touched recently.
+  async touch(id, now, notAfter) {
+    const { count } = await this.prisma.session.updateMany({
+      where: { id: String(id), revokedAt: null, expiresAt: { gt: now }, lastActiveAt: { lt: notAfter } },
+      data: { lastActiveAt: now },
+    });
+    return count > 0;
+  }
+
+  // #265 — admin counts over the table (only rows kept by the retention job, R12).
+  async countStats(now, onlineSince) {
+    const active = { revokedAt: null, expiresAt: { gt: now } };
+    const online = { ...active, lastActiveAt: { gte: onlineSince } };
+    const [devices, signedIn, onlineCount, onlineUsers] = await Promise.all([
+      this.prisma.session.findMany({ distinct: ['userId', 'deviceId'], select: { deviceId: true } }),
+      this.prisma.session.count({ where: active }),
+      this.prisma.session.count({ where: online }),
+      this.prisma.session.findMany({ where: online, distinct: ['userId'], select: { userId: true } }),
+    ]);
+    // Rows without deviceId (old clients) are grouped per user by `distinct`: count them per row instead.
+    const withoutDevice = await this.prisma.session.count({ where: { deviceId: null } });
+    const devicesSeen = devices.filter((d) => d.deviceId !== null).length + withoutDevice;
+    return { devicesSeen, signedIn, online: onlineCount, onlineAccounts: onlineUsers.length };
+  }
+
+  // #265 — online sessions with their account, most recently active first.
+  async listOnline(now, onlineSince, limit) {
+    const rows = await this.prisma.session.findMany({
+      where: { revokedAt: null, expiresAt: { gt: now }, lastActiveAt: { gte: onlineSince } },
+      orderBy: { lastActiveAt: 'desc' },
+      take: limit,
+      include: { user: { select: { id: true, email: true, fullName: true, role: true } } },
+    });
+    return rows.map((row) => ({ session: PrismaSessionRepository.toEntity(row), user: row.user }));
+  }
+
   async deleteEndedBefore(cutoff) {
     const { count } = await this.prisma.session.deleteMany({
       where: { OR: [{ revokedAt: { lt: cutoff } }, { expiresAt: { lt: cutoff } }] },
