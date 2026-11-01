@@ -35,6 +35,9 @@
  * @property {(userId: string, deviceId: string) => Promise<import('../entities/session.js').Session|null>} findLatestByDevice  // any state, newest first
  * @property {(userId: string, now: Date) => Promise<import('../entities/session.js').Session[]>} listActiveByUser  // not revoked, not expired
  * @property {(cutoff: Date) => Promise<number>} deleteEndedBefore  // revoked or expired before cutoff (R12)
+ * @property {(id: string, now: Date, notAfter: Date) => Promise<boolean>} touch  // #265 heartbeat: lastActiveAt = now when active and lastActiveAt < notAfter
+ * @property {(now: Date, onlineSince: Date) => Promise<{ devicesSeen: number, signedIn: number, online: number, onlineAccounts: number }>} countStats  // #265
+ * @property {(now: Date, onlineSince: Date, limit: number) => Promise<Array<{ session: import('../entities/session.js').Session, user: { id: string, email: string, fullName: string, role: string } }>>} listOnline  // #265
  */
 
 /**

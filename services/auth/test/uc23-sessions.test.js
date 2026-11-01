@@ -498,10 +498,12 @@ test('deviceId is optional and 8..100 characters on login and refresh', () => {
 });
 
 test('session policy defaults and env overrides', () => {
-  assert.deepEqual(sessionPolicy({}), { idleDays: 7, maxDays: 30, maxSessions: 100, retentionDays: 30 });
+  assert.deepEqual(sessionPolicy({}), {
+    idleDays: 7, maxDays: 30, maxSessions: 100, retentionDays: 30, onlineWindowSeconds: 120, heartbeatMinSeconds: 30,
+  });
   assert.deepEqual(
     sessionPolicy({ AUTH_SESSION_IDLE_DAYS: '3', AUTH_SESSION_MAX_DAYS: '10', AUTH_MAX_SESSIONS: '5', AUTH_SESSION_RETENTION_DAYS: '1' }),
-    { idleDays: 3, maxDays: 10, maxSessions: 5, retentionDays: 1 },
+    { idleDays: 3, maxDays: 10, maxSessions: 5, retentionDays: 1, onlineWindowSeconds: 120, heartbeatMinSeconds: 30 },
   );
   assert.equal(sessionPolicy({ AUTH_MAX_SESSIONS: 'abc' }).maxSessions, 100);
 });

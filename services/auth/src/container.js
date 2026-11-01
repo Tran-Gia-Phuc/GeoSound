@@ -38,6 +38,8 @@ import { RevokeOtherSessions } from './application/use-cases/revoke-other-sessio
 import { Logout } from './application/use-cases/logout.js';
 import { ChangePassword } from './application/use-cases/change-password.js';
 import { GetUserContact } from './application/use-cases/get-user-contact.js';
+import { SessionHeartbeat } from './application/use-cases/session-heartbeat.js';
+import { GetOnlineDevices } from './application/use-cases/get-online-devices.js';
 import { RevokeAllSessions } from './application/use-cases/revoke-all-sessions.js';
 import { PurgeEndedSessions } from './application/use-cases/purge-ended-sessions.js';
 import { sessionPolicy } from './config.js';
@@ -107,6 +109,9 @@ export function buildContainer(env = process.env, { verifyJwt = null, publish = 
     revokeOtherSessions: new RevokeOtherSessions({ sessions }),
     logout: new Logout({ sessionRepo, sessions }),
     changePassword: new ChangePassword({ userRepo, hasher, sessions }),
+    // #265
+    sessionHeartbeat: new SessionHeartbeat({ sessionRepo, policy }),
+    getOnlineDevices: new GetOnlineDevices({ sessionRepo, policy }),
   };
   // UC21 (ban, not built in Auth yet) and the retention job use these directly.
   const revokeAllSessions = new RevokeAllSessions({ sessions });
@@ -114,7 +119,11 @@ export function buildContainer(env = process.env, { verifyJwt = null, publish = 
 
   // --- interfaces (controller + router) ---
   const authController = new AuthController(useCases);
-  const authRouter = buildAuthRouter({ authController, requireAuth: verifyJwt ? verifyJwt() : null });
+  const authRouter = buildAuthRouter({
+    authController,
+    requireAuth: verifyJwt ? verifyJwt() : null,
+    requireAdmin: verifyJwt ? verifyJwt(['admin']) : null, // #265
+  });
   // #258 — service-to-service lookups (Notification), guarded by INTERNAL_SERVICE_TOKEN.
   const internalRouter = buildInternalRouter({
     getUserContact: new GetUserContact({ userRepo }),
