@@ -11,4 +11,7 @@
  .login-a-story p { line-height:1.8; color:var(--fg-muted); }
  .login-a-story .btn,.login-a-story .chip { justify-self:start; }
  .auth-login-a .auth__card { width:100%; }
+ .login-a-qr { display:flex; align-items:center; gap:16px; margin:0; padding:14px; border:1px solid var(--border); border-radius:16px; background:var(--surface); justify-self:start; max-width:380px; }
+ .login-a-qr img { flex:none; width:120px; height:120px; border-radius:8px; background:#fff; }
+ .login-a-qr figcaption { font-size:14px; line-height:1.5; color:var(--fg-muted); }
 }

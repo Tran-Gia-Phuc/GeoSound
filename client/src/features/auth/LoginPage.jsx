@@ -48,6 +48,8 @@ export default function LoginPage({ initialTab = 'login' }) {
   const [phase, setPhase] = useState('role'); // register: role | form | otp
   const [role, setRole] = useState(presetRole ?? 'tourist');
   const [form, setForm] = useState({ fullName: '', email: '', password: '', otp: '' });
+  // Optional phone QR (public/qr-mobile.png, local only, see docs/04-guides/phone-demo.md): hidden when absent.
+  const [showQr, setShowQr] = useState(true);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
   const [accessError, setAccessError] = useState(null);
@@ -167,6 +169,16 @@ export default function LoginPage({ initialTab = 'login' }) {
           <h2>Mỗi bước chân,<br />một câu chuyện.</h2>
           <p>Lắng nghe những câu chuyện về văn hóa và con người tại nơi bạn đến.</p>
           <Link className="btn" to="/">Tiếp tục khám phá <Icon name="arrow-left" size={18} /></Link>
+          {showQr ? <figure className="login-a-qr">
+            <img
+              src="/qr-mobile.png"
+              alt="Mã QR mở GeoSound trên điện thoại"
+              width="120"
+              height="120"
+              onError={() => setShowQr(false)}
+            />
+            <figcaption>Quét mã để mở GeoSound trên điện thoại.</figcaption>
+          </figure> : null}
         </section> : null}
         <div className="auth__card">
           {tab === 'register' && phase === 'otp' ? (
