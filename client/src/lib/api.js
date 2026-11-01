@@ -7,6 +7,7 @@
 // =========================================================
 import { readAuth, writeAuth, clearAuth, endSession, getAccessToken, getRefreshToken } from './token-store.js';
 import { getDeviceId } from './device-id.js';
+import { localizeUrls } from './media-url.js';
 
 const BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -30,7 +31,8 @@ async function parse(res) {
   } catch {
     /* body rỗng */
   }
-  return body;
+  // #263: media URLs on http://localhost:8080/api/... -> same origin, so phones can load them.
+  return localizeUrls(body, BASE);
 }
 
 function fail(res, body) {
