@@ -8,6 +8,7 @@
 // màn hình vẫn hiển thị text (do component xử lý).
 // =========================================================
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { makeUtterance, pauseStopsSpeech } from '../lib/speech.js';
 
 const isPlayableUrl = (src) => typeof src === 'string' && /^(https?:|blob:|data:|\/)/.test(src);
 
@@ -23,6 +24,10 @@ export function useAudioController({ onEnded } = {}) {
   const ttsKeepAlive = useRef(null);
   const ttsStart = useRef(0);
   const activeUtter = useRef(null); // phân biệt callback cũ sau khi cancel()
+  const ttsSpoken = useRef(0); // #263: index in the track text of the last word reached
+  const ttsElapsed = useRef(0); // #263: seconds already spoken when paused
+  // #263: on Android Chrome speechSynthesis.pause() ends the utterance; pause = cancel, resume = speak the rest.
+  const pauseEndsTts = useMemo(() => pauseStopsSpeech(), []);
 
   endedRef.current = onEnded;
 
@@ -35,7 +40,10 @@ export function useAudioController({ onEnded } = {}) {
     fellBack: false, // true khi URL hỏng phải lùi về TTS
     title: '',
     trackId: null,
+    ttsError: null, // #263: SpeechSynthesisErrorEvent.error of the last failed utterance
   });
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   // Tạo audio element một lần.
   if (audioRef.current === null && typeof Audio !== 'undefined') {
@@ -94,6 +102,42 @@ export function useAudioController({ onEnded } = {}) {
   }, [patch, handleEnded]);
 
   // ---- Đọc TTS bằng SpeechSynthesis ----
+  // Speaks `text` from character `from` (0 = start; > 0 = resume on Android, #263).
+  const utter = useCallback(
+    (text, lang, from = 0) => {
+      const u = makeUtterance(from > 0 ? text.slice(from) : text, lang);
+      u.rate = 1;
+      activeUtter.current = u;
+      ttsSpoken.current = from;
+      u.onboundary = (e) => {
+        if (activeUtter.current === u && Number.isFinite(e?.charIndex)) ttsSpoken.current = from + e.charIndex;
+      };
+      u.onend = () => {
+        if (activeUtter.current !== u) return; // callback của lần phát đã bị thay
+        if (ttsKeepAlive.current) clearInterval(ttsKeepAlive.current);
+        handleEnded();
+      };
+      u.onerror = (e) => {
+        if (activeUtter.current !== u) return; // bỏ qua lỗi do cancel()
+        if (ttsKeepAlive.current) clearInterval(ttsKeepAlive.current);
+        patch({ status: 'error', ttsError: e?.error || 'synthesis-failed' });
+      };
+      window.speechSynthesis.speak(u);
+      // Desktop Chrome stops long texts midway unless pause/resume is called regularly; on Android
+      // that call ends the speech (#263), so there only the estimated progress is updated.
+      ttsKeepAlive.current = setInterval(() => {
+        if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+          if (!pauseEndsTts) {
+            window.speechSynthesis.pause();
+            window.speechSynthesis.resume();
+          }
+          patch({ currentTime: (Date.now() - ttsStart.current) / 1000 });
+        }
+      }, 1000);
+    },
+    [patch, handleEnded, pauseEndsTts],
+  );
+
   const speak = useCallback(
     (text, lang, { fellBack = false, title = '', trackId = null } = {}) => {
       clearTts();
@@ -102,20 +146,6 @@ export function useAudioController({ onEnded } = {}) {
         patch({ status: 'error', usingTts: true, fellBack, title, trackId });
         return false;
       }
-      const u = new SpeechSynthesisUtterance(text);
-      if (lang) u.lang = lang.length === 2 ? mapLang(lang) : lang;
-      u.rate = 1;
-      activeUtter.current = u;
-      u.onend = () => {
-        if (activeUtter.current !== u) return; // callback của lần phát đã bị thay
-        if (ttsKeepAlive.current) clearInterval(ttsKeepAlive.current);
-        handleEnded();
-      };
-      u.onerror = () => {
-        if (activeUtter.current !== u) return; // bỏ qua lỗi do cancel()
-        if (ttsKeepAlive.current) clearInterval(ttsKeepAlive.current);
-        patch({ status: 'error' });
-      };
       trackRef.current = { kind: 'tts', text, lang, title, trackId };
       ttsStart.current = Date.now();
       patch({
@@ -127,19 +157,12 @@ export function useAudioController({ onEnded } = {}) {
         currentTime: 0,
         title,
         trackId,
+        ttsError: null,
       });
-      window.speechSynthesis.speak(u);
-      // Né lỗi Chrome dừng giữa chừng với văn bản dài + cập nhật tiến độ ước lượng.
-      ttsKeepAlive.current = setInterval(() => {
-        if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-          window.speechSynthesis.pause();
-          window.speechSynthesis.resume();
-          patch({ currentTime: (Date.now() - ttsStart.current) / 1000 });
-        }
-      }, 1000);
+      utter(text, lang, 0);
       return true;
     },
-    [clearTts, ttsSupported, patch, handleEnded],
+    [clearTts, ttsSupported, patch, utter],
   );
 
   /**
@@ -209,28 +232,37 @@ export function useAudioController({ onEnded } = {}) {
 
   const pause = useCallback(() => {
     if (trackRef.current?.kind === 'tts') {
-      if (ttsSupported) window.speechSynthesis.pause();
+      ttsElapsed.current = (Date.now() - ttsStart.current) / 1000;
+      if (ttsSupported) {
+        if (pauseEndsTts) clearTts(); // #263: stop; resume speaks the rest from ttsSpoken
+        else window.speechSynthesis.pause();
+      }
       patch({ status: 'paused' });
     } else {
       audioRef.current?.pause();
     }
-  }, [patch, ttsSupported]);
+  }, [patch, ttsSupported, pauseEndsTts, clearTts]);
 
   const resume = useCallback(() => {
-    if (trackRef.current?.kind === 'tts') {
-      if (ttsSupported) window.speechSynthesis.resume();
+    const t = trackRef.current;
+    if (t?.kind === 'tts') {
+      ttsStart.current = Date.now() - ttsElapsed.current * 1000;
+      if (ttsSupported) {
+        if (pauseEndsTts) utter(t.text, t.lang, ttsSpoken.current);
+        else window.speechSynthesis.resume();
+      }
       patch({ status: 'playing' });
     } else {
       audioRef.current?.play().catch(() => {});
     }
-  }, [patch, ttsSupported]);
+  }, [patch, ttsSupported, pauseEndsTts, utter]);
 
+  // Reads the status from a ref, not inside a setState updater: StrictMode runs updaters twice,
+  // which would speak the rest twice on Android (#263).
   const toggle = useCallback(() => {
-    setState((s) => {
-      if (s.status === 'playing') pause();
-      else if (s.status === 'paused') resume();
-      return s;
-    });
+    const status = stateRef.current.status;
+    if (status === 'playing') pause();
+    else if (status === 'paused') resume();
   }, [pause, resume]);
 
   const seek = useCallback((sec) => {
@@ -302,8 +334,3 @@ function estimateTtsDuration(text) {
   return Math.max(2, Math.round((text?.length || 0) / 15));
 }
 
-// Mã 2 ký tự -> BCP-47 để giọng đọc chuẩn hơn.
-function mapLang(code) {
-  const m = { vi: 'vi-VN', en: 'en-US', fr: 'fr-FR', ja: 'ja-JP', ko: 'ko-KR', zh: 'zh-CN', es: 'es-ES', de: 'de-DE', th: 'th-TH', ru: 'ru-RU' };
-  return m[code] || code;
-}
