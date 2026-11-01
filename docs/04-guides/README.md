@@ -7,3 +7,4 @@ Add these after `frontend/` and `backend/` are scaffolded.
 ## Documents
 
 - [Supabase: access and setup for teammates](supabase-access.md)
+- [Phone demo through ngrok](phone-demo.md)
