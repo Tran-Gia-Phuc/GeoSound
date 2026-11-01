@@ -34,6 +34,21 @@ Open it on the phone; the first visit shows an ngrok warning page: tap **Visit S
 After the demo close the tunnel (anyone with the link can reach the app while it is open):
 `start-demo.ps1 -Stop` or `start-demo.sh --stop`. The app keeps running on the PC.
 
+## Start ngrok automatically
+
+To skip the script, add these two lines to the root `.env` (they are commented out in `.env.example`):
+
+```env
+COMPOSE_PATH_SEPARATOR=,
+COMPOSE_FILE=docker-compose.yml,scripts/demo/docker-compose.ngrok.yml
+```
+
+Docker Compose reads them from `.env`, so a plain `docker compose up -d --build` also starts ngrok, and
+`docker compose ps` / `logs` / `down` include it. With Docker Desktop set to start at sign-in, the
+containers (ngrok too, `restart: unless-stopped`) come back by themselves after a reboot; the phone
+URL never changes. To pause the tunnel: `docker compose stop ngrok`. Keep the two lines out of `.env`
+when `NGROK_AUTHTOKEN` / `NGROK_DOMAIN` are empty: compose then stops with "set NGROK_DOMAIN in .env".
+
 ## How it works
 
 - `scripts/demo/docker-compose.ngrok.yml` is layered on `docker-compose.yml`. It adds the `ngrok`
@@ -47,7 +62,7 @@ After the demo close the tunnel (anyone with the link can reach the app while it
 
 | Symptom | Fix |
 | --- | --- |
-| `403 Blocked request` on the phone | The client was recreated by a plain `docker compose up`. Run the script again |
+| `403 Blocked request` on the phone | The client was recreated by a plain `docker compose up` without `COMPOSE_FILE` in `.env`. Run the script again, or add the two lines above |
 | `ERR_NGROK_...` page | The PC, Docker or the `ngrok` container is down: run the script; see `docker compose logs --tail 30 ngrok` |
 | `set NGROK_DOMAIN in .env` | The two keys are missing from the root `.env` |
 
