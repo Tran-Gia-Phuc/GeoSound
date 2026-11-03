@@ -6,13 +6,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { SearchTours } from '../src/application/use-cases/search-tours.js';
+import { searchQuerySchema } from '../src/application/dtos/search-schemas.js';
+import { PrismaTourRepository } from '../src/infrastructure/persistence/prisma-tour-repository.js';
 
 // --- dữ liệu mẫu ---
 const tours = [
-  { id: 't1', title: 'Phố cổ Hội An', description: 'đi dạo bộ', coverImageUrl: null, city: 'Hội An', originalLanguage: 'vi', type: 'walking', status: 'public', averageRating: 4.5, ratingCount: 10, duration: 120, createdAt: new Date('2026-01-01') },
-  { id: 't2', title: 'Đà Nẵng food tour', description: 'ẩm thực đường phố', coverImageUrl: null, city: 'Đà Nẵng', originalLanguage: 'vi', type: 'walking', status: 'public', averageRating: 4.9, ratingCount: 2, duration: 90, createdAt: new Date('2026-03-01') },
-  { id: 't3', title: 'Nháp Huế', description: 'chưa duyệt', coverImageUrl: null, city: 'Huế', originalLanguage: 'vi', type: 'walking', status: 'draft', averageRating: 0, ratingCount: 0, duration: null, createdAt: new Date('2026-02-01') },
-  { id: 't4', title: 'Saigon by night', description: 'night drive', coverImageUrl: null, city: 'Hồ Chí Minh', originalLanguage: 'en', type: 'driving', status: 'public', averageRating: 4.0, ratingCount: 5, duration: 60, createdAt: new Date('2026-02-15') },
+  { id: 't1', authorId: 'a1', title: 'Phố cổ Hội An', description: 'đi dạo bộ', coverImageUrl: null, city: 'Hội An', originalLanguage: 'vi', type: 'walking', status: 'public', averageRating: 4.5, ratingCount: 10, duration: 120, createdAt: new Date('2026-01-01') },
+  { id: 't2', authorId: 'a2', title: 'Đà Nẵng food tour', description: 'ẩm thực đường phố', coverImageUrl: null, city: 'Đà Nẵng', originalLanguage: 'vi', type: 'walking', status: 'public', averageRating: 4.9, ratingCount: 2, duration: 90, createdAt: new Date('2026-03-01') },
+  { id: 't3', authorId: 'a1', title: 'Nháp Huế', description: 'chưa duyệt', coverImageUrl: null, city: 'Huế', originalLanguage: 'vi', type: 'walking', status: 'draft', averageRating: 0, ratingCount: 0, duration: null, createdAt: new Date('2026-02-01') },
+  { id: 't4', authorId: 'a1', title: 'Saigon by night', description: 'night drive', coverImageUrl: null, city: 'Hồ Chí Minh', originalLanguage: 'en', type: 'driving', status: 'public', averageRating: 4.0, ratingCount: 5, duration: 60, createdAt: new Date('2026-02-15') },
 ];
 const places = [
   { id: 'p1', tourId: 't1', sequence: 0, lat: 15.8801, lng: 108.338, audioSource: 'human' },
@@ -30,6 +32,7 @@ function publicMatch(t, f) {
   if (f.city && t.city.toLowerCase() !== f.city.toLowerCase()) return false;
   if (f.language && t.originalLanguage !== f.language) return false;
   if (f.type && t.type !== f.type) return false;
+  if (f.authorId && t.authorId !== f.authorId) return false;
   return true;
 }
 function sortTours(arr, sort) {
@@ -137,4 +140,32 @@ test('SearchTours: mỗi thẻ kèm toạ độ điểm đầu (anchor) để hi
   for (const t of withAnchor) {
     assert.ok(Number.isFinite(t.anchor.lat) && Number.isFinite(t.anchor.lng));
   }
+});
+
+// ---------- UC18 — author page: public tours of one author ----------
+
+test('UC18: authorId filter returns only the public tours of that author', async () => {
+  const { tours: cards, total } = await run({ authorId: 'a1' });
+  assert.equal(total, 2); // t1, t4 (t3 is a draft of a1)
+  assert.deepEqual(cards.map((c) => c.id).sort(), ['t1', 't4']);
+  const near = await run({ authorId: 'a2', sort: 'nearby', lat: 16.06, lng: 108.22 });
+  assert.deepEqual(near.tours.map((c) => c.id), ['t2']);
+});
+
+test('UC18 E1: an author without public tours gets an empty list', async () => {
+  const { tours: cards, total } = await run({ authorId: 'nobody' });
+  assert.equal(total, 0);
+  assert.deepEqual(cards, []);
+});
+
+test('UC18: search query accepts an optional authorId (trimmed, 1..100)', () => {
+  assert.equal(searchQuerySchema.parse({ authorId: '  a1 ' }).authorId, 'a1');
+  assert.equal(searchQuerySchema.parse({}).authorId, undefined);
+  assert.equal(searchQuerySchema.safeParse({ authorId: '   ' }).success, false);
+  assert.equal(searchQuerySchema.safeParse({ authorId: 'x'.repeat(101) }).success, false);
+});
+
+test('UC18: publicWhere adds authorId and keeps status public', () => {
+  assert.deepEqual(PrismaTourRepository.publicWhere({ authorId: 'a1' }), { status: 'public', authorId: 'a1' });
+  assert.deepEqual(PrismaTourRepository.publicWhere({}), { status: 'public' });
 });
