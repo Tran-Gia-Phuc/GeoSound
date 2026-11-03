@@ -60,6 +60,7 @@ const {
   adminReviewRouter,
   tourRatingRouter,
   tourReportRouter,
+  adminReportRouter,
   moderationResultHandler,
 } = buildContainer(process.env, { publish: rabbit?.publish, validateEvent: events?.validateEvent, verifyJwt });
 
@@ -83,6 +84,8 @@ app.use('/', tourReportRouter);
 // contributor routers below (verifyJwt(['contributor']) at router level on '/' would answer 403 to
 // an admin). The public GET /:id above only matches a UUID, so /admin/... never reaches it.
 app.use('/admin/reviews', adminReviewRouter);
+// UC20 (#273): admin handling of reported tours (role admin) — /admin/reports/*, same reason.
+app.use('/admin/reports', adminReportRouter);
 
 // UC07: khám phá địa điểm lẻ (công khai) + lịch trình. PHẢI mount TRƯỚC các router
 // contributor bên dưới: chúng gắn ở '/' và có verifyJwt(['contributor']) cấp router,
