@@ -175,6 +175,20 @@ export class UserNotFoundError extends AppError {
   }
 }
 
+// UC18 — unknown account, not a contributor, or not active (banned / suspended): no author page.
+export class AuthorNotFoundError extends AppError {
+  constructor(message = 'Không tìm thấy tác giả') {
+    super(message, { status: 404, code: 'author_not_found' });
+  }
+}
+
+// UC18 — a user cannot follow their own author page.
+export class SelfFollowError extends AppError {
+  constructor(message = 'Bạn không thể tự theo dõi chính mình') {
+    super(message, { status: 400, code: 'self_follow' });
+  }
+}
+
 // UC23 / R4 — the current device signs out with "Đăng xuất", not from the device list.
 export class CurrentSessionError extends AppError {
   constructor(message = 'Đây là thiết bị hiện tại, vui lòng dùng Đăng xuất') {

@@ -1,6 +1,7 @@
 // =========================================================
 // UC02 (bước 1–5, A1) — Tìm tour CÔNG KHAI (đã duyệt). Không cần đăng nhập.
-// Lọc: từ khóa (tên/mô tả), thành phố, ngôn ngữ gốc, loại tour.
+// Lọc: từ khóa (tên/mô tả), thành phố, ngôn ngữ gốc, loại tour; UC18: tác giả (authorId) for the
+// public author page (public tours only; none = empty list, UC18 E1).
 // Sắp xếp: popular | rating | recent | nearby (gần tôi — haversine).
 // Mỗi kết quả kèm số điểm, nhãn giọng (ưu tiên người thật), điểm đánh giá và
 // toạ độ điểm đầu (anchor) để client hiện tour trên bản đồ Khám phá.
@@ -15,7 +16,7 @@ export class SearchTours {
     this.placeRepo = placeRepo;
   }
 
-  /** @param {{ q?, city?, language?, type?, sort, lat?, lng?, page, limit }} input */
+  /** @param {{ q?, city?, language?, type?, authorId?, sort, lat?, lng?, page, limit }} input */
   async execute(input) {
     const { sort, page, limit, lat, lng, ...filters } = input;
     const skip = (page - 1) * limit;

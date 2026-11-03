@@ -17,16 +17,18 @@ import {
   adminReasonSchema,
   adminRestoreSchema,
   adminSuspendSchema,
+  followingQuerySchema,
+  updateProfileSchema,
 } from '../../../application/dtos/schemas.js';
 
 // Express 4 không bắt rejection của async handler → tự bọc.
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 /**
- * @param {{ authController, adminUsersController?, requireAuth?: import('express').RequestHandler, requireAdmin?: import('express').RequestHandler }} deps
+ * @param {{ authController, adminUsersController?, authorController?, requireAuth?: import('express').RequestHandler, requireAdmin?: import('express').RequestHandler }} deps
  *   requireAuth = shared verifyJwt() (any role), injected by index.js -> container (UC23 routes).
  */
-export function buildAuthRouter({ authController, adminUsersController, requireAuth, requireAdmin }) {
+export function buildAuthRouter({ authController, adminUsersController, authorController, requireAuth, requireAdmin }) {
   const r = Router();
 
   r.post('/register', validateBody(registerSchema), wrap(authController.register));
@@ -63,6 +65,19 @@ export function buildAuthRouter({ authController, adminUsersController, requireA
     r.post('/admin/users/:id/suspend', requireAdmin, validateBody(adminSuspendSchema, { status: 422 }), wrap(c.suspend));
     r.post('/admin/users/:id/ban', requireAdmin, reason, wrap(c.ban));
     r.post('/admin/users/:id/restore', requireAdmin, validateBody(adminRestoreSchema, { status: 422 }), wrap(c.restore));
+  }
+
+  // UC18 — the author page is public (L3); follow, the follow list and the own profile need sign-in.
+  if (authorController) {
+    const c = authorController;
+    r.get('/authors/:id', wrap(c.profile));
+    if (requireAuth) {
+      r.get('/authors/:id/follow', requireAuth, wrap(c.followState));
+      r.put('/authors/:id/follow', requireAuth, wrap(c.follow));
+      r.delete('/authors/:id/follow', requireAuth, wrap(c.unfollow));
+      r.get('/me/following', requireAuth, validateQuery(followingQuerySchema), wrap(c.following));
+      r.patch('/me/profile', requireAuth, validateBody(updateProfileSchema), wrap(c.updateProfile));
+    }
   }
 
   return r;

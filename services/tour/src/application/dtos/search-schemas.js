@@ -13,6 +13,7 @@ export const searchQuerySchema = z
     city: z.string().trim().max(120).optional(), // lọc theo thành phố
     language: z.string().trim().toLowerCase().max(10).optional(), // ngôn ngữ gốc
     type: z.enum(TOUR_TYPES, { errorMap: () => ({ message: 'Loại tour không hợp lệ' }) }).optional(),
+    authorId: z.string().trim().min(1, 'Tác giả không hợp lệ').max(100, 'Tác giả không hợp lệ').optional(), // UC18 author page
     sort: z.enum(SORT_OPTIONS).default('popular'),
     lat: z.coerce.number().min(-90).max(90).optional(),
     lng: z.coerce.number().min(-180).max(180).optional(),

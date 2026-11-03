@@ -24,6 +24,8 @@ export class PrismaUserRepository {
       suspendedUntil: row.suspendedUntil ?? null,
       failedAttempts: row.failedAttempts,
       lockedUntil: row.lockedUntil,
+      bio: row.bio ?? null,
+      avatarUrl: row.avatarUrl ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
@@ -65,6 +67,20 @@ export class PrismaUserRepository {
       },
     });
     return PrismaUserRepository.toEntity(row);
+  }
+
+  /**
+   * UC18 — writes only the profile fields present in `fields` (fullName, bio, avatarUrl); never the
+   * password, role or UC21 status. Returns null when the account does not exist.
+   * @param {string} id
+   * @param {{ fullName?: string, bio?: string|null, avatarUrl?: string|null }} fields
+   */
+  async updateProfile(id, fields) {
+    const data = {};
+    for (const k of ['fullName', 'bio', 'avatarUrl']) if (fields[k] !== undefined) data[k] = fields[k];
+    const { count } = await this.prisma.user.updateMany({ where: { id }, data });
+    if (count !== 1) return null;
+    return this.findById(id);
   }
 
   /**

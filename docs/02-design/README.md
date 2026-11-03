@@ -24,5 +24,6 @@ Expected later:
 - [UC20 admin handling of reported tours](uc20-report-handling.md)
 - [UC21 admin account actions](uc21-account-actions.md)
 - [UC22 admin dashboard and action log (with the UC21 violation history)](uc22-dashboard-log.md)
+- [UC18 public author page and follow](uc18-author-page.md)
 - [OTP email templates and SMTP verification](notification-otp-design.md)
 - [General ERD — supplied reference (draw.io)](drawio/erd-general.drawio)

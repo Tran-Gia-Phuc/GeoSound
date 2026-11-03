@@ -24,9 +24,13 @@ model User {
   suspendedUntil DateTime? @map("suspended_until") // UC21: end of a suspension; past = active again
   failedAttempts Int       @default(0) @map("failed_attempts") // sai mật khẩu liên tiếp (E2)
   lockedUntil    DateTime? @map("locked_until") // tạm khóa đăng nhập tới thời điểm này
+  bio            String? // UC18: author page introduction (max 500)
+  avatarUrl      String?   @map("avatar_url") // UC18: Media upload URL (https or /api/media/files/images/...)
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
   sessions       Session[]
+  followers      AuthorFollow[] @relation("AuthorFollowers") // UC18: rows where this user is the author
+  following      AuthorFollow[] @relation("FollowerFollowing") // UC18: authors this user follows
 
   @@map("users")
 }
@@ -55,4 +59,19 @@ model Session {
   @@index([revokedAt])
   @@index([expiresAt])
   @@map("sessions")
+}
+
+// UC18 — a signed-in user follows a contributor (docs/02-design/uc18-author-page.md section 3).
+// The unique pair makes follow idempotent (insert ... on conflict do nothing).
+model AuthorFollow {
+  id         String   @id @default(uuid())
+  followerId String   @map("follower_id")
+  authorId   String   @map("author_id")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  follower   User     @relation("FollowerFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  author     User     @relation("AuthorFollowers", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, authorId])
+  @@index([authorId])
+  @@map("author_follows")
 }

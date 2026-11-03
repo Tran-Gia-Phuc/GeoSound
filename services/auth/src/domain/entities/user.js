@@ -5,6 +5,7 @@
 //     a suspension whose end passed counts as active (checked lazily, nothing rewrites the row)
 //   - UC21 admin transitions: suspended(), banned(), restored() return the next state
 //   - tạm khóa khi sai mật khẩu nhiều lần (E2): isLocked(), registerFailedLogin(), resetLockout()
+//   - UC18 author page: bio, avatarUrl, isFollowableAuthor(now), toAuthorProfile(followerCount)
 // Thuần domain: không biết Prisma/HTTP. Repo map DB row <-> entity này.
 // =========================================================
 
@@ -24,7 +25,7 @@ export class User {
    * @param {{
    *   id?: string, email: string, passwordHash: string, fullName: string,
    *   role?: string, status?: string, banReason?: string|null, suspendedUntil?: Date|null,
-   *   failedAttempts?: number, lockedUntil?: Date|null,
+   *   failedAttempts?: number, lockedUntil?: Date|null, bio?: string|null, avatarUrl?: string|null,
    *   createdAt?: Date, updatedAt?: Date,
    * }} props
    */
@@ -39,6 +40,8 @@ export class User {
     this.suspendedUntil = props.suspendedUntil ?? null;
     this.failedAttempts = props.failedAttempts ?? 0;
     this.lockedUntil = props.lockedUntil ?? null;
+    this.bio = props.bio ?? null; // UC18
+    this.avatarUrl = props.avatarUrl ?? null; // UC18
     this.createdAt = props.createdAt ?? null;
     this.updatedAt = props.updatedAt ?? null;
   }
@@ -128,6 +131,23 @@ export class User {
   // `name` (UC05, #267): display name shown with a tour rating; other services ignore it.
   toAuthPayload() {
     return { sub: this.id, email: this.email, role: this.role, name: this.fullName };
+  }
+
+  /** UC18 — only an active contributor has a public author page and can be followed. */
+  isFollowableAuthor(now = new Date()) {
+    return this.role === ROLES.CONTRIBUTOR && this.effectiveStatus(now) === USER_STATUS.ACTIVE;
+  }
+
+  /** UC18 — public author page: never the email, role, status or sign-in data. */
+  toAuthorProfile(followerCount = 0) {
+    return {
+      id: this.id,
+      fullName: this.fullName,
+      avatarUrl: this.avatarUrl,
+      bio: this.bio,
+      followerCount,
+      joinedAt: this.createdAt,
+    };
   }
 
   /** Dữ liệu an toàn trả về client (không lộ hash). */
