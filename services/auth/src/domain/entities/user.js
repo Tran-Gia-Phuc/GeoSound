@@ -67,8 +67,9 @@ export class User {
   }
 
   /** Payload nhúng vào JWT. */
+  // `name` (UC05, #267): display name shown with a tour rating; other services ignore it.
   toAuthPayload() {
-    return { sub: this.id, email: this.email, role: this.role };
+    return { sub: this.id, email: this.email, role: this.role, name: this.fullName };
   }
 
   /** Dữ liệu an toàn trả về client (không lộ hash). */

@@ -28,6 +28,7 @@ import { EventModerationGateway } from './infrastructure/messaging/event-moderat
 import { EventTourCatalogPublisher } from './infrastructure/messaging/event-tour-catalog-publisher.js';
 import { EventTourReviewPublisher } from './infrastructure/messaging/event-tour-review-publisher.js';
 import { PrismaTourReviewActionRepository } from './infrastructure/persistence/prisma-tour-review-action-repository.js';
+import { PrismaTourRatingRepository } from './infrastructure/persistence/prisma-tour-rating-repository.js';
 import { isModerationEnabled, isChatbotEventsEnabled } from './config.js';
 
 import { CreateTour } from './application/use-cases/create-tour.js';
@@ -45,6 +46,13 @@ import {
   RejectTour,
   RequestTourChanges,
 } from './application/use-cases/review-tour.js';
+
+import {
+  ListTourRatings,
+  GetMyTourRating,
+  SaveMyTourRating,
+  DeleteMyTourRating,
+} from './application/use-cases/tour-ratings.js';
 
 import { AddPlace } from './application/use-cases/add-place.js';
 import { ListPlaces } from './application/use-cases/list-places.js';
@@ -95,6 +103,8 @@ import { buildExploreRouter } from './interfaces/http/routes/explore-routes.js';
 import { buildPublicItineraryRouter } from './interfaces/http/routes/public-itinerary-routes.js';
 import { AdminReviewController } from './interfaces/http/controllers/admin-review-controller.js';
 import { buildAdminReviewRouter } from './interfaces/http/routes/admin-review-routes.js';
+import { TourRatingController } from './interfaces/http/controllers/tour-rating-controller.js';
+import { buildTourRatingRouter } from './interfaces/http/routes/tour-rating-routes.js';
 
 // Dịch thật qua AI service khi có khoá Gemini (hoặc ép bằng TRANSLATOR=ai|echo).
 function selectTranslator(env) {
@@ -137,6 +147,8 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   // The broker is loaded when an event flag is on; otherwise no publish -> decisions send nothing.
   const reviewActionRepo = new PrismaTourReviewActionRepository(prisma);
   const reviewEvents = publish ? new EventTourReviewPublisher({ publish }) : null;
+  // UC05 — ratings; the aggregate SQL uses the schema of DATABASE_URL (?schema=tour).
+  const ratingRepo = new PrismaTourRatingRepository(prisma);
 
   // --- application (use-cases) ---
   const useCases = {
@@ -221,6 +233,14 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     requestTourChanges: new RequestTourChanges(reviewDeps),
   };
 
+  const ratingUseCases = {
+    // UC05 — rate a public tour
+    listTourRatings: new ListTourRatings({ tourRepo, ratingRepo }),
+    getMyTourRating: new GetMyTourRating({ tourRepo, ratingRepo }),
+    saveMyTourRating: new SaveMyTourRating({ tourRepo, ratingRepo }),
+    deleteMyTourRating: new DeleteMyTourRating({ tourRepo, ratingRepo }),
+  };
+
   // --- interfaces (controller + router) ---
   const tourController = new TourController(useCases);
   const tourRouter = buildTourRouter({ tourController });
@@ -246,6 +266,13 @@ export function buildContainer(env = process.env, { publish = null, validateEven
       })
     : null;
 
+  const tourRatingRouter = verifyJwt
+    ? buildTourRatingRouter({
+        tourRatingController: new TourRatingController(ratingUseCases),
+        requireAuth: verifyJwt(),
+      })
+    : null;
+
   // UC15 — AI result handler (queue tour.moderation-results), only when the flag is on.
   const moderationResultHandler = moderation
     ? buildModerationResultHandler({
@@ -265,6 +292,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     exploreRouter,
     publicItineraryRouter,
     adminReviewRouter,
+    tourRatingRouter,
     moderationResultHandler,
     prisma,
   };

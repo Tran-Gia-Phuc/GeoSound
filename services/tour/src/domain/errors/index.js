@@ -132,3 +132,17 @@ export class TtsError extends AppError {
     super(message, { status: 503, code: 'tts_unavailable' });
   }
 }
+
+// UC05 (#267) — the account has no rating on this tour.
+export class RatingNotFoundError extends AppError {
+  constructor(message = 'Bạn chưa đánh giá tour này') {
+    super(message, { status: 404, code: 'rating_not_found' });
+  }
+}
+
+// UC05 (#267) / R5 — the author cannot rate their own tour.
+export class OwnTourRatingError extends AppError {
+  constructor(message = 'Bạn không thể tự đánh giá tour của mình') {
+    super(message, { status: 403, code: 'own_tour' });
+  }
+}
