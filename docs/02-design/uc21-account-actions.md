@@ -79,6 +79,13 @@ test, Notification tests per action. On a disposable Postgres: `prisma db push`,
 effective status, paging), suspend then restore, two concurrent bans -> 200 and 409
 `account_state_changed`.
 
+## 7a. Violation history (UC21 step 2)
+
+Served by Tour, not Auth: `GET /api/tours/admin/users/:userId/violations` (tours by status, hidden and
+rejected tours, reports received on the author's tours, latest account actions). Tour also records
+every `account.moderated` event in its admin log (queue `tour.admin-log`). See
+[uc22-dashboard-log.md](uc22-dashboard-log.md) sections 4 and 5.
+
 ## 8. Out of scope
 
 Admin screens (next PR), the UC22 log row and the violation history shown in UC21 step 2 (needs the

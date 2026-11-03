@@ -23,5 +23,6 @@ Expected later:
 - [UC16 contributor status and in-app notifications](uc16-notifications.md)
 - [UC20 admin handling of reported tours](uc20-report-handling.md)
 - [UC21 admin account actions](uc21-account-actions.md)
+- [UC22 admin dashboard and action log (with the UC21 violation history)](uc22-dashboard-log.md)
 - [OTP email templates and SMTP verification](notification-otp-design.md)
 - [General ERD — supplied reference (draw.io)](drawio/erd-general.drawio)
