@@ -4,6 +4,7 @@
 //     user's in-app notifications (list, unread count, mark read, mark all read).
 //   - RabbitMQ worker: tour result events -> in-app notification for the tour author (contributorId)
 //     + email (unchanged). UC23: auth.new_device_login -> security email ("Đăng nhập mới trên ...").
+//     UC21: account.moderated -> in-app notification + email to the account owner.
 //   A broker outage never takes the HTTP part down (the worker retries, like media).
 // Only this file imports ../shared (CI rule); the rest gets verifyJwt injected.
 // =========================================================
@@ -67,6 +68,7 @@ async function startWorker() {
       EVENTS.TOUR_HIDDEN,
       EVENTS.TTS_RENDER_COMPLETED,
       EVENTS.AUTH_NEW_DEVICE_LOGIN, // UC23 / R10 — new-device sign-in alert
+      EVENTS.ACCOUNT_MODERATED, // UC21 — admin warned / suspended / banned / restored the account
     ],
     // storeInApp never throws; email errors still propagate exactly as before.
     (event, payload) => handleEvent(mailer, event, payload, console, process.env, { lookupEmail, storeInApp }),

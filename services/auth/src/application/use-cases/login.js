@@ -1,6 +1,7 @@
 // =========================================================
 // UC01 — Đăng nhập (Basic Course of Events).
-// Xử lý: sai thông tin (E2) + tạm khóa khi sai nhiều lần, tài khoản bị ban (E3).
+// Xử lý: sai thông tin (E2) + tạm khóa khi sai nhiều lần, tài khoản bị ban (E3),
+// tài khoản bị admin tạm khoá có thời hạn (UC21, 403 account_suspended).
 // UC23: with a SessionManager each sign-in creates (or replaces, R1) a device session and the
 // tokens carry its `sid`. Without one (old wiring, unit tests) tokens are issued as before.
 // =========================================================
@@ -8,6 +9,7 @@ import {
   InvalidCredentialsError,
   AccountBannedError,
   AccountLockedError,
+  AccountSuspendedError,
 } from '../../domain/errors/index.js';
 
 export class Login {
@@ -31,6 +33,9 @@ export class Login {
 
     // E3 — tài khoản bị ban (UC21).
     if (user.isBanned()) throw new AccountBannedError(user.banReason);
+
+    // UC21 — suspended by an admin (an ended suspension counts as active, nothing to rewrite).
+    if (user.isSuspended(this.now())) throw new AccountSuspendedError(user.suspendedUntil);
 
     // E2 (nâng cao) — đang trong thời gian tạm khóa.
     if (user.isLocked(this.now())) throw new AccountLockedError(user.lockedUntil);

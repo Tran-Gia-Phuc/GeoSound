@@ -12,6 +12,7 @@ export const REVOKE_REASONS = Object.freeze({
   PASSWORD_RESET: 'password_reset',
   PASSWORD_CHANGE: 'password_change',
   BANNED: 'banned',
+  SUSPENDED: 'suspended', // UC21 — admin suspension
   LIMIT: 'limit', // over AUTH_MAX_SESSIONS (R9)
   REUSE: 'reuse', // old refresh token presented again (R11)
   EXPIRED: 'expired',

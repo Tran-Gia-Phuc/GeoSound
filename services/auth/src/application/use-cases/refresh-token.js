@@ -7,7 +7,12 @@
 //   - old token without `sid` (issued before UC23): a session is created for it so the
 //     device appears in the list from now on (no new-device email). See 5.5.
 // =========================================================
-import { InvalidTokenError, AccountBannedError, SessionRevokedError } from '../../domain/errors/index.js';
+import {
+  InvalidTokenError,
+  AccountBannedError,
+  AccountSuspendedError,
+  SessionRevokedError,
+} from '../../domain/errors/index.js';
 import { REVOKE_REASONS } from '../../domain/entities/session.js';
 
 export class RefreshToken {
@@ -37,6 +42,8 @@ export class RefreshToken {
     const user = await this.userRepo.findById(decoded.sub);
     if (!user) throw new InvalidTokenError();
     if (user.isBanned()) throw new AccountBannedError(user.banReason);
+    // UC21 — a suspended account cannot refresh either (its sessions were also revoked).
+    if (user.isSuspended(this.now())) throw new AccountSuspendedError(user.suspendedUntil);
 
     if (!this.sessions) {
       const tokens = this.tokens.issueTokens(user);

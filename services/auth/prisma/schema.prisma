@@ -19,8 +19,9 @@ model User {
   passwordHash   String    @map("password_hash") // bcrypt hash
   fullName       String    @map("full_name")
   role           String    @default("tourist") // tourist | contributor | admin
-  status         String    @default("active") // active | banned  (UC21)
-  banReason      String?   @map("ban_reason")
+  status         String    @default("active") // active | suspended | banned  (UC21)
+  banReason      String?   @map("ban_reason") // reason of the current suspension or ban (UC21)
+  suspendedUntil DateTime? @map("suspended_until") // UC21: end of a suspension; past = active again
   failedAttempts Int       @default(0) @map("failed_attempts") // sai mật khẩu liên tiếp (E2)
   lockedUntil    DateTime? @map("locked_until") // tạm khóa đăng nhập tới thời điểm này
   createdAt      DateTime  @default(now()) @map("created_at")
@@ -46,7 +47,7 @@ model Session {
   lastActiveAt DateTime  @default(now()) @map("last_active_at") @db.Timestamptz(3)
   expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3) // min(idle, absolute) limit (R8)
   revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(3)
-  revokeReason String?   @map("revoke_reason") // user | user_all | password_reset | password_change | banned | limit | reuse | expired
+  revokeReason String?   @map("revoke_reason") // user | user_all | password_reset | password_change | banned | suspended | limit | reuse | expired
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])

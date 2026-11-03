@@ -51,6 +51,74 @@ export class AccountBannedError extends AppError {
   }
 }
 
+/** "14:05 30/10/2026" in Vietnam time (UTC+7, no DST), by hand so it does not depend on ICU. */
+export function formatVietnamTime(date) {
+  const d = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getUTCHours())}:${p(d.getUTCMinutes())} ${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)}/${d.getUTCFullYear()}`;
+}
+
+// UC21 — suspended by an admin until a date. The shared errorHandler forwards `details`, so the
+// end date reaches the client as details.suspendedUntil (ISO).
+export class AccountSuspendedError extends AppError {
+  /** @param {Date|null} until */
+  constructor(until) {
+    const when = until instanceof Date ? formatVietnamTime(until) : 'khi có thông báo mới';
+    super(`Tài khoản đang bị tạm khoá đến ${when}`, { status: 403, code: 'account_suspended' });
+    this.suspendedUntil = until ?? null;
+    this.details = { suspendedUntil: until instanceof Date ? until.toISOString() : null };
+  }
+}
+
+// UC21 / E1 — admin opened an unknown account.
+export class AccountNotFoundError extends AppError {
+  constructor(message = 'Không tìm thấy tài khoản') {
+    super(message, { status: 404, code: 'user_not_found' });
+  }
+}
+
+// UC21 — an admin never acts on their own account.
+export class SelfActionError extends AppError {
+  constructor(message = 'Không thể xử lý chính tài khoản của bạn') {
+    super(message, { status: 403, code: 'self_action' });
+  }
+}
+
+// UC21 — an admin never acts on another admin.
+export class TargetIsAdminError extends AppError {
+  constructor(message = 'Không thể xử lý tài khoản quản trị viên') {
+    super(message, { status: 403, code: 'target_is_admin' });
+  }
+}
+
+// UC21 / A1 — restore of an account that is already active (or whose suspension already ended).
+export class AccountNotRestrictedError extends AppError {
+  constructor(message = 'Tài khoản đang hoạt động bình thường') {
+    super(message, { status: 409, code: 'account_not_restricted' });
+  }
+}
+
+// UC21 — warn / suspend / ban of an account that is already banned (restore it first).
+export class AccountAlreadyBannedError extends AppError {
+  constructor(message = 'Tài khoản đã bị cấm vĩnh viễn') {
+    super(message, { status: 409, code: 'account_already_banned' });
+  }
+}
+
+// UC21 — another admin changed the account between the read and the write (conditional write lost).
+export class AccountStateChangedError extends AppError {
+  constructor(message = 'Trạng thái tài khoản vừa được thay đổi, vui lòng tải lại') {
+    super(message, { status: 409, code: 'account_state_changed' });
+  }
+}
+
+// UC21 / L13 — suspension end date in the past or more than 365 days ahead (422 like UC19).
+export class InvalidSuspensionError extends AppError {
+  constructor(message = 'Thời hạn tạm khoá không hợp lệ') {
+    super(message, { status: 422, code: 'validation_error' });
+  }
+}
+
 // UC23 / R7 — wrong current password on a password change (400, not 401: the token itself is valid).
 export class WrongPasswordError extends AppError {
   constructor(message = 'Mật khẩu hiện tại không đúng') {
