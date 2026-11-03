@@ -19,6 +19,7 @@ const TARGETS = {
   moderation: process.env.MODERATION_SERVICE_URL || 'http://moderation:3003',
   media: process.env.MEDIA_SERVICE_URL || 'http://media:3005',
   ai: process.env.AI_SERVICE_URL || 'http://ai:3004',
+  notification: process.env.NOTIFICATION_SERVICE_URL || 'http://notification:3006',
 };
 const CHATBOT_ENABLED = process.env.CHATBOT_ENABLED === 'true';
 
@@ -84,11 +85,13 @@ mountKeep('/api/places', TARGETS.tour);
 mount('/api/moderation', TARGETS.moderation);
 // Tải ảnh/audio của tour (Studio) + file tĩnh khi dev.
 mount('/api/media', TARGETS.media);
+// UC16 — the signed-in user's in-app notifications.
+mount('/api/notifications', TARGETS.notification);
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 
 app.listen(PORT, () => {
   console.log(`[gateway] listening on :${PORT}`);
-  console.log('[gateway] routes: /api/auth /api/tours /api/itineraries /api/places /api/moderation /api/media');
+  console.log('[gateway] routes: /api/auth /api/tours /api/itineraries /api/places /api/moderation /api/media /api/notifications');
   if (CHATBOT_ENABLED) console.log('[gateway] chatbot: /api/chat /api/chat/history');
 });

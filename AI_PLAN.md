@@ -113,7 +113,7 @@ listed per UC describe the screen states; they are closed together with the UC w
 | 1 | UC05 rating and review | #267 | P0 | Tour (+ Auth `name` claim), client | | #105, #162, #163 | `feature/uc05-ratings` | backend done (part of #267, needs the `tour` schema push); client next |
 | 2 | UC06 report a tour | #268 | P1 | Tour, client | | #106, #164, #165 | `feature/uc06-reports` | backend done (part of #268, needs the `tour` schema push); client next |
 | 3 | UC20 admin handling of reports | #273 | P1 | Tour, client | UC06 | #127 to #130 | `feature/uc20-report-handling` | open |
-| 4 | UC16 status and in-app notifications | #270 | P1 | Notification (+ HTTP port), Gateway, client | | #115, #116 | `feature/uc16-notifications` | open |
+| 4 | UC16 status and in-app notifications | #270 | P1 | Notification (+ HTTP port), Gateway, client | | #115, #116 | `feature/uc16-notifications` | backend done (part of #270, needs the `notification` schema push and a notification rebuild); client next |
 | 5 | UC21 admin account actions | #274 | P2 | Auth, Tour (violation history), client | | #131 to #135 | `feature/uc21-account-actions` | open |
 | 6 | UC22 dashboard and action log | #275 | P2 | Tour, client | UC20, UC21 | #121, #136 | `feature/uc22-dashboard-log` | open |
 | 7 | UC17 tour statistics | #271 | P1 | Tour, client | UC05 | #117 | `feature/uc17-tour-stats` | open |

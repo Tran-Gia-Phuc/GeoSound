@@ -1,7 +1,10 @@
 # Notification
 
-Current scope: design and test OTP email templates for UC01. The team lead will
-provide event names and payloads later. UC16 remains an existing worker skeleton.
+Current scope: tour result emails to the contributor, the UC23 new-device email, OTP
+email templates for UC01, and (UC16, #270) in-app notifications: every tour event with a
+`contributorId` is also stored in `in_app_notifications` and served on HTTP port 3006
+(gateway `/api/notifications`). See [the UC16 design](../../docs/02-design/uc16-notifications.md).
+The container never pushes the schema on start (push command in that note, section 3).
 
 ## Standalone OTP module
 

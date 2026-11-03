@@ -1,7 +1,7 @@
 {
   "name": "@geosound/notification",
   "version": "0.1.0",
-  "description": "Notification worker — UC16: consume event -> báo contributor (in-app/email).",
+  "description": "Notification service — UC16: consume tour events -> in-app notification (HTTP /api/notifications) + email.",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
@@ -16,6 +16,9 @@
   "dependencies": {
     "@prisma/client": "^5.18.0",
     "amqplib": "^0.10.4",
+    "express": "^4.19.2",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.9.14",
     "zod": "^3.23.8"
   },
