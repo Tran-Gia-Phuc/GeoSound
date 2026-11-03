@@ -1,14 +1,17 @@
-# GeoSound: AI and Moderation (agent instructions)
+# GeoSound: AI, Moderation and later use cases (agent instructions)
 
-Read this file first in every session, then read `AI_PLAN.md` (decisions, current state, task list, notes for the next tasks). One task per branch, in the order of `AI_PLAN.md` section 4. Several tasks in one session only when the user asks for it. **Run tasks with the project skill `/ai-task <N>`** (`.claude/skills/ai-task/SKILL.md`): it holds the full branch → agent → test → review → commit → PR → merge procedure.
+Read this file first in every session, then read `AI_PLAN.md` (decisions, current state, task list, notes for the next tasks). One task per branch. Several tasks in one session only when the user asks for it. Two project skills hold the full procedure:
 
-**Priority:** phases 1, 2 and 3 (place moderation, tour moderation, chatbot), the Tour side (#180, #240), the gateway chat route (#188) UC#19 admin review (#243), UC23 signed-in devices (#247, #248, #251, #256) and the Notification email lookup (#258) are merged and checked on the real stack. Next work only on request: real-model eval baseline, smaller AI image, frontend (on hold), UC23 IP location.
+- **`/ai-task <N>`** (`.claude/skills/ai-task/SKILL.md`): AI / Moderation issues of `AI_PLAN.md` section 4.
+- **`/uc-task <N | UCnn>`** (`.claude/skills/uc-task/SKILL.md`): the later use cases of `AI_PLAN.md` section 6 (`docs/use case/lam-sau`, label `uc-later`, issues #267 to #275): design note approved by the user → backend → client → tests → live check → PR → merge.
+
+**Priority:** phases 1, 2 and 3 (place moderation, tour moderation, chatbot), the Tour side (#180, #240), the gateway chat route (#188), UC#19 admin review (#243), UC23 signed-in devices (#247, #248, #251, #256, #265), the Notification email lookup (#258) and the Android audio fix (#263) are merged and checked on the real stack. **Next work: the later use cases, in the order of `AI_PLAN.md` section 6.1, one issue per UC.** Only on request: real-model eval baseline, smaller AI image, UC23 IP location.
 
 ## 1. Role and language
 
 You help one student (owner of the **AI** part) on the team project GeoSound. Reply to the user in **Vietnamese**, short and concrete. Write code, comments, commit messages, issues and everything under `docs/` in **English**.
 
-The user owns: place moderation, tour moderation, chatbot (`services/ai`), plus the AI-related parts of `services/moderation` (consumers, use-cases, AI reviewer, persistence). Admin approval (UC#19, backend in `services/tour`, issue #243) and signed-in devices (UC23: `services/auth`, `shared/middleware` `verifyJwt`, Notification alert and contributor email lookup, client screen; issues #247, #248, #256, #258) were handed over to the user on 2026-10-30; the UC19 admin screens stay with Frontend A. `services/ai/app/translation` and `api/translation.py` were added by another teammate: do not change them.
+The user owns: place moderation, tour moderation, chatbot (`services/ai`), plus the AI-related parts of `services/moderation` (consumers, use-cases, AI reviewer, persistence). Admin approval (UC#19, backend in `services/tour`, issue #243) and signed-in devices (UC23: `services/auth`, `shared/middleware` `verifyJwt`, Notification alert and contributor email lookup, client screen; issues #247, #248, #256, #258) were handed over to the user on 2026-10-30; the UC19 admin screens stay with Frontend A. On 2026-11-03 the user took on the **later use cases** (UC05, UC06, UC14, UC16, UC17, UC18, UC20, UC21, UC22: backend in Tour / Auth / Notification / Gateway and their client screens, including the matching `[Frontend A]` issues), so those PRs are merged by us (decision L1). UI text is Vietnamese. `services/ai/app/translation` and `api/translation.py` were added by another teammate: do not change them.
 
 ## 2. Architecture (V4, accepted: `docs/02-design/moderation-architecture.md`)
 
@@ -80,12 +83,15 @@ Limits: title 200, tour description 5000, place name 200, place description 2000
 - Tests never call real LLMs or the network: use `FakeLLM` (`services/ai/tests/conftest.py`) and `httpx.MockTransport` in Python; a fake `fetch` or small local server in Node.
 - Real-LLM smoke runs are allowed only when the user asks, and print results without the key. Gemini free tier is rate limited (429, 503 happen); this key works only with `gemini-2.5-flash`.
 - Do not change files owned by other services unless the task says so. Changes there stay behind a feature flag and are merged by their owner, unless the owner handed the task over (the Tour owner did for #180 and #240). Never push schema changes or test data to another service's Supabase schema without the user's explicit go-ahead; test on a disposable Postgres instead.
+- **Auth and Moderation run `prisma db push` on every container start** (their Dockerfile `CMD`): rebuilding them after a schema change pushes it to Supabase. Ask the user before `docker compose up --build auth|moderation` with a changed `schema.prisma`. Tour and Notification do not push on start; the user runs the push command given by `uc-task` step 5.
+- Admin accounts are made by hand in Supabase (`update app_auth.users set role = 'admin' ...`, done by the user); never create accounts or rows in Supabase from tests or checks.
 
 ## 7. Commands
 
 The host has no `node_modules` or Python deps: tests run in throwaway containers from the built images. The exact commands (AI pytest, Node tests in the image and repo layouts, Prisma validate) are in `.claude/agents/test-runner.md` and `.claude/skills/ai-task/SKILL.md` step 3; the e2e with the AI stub is in `docs/03-testing/moderation-e2e.md`.
 
-- Whole stack: `docker compose up -d --build` (needs the root `.env`, which you must not read). Add `--build` after changing `requirements.txt` or `package.json`.
+- Whole stack: `docker compose up -d --build` (needs the root `.env`, which you must not read). Add `--build` after changing `requirements.txt` or `package.json`. Phone demo through ngrok: `scripts/demo/start-demo.ps1` (`docs/04-guides/phone-demo.md`). The client source is mounted: client changes are live without a rebuild.
+- Client UI tests (Playwright, on a copy of `client/`): the exact command is in `.claude/skills/uc-task/SKILL.md` step 7. `player-controls.spec.js` "seek ..." also fails on `develop`; compare before blaming a change.
 - Compose check: `docker compose -f docker-compose.yml config -q`; never run `config` without `-q` (it prints secrets).
 - Logs: `docker compose logs --tail 30 <service>`. Use `git --no-pager`. The root `.env` must have no duplicated keys.
 
@@ -122,6 +128,8 @@ services/moderation/src/
   interfaces/     events/{place,tour}-submitted-consumer.js, jobs/retry-sweeper.js
 ```
 
+For the later use cases, Tour, Auth and Notification follow the same layers (`domain` → `application/use-cases` → `infrastructure` → `interfaces/http`, wired only in `container.js`); the entry points per service are listed in `.claude/skills/uc-task/SKILL.md` step 1. Client: routes in `client/src/App.jsx`, screens in `client/src/features/<area>/`, API helpers in `client/src/lib/<area>.js` (always through `lib/api.js`), UI tests in `client/test/ui/`.
+
 Dependency direction in Moderation: `interfaces -> application -> domain`; `infrastructure` implements domain ports; only `container.js` wires them.
 
 ## 10. Sub-agents (`.claude/agents/`)
@@ -135,6 +143,7 @@ The main agent owns git, the issue, and the final answer to the user. Delegate w
 | `test-runner` | run pytest / `node --test` and report |
 | `contract-reviewer` | read-only review of events, HTTP contract, secrets, git hygiene, before asking the user to push |
 | `docs-writer` | English docs under `docs/` |
+| `general-purpose` | later use cases (`/uc-task`): Tour, Auth, Notification, Gateway and client code; paste the `uc-task` steps 4, 6 and 7 rules into the prompt |
 
 Typical task (automated by `/ai-task`): dev agent implements (code plus tests) -> `test-runner` -> `contract-reviewer` (fix every FAIL, review again) -> main agent commits, shows `git log --oneline` and waits for the user (or pushes and merges when the user allowed it for that run). Independent tasks run in parallel in git worktrees (`/e/CNPM/git/wt-<N>`).
 
