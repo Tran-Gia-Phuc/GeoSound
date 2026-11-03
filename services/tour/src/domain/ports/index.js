@@ -26,6 +26,17 @@
  */
 
 /**
+ * UC05 (#267) — ratings (table tour_ratings). Every write locks the caller's row and moves
+ * tours.average_rating / rating_count in the same transaction (design R7).
+ * @typedef {Object} TourRatingRepository
+ * @property {(tourId: string, userId: string) => Promise<import('../entities/tour-rating.js').TourRating|null>} findByTourAndUser
+ * @property {(fields: { tourId, userId, userName, stars, comment }) => Promise<{ created: boolean, rating, summary: { averageRating: number, ratingCount: number } }|null>} saveForUser  // create or edit; null only when a concurrent first submit of the same account won (retry once)
+ * @property {(tourId: string, userId: string) => Promise<{ summary }|null>} deleteForUser  // null when the account has no rating
+ * @property {(tourId: string, page: { skip: number, take: number }) => Promise<{ items: import('../entities/tour-rating.js').TourRating[], total: number }>} listByTour  // newest first
+ * @property {(tourId: string) => Promise<Record<1|2|3|4|5, number>>} distribution
+ */
+
+/**
  * UC19 — admin decision log (read side; rows are written by TourRepository.applyReviewDecisionIf).
  * @typedef {Object} TourReviewActionRepository
  * @property {(tourId: string) => Promise<import('../entities/tour-review-action.js').TourReviewAction[]>} listByTour  // newest first
