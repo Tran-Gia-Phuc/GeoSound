@@ -58,6 +58,7 @@ const {
   exploreRouter,
   publicItineraryRouter,
   adminReviewRouter,
+  tourRatingRouter,
   moderationResultHandler,
 } = buildContainer(process.env, { publish: rabbit?.publish, validateEvent: events?.validateEvent, verifyJwt });
 
@@ -70,6 +71,10 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'tour' }));
 // contributor để GET công khai không bị chặn bởi verifyJwt; :id ràng buộc UUID
 // nên /mine... rơi xuống các router sau (vẫn giữ verifyJwt của chúng).
 app.use('/', publicTourRouter);
+
+// UC05 (#267): /:id/ratings (public) and /:id/ratings/mine (any signed-in role). BEFORE the
+// contributor routers below, whose verifyJwt(['contributor']) on '/' would answer 403 to a tourist.
+app.use('/', tourRatingRouter);
 
 // UC19: admin review queue + decisions (role admin) — /admin/reviews/*. MUST be mounted BEFORE the
 // contributor routers below (verifyJwt(['contributor']) at router level on '/' would answer 403 to
