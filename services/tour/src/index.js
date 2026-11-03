@@ -59,6 +59,7 @@ const {
   publicItineraryRouter,
   adminReviewRouter,
   tourRatingRouter,
+  tourReportRouter,
   moderationResultHandler,
 } = buildContainer(process.env, { publish: rabbit?.publish, validateEvent: events?.validateEvent, verifyJwt });
 
@@ -75,6 +76,8 @@ app.use('/', publicTourRouter);
 // UC05 (#267): /:id/ratings (public) and /:id/ratings/mine (any signed-in role). BEFORE the
 // contributor routers below, whose verifyJwt(['contributor']) on '/' would answer 403 to a tourist.
 app.use('/', tourRatingRouter);
+// UC06 (#268): POST /:id/reports and GET /:id/reports/mine (any signed-in role), same reason.
+app.use('/', tourReportRouter);
 
 // UC19: admin review queue + decisions (role admin) — /admin/reviews/*. MUST be mounted BEFORE the
 // contributor routers below (verifyJwt(['contributor']) at router level on '/' would answer 403 to
