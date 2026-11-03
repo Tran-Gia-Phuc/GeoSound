@@ -12,6 +12,19 @@
  * @property {(user: import('../entities/user.js').User) => Promise<import('../entities/user.js').User>} save  // password, profile, lockout (never the UC21 status)
  * @property {(input: { q?: string, role?: string, status?: string, skip: number, take: number, now: Date }) => Promise<{ items: import('../entities/user.js').User[], total: number }>} search  // UC21 admin list, newest first
  * @property {(id: string, expected: { status: string, suspendedUntil: Date|null }, next: { status: string, banReason: string|null, suspendedUntil: Date|null }) => Promise<boolean>} updateStatusIf  // UC21 conditional write; false = state moved
+ * @property {(id: string, fields: { fullName?: string, bio?: string|null, avatarUrl?: string|null }) => Promise<import('../entities/user.js').User|null>} updateProfile  // UC18: only the given profile fields; null = unknown id
+ */
+
+/**
+ * UC18 — follows of contributors (schema auth, table author_follows). Follow / unfollow are
+ * idempotent: the unique (followerId, authorId) pair decides, never a read-then-write.
+ * @typedef {Object} FollowRepository
+ * @property {(followerId: string, authorId: string) => Promise<void>} follow  // insert, nothing when the pair exists
+ * @property {(followerId: string, authorId: string) => Promise<void>} unfollow  // delete, nothing when absent
+ * @property {(followerId: string, authorId: string) => Promise<boolean>} isFollowing
+ * @property {(authorId: string) => Promise<number>} countFollowers
+ * @property {(authorIds: string[]) => Promise<Map<string, number>>} countFollowersMany  // one query for a page of authors
+ * @property {(input: { followerId: string, skip: number, take: number, now: Date }) => Promise<{ items: Array<{ author: import('../entities/user.js').User, followedAt: Date }>, total: number }>} listFollowing  // active contributors only, newest follow first
  */
 
 /**
