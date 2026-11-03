@@ -25,6 +25,8 @@ export const EVENTS = {
   TTS_RENDER_COMPLETED: 'tts.render.completed',
   // UC23 / R10 — a sign-in created a new device session (Auth -> Notification email).
   AUTH_NEW_DEVICE_LOGIN: 'auth.new_device_login',
+  // UC21 — an admin warned, suspended, banned or restored an account (Auth -> Notification, UC22 log).
+  ACCOUNT_MODERATED: 'account.moderated',
 };
 
 // --- Payload schema (zod). Chi tiết sẽ bổ sung khi chốt data model (tech-stack.md §11). ---
@@ -87,6 +89,9 @@ const tourPlace = z.object({
   lng,
   sequence: z.number().int().nonnegative(),
 });
+
+// UC21 — admin actions on an account (account.moderated).
+export const ACCOUNT_ACTIONS = ['warn', 'suspend', 'ban', 'restore'];
 
 // UC06 (#268) — reasons of a community report (tour.reported).
 export const REPORT_REASONS = ['false_info', 'offensive', 'spam', 'copyright', 'other'];
@@ -205,6 +210,20 @@ export const schemas = {
     location: z.string().min(1).max(200).optional(),
     at: isoUtc,
   }),
+  // UC21. No tourId. `reason` is required except for restore; `until` = end of a suspension (suspend only).
+  [EVENTS.ACCOUNT_MODERATED]: z
+    .object({
+      userId: z.string().min(1),
+      action: z.enum(ACCOUNT_ACTIONS),
+      reason: z.string().min(1).max(1000).optional(),
+      until: isoUtc.optional(),
+      adminId: z.string().min(1),
+      email: z.string().email(),
+      fullName: z.string().min(1).max(200).optional(),
+      at: isoUtc,
+    })
+    .refine((p) => p.action === 'restore' || Boolean(p.reason), { message: 'reason is required', path: ['reason'] })
+    .refine((p) => (p.action === 'suspend') === Boolean(p.until), { message: 'until only and always for suspend', path: ['until'] }),
 };
 
 /** Validate payload theo tên event; ném lỗi nếu sai schema. */

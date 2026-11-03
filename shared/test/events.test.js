@@ -205,3 +205,26 @@ test('auth.new_device_login (UC23): userId, email, deviceName, at required; loca
   bad(ev, { ...full, deviceName: '' });
   bad(ev, { ...full, userId: undefined });
 });
+
+test('account.moderated (UC21): action, adminId, email, at required; reason except restore; until only for suspend', () => {
+  const ev = EVENTS.ACCOUNT_MODERATED;
+  assert.equal(ev, 'account.moderated');
+  const warn = { userId: 'u1', action: 'warn', reason: 'Spam nhiều tour', adminId: 'a1', email: 'an@mail.com', fullName: 'An', at: AT };
+  ok(ev, warn);
+  ok(ev, { ...warn, fullName: undefined });
+  ok(ev, { ...warn, action: 'ban' });
+  ok(ev, { ...warn, action: 'suspend', until: '2026-01-08T00:00:00Z' });
+  ok(ev, { userId: 'u1', action: 'restore', adminId: 'a1', email: 'an@mail.com', at: AT });
+  ok(ev, { userId: 'u1', action: 'restore', reason: 'Đã khiếu nại', adminId: 'a1', email: 'an@mail.com', at: AT });
+  bad(ev, { ...warn, action: 'delete' });
+  bad(ev, { ...warn, reason: undefined });
+  bad(ev, { ...warn, action: 'ban', reason: '' });
+  bad(ev, { ...warn, reason: 'r'.repeat(1001) });
+  bad(ev, { ...warn, action: 'suspend' });
+  bad(ev, { ...warn, until: '2026-01-08T00:00:00Z' });
+  bad(ev, { ...warn, action: 'suspend', until: OFFSET });
+  bad(ev, { ...warn, email: 'not-an-email' });
+  bad(ev, { ...warn, adminId: undefined });
+  bad(ev, { ...warn, at: OFFSET });
+  assert.throws(() => validateEvent(ev, { ...warn, userId: '' }));
+});
