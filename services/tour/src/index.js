@@ -20,6 +20,7 @@ import {
   MODERATION_RESULT_QUEUE,
   MODERATION_RESULT_BINDINGS,
 } from './interfaces/events/moderation-result-handler.js';
+import { ADMIN_LOG_QUEUE, ADMIN_LOG_BINDINGS } from './interfaces/events/account-moderated-handler.js';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -61,7 +62,9 @@ const {
   tourRatingRouter,
   tourReportRouter,
   adminReportRouter,
+  adminInsightRouter,
   moderationResultHandler,
+  accountModeratedHandler,
 } = buildContainer(process.env, { publish: rabbit?.publish, validateEvent: events?.validateEvent, verifyJwt });
 
 app.use(express.json());
@@ -86,6 +89,9 @@ app.use('/', tourReportRouter);
 app.use('/admin/reviews', adminReviewRouter);
 // UC20 (#273): admin handling of reported tours (role admin) — /admin/reports/*, same reason.
 app.use('/admin/reports', adminReportRouter);
+// UC22 (#275) / UC21 (#274): /admin/dashboard, /admin/actions(/:id), /admin/users/:userId/violations
+// (role admin, guard per route), same reason.
+app.use('/admin', adminInsightRouter);
 
 // UC07: khám phá địa điểm lẻ (công khai) + lịch trình. PHẢI mount TRƯỚC các router
 // contributor bên dưới: chúng gắn ở '/' và có verifyJwt(['contributor']) cấp router,
@@ -124,6 +130,10 @@ if (brokerEnabled) {
       await rabbit.connect();
       if (moderationResultHandler) {
         await rabbit.consume(MODERATION_RESULT_QUEUE, MODERATION_RESULT_BINDINGS, moderationResultHandler);
+      }
+      // UC21 / UC22 — account actions published by Auth go to the admin log.
+      if (accountModeratedHandler) {
+        await rabbit.consume(ADMIN_LOG_QUEUE, ADMIN_LOG_BINDINGS, accountModeratedHandler);
       }
     } catch (err) {
       console.error('[tour] rabbitmq init failed:', err.message);
