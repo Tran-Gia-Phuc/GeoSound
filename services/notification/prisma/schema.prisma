@@ -21,3 +21,23 @@ model Notification {
 
   @@map("notifications")
 }
+
+// UC16 (#270) — in-app notifications for the contributor, stored from the tour events the worker
+// consumes. Additive: the placeholder `Notification` above is kept untouched.
+// Design: docs/02-design/uc16-notifications.md section 3.
+model InAppNotification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")    // recipient = contributorId of the event (tour author)
+  type      String                        // event name, e.g. "tour.rejected"
+  tourId    String?   @map("tour_id")
+  title     String                        // short Vietnamese sentence
+  body      String?                       // concrete reason when the event has one
+  data      Json      @default("{}")      // whitelisted extras: reasons, count, flagged
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  sourceKey String    @unique @map("source_key") // idempotency: a redelivered event adds no row
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@map("in_app_notifications")
+}
