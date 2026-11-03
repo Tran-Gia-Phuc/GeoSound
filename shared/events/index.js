@@ -19,6 +19,8 @@ export const EVENTS = {
   TOUR_CHANGES_REQUESTED: 'tour.changes_requested',
   TOUR_REPORTED: 'tour.reported',
   TOUR_HIDDEN: 'tour.hidden',
+  // UC20 (#273) — an admin put a hidden tour back to public (Tour -> Notification, later).
+  TOUR_RESTORED: 'tour.restored',
   TOUR_PUBLISHED: 'tour.published',
   TOUR_UNPUBLISHED: 'tour.unpublished',
   TTS_RENDER_REQUESTED: 'tts.render.requested',
@@ -177,6 +179,8 @@ export const schemas = {
     ...recipient,
   }),
   [EVENTS.TOUR_HIDDEN]: base.extend({ reason: z.string(), ...recipient }),
+  // UC20 (#273): restore of a hidden tour (decision L13, no new moderation). Additive; reason optional.
+  [EVENTS.TOUR_RESTORED]: base.extend({ reason: z.string().min(1).max(1000).optional(), ...recipient }),
   // Published by Tour only when a tour enters `public` (flag CHATBOT_EVENTS_ENABLED).
   [EVENTS.TOUR_PUBLISHED]: base.extend({
     revision: isoUtc,
