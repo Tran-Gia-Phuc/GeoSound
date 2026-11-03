@@ -160,3 +160,24 @@ export class AlreadyReportedError extends AppError {
     super(message, { status: 409, code: 'already_reported' });
   }
 }
+
+// UC20 (#273) / R3 — only a public tour can be hidden (or another admin action won the race).
+export class TourNotHideableError extends AppError {
+  constructor(message = 'Chỉ ẩn được tour đang công khai') {
+    super(message, { status: 409, code: 'tour_not_hideable' });
+  }
+}
+
+// UC20 (#273) / R4 — only a hidden tour can be restored (or another admin action won the race).
+export class TourNotRestorableError extends AppError {
+  constructor(message = 'Chỉ khôi phục được tour đang bị ẩn') {
+    super(message, { status: 409, code: 'tour_not_restorable' });
+  }
+}
+
+// UC20 (#273) / R5 — nothing to dismiss: the tour has no open report (or another admin closed them).
+export class NoOpenReportsError extends AppError {
+  constructor(message = 'Tour không còn báo cáo nào đang mở') {
+    super(message, { status: 409, code: 'no_open_reports' });
+  }
+}
