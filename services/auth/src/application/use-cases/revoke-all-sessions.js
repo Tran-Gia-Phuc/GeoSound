@@ -1,7 +1,6 @@
 // =========================================================
-// UC23 / R7, R13 — sign out every device of an account. Used by the password reset;
-// exposed for UC21 (ban, reason 'banned'): Auth has no ban endpoint yet, so the ban
-// use case calls this when it is built.
+// UC23 / R7, R13 — sign out every device of an account. Used by the password reset and by the
+// UC21 admin actions (ban: reason 'banned', suspend: reason 'suspended'; account-actions.js).
 // =========================================================
 import { REVOKE_REASONS } from '../../domain/entities/session.js';
 
