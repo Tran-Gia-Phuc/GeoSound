@@ -38,6 +38,10 @@ model Tour {
   // so updated_at (moderation / catalog revision) does not move.
   reportFlaggedAt DateTime? @map("report_flagged_at")
   openReportCount Int       @default(0) @map("open_report_count")
+  // UC22 (#275): when the tour last entered the admin review queue (pending_review / ai_warning), set in
+  // the same write as that status. A UC19 decision copies it into its admin_actions row (data.queuedAt)
+  // for the average review time.
+  reviewQueuedAt DateTime? @map("review_queued_at")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -76,9 +80,12 @@ model TourReviewAction {
 // also used by UC21 (account actions) and read by UC22. Written in the same transaction as the change
 // it records; the repository has no update or delete. targetId is a soft reference (no FK) so the log
 // survives the deletion of its target.
-//   action     = hide_tour | restore_tour | dismiss_reports (UC21 adds account actions)
+//   action     = hide_tour | restore_tour | dismiss_reports (UC20), approve_tour | reject_tour |
+//                request_tour_changes (UC19), warn_user | suspend_user | ban_user | restore_user (UC21)
 //   targetType = tour | user
-//   data       = small JSON context, e.g. { fromStatus, reportCount }
+//   data       = small JSON context, e.g. { fromStatus, reportCount }, { fromStatus, queuedAt }, { until }
+//   sourceKey  = UC22 (#275): set only for rows fed by an event (account.moderated), unique, so a
+//                redelivered event adds no row; null for rows written by Tour itself
 model AdminAction {
   id         String   @id @default(uuid())
   adminId    String   @map("admin_id")
@@ -87,11 +94,13 @@ model AdminAction {
   targetId   String   @map("target_id")
   reason     String?
   data       Json     @default("{}")
+  sourceKey  String?  @unique @map("source_key")
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@index([targetType, targetId, createdAt])
   @@index([createdAt])
   @@index([adminId, createdAt])
+  @@index([action, createdAt])
   @@map("admin_actions")
 }
 
@@ -132,6 +141,8 @@ model TourReport {
 
   @@unique([tourId, reporterId])
   @@index([tourId, status, createdAt])
+  // UC22 (#275): tours reported within a period (dashboard).
+  @@index([createdAt])
   @@map("tour_reports")
 }
 
