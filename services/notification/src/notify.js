@@ -37,11 +37,15 @@ async function contributorEmailOf(payload, lookupEmail, logger) {
 }
 
 /**
- * @param {{ lookupEmail?: ((userId: string) => Promise<string|null>) | null }} [deps]
+ * @param {{ lookupEmail?: ((userId: string) => Promise<string|null>) | null,
+ *           storeInApp?: ((event: string, payload: object) => Promise<object>) | null }} [deps]
  *   lookupEmail = contributor email lookup in Auth (services/contributor-lookup.js)
+ *   storeInApp  = UC16 in-app notification (application/store-in-app-notification.js). It never
+ *                 throws and runs before the email, so an SMTP failure does not lose the in-app row.
  */
 export async function handleEvent(mailer, event, payload = {}, logger = console, env = process.env, deps = {}) {
   if (event === NEW_DEVICE_LOGIN) return handleNewDeviceLogin(mailer, payload, logger, env);
+  if (deps.storeInApp) await deps.storeInApp(event, payload);
 
   const email = buildTourEmail({ event, payload });
   if (!email) {
@@ -55,7 +59,5 @@ export async function handleEvent(mailer, event, payload = {}, logger = console,
   }
   const result = await mailer.send({ to, ...email });
   logger.log(`[notification] email "${event}" -> ${to}: ${result.status}`);
-  // TODO(UC16): tạo thêm thông báo in-app (bảng notifications qua Prisma).
-  //   Trước khi import PrismaClient, bổ sung `RUN npx prisma generate` trong Dockerfile.
   return { sent: result };
 }
