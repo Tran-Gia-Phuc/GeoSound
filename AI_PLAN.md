@@ -111,7 +111,7 @@ listed per UC describe the screen states; they are closed together with the UC w
 | # | UC | Issue | Priority | Service(s) | Depends on | Frontend A issues | Branch | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | UC05 rating and review | #267 | P0 | Tour (+ Auth `name` claim), client | | #105, #162, #163 | `feature/uc05-ratings` | backend done (part of #267, needs the `tour` schema push); client next |
-| 2 | UC06 report a tour | #268 | P1 | Tour, client | | #106, #164, #165 | `feature/uc06-reports` | open |
+| 2 | UC06 report a tour | #268 | P1 | Tour, client | | #106, #164, #165 | `feature/uc06-reports` | backend done (part of #268, needs the `tour` schema push); client next |
 | 3 | UC20 admin handling of reports | #273 | P1 | Tour, client | UC06 | #127 to #130 | `feature/uc20-report-handling` | open |
 | 4 | UC16 status and in-app notifications | #270 | P1 | Notification (+ HTTP port), Gateway, client | | #115, #116 | `feature/uc16-notifications` | open |
 | 5 | UC21 admin account actions | #274 | P2 | Auth, Tour (violation history), client | | #131 to #135 | `feature/uc21-account-actions` | open |
@@ -131,19 +131,17 @@ listed per UC describe the screen states; they are closed together with the UC w
 | L5 | Admin log | Every admin action (UC19 review, UC20 report handling, UC21 account action) is append-only and has actor, target, action, reason and time. Where the single log lives is open question Q14 |
 | L6 | Client | Vietnamese UI, design A classes, phone first (390 px), loading / empty / error-with-retry states, Playwright tests with mocked routes |
 | L7 | UC05 ratings (answers to Q1 to Q3, 2026-11-03) | Rate any time while signed in, no photos, no AI check of comments (abuse goes through UC06 reports). The author cannot rate their own tour. The seeded demo `average_rating` / `rating_count` are the starting point of the aggregate. Display name = new `name` claim of the Auth access token. Design: `docs/02-design/uc05-ratings.md` |
+| L8 | UC06 reports (Q4) | A tour with reports from 5 distinct accounts within 7 days gets a review flag and enters the admin queue (UC20); it stays public and playable. Only the UC20 "hide" removes it |
+| L9 | UC14 restricted access (Q5, Q6) | A tester signs in and unlocks with the passcode once; the unlock is kept per account until the author changes the passcode. Unlocked testers can download offline. Restricted tours never reach search, nearby or the chatbot index. Wrong attempts are rate limited |
+| L10 | UC16 notifications (Q7, Q8) | Notification stores in-app notifications (existing `Notification` model) from the events it already consumes, and gets an HTTP port plus the gateway route `/api/notifications`. In-app + the existing email; no web push yet |
+| L11 | UC17 statistics (Q9) | View = tour detail opened, play = first stop started, completion = last stop ended, download = offline package saved. Anonymous visitors count by device id. One count per device, tour, action and day |
+| L12 | UC18 author page (Q10) | Profile (avatar uploaded through Media, bio) and follows; no follower notification for now |
+| L13 | UC20 / UC21 (Q11, Q12) | Restore puts a hidden tour straight back to public (no new moderation, no appeal). Suspension presets 1, 7, 30 days or an end date; warnings never escalate automatically |
+| L14 | UC22 log (Q13, Q14) | One append-only table `admin_actions` in Tour for UC19, UC20 and UC21 actions; Auth publishes an event for each account action and Tour records it. Top contributor = most public tours with average rating >= 4 and no hidden tour in the period |
 
 ### 6.3 Open questions (ask in the `uc-task` gate, then move the answer to 6.2)
 
+All answered on 2026-11-03 (L7 to L14). New questions found while building go here.
+
 | # | UC | Question | Proposal |
 | --- | --- | --- | --- |
-| Q4 | UC06 | While a tour waits for admin review after 5 reports, is it still public? | Still listed and playable, with an admin flag; only UC20 "hide" removes it |
-| Q5 | UC14 | Does a tester need an account; how long does an unlock last? | Signed-in tester, unlock stored per account until the passcode changes |
-| Q6 | UC14 | Can a restricted tour be downloaded offline and reach the chatbot? | Download yes for unlocked testers; never indexed by the chatbot |
-| Q7 | UC16 | In-app only, or also web push? | In-app + the existing email; web push later |
-| Q8 | UC16 | Notification gets its own HTTP port and gateway route `/api/notifications`, or Tour stores notifications? | Notification HTTP port (it already consumes the events and has the model) |
-| Q9 | UC17 | Which client actions count as view, download, play, completion; anonymous visitors counted? | View = detail opened, play = first stop started, completion = last stop ended; anonymous counted per device id |
-| Q10 | UC18 | Avatar upload through Media; notify followers about a new tour? | Avatar through Media; follower notification later |
-| Q11 | UC20 | Does "restore" re-run the moderation; can the contributor appeal? | Restore goes straight back to public; appeal out of scope |
-| Q12 | UC21 | Suspension lengths; do warnings escalate automatically? | Presets 1, 7, 30 days or a date; no automatic escalation |
-| Q13 | UC22 | Definition of "top contributor by quality" | Most public tours with average rating >= 4 and no hidden tour in the period |
-| Q14 | UC22 | One action log: a Tour table fed by Auth events, or one log per service merged by the dashboard API? | One append-only table in Tour (`admin_actions`); Auth publishes an event for each account action; UC19 keeps writing `tour_review_actions` and is copied in |
