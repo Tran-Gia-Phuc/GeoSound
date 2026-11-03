@@ -516,7 +516,9 @@ test('JwtTokenService: sid in access and refresh tokens, random jti, sha-256 has
   const access = jwt.verify(t1.accessToken, 'a-secret');
   assert.equal(access.sid, 's1');
   assert.equal(access.role, 'tourist');
+  assert.equal(access.name, 'An'); // UC05 (#267): display name for tour ratings
   const refresh = jwt.verify(t1.refreshToken, 'r-secret');
+  assert.equal(refresh.name, undefined); // refresh tokens stay minimal
   assert.equal(refresh.sid, 's1');
   assert.ok(refresh.jti);
   assert.notEqual(t1.refreshToken, t2.refreshToken);
