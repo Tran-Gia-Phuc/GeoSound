@@ -154,7 +154,7 @@ export class PrismaTourRepository {
   // ---------- UC02 — đọc công khai (chỉ tour status=public) ----------
 
   /** WHERE lọc tìm kiếm công khai. */
-  static publicWhere({ q, city, language, type } = {}) {
+  static publicWhere({ q, city, language, type, authorId } = {}) {
     const where = { status: 'public' };
     if (q) {
       where.OR = [
@@ -165,6 +165,7 @@ export class PrismaTourRepository {
     if (city) where.city = { equals: city, mode: 'insensitive' };
     if (language) where.originalLanguage = language;
     if (type) where.type = type;
+    if (authorId) where.authorId = authorId; // UC18 author page
     return where;
   }
 

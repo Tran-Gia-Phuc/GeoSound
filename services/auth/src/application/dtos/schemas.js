@@ -5,6 +5,7 @@
 // =========================================================
 import { z } from 'zod';
 import { SELF_REGISTER_ROLES } from '../../domain/entities/user.js';
+import { isValidAvatarUrl, AVATAR_URL_MAX } from '../../domain/value-objects/avatar-url.js';
 
 const email = z.string({ required_error: 'Vui lòng nhập email' }).trim().min(1, 'Vui lòng nhập email');
 const otp = z.string({ required_error: 'Vui lòng nhập OTP' }).trim().min(1, 'Vui lòng nhập OTP');
@@ -106,4 +107,46 @@ export const adminSuspendSchema = z
   .refine((b) => (b.days === undefined) !== (b.until === undefined), {
     message: 'Vui lòng chọn số ngày hoặc ngày kết thúc tạm khoá',
     path: ['days'],
+  });
+
+// ---------- UC18 — author page and follow (docs/02-design/uc18-author-page.md) ----------
+
+export const followingQuerySchema = z.object({
+  page: z.coerce.number({ invalid_type_error: 'Trang không hợp lệ' }).int('Trang không hợp lệ').min(1, 'Trang không hợp lệ').default(1),
+  limit: z.coerce
+    .number({ invalid_type_error: 'Số dòng không hợp lệ' })
+    .int('Số dòng không hợp lệ')
+    .min(1, 'Số dòng từ 1 đến 50')
+    .max(50, 'Số dòng từ 1 đến 50')
+    .default(20),
+});
+
+// A1 — at least one field; `null` (or blank) clears bio / avatar; fullName trimmed 1..120.
+export const updateProfileSchema = z
+  .object({
+    fullName: z
+      .string({ invalid_type_error: 'Họ tên không hợp lệ' })
+      .trim()
+      .min(1, 'Vui lòng nhập họ tên')
+      .max(120, 'Họ tên tối đa 120 ký tự')
+      .optional(),
+    bio: z
+      .string({ invalid_type_error: 'Giới thiệu không hợp lệ' })
+      .trim()
+      .max(500, 'Giới thiệu tối đa 500 ký tự')
+      .nullable()
+      .optional()
+      .transform((v) => (v === undefined ? undefined : v || null)),
+    avatarUrl: z
+      .string({ invalid_type_error: 'Ảnh đại diện không hợp lệ' })
+      .trim()
+      .max(AVATAR_URL_MAX, 'Đường dẫn ảnh đại diện tối đa 500 ký tự')
+      .refine((v) => v === '' || isValidAvatarUrl(v), 'Ảnh đại diện không hợp lệ')
+      .nullable()
+      .optional()
+      .transform((v) => (v === undefined ? undefined : v || null)),
+  })
+  .refine((b) => b.fullName !== undefined || b.bio !== undefined || b.avatarUrl !== undefined, {
+    message: 'Không có thông tin nào để cập nhật',
+    path: ['_'],
   });

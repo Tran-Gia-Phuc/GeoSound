@@ -19,6 +19,7 @@ import { CryptoOtpGenerator } from './infrastructure/security/crypto-otp-generat
 import { NodemailerMailer } from './infrastructure/mail/nodemailer-mailer.js';
 import { ConsoleMailer } from './infrastructure/mail/console-mailer.js';
 import { PrismaSessionRepository } from './infrastructure/persistence/prisma-session-repository.js';
+import { PrismaFollowRepository } from './infrastructure/persistence/prisma-follow-repository.js';
 import { RedisRevocationStore } from './infrastructure/cache/redis-revocation-store.js';
 import { NullLocationResolver } from './infrastructure/location/null-location-resolver.js';
 import { EventPublisher } from './infrastructure/messaging/event-publisher.js';
@@ -44,10 +45,19 @@ import { RevokeAllSessions } from './application/use-cases/revoke-all-sessions.j
 import { PurgeEndedSessions } from './application/use-cases/purge-ended-sessions.js';
 import { SearchUsers, GetUserForAdmin } from './application/use-cases/admin-users.js';
 import { WarnUser, SuspendUser, BanUser, RestoreUser } from './application/use-cases/account-actions.js';
+import {
+  GetAuthorProfile,
+  GetFollowState,
+  FollowAuthor,
+  UnfollowAuthor,
+  ListFollowing,
+  UpdateMyProfile,
+} from './application/use-cases/author-page.js';
 import { sessionPolicy } from './config.js';
 
 import { AuthController } from './interfaces/http/controllers/auth-controller.js';
 import { AdminUsersController } from './interfaces/http/controllers/admin-users-controller.js';
+import { AuthorController } from './interfaces/http/controllers/author-controller.js';
 import { buildAuthRouter } from './interfaces/http/routes/auth-routes.js';
 import { buildInternalRouter } from './interfaces/http/routes/internal-routes.js';
 
@@ -129,6 +139,16 @@ export function buildContainer(env = process.env, { verifyJwt = null, publish = 
     banUser: new BanUser(actionDeps),
     restoreUser: new RestoreUser(actionDeps),
   });
+  // UC18 — author page, follow, own profile.
+  const authorDeps = { userRepo, followRepo: new PrismaFollowRepository(prisma) };
+  const authorController = new AuthorController({
+    getAuthorProfile: new GetAuthorProfile(authorDeps),
+    getFollowState: new GetFollowState(authorDeps),
+    followAuthor: new FollowAuthor(authorDeps),
+    unfollowAuthor: new UnfollowAuthor(authorDeps),
+    listFollowing: new ListFollowing(authorDeps),
+    updateMyProfile: new UpdateMyProfile(authorDeps),
+  });
   const purgeEndedSessions = new PurgeEndedSessions({ sessionRepo, retentionDays: policy.retentionDays });
 
   // --- interfaces (controller + router) ---
@@ -136,6 +156,7 @@ export function buildContainer(env = process.env, { verifyJwt = null, publish = 
   const authRouter = buildAuthRouter({
     authController,
     adminUsersController,
+    authorController,
     requireAuth: verifyJwt ? verifyJwt() : null,
     requireAdmin: verifyJwt ? verifyJwt(['admin']) : null, // #265, UC21
   });
