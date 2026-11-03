@@ -9,7 +9,9 @@
  * @property {(email: string) => Promise<import('../entities/user.js').User|null>} findByEmail
  * @property {(id: string) => Promise<import('../entities/user.js').User|null>} findById
  * @property {(user: import('../entities/user.js').User) => Promise<import('../entities/user.js').User>} create
- * @property {(user: import('../entities/user.js').User) => Promise<import('../entities/user.js').User>} save  // cập nhật lockout/ban
+ * @property {(user: import('../entities/user.js').User) => Promise<import('../entities/user.js').User>} save  // password, profile, lockout (never the UC21 status)
+ * @property {(input: { q?: string, role?: string, status?: string, skip: number, take: number, now: Date }) => Promise<{ items: import('../entities/user.js').User[], total: number }>} search  // UC21 admin list, newest first
+ * @property {(id: string, expected: { status: string, suspendedUntil: Date|null }, next: { status: string, banReason: string|null, suspendedUntil: Date|null }) => Promise<boolean>} updateStatusIf  // UC21 conditional write; false = state moved
  */
 
 /**
