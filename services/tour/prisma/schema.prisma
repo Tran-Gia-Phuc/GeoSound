@@ -72,6 +72,29 @@ model TourReviewAction {
   @@map("tour_review_actions")
 }
 
+// UC20 (#273) — append-only log of admin actions (decision L14, docs/02-design/uc20-report-handling.md),
+// also used by UC21 (account actions) and read by UC22. Written in the same transaction as the change
+// it records; the repository has no update or delete. targetId is a soft reference (no FK) so the log
+// survives the deletion of its target.
+//   action     = hide_tour | restore_tour | dismiss_reports (UC21 adds account actions)
+//   targetType = tour | user
+//   data       = small JSON context, e.g. { fromStatus, reportCount }
+model AdminAction {
+  id         String   @id @default(uuid())
+  adminId    String   @map("admin_id")
+  action     String
+  targetType String   @map("target_type")
+  targetId   String   @map("target_id")
+  reason     String?
+  data       Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([targetType, targetId, createdAt])
+  @@index([createdAt])
+  @@index([adminId, createdAt])
+  @@map("admin_actions")
+}
+
 // UC05 (#267) — one rating per account and tour (docs/02-design/uc05-ratings.md). userName is the
 // reviewer's display name at rating time (Tour never reads the Auth database). tours.average_rating /
 // rating_count are updated in the same transaction as every change of a row here.
