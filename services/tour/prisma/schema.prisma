@@ -33,6 +33,11 @@ model Tour {
   moderationRevision String? @map("moderation_revision")
   // UC19: reason of the last admin rejection / change request (shown to the author); null after approval.
   reviewReason  String?  @map("review_reason")
+  // UC06 (#268): set once when 5 distinct accounts reported the tour within 7 days (UC20 review queue;
+  // the tour stays public). openReportCount = reports with status open (queue sort). Written by raw SQL
+  // so updated_at (moderation / catalog revision) does not move.
+  reportFlaggedAt DateTime? @map("report_flagged_at")
+  openReportCount Int       @default(0) @map("open_report_count")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -40,6 +45,7 @@ model Tour {
   routeConfig RouteConfig?
   languages   TourLanguage[]
   ratings     TourRating[]
+  reports     TourReport[]
 
   @@index([authorId])
   @@index([status])
@@ -85,6 +91,25 @@ model TourRating {
   @@index([tourId, createdAt])
   @@index([userId])
   @@map("tour_ratings")
+}
+
+// UC06 (#268) — one community report per account and tour (docs/02-design/uc06-reports.md).
+// reason = false_info | offensive | spam | copyright | other; status = open | dismissed | actioned (UC20).
+// The reporter id is never exposed to the contributor.
+model TourReport {
+  id         String   @id @default(uuid())
+  tourId     String   @map("tour_id")
+  reporterId String   @map("reporter_id")
+  reason     String
+  note       String?
+  status     String   @default("open")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@unique([tourId, reporterId])
+  @@index([tourId, status, createdAt])
+  @@map("tour_reports")
 }
 
 // UC10 — Điểm dừng trên tour. lat/lng lưu Float; cột geometry(Point) + chỉ mục
