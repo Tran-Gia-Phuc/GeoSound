@@ -146,3 +146,17 @@ export class OwnTourRatingError extends AppError {
     super(message, { status: 403, code: 'own_tour' });
   }
 }
+
+// UC06 (#268) / R4 — the author cannot report their own tour.
+export class OwnTourReportError extends AppError {
+  constructor(message = 'Bạn không thể báo cáo tour của chính mình') {
+    super(message, { status: 403, code: 'own_tour' });
+  }
+}
+
+// UC06 (#268) / R2 — one report per account and tour.
+export class AlreadyReportedError extends AppError {
+  constructor(message = 'Bạn đã báo cáo tour này') {
+    super(message, { status: 409, code: 'already_reported' });
+  }
+}

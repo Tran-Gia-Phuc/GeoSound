@@ -37,6 +37,23 @@
  */
 
 /**
+ * UC06 (#268) — community reports (table tour_reports). `createReport` runs one transaction: lock the
+ * tour row, insert the report, count distinct open reporters since `windowStart`, then raise
+ * tours.open_report_count and set tours.report_flagged_at (only when null and the threshold is
+ * reached) without touching tours.updated_at.
+ * @typedef {Object} TourReportRepository
+ * @property {(tourId: string, reporterId: string) => Promise<import('../entities/tour-report.js').TourReport|null>} findByTourAndReporter
+ * @property {(fields: { tourId, reporterId, reason, note }, rule: { windowStart: Date, threshold: number }) => Promise<{ report, openReportCount: number, recentReporters: number, flagged: boolean, flaggedNow: boolean }|null>} createReport  // null when the account already reported the tour (unique tour + reporter)
+ */
+
+/**
+ * UC06 (#268) — tour.reported for the admin side (UC20). Never carries the reporter id.
+ * Impl: infrastructure/messaging/event-tour-report-publisher.js. Null when the broker is not loaded.
+ * @typedef {Object} TourReportEvents
+ * @property {(tour, info: { count: number, reason: string, flagged: boolean }) => Promise<object>} reported
+ */
+
+/**
  * UC19 — admin decision log (read side; rows are written by TourRepository.applyReviewDecisionIf).
  * @typedef {Object} TourReviewActionRepository
  * @property {(tourId: string) => Promise<import('../entities/tour-review-action.js').TourReviewAction[]>} listByTour  // newest first
