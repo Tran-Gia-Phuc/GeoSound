@@ -110,7 +110,7 @@ listed per UC describe the screen states; they are closed together with the UC w
 
 | # | UC | Issue | Priority | Service(s) | Depends on | Frontend A issues | Branch | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | UC05 rating and review | #267 | P0 | Tour, client | | #105, #162, #163 | `feature/uc05-ratings` | open |
+| 1 | UC05 rating and review | #267 | P0 | Tour (+ Auth `name` claim), client | | #105, #162, #163 | `feature/uc05-ratings` | backend done (part of #267, needs the `tour` schema push); client next |
 | 2 | UC06 report a tour | #268 | P1 | Tour, client | | #106, #164, #165 | `feature/uc06-reports` | open |
 | 3 | UC20 admin handling of reports | #273 | P1 | Tour, client | UC06 | #127 to #130 | `feature/uc20-report-handling` | open |
 | 4 | UC16 status and in-app notifications | #270 | P1 | Notification (+ HTTP port), Gateway, client | | #115, #116 | `feature/uc16-notifications` | open |
@@ -130,14 +130,12 @@ listed per UC describe the screen states; they are closed together with the UC w
 | L4 | Contracts | New events and keys are additive in `shared/events` (zod); existing `tour.reported` and `tour.hidden` are reused. Admin routes use `verifyJwt(['admin'])` and conditional writes (409 when the state moved), like UC19 |
 | L5 | Admin log | Every admin action (UC19 review, UC20 report handling, UC21 account action) is append-only and has actor, target, action, reason and time. Where the single log lives is open question Q14 |
 | L6 | Client | Vietnamese UI, design A classes, phone first (390 px), loading / empty / error-with-retry states, Playwright tests with mocked routes |
+| L7 | UC05 ratings (answers to Q1 to Q3, 2026-11-03) | Rate any time while signed in, no photos, no AI check of comments (abuse goes through UC06 reports). The author cannot rate their own tour. The seeded demo `average_rating` / `rating_count` are the starting point of the aggregate. Display name = new `name` claim of the Auth access token. Design: `docs/02-design/uc05-ratings.md` |
 
 ### 6.3 Open questions (ask in the `uc-task` gate, then move the answer to 6.2)
 
 | # | UC | Question | Proposal |
 | --- | --- | --- | --- |
-| Q1 | UC05 | Rate any time, or only after starting / finishing the tour? | Any time while signed in; the player end screen invites to rate |
-| Q2 | UC05 | Photos attached to a rating (UC says optional)? | Out of scope for now |
-| Q3 | UC05 | Check rating comments with the AI moderation? | Not at first; reports (UC06) cover abuse |
 | Q4 | UC06 | While a tour waits for admin review after 5 reports, is it still public? | Still listed and playable, with an admin flag; only UC20 "hide" removes it |
 | Q5 | UC14 | Does a tester need an account; how long does an unlock last? | Signed-in tester, unlock stored per account until the passcode changes |
 | Q6 | UC14 | Can a restricted tour be downloaded offline and reach the chatbot? | Download yes for unlocked testers; never indexed by the chatbot |
