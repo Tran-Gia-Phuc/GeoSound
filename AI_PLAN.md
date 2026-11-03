@@ -47,14 +47,17 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 | D28 | Signed-in devices (UC23, #247 backend, #248 client) | Design `docs/02-design/device-sessions.md`: `auth.sessions`, `sid` in tokens, refresh rotation with reuse detection, revocation in Redis checked by `verifyJwt`, no business limit (cap `AUTH_MAX_SESSIONS`=100), new-device email (demo inbox `SECURITY_ALERT_TO` in `.env`, never in the repo) |
 
 
-## 3. Current state (2026-10-31)
+## 3. Current state (2026-11-03)
 
 - **Phases 1, 2 and 3 work end to end on the real stack** (Supabase, RabbitMQ, real Gemini), checked on 2026-10-30:
   - place moderation (approved / rejected with reasons, publish blocked by a rejected place), tour moderation (`ai_warning` / `pending_review`), edit while in review withdraws to `draft`;
   - chatbot: Tour publish → `tour.published` → indexer (pgvector, schema `ai`) → `/chat` answers with citations; unpublish removes the tour.
 - Tour schema `tour` on Supabase has the moderation columns (pushed 2026-10-30, additive).
 - Auth schema `app_auth` on Supabase has the UC23 table `sessions` (pushed by the user 2026-10-31); Auth runs on it.
-- Backend tasks handed over to the user are done: UC19 admin review, UC23 devices (including password change, #256), contributor email lookup for Notification (#258). Email delivery needs real SMTP values in `.env` (`SMTP_HOST` is still the placeholder).
+- Backend tasks handed over to the user are done: UC19 admin review, UC23 devices (including password change, #256, and the admin online view, #265), contributor email lookup for Notification (#258). Real SMTP (Gmail app password) is set in the user's `.env` and works (checked 2026-11-01).
+- An admin account is made by hand: `update app_auth.users set role = 'admin' where email = '...'` in the Supabase SQL editor, then sign in again. There is no admin sign-up.
+- Phones reach the stack through ngrok (`scripts/demo/`, fixed domain per teammate in `.env`); media URLs on `localhost` are rewritten by the client (#263).
+- Next work: the later use cases in section 6 (`/uc-task`).
 - Both Tour flags are off by default. To turn the full flow on: `MODERATION_EVENTS_ENABLED=true` and `CHATBOT_EVENTS_ENABLED=true` in `.env`, plus `INTERNAL_SERVICE_TOKEN`, `CHATBOT_ENABLED`, `CHATBOT_INDEXER_ENABLED`, `DATABASE_URL_AI`, `DATABASE_URL_DIRECT_AI` (and `CHAT_MEMORY_BACKEND=postgres` for shared chat memory).
 - Nothing waits for other owners. With moderation on, a tour stops at `pending_review` until an admin decides through `/api/tours/admin/reviews` (UC#19, #243). The Supabase password shared in chat must be reset by the project owner.
 - Never run real Gemini without an explicit request.
@@ -78,6 +81,9 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | geo reasons in the tour language | #253 | `fix/geo-reasons-language` | merged (PR #254) |
 | UC23 password change while signed in | #256 | `feature/uc23-change-password` | merged (PR #257) |
 | contributor email lookup (Notification -> Auth) | #258 | `feature/notification-contributor-email` | merged (PR #259) |
+| phone demo through ngrok (`scripts/demo/`, `docs/04-guides/phone-demo.md`) | | `chore/phone-demo-ngrok`, `chore/phone-demo-autostart` | merged (PR #261, PR #262) |
+| place audio silent on Android Chrome, local media URLs on phones | #263 | `fix/android-place-audio` | merged (PR #264) |
+| UC23 admin view of online devices (heartbeat + `/admin/devices`) | #265 | `feature/uc23-admin-online-devices` | merged (PR #266); no schema change |
 
 ## 5. Notes for the next tasks
 
@@ -92,4 +98,54 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | partial PRs | A branch made with `gh issue develop` is linked to the issue, and merging its PR closes the issue even with "Part of #N". For a partial PR create the branch with `git switch -c` and write "Part of #N" |
 | #219 | Schema `ai` is defined in `services/ai/prisma/schema.prisma` (tables) plus `prisma/pre-push.sql` (vector extension, schema `ai`) and `prisma/post-push.sql` (CHECK constraints, HNSW index), pushed with the auth image (`docs/04-guides/supabase-access.md` section 4); pgvector store, e5 embedding runtime in the image, AMQP transport for the indexer. Chat memory (part D): `CHAT_MEMORY_BACKEND=postgres` uses the official `AsyncPostgresSaver` (`langgraph-checkpoint-postgres` 3.2, psycopg 3.3) over `DATABASE_URL_DIRECT_AI`, in its own schema `ai_chat` (created at startup, never in Prisma-managed `ai`), plus `ai_chat.chat_sessions` / `chat_messages` for `at`, citations and TTL; `memory` stays the default. Integration tests need `AI_TEST_DATABASE_URL` (disposable DB) |
 | follow-ups | (1) Done in #253. (2) Done in #258: Notification asks Auth `GET /internal/users/:id/contact` (header `x-internal-token`, refused through the gateway) when an event has no `contributorEmail` |
-| UC23 | Schema pushed (2026-10-31). Password change while signed in: `POST /api/auth/change-password` (#256). Not built: the UC21 ban call to `RevokeAllSessions` (UC21 is not handed over; the use case is ready in `container.js`), IP location (null resolver). Clients must not refresh in parallel: the web client serialises refreshes across tabs with a Web Lock (reuse of a rotated refresh token signs the session out) |
+| UC23 | Schema pushed (2026-10-31). Password change while signed in: `POST /api/auth/change-password` (#256). Admin online view: `GET /api/auth/admin/sessions` + heartbeat (#265). Not built: the UC21 ban call to `RevokeAllSessions` (planned in UC21 #274; the use case is ready in `container.js`), IP location (null resolver). Clients must not refresh in parallel: the web client serialises refreshes across tabs with a Web Lock (reuse of a rotated refresh token signs the session out) |
+
+## 6. Later use cases (`docs/use case/lam-sau`, label `uc-later`)
+
+The user asked on 2026-11-03 to build the later use cases, backend and client screens, one issue per UC.
+Run each with the skill `/uc-task <N>` (`.claude/skills/uc-task/SKILL.md`). The `[Frontend A]` issues
+listed per UC describe the screen states; they are closed together with the UC when its PR covers them.
+
+### 6.1 Tasks (suggested order: P0/P1 first, then dependencies)
+
+| # | UC | Issue | Priority | Service(s) | Depends on | Frontend A issues | Branch | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | UC05 rating and review | #267 | P0 | Tour, client | | #105, #162, #163 | `feature/uc05-ratings` | open |
+| 2 | UC06 report a tour | #268 | P1 | Tour, client | | #106, #164, #165 | `feature/uc06-reports` | open |
+| 3 | UC20 admin handling of reports | #273 | P1 | Tour, client | UC06 | #127 to #130 | `feature/uc20-report-handling` | open |
+| 4 | UC16 status and in-app notifications | #270 | P1 | Notification (+ HTTP port), Gateway, client | | #115, #116 | `feature/uc16-notifications` | open |
+| 5 | UC21 admin account actions | #274 | P2 | Auth, Tour (violation history), client | | #131 to #135 | `feature/uc21-account-actions` | open |
+| 6 | UC22 dashboard and action log | #275 | P2 | Tour, client | UC20, UC21 | #121, #136 | `feature/uc22-dashboard-log` | open |
+| 7 | UC17 tour statistics | #271 | P1 | Tour, client | UC05 | #117 | `feature/uc17-tour-stats` | open |
+| 8 | UC14 restricted access (passcode) | #269 | P2 | Tour, AI indexer filter, client | | #107, #108 | `feature/uc14-restricted-access` | open |
+| 9 | UC18 author page and follow | #272 | P2 | Auth (profile, follows), Tour (public tours), client | | #118 to #120 | `feature/uc18-author-page` | open |
+
+### 6.2 Decisions (L = later UCs)
+
+| # | Question | Decision |
+| --- | --- | --- |
+| L1 | Who merges | The user builds these UCs in Tour, Auth, Notification, Gateway and the client (asked 2026-11-03), so PRs are merged by us like the handed-over UC19 / UC23 work. Supabase schema pushes are always run by the user (`uc-task` step 5) |
+| L2 | Where data lives | Tour (schema `tour`): ratings, reports, restricted access, activity counters, report handling, admin action log. Auth (`app_auth`): account status and actions, author profile, follows. Notification (`notification`): in-app notifications. No service reads another service's database: data crosses by events or by an API call |
+| L3 | Sign-in | Rating, report, follow and passcode unlock need a signed-in account (anti-spam rule of UC05 / UC06). Reading ratings, the author page and public tours stays anonymous |
+| L4 | Contracts | New events and keys are additive in `shared/events` (zod); existing `tour.reported` and `tour.hidden` are reused. Admin routes use `verifyJwt(['admin'])` and conditional writes (409 when the state moved), like UC19 |
+| L5 | Admin log | Every admin action (UC19 review, UC20 report handling, UC21 account action) is append-only and has actor, target, action, reason and time. Where the single log lives is open question Q14 |
+| L6 | Client | Vietnamese UI, design A classes, phone first (390 px), loading / empty / error-with-retry states, Playwright tests with mocked routes |
+
+### 6.3 Open questions (ask in the `uc-task` gate, then move the answer to 6.2)
+
+| # | UC | Question | Proposal |
+| --- | --- | --- | --- |
+| Q1 | UC05 | Rate any time, or only after starting / finishing the tour? | Any time while signed in; the player end screen invites to rate |
+| Q2 | UC05 | Photos attached to a rating (UC says optional)? | Out of scope for now |
+| Q3 | UC05 | Check rating comments with the AI moderation? | Not at first; reports (UC06) cover abuse |
+| Q4 | UC06 | While a tour waits for admin review after 5 reports, is it still public? | Still listed and playable, with an admin flag; only UC20 "hide" removes it |
+| Q5 | UC14 | Does a tester need an account; how long does an unlock last? | Signed-in tester, unlock stored per account until the passcode changes |
+| Q6 | UC14 | Can a restricted tour be downloaded offline and reach the chatbot? | Download yes for unlocked testers; never indexed by the chatbot |
+| Q7 | UC16 | In-app only, or also web push? | In-app + the existing email; web push later |
+| Q8 | UC16 | Notification gets its own HTTP port and gateway route `/api/notifications`, or Tour stores notifications? | Notification HTTP port (it already consumes the events and has the model) |
+| Q9 | UC17 | Which client actions count as view, download, play, completion; anonymous visitors counted? | View = detail opened, play = first stop started, completion = last stop ended; anonymous counted per device id |
+| Q10 | UC18 | Avatar upload through Media; notify followers about a new tour? | Avatar through Media; follower notification later |
+| Q11 | UC20 | Does "restore" re-run the moderation; can the contributor appeal? | Restore goes straight back to public; appeal out of scope |
+| Q12 | UC21 | Suspension lengths; do warnings escalate automatically? | Presets 1, 7, 30 days or a date; no automatic escalation |
+| Q13 | UC22 | Definition of "top contributor by quality" | Most public tours with average rating >= 4 and no hidden tour in the period |
+| Q14 | UC22 | One action log: a Tour table fed by Auth events, or one log per service merged by the dashboard API? | One append-only table in Tour (`admin_actions`); Auth publishes an event for each account action; UC19 keeps writing `tour_review_actions` and is copied in |
