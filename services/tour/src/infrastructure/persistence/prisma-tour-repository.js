@@ -4,12 +4,18 @@
 // thêm vào đây bằng $queryRaw — không rò ra domain/application.
 // =========================================================
 import { Tour } from '../../domain/entities/tour.js';
+import { ADMIN_TARGET, REVIEW_ADMIN_ACTION } from '../../domain/entities/admin-action.js';
 
 /** @implements {import('../../domain/ports/index.js').TourRepository} */
 export class PrismaTourRepository {
-  /** @param {import('@prisma/client').PrismaClient} prisma */
-  constructor(prisma) {
+  /**
+   * @param {import('@prisma/client').PrismaClient} prisma
+   * @param {{ actionLog?: import('../../domain/ports/index.js').AdminActionRepository }} [opts]
+   *   actionLog: UC22 (#275) — a UC19 decision also appends an admin_actions row (same transaction)
+   */
+  constructor(prisma, { actionLog = null } = {}) {
     this.prisma = prisma;
+    this.actionLog = actionLog;
   }
 
   /** Prisma row -> entity. */
@@ -103,11 +109,13 @@ export class PrismaTourRepository {
   /**
    * UC15 — conditional write of an AI result: only while the tour is still 'ai_checking' with the
    * same revision (one atomic UPDATE, no read-then-write race). Returns the number of rows updated.
+   * UC22 (#275): `reviewQueuedAt` (set by the use case when the tour enters the review queue) is
+   * written in the same UPDATE as the status.
    */
-  async applyModerationResultIf(id, revision, { status, moderationReasons }) {
+  async applyModerationResultIf(id, revision, { status, moderationReasons, reviewQueuedAt }) {
     const { count } = await this.prisma.tour.updateMany({
       where: { id, status: 'ai_checking', moderationRevision: revision },
-      data: { status, moderationReasons },
+      data: { status, moderationReasons, ...(reviewQueuedAt ? { reviewQueuedAt } : {}) },
     });
     return count;
   }
@@ -125,7 +133,8 @@ export class PrismaTourRepository {
 
   /**
    * UC19 — conditional admin decision: one UPDATE ... WHERE id AND status IN fromStatuses, and the
-   * log row in the same transaction (written only when the update won). Returns rows updated (0 | 1).
+   * log rows in the same transaction (written only when the update won): tour_review_actions (UC19
+   * dossier) and, with an actionLog, admin_actions (UC22). Returns rows updated (0 | 1).
    * @param {string} id @param {string[]} fromStatuses
    * @param {{ status: string, reviewReason: string|null }} fields
    * @param {{ adminId: string, action: string, reason: string|null, fromStatus: string }} log
@@ -146,6 +155,25 @@ export class PrismaTourRepository {
             fromStatus: log.fromStatus,
           },
         });
+        // UC22 (#275) — the shared admin log too. The row lock taken by the UPDATE keeps
+        // review_queued_at stable until the commit; it is copied so the average review time never
+        // depends on the tour row later.
+        if (this.actionLog) {
+          const queued = await tx.tour.findUnique({ where: { id }, select: { reviewQueuedAt: true } });
+          const data = { fromStatus: log.fromStatus };
+          if (queued?.reviewQueuedAt) data.queuedAt = new Date(queued.reviewQueuedAt).toISOString();
+          await this.actionLog.append(
+            {
+              adminId: log.adminId,
+              action: REVIEW_ADMIN_ACTION[log.action],
+              targetType: ADMIN_TARGET.TOUR,
+              targetId: id,
+              reason: log.reason ?? null,
+              data,
+            },
+            { tx },
+          );
+        }
       }
       return count;
     });

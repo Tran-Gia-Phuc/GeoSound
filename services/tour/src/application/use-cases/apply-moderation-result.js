@@ -10,6 +10,8 @@
 // The write is conditional (repo.applyModerationResultIf = one UPDATE ... WHERE revision matches
 // [and status = 'ai_checking']), so an edit racing with the result can never be overwritten.
 // The reads before it only classify why a result is ignored (for the logs).
+// UC22 (#275): a tour that enters pending_review / ai_warning gets reviewQueuedAt = now in the same
+// conditional write (average review time on the admin dashboard).
 // #240 (CHATBOT_EVENTS_ENABLED): a place result applied inside a public tour re-sends tour.published,
 // so an approved place enters the chatbot index (places still 'checking' are left out until then).
 // =========================================================
@@ -35,10 +37,12 @@ function reasonsOf(payload, rejected) {
 }
 
 export class ApplyModerationResult {
-  /** @param {{ tourRepo, placeRepo, catalog?, tourLanguageRepo?, placeTranslationRepo?, logger? }} deps */
+  /** @param {{ tourRepo, placeRepo, catalog?, tourLanguageRepo?, placeTranslationRepo?, logger?, clock? }} deps */
   constructor({
     tourRepo, placeRepo, catalog = null, tourLanguageRepo = null, placeTranslationRepo = null, logger = console,
+    clock = () => new Date(),
   }) {
+    this.clock = clock;
     this.tourRepo = tourRepo;
     this.placeRepo = placeRepo;
     this.catalog = catalog;
@@ -102,10 +106,9 @@ export class ApplyModerationResult {
     if (rejected) status = TOUR_STATUS.DRAFT;
     else if (payload.warning) status = TOUR_STATUS.AI_WARNING;
 
-    const count = await this.tourRepo.applyModerationResultIf(tour.id, payload.revision, {
-      status,
-      moderationReasons: reasonsOf(payload, rejected),
-    });
+    const fields = { status, moderationReasons: reasonsOf(payload, rejected) };
+    if (!rejected) fields.reviewQueuedAt = this.clock(); // enters the UC19 queue (UC22 review time)
+    const count = await this.tourRepo.applyModerationResultIf(tour.id, payload.revision, fields);
     if (!count) return this.ignore('stale', `tour ${tour.id} changed before the write`);
     return { applied: true, status };
   }
