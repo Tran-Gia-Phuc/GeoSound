@@ -3,7 +3,7 @@
 // Mỗi route: validateBody(schema) -> controller. Bọc async để lỗi về errorHandler.
 // =========================================================
 import { Router } from 'express';
-import { validateBody } from '../middleware/validate.js';
+import { validateBody, validateQuery } from '../middleware/validate.js';
 import {
   registerSchema,
   verifyOtpSchema,
@@ -13,16 +13,20 @@ import {
   resetPasswordSchema,
   refreshSchema,
   changePasswordSchema,
+  adminUsersQuerySchema,
+  adminReasonSchema,
+  adminRestoreSchema,
+  adminSuspendSchema,
 } from '../../../application/dtos/schemas.js';
 
 // Express 4 không bắt rejection của async handler → tự bọc.
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 /**
- * @param {{ authController, requireAuth?: import('express').RequestHandler, requireAdmin?: import('express').RequestHandler }} deps
+ * @param {{ authController, adminUsersController?, requireAuth?: import('express').RequestHandler, requireAdmin?: import('express').RequestHandler }} deps
  *   requireAuth = shared verifyJwt() (any role), injected by index.js -> container (UC23 routes).
  */
-export function buildAuthRouter({ authController, requireAuth, requireAdmin }) {
+export function buildAuthRouter({ authController, adminUsersController, requireAuth, requireAdmin }) {
   const r = Router();
 
   r.post('/register', validateBody(registerSchema), wrap(authController.register));
@@ -47,6 +51,18 @@ export function buildAuthRouter({ authController, requireAuth, requireAdmin }) {
   // #265 — admin: devices known / signed in / online now (role admin only).
   if (requireAdmin) {
     r.get('/admin/sessions', requireAdmin, wrap(authController.onlineDevices));
+  }
+
+  // UC21 — admin account actions (role admin only); action bodies answer 422 when invalid, like UC19.
+  if (requireAdmin && adminUsersController) {
+    const c = adminUsersController;
+    const reason = validateBody(adminReasonSchema, { status: 422 });
+    r.get('/admin/users', requireAdmin, validateQuery(adminUsersQuerySchema), wrap(c.search));
+    r.get('/admin/users/:id', requireAdmin, wrap(c.detail));
+    r.post('/admin/users/:id/warn', requireAdmin, reason, wrap(c.warn));
+    r.post('/admin/users/:id/suspend', requireAdmin, validateBody(adminSuspendSchema, { status: 422 }), wrap(c.suspend));
+    r.post('/admin/users/:id/ban', requireAdmin, reason, wrap(c.ban));
+    r.post('/admin/users/:id/restore', requireAdmin, validateBody(adminRestoreSchema, { status: 422 }), wrap(c.restore));
   }
 
   return r;

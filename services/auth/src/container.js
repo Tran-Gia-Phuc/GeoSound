@@ -42,17 +42,20 @@ import { SessionHeartbeat } from './application/use-cases/session-heartbeat.js';
 import { GetOnlineDevices } from './application/use-cases/get-online-devices.js';
 import { RevokeAllSessions } from './application/use-cases/revoke-all-sessions.js';
 import { PurgeEndedSessions } from './application/use-cases/purge-ended-sessions.js';
+import { SearchUsers, GetUserForAdmin } from './application/use-cases/admin-users.js';
+import { WarnUser, SuspendUser, BanUser, RestoreUser } from './application/use-cases/account-actions.js';
 import { sessionPolicy } from './config.js';
 
 import { AuthController } from './interfaces/http/controllers/auth-controller.js';
+import { AdminUsersController } from './interfaces/http/controllers/admin-users-controller.js';
 import { buildAuthRouter } from './interfaces/http/routes/auth-routes.js';
 import { buildInternalRouter } from './interfaces/http/routes/internal-routes.js';
 
 /**
  * @param {object} env
  * @param {{ verifyJwt?: Function, publish?: Function }} [shared] functions from ../shared, injected by
- *   index.js (only index.js may import ../shared): verifyJwt guards the UC23 routes, publish sends
- *   auth.new_device_login.
+ *   index.js (only index.js may import ../shared): verifyJwt guards the UC23 and UC21 routes, publish
+ *   sends auth.new_device_login and account.moderated.
  */
 export function buildContainer(env = process.env, { verifyJwt = null, publish = null } = {}) {
   const otpTtlSeconds = Number(env.OTP_TTL_SECONDS || 120);
@@ -75,12 +78,13 @@ export function buildContainer(env = process.env, { verifyJwt = null, publish = 
   const otp = new CryptoOtpGenerator(6);
   const policy = sessionPolicy(env);
   const sessionRepo = new PrismaSessionRepository(prisma);
+  const publisher = new EventPublisher({ publish });
   const sessions = new SessionManager({
     sessionRepo,
     tokens,
     revocations: new RedisRevocationStore(redis, { ttlSeconds: durationToSeconds(accessTtl) }),
     locator: new NullLocationResolver(),
-    publisher: new EventPublisher({ publish }),
+    publisher,
     policy,
   });
   // Chưa cấu hình SMTP (dev) -> ConsoleMailer in OTP ra log; có SMTP -> gửi thật.
@@ -113,16 +117,27 @@ export function buildContainer(env = process.env, { verifyJwt = null, publish = 
     sessionHeartbeat: new SessionHeartbeat({ sessionRepo, policy }),
     getOnlineDevices: new GetOnlineDevices({ sessionRepo, policy }),
   };
-  // UC21 (ban, not built in Auth yet) and the retention job use these directly.
+  // UC21 (suspend / ban sign out every device) and the retention job use these directly.
   const revokeAllSessions = new RevokeAllSessions({ sessions });
+  // UC21 — admin account actions.
+  const actionDeps = { userRepo, revokeAllSessions, publisher };
+  const adminUsersController = new AdminUsersController({
+    searchUsers: new SearchUsers({ userRepo }),
+    getUserForAdmin: new GetUserForAdmin({ userRepo, sessionRepo }),
+    warnUser: new WarnUser(actionDeps),
+    suspendUser: new SuspendUser(actionDeps),
+    banUser: new BanUser(actionDeps),
+    restoreUser: new RestoreUser(actionDeps),
+  });
   const purgeEndedSessions = new PurgeEndedSessions({ sessionRepo, retentionDays: policy.retentionDays });
 
   // --- interfaces (controller + router) ---
   const authController = new AuthController(useCases);
   const authRouter = buildAuthRouter({
     authController,
+    adminUsersController,
     requireAuth: verifyJwt ? verifyJwt() : null,
-    requireAdmin: verifyJwt ? verifyJwt(['admin']) : null, // #265
+    requireAdmin: verifyJwt ? verifyJwt(['admin']) : null, // #265, UC21
   });
   // #258 — service-to-service lookups (Notification), guarded by INTERNAL_SERVICE_TOKEN.
   const internalRouter = buildInternalRouter({
