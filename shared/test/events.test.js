@@ -180,6 +180,19 @@ test('tour.changes_requested (UC19): reason 1..1000, recipient optional', () => 
   bad(EVENTS.TOUR_CHANGES_REQUESTED, { tourId: 't1', reason: 'x', at: OFFSET });
 });
 
+test('tour.reported (UC06): count required, reason / flagged / recipient optional, no reporter id needed', () => {
+  const ev = EVENTS.TOUR_REPORTED;
+  ok(ev, { tourId: 't1', count: 3 }); // old minimal payload
+  const full = { tourId: 't1', count: 5, reason: 'false_info', flagged: true, contributorId: 'u1', tourTitle: 'T', at: AT };
+  ok(ev, full);
+  for (const reason of ['false_info', 'offensive', 'spam', 'copyright', 'other']) ok(ev, { ...full, reason });
+  bad(ev, { ...full, reason: 'boring' });
+  bad(ev, { ...full, flagged: 'yes' });
+  bad(ev, { ...full, count: -1 });
+  bad(ev, { ...full, count: undefined });
+  bad(ev, { ...full, at: OFFSET });
+});
+
 test('auth.new_device_login (UC23): userId, email, deviceName, at required; location optional', () => {
   const ev = EVENTS.AUTH_NEW_DEVICE_LOGIN;
   assert.equal(ev, 'auth.new_device_login');
