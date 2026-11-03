@@ -193,6 +193,21 @@ test('tour.reported (UC06): count required, reason / flagged / recipient optiona
   bad(ev, { ...full, at: OFFSET });
 });
 
+test('tour.restored (UC20): additive, reason 1..1000 optional, recipient optional', () => {
+  const ev = EVENTS.TOUR_RESTORED;
+  assert.equal(ev, 'tour.restored');
+  ok(ev, { tourId: 't1' });
+  ok(ev, { tourId: 't1', reason: 'Báo cáo sai', contributorId: 'u1', tourTitle: 'T', at: AT });
+  ok(ev, { tourId: 't1', reason: 'x'.repeat(1000) });
+  bad(ev, { tourId: 't1', reason: '' });
+  bad(ev, { tourId: 't1', reason: 'x'.repeat(1001) });
+  bad(ev, { tourId: 't1', at: OFFSET });
+  bad(ev, { reason: 'x' });
+  // tour.hidden keeps its existing contract (reason required).
+  ok(EVENTS.TOUR_HIDDEN, { tourId: 't1', reason: 'Vi phạm', contributorId: 'u1', tourTitle: 'T', at: AT });
+  bad(EVENTS.TOUR_HIDDEN, { tourId: 't1' });
+});
+
 test('auth.new_device_login (UC23): userId, email, deviceName, at required; location optional', () => {
   const ev = EVENTS.AUTH_NEW_DEVICE_LOGIN;
   assert.equal(ev, 'auth.new_device_login');

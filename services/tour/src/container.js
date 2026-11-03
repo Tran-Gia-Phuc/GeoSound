@@ -31,6 +31,9 @@ import { PrismaTourReviewActionRepository } from './infrastructure/persistence/p
 import { PrismaTourRatingRepository } from './infrastructure/persistence/prisma-tour-rating-repository.js';
 import { PrismaTourReportRepository } from './infrastructure/persistence/prisma-tour-report-repository.js';
 import { EventTourReportPublisher } from './infrastructure/messaging/event-tour-report-publisher.js';
+import { PrismaAdminActionRepository } from './infrastructure/persistence/prisma-admin-action-repository.js';
+import { PrismaAdminReportRepository } from './infrastructure/persistence/prisma-admin-report-repository.js';
+import { EventAdminReportPublisher } from './infrastructure/messaging/event-admin-report-publisher.js';
 import { isModerationEnabled, isChatbotEventsEnabled } from './config.js';
 
 import { CreateTour } from './application/use-cases/create-tour.js';
@@ -56,6 +59,13 @@ import {
   DeleteMyTourRating,
 } from './application/use-cases/tour-ratings.js';
 import { ReportTour, GetMyTourReport } from './application/use-cases/tour-reports.js';
+import {
+  ListReportQueue,
+  GetReportDossier,
+  HideReportedTour,
+  RestoreHiddenTour,
+  DismissTourReports,
+} from './application/use-cases/admin-reports.js';
 
 import { AddPlace } from './application/use-cases/add-place.js';
 import { ListPlaces } from './application/use-cases/list-places.js';
@@ -110,6 +120,8 @@ import { TourRatingController } from './interfaces/http/controllers/tour-rating-
 import { buildTourRatingRouter } from './interfaces/http/routes/tour-rating-routes.js';
 import { TourReportController } from './interfaces/http/controllers/tour-report-controller.js';
 import { buildTourReportRouter } from './interfaces/http/routes/tour-report-routes.js';
+import { AdminReportController } from './interfaces/http/controllers/admin-report-controller.js';
+import { buildAdminReportRouter } from './interfaces/http/routes/admin-report-routes.js';
 
 // Dịch thật qua AI service khi có khoá Gemini (hoặc ép bằng TRANSLATOR=ai|echo).
 function selectTranslator(env) {
@@ -157,6 +169,11 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   // UC06 — community reports; tour.reported only when the broker is loaded (an event flag is on).
   const reportRepo = new PrismaTourReportRepository(prisma);
   const reportEvents = publish ? new EventTourReportPublisher({ publish }) : null;
+  // UC20 — admin report handling + append-only admin action log (decision L14); tour.hidden /
+  // tour.restored only when the broker is loaded.
+  const adminActionRepo = new PrismaAdminActionRepository(prisma);
+  const adminReportRepo = new PrismaAdminReportRepository(prisma, { actionLog: adminActionRepo });
+  const adminReportEvents = publish ? new EventAdminReportPublisher({ publish }) : null;
 
   // --- application (use-cases) ---
   const useCases = {
@@ -255,6 +272,16 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     getMyTourReport: new GetMyTourReport({ tourRepo, reportRepo }),
   };
 
+  const adminReportDeps = { tourRepo, adminReportRepo, adminReportEvents, catalog, placeRepo, ...i18nRepos };
+  const adminReportUseCases = {
+    // UC20 — admin handling of reported tours
+    listReportQueue: new ListReportQueue({ adminReportRepo }),
+    getReportDossier: new GetReportDossier({ tourRepo, adminReportRepo, adminActionRepo }),
+    hideReportedTour: new HideReportedTour(adminReportDeps),
+    restoreHiddenTour: new RestoreHiddenTour(adminReportDeps),
+    dismissTourReports: new DismissTourReports(adminReportDeps),
+  };
+
   // --- interfaces (controller + router) ---
   const tourController = new TourController(useCases);
   const tourRouter = buildTourRouter({ tourController });
@@ -294,6 +321,13 @@ export function buildContainer(env = process.env, { publish = null, validateEven
       })
     : null;
 
+  const adminReportRouter = verifyJwt
+    ? buildAdminReportRouter({
+        adminReportController: new AdminReportController(adminReportUseCases),
+        requireAdmin: verifyJwt(['admin']),
+      })
+    : null;
+
   // UC15 — AI result handler (queue tour.moderation-results), only when the flag is on.
   const moderationResultHandler = moderation
     ? buildModerationResultHandler({
@@ -315,6 +349,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     adminReviewRouter,
     tourRatingRouter,
     tourReportRouter,
+    adminReportRouter,
     moderationResultHandler,
     prisma,
   };

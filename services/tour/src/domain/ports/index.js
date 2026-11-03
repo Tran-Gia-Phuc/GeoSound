@@ -162,4 +162,32 @@
  * @property {(tourId: string, codes: string[]) => Promise<void>} deleteByLanguages
  */
 
+/**
+ * UC20 (#273) — append-only admin action log (table admin_actions, decision L14). No update, no delete.
+ * `append` runs inside the caller's transaction (`tx`) so an action is never saved without its row.
+ * @typedef {Object} AdminActionRepository
+ * @property {(entry: { adminId, action, targetType, targetId, reason?, data? }, opts?: { tx? }) => Promise<import('../entities/admin-action.js').AdminAction>} append
+ * @property {(targetType: string, targetId: string, opts?: { limit?: number }) => Promise<import('../entities/admin-action.js').AdminAction[]>} listByTarget  // newest first
+ * @property {(opts?: { skip?: number, take?: number, action?: string, adminId?: string }) => Promise<{ items: import('../entities/admin-action.js').AdminAction[], total: number }>} listRecent  // newest first (UC22)
+ */
+
+/**
+ * UC20 (#273) — admin side of the community reports. The three writes are conditional and run in one
+ * transaction with their log row; they return null when the condition no longer holds (409).
+ * @typedef {Object} AdminReportRepository
+ * @property {(page: { skip: number, take: number }) => Promise<{ items: Array<{ tourId, title, status, authorId, openReportCount, flaggedAt, oldestReportAt, lastReportAt, reasons: Record<string, number> }>, total: number }>} listQueue  // R1 order
+ * @property {(tourId: string) => Promise<{ openReportCount: number, flaggedAt: Date|null, open: import('../entities/tour-report.js').TourReport[], counts: { open: number, dismissed: number, actioned: number } }>} getReportState
+ * @property {(tourId: string, log: { adminId: string, reason: string }) => Promise<{ fromStatus: string, reportCount: number }|null>} hideIf      // public -> hidden, open reports -> actioned
+ * @property {(tourId: string, log: { adminId: string, reason: string|null }) => Promise<{ fromStatus: string }|null>} restoreIf                          // hidden -> public
+ * @property {(tourId: string, log: { adminId: string, reason: string|null }) => Promise<{ status: string, reportCount: number }|null>} dismissIf    // open reports -> dismissed, status unchanged
+ */
+
+/**
+ * UC20 (#273) — tells the contributor (Notification) about a hide / restore.
+ * Impl: infrastructure/messaging/event-admin-report-publisher.js. Null when the broker is not loaded.
+ * @typedef {Object} AdminReportEvents
+ * @property {(tour, reason: string) => Promise<object>} hidden     // tour.hidden
+ * @property {(tour, reason: string|null) => Promise<object>} restored // tour.restored
+ */
+
 export {};
