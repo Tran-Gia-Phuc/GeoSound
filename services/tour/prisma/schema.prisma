@@ -39,6 +39,7 @@ model Tour {
   places      Place[]
   routeConfig RouteConfig?
   languages   TourLanguage[]
+  ratings     TourRating[]
 
   @@index([authorId])
   @@index([status])
@@ -63,6 +64,27 @@ model TourReviewAction {
   @@index([tourId, createdAt])
   @@index([createdAt])
   @@map("tour_review_actions")
+}
+
+// UC05 (#267) — one rating per account and tour (docs/02-design/uc05-ratings.md). userName is the
+// reviewer's display name at rating time (Tour never reads the Auth database). tours.average_rating /
+// rating_count are updated in the same transaction as every change of a row here.
+model TourRating {
+  id        String   @id @default(uuid())
+  tourId    String   @map("tour_id")
+  userId    String   @map("user_id")
+  userName  String   @map("user_name")
+  stars     Int
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@unique([tourId, userId])
+  @@index([tourId, createdAt])
+  @@index([userId])
+  @@map("tour_ratings")
 }
 
 // UC10 — Điểm dừng trên tour. lat/lng lưu Float; cột geometry(Point) + chỉ mục
