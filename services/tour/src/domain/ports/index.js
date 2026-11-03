@@ -168,7 +168,25 @@
  * @typedef {Object} AdminActionRepository
  * @property {(entry: { adminId, action, targetType, targetId, reason?, data? }, opts?: { tx? }) => Promise<import('../entities/admin-action.js').AdminAction>} append
  * @property {(targetType: string, targetId: string, opts?: { limit?: number }) => Promise<import('../entities/admin-action.js').AdminAction[]>} listByTarget  // newest first
- * @property {(opts?: { skip?: number, take?: number, action?: string, adminId?: string }) => Promise<{ items: import('../entities/admin-action.js').AdminAction[], total: number }>} listRecent  // newest first (UC22)
+ * @property {(entry: { adminId, action, targetType, targetId, reason?, data?, createdAt? }, sourceKey: string) => Promise<boolean>} appendOnce  // UC22: event-fed row, false when sourceKey exists
+ * @property {(id: string) => Promise<import('../entities/admin-action.js').AdminAction|null>} findById
+ * @property {(opts?: { skip?: number, take?: number, action?: string, adminId?: string, targetType?: string, targetId?: string, from?: Date|null, to?: Date|null }) => Promise<{ items: import('../entities/admin-action.js').AdminAction[], total: number }>} listRecent  // newest first (UC22), period [from, to)
+ */
+
+/**
+ * UC22 (#275) — read-only numbers of the admin dashboard and the UC21 violation history.
+ * Periods are [from, to) with Date bounds.
+ * @typedef {Object} AdminInsightRepository
+ * @property {() => Promise<{ pending_review: number, ai_warning: number }>} countReviewQueue
+ * @property {(period: { from: Date, to: Date }) => Promise<number|null>} averageReviewSeconds  // UC19 decisions with data.queuedAt
+ * @property {(period: { from: Date, to: Date }) => Promise<number>} countReportedTours        // distinct tours, reports created in the period
+ * @property {() => Promise<number>} countOpenReportTours
+ * @property {(period: { from: Date, to: Date }, opts?: { limit?: number }) => Promise<Array<{ authorId, publicTours, averageRating }>>} topContributors  // decision L14
+ * @property {(period: { from: Date, to: Date }) => Promise<Record<string, number>>} countActionsByType
+ * @property {(authorId: string) => Promise<Record<string, number>>} countToursByStatus
+ * @property {(authorId: string, opts: { limit: number }) => Promise<Array<{ id, title, hiddenAt, reason }>>} listHiddenTours
+ * @property {(authorId: string, opts: { limit: number }) => Promise<Array<{ id, title, rejectedAt, reason }>>} listRejectedTours
+ * @property {(authorId: string) => Promise<Record<string, number>>} countReportsOnAuthorTours  // by report status
  */
 
 /**

@@ -230,7 +230,7 @@ test('admin action repository exposes append and list methods only (no update, n
   const prisma = { adminAction: new Proxy({}, { get: (_t, k) => (...a) => { calls.push(k); return a; } }) };
   const repo = new PrismaAdminActionRepository(prisma);
   const methods = Object.getOwnPropertyNames(PrismaAdminActionRepository.prototype).filter((m) => m !== 'constructor');
-  assert.deepEqual(methods.sort(), ['append', 'listByTarget', 'listRecent']);
+  assert.deepEqual(methods.sort(), ['append', 'appendOnce', 'findById', 'listByTarget', 'listRecent']); // UC22 adds appendOnce / findById
   assert.ok(Object.isFrozen(repo));
   assert.throws(() => { repo.update = () => {}; });
 });

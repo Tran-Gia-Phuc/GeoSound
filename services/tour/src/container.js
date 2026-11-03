@@ -34,6 +34,7 @@ import { EventTourReportPublisher } from './infrastructure/messaging/event-tour-
 import { PrismaAdminActionRepository } from './infrastructure/persistence/prisma-admin-action-repository.js';
 import { PrismaAdminReportRepository } from './infrastructure/persistence/prisma-admin-report-repository.js';
 import { EventAdminReportPublisher } from './infrastructure/messaging/event-admin-report-publisher.js';
+import { PrismaAdminInsightRepository } from './infrastructure/persistence/prisma-admin-insight-repository.js';
 import { isModerationEnabled, isChatbotEventsEnabled } from './config.js';
 
 import { CreateTour } from './application/use-cases/create-tour.js';
@@ -44,6 +45,7 @@ import { DeleteTour } from './application/use-cases/delete-tour.js';
 import { GetPublishReadiness, PublishTour, UnpublishTour } from './application/use-cases/publish-tour.js';
 import { ApplyModerationResult } from './application/use-cases/apply-moderation-result.js';
 import { buildModerationResultHandler } from './interfaces/events/moderation-result-handler.js';
+import { buildAccountModeratedHandler } from './interfaces/events/account-moderated-handler.js';
 import {
   ListReviewQueue,
   GetReviewDossier,
@@ -66,6 +68,13 @@ import {
   RestoreHiddenTour,
   DismissTourReports,
 } from './application/use-cases/admin-reports.js';
+import {
+  GetAdminDashboard,
+  ListAdminActions,
+  GetAdminAction,
+  GetUserViolations,
+  RecordAccountAction,
+} from './application/use-cases/admin-insights.js';
 
 import { AddPlace } from './application/use-cases/add-place.js';
 import { ListPlaces } from './application/use-cases/list-places.js';
@@ -122,6 +131,8 @@ import { TourReportController } from './interfaces/http/controllers/tour-report-
 import { buildTourReportRouter } from './interfaces/http/routes/tour-report-routes.js';
 import { AdminReportController } from './interfaces/http/controllers/admin-report-controller.js';
 import { buildAdminReportRouter } from './interfaces/http/routes/admin-report-routes.js';
+import { AdminInsightController } from './interfaces/http/controllers/admin-insight-controller.js';
+import { buildAdminInsightRouter } from './interfaces/http/routes/admin-insight-routes.js';
 
 // Dịch thật qua AI service khi có khoá Gemini (hoặc ép bằng TRANSLATOR=ai|echo).
 function selectTranslator(env) {
@@ -137,7 +148,9 @@ function selectTranslator(env) {
  */
 export function buildContainer(env = process.env, { publish = null, validateEvent = null, verifyJwt = null } = {}) {
   // --- infrastructure (impl của domain/ports) ---
-  const tourRepo = new PrismaTourRepository(prisma);
+  // UC20 / UC22 — append-only admin action log (decision L14); UC19 decisions append to it too.
+  const adminActionRepo = new PrismaAdminActionRepository(prisma);
+  const tourRepo = new PrismaTourRepository(prisma, { actionLog: adminActionRepo });
   const placeRepo = new PrismaPlaceRepository(prisma);
   // Vùng cấm (E2): kiểm điểm trong polygon vùng cấm đang bật.
   const zoneRepo = new PrismaForbiddenZoneRepository(prisma);
@@ -169,9 +182,8 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   // UC06 — community reports; tour.reported only when the broker is loaded (an event flag is on).
   const reportRepo = new PrismaTourReportRepository(prisma);
   const reportEvents = publish ? new EventTourReportPublisher({ publish }) : null;
-  // UC20 — admin report handling + append-only admin action log (decision L14); tour.hidden /
+  // UC20 — admin report handling (log rows in adminActionRepo above); tour.hidden /
   // tour.restored only when the broker is loaded.
-  const adminActionRepo = new PrismaAdminActionRepository(prisma);
   const adminReportRepo = new PrismaAdminReportRepository(prisma, { actionLog: adminActionRepo });
   const adminReportEvents = publish ? new EventAdminReportPublisher({ publish }) : null;
 
@@ -282,6 +294,15 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     dismissTourReports: new DismissTourReports(adminReportDeps),
   };
 
+  // UC22 (#275) — dashboard, action log; UC21 (#274) step 2 — violation history (read-only).
+  const adminInsightRepo = new PrismaAdminInsightRepository(prisma);
+  const adminInsightUseCases = {
+    getAdminDashboard: new GetAdminDashboard({ adminInsightRepo }),
+    listAdminActions: new ListAdminActions({ adminActionRepo }),
+    getAdminAction: new GetAdminAction({ adminActionRepo }),
+    getUserViolations: new GetUserViolations({ adminInsightRepo, adminActionRepo }),
+  };
+
   // --- interfaces (controller + router) ---
   const tourController = new TourController(useCases);
   const tourRouter = buildTourRouter({ tourController });
@@ -328,6 +349,23 @@ export function buildContainer(env = process.env, { publish = null, validateEven
       })
     : null;
 
+  const adminInsightRouter = verifyJwt
+    ? buildAdminInsightRouter({
+        adminInsightController: new AdminInsightController(adminInsightUseCases),
+        requireAdmin: verifyJwt(['admin']),
+      })
+    : null;
+
+  // UC21 / UC22 (#275) — account.moderated -> admin log (queue tour.admin-log), whenever the broker is
+  // loaded (publish and validateEvent come from ../shared only then).
+  const accountModeratedHandler =
+    publish && validateEvent
+      ? buildAccountModeratedHandler({
+          recordAccountAction: new RecordAccountAction({ adminActionRepo }),
+          validateEvent,
+        })
+      : null;
+
   // UC15 — AI result handler (queue tour.moderation-results), only when the flag is on.
   const moderationResultHandler = moderation
     ? buildModerationResultHandler({
@@ -350,7 +388,9 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     tourRatingRouter,
     tourReportRouter,
     adminReportRouter,
+    adminInsightRouter,
     moderationResultHandler,
+    accountModeratedHandler,
     prisma,
   };
 }

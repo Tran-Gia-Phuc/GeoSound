@@ -181,3 +181,10 @@ export class NoOpenReportsError extends AppError {
     super(message, { status: 409, code: 'no_open_reports' });
   }
 }
+
+// UC22 (#275) — GET /admin/actions/:id for an id that is not in the log.
+export class AdminActionNotFoundError extends AppError {
+  constructor(message = 'Không tìm thấy bản ghi nhật ký') {
+    super(message, { status: 404, code: 'admin_action_not_found' });
+  }
+}
