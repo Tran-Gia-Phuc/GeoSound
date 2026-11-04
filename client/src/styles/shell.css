@@ -726,3 +726,37 @@
 .tour-history[open] .tour-history__summary {
   margin-bottom: var(--sp-3);
 }
+
+/* ---------- Admin accounts (UC21) ---------- */
+.admin-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.admin-filters__search {
+  display: flex;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.admin-filters__search .input {
+  min-width: 0;
+}
+.admin-filters__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+.admin-filters__row .input {
+  width: 100%;
+  min-width: 0;
+}
+.admin-history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.admin-subtitle {
+  margin: var(--sp-2) 0 0;
+  font-size: 14px;
+  font-weight: 700;
+}
