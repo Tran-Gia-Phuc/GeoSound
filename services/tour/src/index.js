@@ -60,11 +60,13 @@ const {
   publicItineraryRouter,
   adminReviewRouter,
   tourRatingRouter,
+  tourStatsRouter,
   tourReportRouter,
   adminReportRouter,
   adminInsightRouter,
   moderationResultHandler,
   accountModeratedHandler,
+  purgeActivityMarks,
 } = buildContainer(process.env, { publish: rabbit?.publish, validateEvent: events?.validateEvent, verifyJwt });
 
 app.use(express.json());
@@ -80,6 +82,10 @@ app.use('/', publicTourRouter);
 // UC05 (#267): /:id/ratings (public) and /:id/ratings/mine (any signed-in role). BEFORE the
 // contributor routers below, whose verifyJwt(['contributor']) on '/' would answer 403 to a tourist.
 app.use('/', tourRatingRouter);
+// UC17 (#271): POST /:id/activity (public, optional sign-in) and GET /mine/:id/stats (contributor or
+// admin, guard per route). BEFORE the contributor routers: their router-level verifyJwt(['contributor'])
+// on '/' would answer 401 to an anonymous visitor and 403 to an admin.
+app.use('/', tourStatsRouter);
 // UC06 (#268): POST /:id/reports and GET /:id/reports/mine (any signed-in role), same reason.
 app.use('/', tourReportRouter);
 
@@ -118,6 +124,15 @@ app.use('/', previewRouter);
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
+
+// UC17 (#271) — delete statistics dedup marks older than 40 days (one minute after start, then hourly).
+const purgeMarks = () =>
+  purgeActivityMarks
+    .execute()
+    .then(({ deleted }) => deleted && console.log(`[tour] purged ${deleted} old activity marks`))
+    .catch((err) => console.error(`[tour] activity mark purge failed: ${err.message}`));
+setTimeout(purgeMarks, 60_000).unref();
+setInterval(purgeMarks, 60 * 60 * 1000).unref();
 
 app.listen(PORT, () => console.log(`[tour] listening on :${PORT}`));
 
