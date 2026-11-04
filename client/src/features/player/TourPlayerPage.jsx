@@ -28,6 +28,7 @@ import LanguageMenu from './LanguageMenu.jsx';
 import SimControls from './SimControls.jsx';
 import SimBar, { SIM_SPEEDS } from './SimBar.jsx';
 import CompletionDialog from './CompletionDialog.jsx';
+import ReportTour from '../tours/ReportTour.jsx';
 import { useBack } from '../../components/shell/AppHeader.jsx';
 
 const STALE_MS = 12000;
@@ -60,6 +61,7 @@ function rememberRecent(id, title) {
  *   completeAction?: { label: string, to: string }, // nút chính ở hộp hoàn thành
  *   freshProgress?: boolean, // xem thử: luôn bắt đầu lại từ đầu (không nhớ điểm đã nghe)
  *   rateHref?: string,       // UC05: link "Đánh giá tour" on the end screen (public tours only)
+ *   reportable?: boolean,    // UC06: "Báo cáo tour" button in the topbar (public tours only)
  * }} [props]
  */
 export default function TourPlayerPage({
@@ -75,6 +77,7 @@ export default function TourPlayerPage({
   completeAction = { label: 'Khám phá tour khác', to: '/' },
   freshProgress = false,
   rateHref,
+  reportable = false,
 } = {}) {
   const { tourId } = useParams();
   const [sp, setSp] = useSearchParams();
@@ -457,6 +460,7 @@ export default function TourPlayerPage({
           <button className="iconbtn" onClick={() => setListOpen(true)} aria-label="Danh sách điểm">
             <Icon name="list" size={20} />
           </button>
+          {reportable ? <ReportTour tour={tour} variant="player" /> : null}
         </div>
       </header>
 
