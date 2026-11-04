@@ -59,6 +59,7 @@ function rememberRecent(id, title) {
  *   editPlaceHref?: (placeId: string) => string, // xem thử: nút "Sửa điểm này" về Studio
  *   completeAction?: { label: string, to: string }, // nút chính ở hộp hoàn thành
  *   freshProgress?: boolean, // xem thử: luôn bắt đầu lại từ đầu (không nhớ điểm đã nghe)
+ *   rateHref?: string,       // UC05: link "Đánh giá tour" on the end screen (public tours only)
  * }} [props]
  */
 export default function TourPlayerPage({
@@ -73,6 +74,7 @@ export default function TourPlayerPage({
   editPlaceHref,
   completeAction = { label: 'Khám phá tour khác', to: '/' },
   freshProgress = false,
+  rateHref,
 } = {}) {
   const { tourId } = useParams();
   const [sp, setSp] = useSearchParams();
@@ -583,6 +585,8 @@ export default function TourPlayerPage({
         exploreLabel={completeAction.label}
         tourTitle={tour.title}
         placeCount={tour.placeCount}
+        rateHref={rateHref}
+        tourId={tourId}
       />
     </div>
   );

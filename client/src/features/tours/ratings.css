@@ -1,0 +1,179 @@
+/* UC05 (#267) — tour ratings section on the tour detail page. */
+.rv {
+  gap: var(--sp-3);
+  min-width: 0;
+  scroll-margin-top: var(--sp-4);
+}
+.rv-star {
+  color: var(--border-strong);
+}
+.rv-star--on {
+  color: var(--amber-500);
+}
+.rv-stars {
+  display: inline-flex;
+  gap: 1px;
+  vertical-align: middle;
+}
+
+/* Summary: average + distribution bars */
+.rv-summary {
+  display: flex;
+  gap: var(--sp-4);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.rv-summary__avg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 96px;
+}
+.rv-summary__value {
+  font-size: 32px;
+  line-height: 1.1;
+}
+.rv-dist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1 1 160px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.rv-dist__row {
+  display: grid;
+  grid-template-columns: 28px 1fr 32px;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.rv-dist__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 13px;
+}
+.rv-dist__bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.rv-dist__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--amber-500);
+}
+.rv-dist__count {
+  text-align: right;
+}
+
+/* Form: star radio group + comment */
+.rv-form,
+.rv-mine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.rv-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rv-picker__stars {
+  display: flex;
+  gap: 2px;
+}
+.rv-picker__star {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-sm);
+  color: var(--border-strong);
+  cursor: pointer;
+}
+.rv-picker__star--on {
+  color: var(--amber-500);
+}
+.rv-picker__star input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.rv-picker__star:focus-within {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+.rv-picker[aria-invalid='true'] .rv-picker__stars {
+  border-radius: var(--r-sm);
+  box-shadow: 0 0 0 1px var(--danger);
+}
+.rv-form__comment {
+  min-height: 88px;
+  padding: var(--sp-2) var(--sp-3);
+  resize: vertical;
+  font: inherit;
+  width: 100%;
+}
+.rv-form__count {
+  align-self: flex-end;
+}
+.rv-form__actions {
+  display: flex;
+  gap: var(--sp-2);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.rv-mine__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+.rv-login {
+  align-self: flex-start;
+}
+.rv-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Comment list */
+.rv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rv-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-3) 0;
+  border-top: 1px solid var(--border);
+  min-width: 0;
+}
+.rv-item__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+.rv-item__name {
+  overflow-wrap: anywhere;
+}
+.rv-item__text {
+  margin: 4px 0 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
