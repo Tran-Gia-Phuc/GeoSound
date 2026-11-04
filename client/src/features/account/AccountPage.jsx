@@ -1,7 +1,7 @@
 // =========================================================
 // AccountPage (/account) — tab "Tài khoản":
 //   - Chưa đăng nhập: Đăng nhập / Đăng ký (khách không bắt buộc có tài khoản).
-//   - Đã đăng nhập: hồ sơ, lối tắt Thông báo (UC16) / Lịch trình / Thiết bị (UC23) / Studio, trở thành tác giả, đăng xuất.
+//   - Đã đăng nhập: hồ sơ, lối tắt Thông báo (UC16) / Hồ sơ, Tác giả đang theo dõi (UC18) / Lịch trình / Thiết bị (UC23) / Studio, trở thành tác giả, đăng xuất.
 //   - Giao diện sáng / tối / theo hệ thống (chuyển vào đây từ mọi header).
 // =========================================================
 import { Link, useNavigate } from 'react-router-dom';
@@ -57,6 +57,20 @@ export default function AccountPage() {
                 {badgeText(unread)}<span className="sr-only"> chưa đọc</span>
               </span>
             ) : null}
+            <Icon name="chevron-left" size={16} className="menu__chev" />
+          </Link>
+          <Link className="menu__item" to="/account/profile">
+            <Icon name="edit" size={20} /> <span>{isContributor ? 'Hồ sơ tác giả' : 'Hồ sơ'}</span>
+            <Icon name="chevron-left" size={16} className="menu__chev" />
+          </Link>
+          {isContributor && user?.id ? (
+            <Link className="menu__item" to={`/authors/${encodeURIComponent(user.id)}`}>
+              <Icon name="eye" size={20} /> <span>Xem trang tác giả của tôi</span>
+              <Icon name="chevron-left" size={16} className="menu__chev" />
+            </Link>
+          ) : null}
+          <Link className="menu__item" to="/account/following">
+            <Icon name="star" size={20} /> <span>Tác giả đang theo dõi</span>
             <Icon name="chevron-left" size={16} className="menu__chev" />
           </Link>
           <Link className="menu__item" to="/itineraries">

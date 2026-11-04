@@ -210,6 +210,13 @@ export default function TourDetailPage({ restricted = false }) {
           </div>
         ) : null}
 
+        {/* UC18: author page link — only when the detail carries authorId. */}
+        {tour.authorId ? (
+          <Link className="linkbtn detail__author" to={`/authors/${encodeURIComponent(tour.authorId)}`}>
+            <Icon name="user" size={14} /> {tour.authorName ? `Tác giả: ${tour.authorName}` : 'Xem trang tác giả'}
+          </Link>
+        ) : null}
+
         {tour.description ? <p className="intro__desc">{tour.description}</p> : null}
 
         {/* UC05: summary, my rating, comments (anchor #ratings). UC14: restricted tours cannot be rated. */}

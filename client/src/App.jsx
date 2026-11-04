@@ -4,6 +4,9 @@
 //   /account            — tài khoản + giao diện sáng/tối
 //   /account/devices    — thiết bị đang đăng nhập (UC23, cần đăng nhập)
 //   /notifications      — trung tâm thông báo (UC16, cần đăng nhập)
+//   /account/profile    — sửa hồ sơ (UC18 A1, cần đăng nhập)
+//   /account/following  — tác giả đang theo dõi (UC18, cần đăng nhập)
+//   /authors/:id        — trang tác giả công khai + theo dõi (UC18)
 //   /                   — Khám phá: tìm tour + địa điểm (UC02, UC07) — ?tab=&q=&city=…
 //   /login, /register   — đăng nhập / đăng ký (chọn vai trò) (UC01)
 //   /forgot-password    — quên mật khẩu (UC01 A2)
@@ -66,6 +69,9 @@ import ReportedToursPage from './features/admin/ReportedToursPage.jsx';
 import ReportDossierPage from './features/admin/ReportDossierPage.jsx';
 import NotificationsPage from './features/notifications/NotificationsPage.jsx';
 import { UnreadCountLayout } from './features/notifications/UnreadCount.jsx';
+import AuthorPage from './features/authors/AuthorPage.jsx';
+import ProfileEditPage from './features/authors/ProfileEditPage.jsx';
+import FollowingPage from './features/authors/FollowingPage.jsx';
 import SessionWatcher from './auth/SessionWatcher.jsx';
 import AppLayout from './components/shell/AppLayout.jsx';
 import { previewTour } from './lib/studio.js';
@@ -145,6 +151,9 @@ const router = createBrowserRouter(
         <Route path="/admin" element={<RequireAuth><AdminHomePage /></RequireAuth>} />
         <Route path="/admin/reports" element={<RequireAuth><ReportedToursPage /></RequireAuth>} />
         <Route path="/admin/reports/:tourId" element={<RequireAuth><ReportDossierPage /></RequireAuth>} />
+        <Route path="/account/profile" element={<RequireAuth><ProfileEditPage /></RequireAuth>} />
+        <Route path="/account/following" element={<RequireAuth><FollowingPage /></RequireAuth>} />
+        <Route path="/authors/:id" element={<AuthorPage />} />
         <Route path="/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
         <Route path="/admin/devices" element={<RequireAuth><OnlineDevicesPage /></RequireAuth>} />
         <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />

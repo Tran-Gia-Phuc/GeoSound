@@ -782,3 +782,99 @@
 .restricted__off {
   color: var(--danger);
 }
+
+/* ---------- Author page, profile, following (UC18) ---------- */
+.author-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  object-fit: cover;
+  background: var(--primary);
+  color: var(--primary-fg);
+  font-weight: 700;
+}
+.author-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.author-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-5);
+}
+.author-head__info {
+  flex: 1 1 160px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.author-head__name {
+  margin: 0;
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+.author-head__action {
+  flex: none;
+}
+.author-head__bio {
+  flex-basis: 100%;
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.author-tours .tourlist {
+  margin-bottom: var(--sp-4);
+}
+.author-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  text-align: center;
+  color: var(--fg-muted);
+}
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.profile-form__bio {
+  min-height: 120px;
+  resize: vertical;
+}
+.profile-form__over {
+  color: var(--danger);
+}
+.following__list {
+  list-style: none;
+  margin: var(--sp-3) 0 var(--sp-4);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.following__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  color: var(--fg);
+  text-decoration: none;
+}
+.following__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: anywhere;
+}
+.detail__author {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: var(--sp-2) 0;
+}
