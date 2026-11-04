@@ -36,6 +36,8 @@ import { PrismaAdminActionRepository } from './infrastructure/persistence/prisma
 import { PrismaAdminReportRepository } from './infrastructure/persistence/prisma-admin-report-repository.js';
 import { EventAdminReportPublisher } from './infrastructure/messaging/event-admin-report-publisher.js';
 import { PrismaAdminInsightRepository } from './infrastructure/persistence/prisma-admin-insight-repository.js';
+import { PrismaTourAccessRepository } from './infrastructure/persistence/prisma-tour-access-repository.js';
+import { ScryptPasscodeHasher } from './infrastructure/security/scrypt-passcode-hasher.js';
 import { isModerationEnabled, isChatbotEventsEnabled } from './config.js';
 
 import { CreateTour } from './application/use-cases/create-tour.js';
@@ -77,6 +79,14 @@ import {
   GetUserViolations,
   RecordAccountAction,
 } from './application/use-cases/admin-insights.js';
+import {
+  GetTourAccess,
+  SetTourPasscode,
+  DisableTourAccess,
+  UnlockTour,
+  GetMyTourAccess,
+  GetRestrictedTour,
+} from './application/use-cases/tour-access.js';
 
 import { AddPlace } from './application/use-cases/add-place.js';
 import { ListPlaces } from './application/use-cases/list-places.js';
@@ -138,6 +148,8 @@ import { AdminReportController } from './interfaces/http/controllers/admin-repor
 import { buildAdminReportRouter } from './interfaces/http/routes/admin-report-routes.js';
 import { AdminInsightController } from './interfaces/http/controllers/admin-insight-controller.js';
 import { buildAdminInsightRouter } from './interfaces/http/routes/admin-insight-routes.js';
+import { TourAccessController } from './interfaces/http/controllers/tour-access-controller.js';
+import { buildTourAccessRouter } from './interfaces/http/routes/tour-access-routes.js';
 
 // Dịch thật qua AI service khi có khoá Gemini (hoặc ép bằng TRANSLATOR=ai|echo).
 function selectTranslator(env) {
@@ -318,6 +330,18 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     getUserViolations: new GetUserViolations({ adminInsightRepo, adminActionRepo }),
   };
 
+  // UC14 (#269) — restricted access with a passcode (scrypt hash, grants per account, rate limit in DB).
+  const accessRepo = new PrismaTourAccessRepository(prisma);
+  const hasher = new ScryptPasscodeHasher();
+  const accessUseCases = {
+    getTourAccess: new GetTourAccess({ tourRepo, accessRepo }),
+    setTourPasscode: new SetTourPasscode({ tourRepo, accessRepo, hasher }),
+    disableTourAccess: new DisableTourAccess({ tourRepo, accessRepo }),
+    unlockTour: new UnlockTour({ accessRepo, hasher }),
+    getMyTourAccess: new GetMyTourAccess({ accessRepo }),
+    getRestrictedTour: new GetRestrictedTour({ tourRepo, accessRepo, placeRepo, routeConfigRepo, ...i18nRepos }),
+  };
+
   // --- interfaces (controller + router) ---
   const tourController = new TourController(useCases);
   const tourRouter = buildTourRouter({ tourController });
@@ -380,6 +404,14 @@ export function buildContainer(env = process.env, { publish = null, validateEven
       })
     : null;
 
+  const tourAccessRouter = verifyJwt
+    ? buildTourAccessRouter({
+        tourAccessController: new TourAccessController(accessUseCases),
+        requireAuth: verifyJwt(),
+        requireContributor: verifyJwt(['contributor']),
+      })
+    : null;
+
   // UC21 / UC22 (#275) — account.moderated -> admin log (queue tour.admin-log), whenever the broker is
   // loaded (publish and validateEvent come from ../shared only then).
   const accountModeratedHandler =
@@ -414,6 +446,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     tourReportRouter,
     adminReportRouter,
     adminInsightRouter,
+    tourAccessRouter,
     moderationResultHandler,
     accountModeratedHandler,
     purgeActivityMarks,

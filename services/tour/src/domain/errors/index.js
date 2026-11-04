@@ -188,3 +188,41 @@ export class AdminActionNotFoundError extends AppError {
     super(message, { status: 404, code: 'admin_action_not_found' });
   }
 }
+
+// UC14 (#269) — restricted mode can be turned on only from draft / rejected / changes_requested
+// (a public tour must be unpublished first), or another request moved the status first.
+export class TourNotRestrictableError extends AppError {
+  constructor(
+    message = 'Chỉ bật truy cập hạn chế cho tour Nháp, bị từ chối hoặc cần chỉnh sửa (tour công khai cần gỡ xuống trước)',
+  ) {
+    super(message, { status: 409, code: 'tour_not_restrictable' });
+  }
+}
+
+// UC14 (#269) / A1 — turning restricted mode off a tour that is not restricted.
+export class TourNotRestrictedError extends AppError {
+  constructor(message = 'Tour không ở chế độ truy cập hạn chế') {
+    super(message, { status: 409, code: 'tour_not_restricted' });
+  }
+}
+
+// UC14 (#269) — a restricted tour cannot be published / submitted for review (UC15) directly.
+export class TourRestrictedError extends AppError {
+  constructor(message = 'Tour đang ở chế độ truy cập hạn chế, hãy tắt chế độ này trước khi gửi duyệt') {
+    super(message, { status: 409, code: 'tour_restricted' });
+  }
+}
+
+// UC14 (#269) — wrong passcode on unlock.
+export class WrongPasscodeError extends AppError {
+  constructor(message = 'Mã truy cập không đúng') {
+    super(message, { status: 403, code: 'wrong_passcode' });
+  }
+}
+
+// UC14 (#269) — too many wrong passcodes for one account and tour within the window.
+export class TooManyAttemptsError extends AppError {
+  constructor(message = 'Bạn đã nhập sai quá nhiều lần, vui lòng thử lại sau 15 phút') {
+    super(message, { status: 429, code: 'too_many_attempts' });
+  }
+}

@@ -37,6 +37,8 @@ export class PrismaTourRepository {
       moderationReasons: Array.isArray(row.moderationReasons) ? row.moderationReasons : [],
       moderationRevision: row.moderationRevision ?? null,
       reviewReason: row.reviewReason ?? null,
+      passcodeVersion: row.passcodeVersion ?? 0,
+      passcodeSetAt: row.passcodeSetAt ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });

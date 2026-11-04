@@ -219,4 +219,26 @@
  * @property {(tour, reason: string|null) => Promise<object>} restored // tour.restored
  */
 
+/**
+ * UC14 (#269) — restricted access (columns tours.passcode_*, tables tour_access_grants and
+ * tour_unlock_attempts). Status writes are conditional (null -> 409 when the state moved); grant and
+ * attempt writes never touch tours.updated_at.
+ * @typedef {Object} TourAccessRepository
+ * @property {(tourId: string) => Promise<{ tourId, authorId, status, passcodeHash: string|null, passcodeVersion: number, passcodeSetAt: Date|null }|null>} findAccess
+ * @property {(tourId: string, fromStatuses: string[], fields: { passcodeHash: string, passcodeSetAt: Date }) => Promise<import('../entities/tour.js').Tour|null>} setPasscodeIf  // status IN fromStatuses -> restricted, version + 1, grants deleted
+ * @property {(tourId: string) => Promise<import('../entities/tour.js').Tour|null>} clearPasscodeIf  // restricted -> draft, hash cleared, version + 1, grants deleted
+ * @property {(tourId: string, userId: string) => Promise<{ tourId, userId, passcodeVersion: number, createdAt: Date }|null>} findGrant
+ * @property {(tourId: string, userId: string, passcodeVersion: number) => Promise<void>} saveGrant  // upsert on (tourId, userId)
+ * @property {(tourId: string, passcodeVersion: number) => Promise<number>} countGrants
+ * @property {(tourId: string, userId: string, since: Date) => Promise<{ id: string, count: number }>} reserveAttempt  // insert one attempt row, then count the rows since `since` (this one included)
+ * @property {(id: string) => Promise<void>} releaseAttempt  // a correct or refused attempt is not a failure
+ */
+
+/**
+ * UC14 (#269) — one-way passcode hashing. Impl: infrastructure/security/scrypt-passcode-hasher.js.
+ * @typedef {Object} PasscodeHasher
+ * @property {(plain: string) => Promise<string>} hash
+ * @property {(plain: string, stored: string|null) => Promise<boolean>} verify
+ */
+
 export {};

@@ -42,14 +42,22 @@ model Tour {
   // the same write as that status. A UC19 decision copies it into its admin_actions row (data.queuedAt)
   // for the average review time.
   reviewQueuedAt DateTime? @map("review_queued_at")
+  // UC14 (#269): restricted access. passcodeHash = scrypt hash with a random salt (never returned);
+  // passcodeVersion goes up on every passcode change and when restricted mode is turned off, so every
+  // tour_access_grants row of an older version stops opening the tour.
+  passcodeHash    String?   @map("passcode_hash")
+  passcodeVersion Int       @default(0) @map("passcode_version")
+  passcodeSetAt   DateTime? @map("passcode_set_at")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  places      Place[]
-  routeConfig RouteConfig?
-  languages   TourLanguage[]
-  ratings     TourRating[]
-  reports     TourReport[]
+  places        Place[]
+  routeConfig   RouteConfig?
+  languages     TourLanguage[]
+  ratings       TourRating[]
+  reports       TourReport[]
+  accessGrants  TourAccessGrant[]
+  unlockTries   TourUnlockAttempt[]
   // UC17 (#271) — statistics tables (written by raw SQL, never through the Tour row).
   dailyStats    TourDailyStat[]
   activityMarks TourActivityMark[]
@@ -183,6 +191,37 @@ model TourReport {
   // UC22 (#275): tours reported within a period (dashboard).
   @@index([createdAt])
   @@map("tour_reports")
+}
+
+// UC14 (#269) — one unlock per tester account and restricted tour (docs/02-design/uc14-restricted-access.md).
+// Valid only while passcodeVersion equals tours.passcode_version.
+model TourAccessGrant {
+  id              String   @id @default(uuid())
+  tourId          String   @map("tour_id")
+  userId          String   @map("user_id")
+  passcodeVersion Int      @map("passcode_version")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@unique([tourId, userId])
+  @@index([userId])
+  @@map("tour_access_grants")
+}
+
+// UC14 (#269) — wrong passcode attempts (rate limit: 5 per account and tour per 15 minutes). A row is
+// inserted before the check and deleted again when the code was right, so concurrent requests count
+// each other. Old rows are only read through the window; they can be purged at any time.
+model TourUnlockAttempt {
+  id        String   @id @default(uuid())
+  tourId    String   @map("tour_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@index([tourId, userId, createdAt])
+  @@map("tour_unlock_attempts")
 }
 
 // UC10 — Điểm dừng trên tour. lat/lng lưu Float; cột geometry(Point) + chỉ mục

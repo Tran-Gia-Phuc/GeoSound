@@ -64,6 +64,7 @@ const {
   tourReportRouter,
   adminReportRouter,
   adminInsightRouter,
+  tourAccessRouter,
   moderationResultHandler,
   accountModeratedHandler,
   purgeActivityMarks,
@@ -88,6 +89,9 @@ app.use('/', tourRatingRouter);
 app.use('/', tourStatsRouter);
 // UC06 (#268): POST /:id/reports and GET /:id/reports/mine (any signed-in role), same reason.
 app.use('/', tourReportRouter);
+// UC14 (#269): /:id/unlock, /:id/access/mine, /:id/restricted (any signed-in role) and
+// /mine/:tourId/access (contributor, owner only), same reason.
+app.use('/', tourAccessRouter);
 
 // UC19: admin review queue + decisions (role admin) — /admin/reviews/*. MUST be mounted BEFORE the
 // contributor routers below (verifyJwt(['contributor']) at router level on '/' would answer 403 to

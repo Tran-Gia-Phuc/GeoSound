@@ -117,7 +117,7 @@ listed per UC describe the screen states; they are closed together with the UC w
 | 5 | UC21 admin account actions | #274 | P2 | Auth, Tour (violation history), client | | #131 to #135 | `feature/uc21-account-actions` | Auth + Notification backend done (part of #274, needs the `app_auth` schema push); violation history and log come with UC22; client next |
 | 6 | UC22 dashboard and action log | #275 | P2 | Tour, client | UC20, UC21 | #121, #136 | `feature/uc22-dashboard-log` | backend done (part of #275, needs the `tour` schema push); client next |
 | 7 | UC17 tour statistics | #271 | P1 | Tour, client | UC05 | #117 | `feature/uc17-tour-stats` | backend done (part of #271, needs the `tour` schema push); client next |
-| 8 | UC14 restricted access (passcode) | #269 | P2 | Tour, AI indexer filter, client | | #107, #108 | `feature/uc14-restricted-access` | open |
+| 8 | UC14 restricted access (passcode) | #269 | P2 | Tour, AI indexer filter, client | | #107, #108 | `feature/uc14-restricted-access` | backend done (part of #269, needs the `tour` schema push); client next |
 | 9 | UC18 author page and follow | #272 | P2 | Auth (profile, follows), Tour (public tours), client | | #118 to #120 | `feature/uc18-author-page` | backend done (part of #272, needs the `app_auth` schema push); client next |
 
 ### 6.2 Decisions (L = later UCs)
