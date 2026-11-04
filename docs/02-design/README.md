@@ -25,5 +25,6 @@ Expected later:
 - [UC21 admin account actions](uc21-account-actions.md)
 - [UC22 admin dashboard and action log (with the UC21 violation history)](uc22-dashboard-log.md)
 - [UC18 public author page and follow](uc18-author-page.md)
+- [UC14 restricted access with a passcode](uc14-restricted-access.md)
 - [OTP email templates and SMTP verification](notification-otp-design.md)
 - [General ERD — supplied reference (draw.io)](drawio/erd-general.drawio)
