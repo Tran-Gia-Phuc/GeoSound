@@ -99,7 +99,11 @@ export default function PublishPanel({ tourId, status, refreshKey, onStatusChang
       {readiness && !readiness.canPublish && !isPublic ? (
         <div className="alert" role="status">
           <Icon name="info" size={18} className="alert__icon" />
-          <div>Tour đang bị quản trị viên ẩn hoặc hạn chế nên chưa thể tự xuất bản.</div>
+          <div>
+            {status === 'restricted'
+              ? 'Tour đang ở chế độ truy cập hạn chế. Hãy tắt chế độ này (bên dưới) trước khi xuất bản.'
+              : 'Tour đang bị quản trị viên ẩn hoặc hạn chế nên chưa thể tự xuất bản.'}
+          </div>
         </div>
       ) : null}
 

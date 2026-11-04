@@ -726,3 +726,59 @@
 .tour-history[open] .tour-history__summary {
   margin-bottom: var(--sp-3);
 }
+
+/* ---------- Restricted access (UC14) ---------- */
+.unlock__loading {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.unlock__card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sp-3);
+}
+.unlock__card > svg {
+  align-self: center;
+  color: var(--primary);
+}
+.unlock__card > b {
+  text-align: center;
+}
+.restricted {
+  margin-top: var(--sp-5);
+}
+.restricted__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin: var(--sp-3) 0;
+}
+.restricted__facts {
+  list-style: none;
+  margin: var(--sp-2) 0 var(--sp-3);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--fg-muted);
+}
+.restricted__facts li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.restricted__link {
+  display: flex;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.restricted__link .input {
+  flex: 1;
+  min-width: 0;
+}
+.restricted__off {
+  color: var(--danger);
+}
