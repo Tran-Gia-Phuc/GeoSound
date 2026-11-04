@@ -37,6 +37,17 @@
  */
 
 /**
+ * UC17 (#271) — tour statistics (tables tour_daily_stats, tour_activity_marks). `recordActivity` inserts
+ * the dedup mark and increments the daily counter in one statement; it counts only when the mark is new
+ * and the actor has fewer than `cap` marks that day.
+ * @typedef {Object} TourStatsRepository
+ * @property {(input: { tourId: string, actorKey: string, action: string, language: string, day: string, cap: number }) => Promise<boolean>} recordActivity
+ * @property {(tourId: string, q: { from: string, to: string, language: string|null }) => Promise<Array<{ day: string, views: number, plays: number, completions: number, downloads: number }>>} dailyStats
+ * @property {(tourId: string, q: { take: number }) => Promise<{ items: object[], total: number }>} latestComments
+ * @property {(day: string) => Promise<number>} purgeMarksBefore  // marks of days before `day`
+ */
+
+/**
  * UC06 (#268) — community reports (table tour_reports). `createReport` runs one transaction: lock the
  * tour row, insert the report, count distinct open reporters since `windowStart`, then raise
  * tours.open_report_count and set tours.report_flagged_at (only when null and the threshold is

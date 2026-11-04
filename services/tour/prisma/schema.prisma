@@ -51,13 +51,16 @@ model Tour {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  places       Place[]
-  routeConfig  RouteConfig?
-  languages    TourLanguage[]
-  ratings      TourRating[]
-  reports      TourReport[]
-  accessGrants TourAccessGrant[]
-  unlockTries  TourUnlockAttempt[]
+  places        Place[]
+  routeConfig   RouteConfig?
+  languages     TourLanguage[]
+  ratings       TourRating[]
+  reports       TourReport[]
+  accessGrants  TourAccessGrant[]
+  unlockTries   TourUnlockAttempt[]
+  // UC17 (#271) — statistics tables (written by raw SQL, never through the Tour row).
+  dailyStats    TourDailyStat[]
+  activityMarks TourActivityMark[]
 
   @@index([authorId])
   @@index([status])
@@ -131,6 +134,42 @@ model TourRating {
   @@index([tourId, createdAt])
   @@index([userId])
   @@map("tour_ratings")
+}
+
+// UC17 (#271) — daily counters of tourist activity per tour and language (docs/02-design/uc17-tour-stats.md).
+// Written only by raw SQL together with a new TourActivityMark (one count per actor, action, language
+// and UTC day); tours.updated_at never moves.
+model TourDailyStat {
+  tourId      String   @map("tour_id")
+  day         DateTime @db.Date
+  language    String
+  views       Int      @default(0)
+  plays       Int      @default(0)
+  completions Int      @default(0)
+  downloads   Int      @default(0)
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@id([tourId, day, language])
+  @@map("tour_daily_stats")
+}
+
+// UC17 (#271) — dedup mark: actorKey = sha256 of salt + account id or device id (never a raw id, IP or
+// user agent). Marks older than 40 days are purged hourly.
+model TourActivityMark {
+  tourId    String   @map("tour_id")
+  actorKey  String   @map("actor_key")
+  action    String
+  language  String
+  day       DateTime @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@id([tourId, actorKey, action, language, day])
+  @@index([actorKey, day])
+  @@index([day])
+  @@map("tour_activity_marks")
 }
 
 // UC06 (#268) — one community report per account and tour (docs/02-design/uc06-reports.md).

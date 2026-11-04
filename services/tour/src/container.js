@@ -29,6 +29,7 @@ import { EventTourCatalogPublisher } from './infrastructure/messaging/event-tour
 import { EventTourReviewPublisher } from './infrastructure/messaging/event-tour-review-publisher.js';
 import { PrismaTourReviewActionRepository } from './infrastructure/persistence/prisma-tour-review-action-repository.js';
 import { PrismaTourRatingRepository } from './infrastructure/persistence/prisma-tour-rating-repository.js';
+import { PrismaTourStatsRepository } from './infrastructure/persistence/prisma-tour-stats-repository.js';
 import { PrismaTourReportRepository } from './infrastructure/persistence/prisma-tour-report-repository.js';
 import { EventTourReportPublisher } from './infrastructure/messaging/event-tour-report-publisher.js';
 import { PrismaAdminActionRepository } from './infrastructure/persistence/prisma-admin-action-repository.js';
@@ -62,6 +63,7 @@ import {
   SaveMyTourRating,
   DeleteMyTourRating,
 } from './application/use-cases/tour-ratings.js';
+import { RecordTourActivity, GetTourStats, PurgeActivityMarks } from './application/use-cases/tour-stats.js';
 import { ReportTour, GetMyTourReport } from './application/use-cases/tour-reports.js';
 import {
   ListReportQueue,
@@ -137,6 +139,9 @@ import { AdminReviewController } from './interfaces/http/controllers/admin-revie
 import { buildAdminReviewRouter } from './interfaces/http/routes/admin-review-routes.js';
 import { TourRatingController } from './interfaces/http/controllers/tour-rating-controller.js';
 import { buildTourRatingRouter } from './interfaces/http/routes/tour-rating-routes.js';
+import { TourStatsController } from './interfaces/http/controllers/tour-stats-controller.js';
+import { buildTourStatsRouter } from './interfaces/http/routes/tour-stats-routes.js';
+import { optionalAuth } from './interfaces/http/middleware/optional-auth.js';
 import { TourReportController } from './interfaces/http/controllers/tour-report-controller.js';
 import { buildTourReportRouter } from './interfaces/http/routes/tour-report-routes.js';
 import { AdminReportController } from './interfaces/http/controllers/admin-report-controller.js';
@@ -191,6 +196,8 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   const reviewEvents = publish ? new EventTourReviewPublisher({ publish }) : null;
   // UC05 — ratings; the aggregate SQL uses the schema of DATABASE_URL (?schema=tour).
   const ratingRepo = new PrismaTourRatingRepository(prisma);
+  // UC17 — statistics (raw SQL in the schema of DATABASE_URL, like the UC05 aggregate).
+  const statsRepo = new PrismaTourStatsRepository(prisma);
   // UC06 — community reports; tour.reported only when the broker is loaded (an event flag is on).
   const reportRepo = new PrismaTourReportRepository(prisma);
   const reportEvents = publish ? new EventTourReportPublisher({ publish }) : null;
@@ -290,6 +297,14 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     deleteMyTourRating: new DeleteMyTourRating({ tourRepo, ratingRepo }),
   };
 
+  const statsUseCases = {
+    // UC17 — activity counters and the contributor statistics; STATS_ACTOR_SALT hashes the actor id.
+    recordTourActivity: new RecordTourActivity({ tourRepo, statsRepo, salt: env.STATS_ACTOR_SALT }),
+    getTourStats: new GetTourStats({ tourRepo, statsRepo, ratingRepo }),
+  };
+  // UC17 — hourly purge of dedup marks older than 40 days (index.js runs it).
+  const purgeActivityMarks = new PurgeActivityMarks({ statsRepo });
+
   const reportUseCases = {
     // UC06 — report a public tour
     reportTour: new ReportTour({ tourRepo, reportRepo, reportEvents }),
@@ -359,6 +374,15 @@ export function buildContainer(env = process.env, { publish = null, validateEven
       })
     : null;
 
+  // UC17 — POST /:id/activity (optional sign-in) and GET /mine/:id/stats (contributor or admin).
+  const tourStatsRouter = verifyJwt
+    ? buildTourStatsRouter({
+        tourStatsController: new TourStatsController(statsUseCases),
+        optionalAuth: optionalAuth(verifyJwt()),
+        requireOwnerRole: verifyJwt(['contributor', 'admin']),
+      })
+    : null;
+
   const tourReportRouter = verifyJwt
     ? buildTourReportRouter({
         tourReportController: new TourReportController(reportUseCases),
@@ -418,12 +442,14 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     publicItineraryRouter,
     adminReviewRouter,
     tourRatingRouter,
+    tourStatsRouter,
     tourReportRouter,
     adminReportRouter,
     adminInsightRouter,
     tourAccessRouter,
     moderationResultHandler,
     accountModeratedHandler,
+    purgeActivityMarks,
     prisma,
   };
 }
