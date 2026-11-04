@@ -187,7 +187,7 @@ export default function TourDetailPage({ restricted = false }) {
           {restricted ? null : <Rating value={tour.averageRating} count={tour.ratingCount} />}
           <span className="muted small"><Icon name="volume" size={13} /> {voiceLabel(tour.voiceLabel)}</span>
           {/* UC06: small, not prominent */}
-          <ReportTour tour={tour} />
+          {restricted ? null : <ReportTour tour={tour} />}
         </div>
 
         {languageError ? <div className="alert alert--warn" role="alert"><Icon name="alert-triangle" size={18} /><div><b>Chưa đổi được ngôn ngữ</b><p>{languageError.message}</p><p>Đang hiển thị {langLabel(tour.selectedLanguage)}.</p><button className="btn btn--sm" onClick={()=>setLangRetry((n)=>n+1)}>Thử lại ngôn ngữ</button><button className="btn btn--ghost btn--sm" onClick={()=>setSp((prev)=>{const n=new URLSearchParams(prev);n.set('lang',tour.selectedLanguage);return n;})}>Giữ ngôn ngữ hiện tại</button></div></div> : null}
