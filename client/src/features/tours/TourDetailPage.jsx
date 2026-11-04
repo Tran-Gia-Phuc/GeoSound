@@ -18,6 +18,7 @@ import { useBack } from '../../components/shell/AppHeader.jsx';
 import Icon from '../../components/Icon.jsx';
 import TourMap from '../player/TourMap.jsx';
 import Rating from './Rating.jsx';
+import RatingsSection from './RatingsSection.jsx';
 import ModePicker from '../player/ModePicker.jsx';
 import AddToItinerarySheet from '../itineraries/AddToItinerarySheet.jsx';
 import { playPreview, stopPreview } from '../../lib/preview-audio.js';
@@ -74,6 +75,12 @@ export default function TourDetailPage() {
       .finally(() => { if (!abort.signal.aborted) { setLoading(false); setLangBusy(false); } });
     return () => abort.abort();
   }, [tourId, requestedLanguage, langRetry, load]);
+
+  // UC05: a rating change updates the header score without reloading the tour.
+  const onRatingSummary = useCallback((s) => {
+    if (!s) return;
+    setTour((t) => (t ? { ...t, averageRating: Number(s.averageRating) || 0, ratingCount: Number(s.ratingCount) || 0 } : t));
+  }, []);
 
   const changeLang = (code) => {
     if (langBusy || code === tour?.selectedLanguage) return;
@@ -196,15 +203,9 @@ export default function TourDetailPage() {
 
         {tour.description ? <p className="intro__desc">{tour.description}</p> : null}
 
-        {/* Đánh giá: chỉ điểm trung bình cho tới khi có UC05 */}
-        {tour.ratingCount ? (
-          <section className="detail__section" aria-labelledby="rev-h">
-            <h2 className="detail__h2" id="rev-h">Đánh giá</h2>
-            <p className="muted small">
-              Điểm trung bình {Number(tour.averageRating).toFixed(1).replace('.', ',')}/5 từ {tour.ratingCount} lượt đánh giá.
-            </p>
-          </section>
-        ) : null}
+        {/* UC05: summary, my rating, comments (anchor #ratings) */}
+        <RatingsSection tour={tour} onSummary={onRatingSummary} />
+
       </div>
 
       </div>
