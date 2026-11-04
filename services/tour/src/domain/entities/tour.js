@@ -34,11 +34,22 @@ export const EDITABLE_FIELDS = Object.freeze([
 ]);
 
 // Trạng thái "đang hiển thị với khách" — sửa nội dung thì phải gửi duyệt lại.
-const LIVE_STATUSES = new Set([TOUR_STATUS.PUBLIC, TOUR_STATUS.RESTRICTED]);
+// UC14 (#269): RESTRICTED is not here any more: it is never public and never reviewed, so editing a
+// restricted tour keeps it restricted (testers see the new content; no moderation, no catalog event).
+const LIVE_STATUSES = new Set([TOUR_STATUS.PUBLIC]);
+
+// UC14 (#269) — statuses from which the author may turn restricted mode on. A public tour must be
+// unpublished first; a tour in moderation must be edited back to draft first.
+const RESTRICTABLE_FROM = new Set([
+  TOUR_STATUS.DRAFT,
+  TOUR_STATUS.REJECTED,
+  TOUR_STATUS.CHANGES_REQUESTED,
+]);
+export const RESTRICTABLE_STATUSES = Object.freeze([...RESTRICTABLE_FROM]);
 
 // Xuất bản thẳng (bỏ qua kiểm duyệt — quyết định D1): tác giả được đưa tour lên
-// Công khai từ các trạng thái chưa công khai. HIDDEN/RESTRICTED là quyết định của
-// quản trị viên nên tác giả không tự gỡ được.
+// Công khai từ các trạng thái chưa công khai. HIDDEN là quyết định của quản trị viên nên
+// tác giả không tự gỡ được. RESTRICTED (UC14) must be turned off first (back to draft).
 const PUBLISHABLE_FROM = new Set([
   TOUR_STATUS.DRAFT,
   TOUR_STATUS.REJECTED,
@@ -87,6 +98,9 @@ export class Tour {
     this.moderationRevision = props.moderationRevision ?? null;
     // UC19 — reason of the last admin rejection / change request, shown to the author.
     this.reviewReason = props.reviewReason ?? null;
+    // UC14 (#269) — passcode bookkeeping (the hash itself never enters the entity).
+    this.passcodeVersion = props.passcodeVersion ?? 0;
+    this.passcodeSetAt = props.passcodeSetAt ?? null;
     this.createdAt = props.createdAt ?? null;
     this.updatedAt = props.updatedAt ?? null;
   }
@@ -104,6 +118,16 @@ export class Tour {
   /** UC02 — chỉ tour công khai (đã duyệt) mới hiện trong tìm kiếm công khai. */
   isPublic() {
     return this.status === TOUR_STATUS.PUBLIC;
+  }
+
+  /** UC14 (#269) — restricted mode (passcode; testers only). */
+  isRestricted() {
+    return this.status === TOUR_STATUS.RESTRICTED;
+  }
+
+  /** UC14 (#269) — the author can turn restricted mode on from the current status. */
+  canRestrict() {
+    return RESTRICTABLE_FROM.has(this.status);
   }
 
   /**
