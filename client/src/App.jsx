@@ -10,6 +10,8 @@
 //   /tours, /explore    — chuyển hướng về / (giữ tham số)
 //   /tour/:id           — chi tiết tour (UC02)
 //   /tour/:id/play      — trình nghe tour (UC04)
+//   /tour/:id/unlock    — nhập mã để mở tour truy cập hạn chế (UC14, cần đăng nhập)
+//   /tour/:id/restricted(/play) — chi tiết / trình nghe bản truy cập hạn chế (UC14)
 //   /itineraries        — lịch trình của tôi (UC07, cần đăng nhập)
 //   /itineraries/:id    — chỉnh sửa lịch trình (UC07, cần đăng nhập)
 //   /shared/:token      — xem lịch trình được chia sẻ (UC07/A4, công khai)
@@ -35,6 +37,7 @@ import {
 import DiscoverPage from './features/discover/DiscoverPage.jsx';
 import TourDetailPage from './features/tours/TourDetailPage.jsx';
 import TourPlayerPage from './features/player/TourPlayerPage.jsx';
+import UnlockTourPage from './features/tours/UnlockTourPage.jsx';
 import LoginPage from './features/auth/LoginPage.jsx';
 import RegisterPage from './features/auth/RegisterPage.jsx';
 import ForgotPasswordPage from './features/auth/ForgotPasswordPage.jsx';
@@ -61,6 +64,7 @@ import { UnreadCountLayout } from './features/notifications/UnreadCount.jsx';
 import SessionWatcher from './auth/SessionWatcher.jsx';
 import AppLayout from './components/shell/AppLayout.jsx';
 import { previewTour } from './lib/studio.js';
+import { fetchRestrictedTour } from './lib/restricted-access.js';
 
 // /tours và /explore cũ → màn Khám phá (giữ tham số; /explore mở tab Địa điểm).
 function RedirectToDiscover({ tab }) {
@@ -75,6 +79,20 @@ function RedirectToDiscover({ tab }) {
 function PlayTourRoute() {
   const { tourId } = useParams();
   return <TourPlayerPage backTo={`/tour/${tourId}`} backLabel="Chi tiết tour" />;
+}
+
+// UC14 — trình nghe bản truy cập hạn chế (chủ tour hoặc người thử đã mở khoá).
+function PlayRestrictedRoute() {
+  const { tourId } = useParams();
+  return (
+    <TourPlayerPage
+      loadDetail={(lang, opts) => fetchRestrictedTour(tourId, lang, opts)}
+      progressKey={`restricted:${tourId}`}
+      backTo={`/tour/${tourId}/restricted`}
+      backLabel="Chi tiết tour"
+      remember={false}
+    />
+  );
 }
 
 // UC13 — xem thử tour của chính tác giả: tái dùng trình phát UC04 nhưng nguồn là
@@ -118,6 +136,7 @@ const router = createBrowserRouter(
         <Route path="/itineraries" element={<ItinerariesPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/account/devices" element={<RequireAuth><DevicesPage /></RequireAuth>} />
+        <Route path="/tour/:tourId/unlock" element={<RequireAuth><UnlockTourPage /></RequireAuth>} />
         <Route path="/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
         <Route path="/admin/devices" element={<RequireAuth><OnlineDevicesPage /></RequireAuth>} />
         <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />
@@ -134,6 +153,7 @@ const router = createBrowserRouter(
       {/* Màn chi tiết có thanh hành động riêng ở đáy: ẩn tab dưới */}
       <Route element={<AppLayout tabs={false} />}>
         <Route path="/tour/:tourId" element={<TourDetailPage />} />
+        <Route path="/tour/:tourId/restricted" element={<RequireAuth><TourDetailPage key="restricted" restricted /></RequireAuth>} />
         <Route path="/itineraries/:id" element={<RequireAuth><ItineraryEditorPage /></RequireAuth>} />
         <Route path="/shared/:token" element={<SharedItineraryPage />} />
       </Route>
@@ -144,6 +164,7 @@ const router = createBrowserRouter(
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/tour/:tourId/play" element={<PlayTourRoute />} />
+      <Route path="/tour/:tourId/restricted/play" element={<RequireAuth><PlayRestrictedRoute /></RequireAuth>} />
       <Route path="/itinerary/:id/go" element={<RequireAuth><ItineraryPlayerPage /></RequireAuth>} />
       <Route path="/shared/:token/go" element={<SharedItineraryPlayerPage />} />
       <Route path="/studio/tours/:tourId/preview" element={<RequireContributor><PreviewTourRoute /></RequireContributor>} />
