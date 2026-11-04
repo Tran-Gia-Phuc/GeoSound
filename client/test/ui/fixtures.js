@@ -127,6 +127,15 @@ export async function fixtures(page) {
       path = u.pathname;
     if (path === '/api/tours') return json(route, { tours: [tour], total: 1, page: 1, limit: 12 });
     if (path === '/api/places') return json(route, { items: [], total: 0, page: 1, pageSize: 12 });
+    if (path === '/api/tours/' + id + '/ratings')
+      return json(route, {
+        summary: { averageRating: 0, ratingCount: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } },
+        items: [],
+        page: 1,
+        limit: 10,
+        total: 0,
+      });
+    if (path === '/api/tours/' + id + '/ratings/mine') return json(route, { rating: null });
     if (path === '/api/tours/' + id)
       return json(route, {
         tour: { ...tour, selectedLanguage: u.searchParams.get('lang') || 'vi' },
