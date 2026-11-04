@@ -7,11 +7,15 @@
 //   - Thanh hành động DÍNH ĐÁY: [Nghe thử] [Bắt đầu đi tour] → trình phát mở
 //     thẳng theo ?mode= (không còn màn intro thứ hai). Tải offline (UC03) ẩn.
 //   - E3: tour không còn khả dụng → thông báo + quay lại danh sách.
+//   - UC14: `restricted` = bản dành cho người thử (GET /api/tours/:id/restricted):
+//     trình phát ở /tour/:id/restricted/play, không thêm vào lịch trình, không
+//     đánh giá; 404 (mất quyền, vd tác giả đổi mã) → về màn nhập mã.
 // =========================================================
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { fetchTourDetail } from '../../lib/api.js';
+import { fetchRestrictedTour, unlockPath } from '../../lib/restricted-access.js';
 import { langLabel, formatMinutes, voiceLabel } from '../../lib/format.js';
 import { TOUR_TYPE_LABELS } from '../../lib/tours.js';
 import { useBack } from '../../components/shell/AppHeader.jsx';
@@ -28,7 +32,7 @@ import './detail-a.css';
 
 const BACK = '/';
 
-export default function TourDetailPage() {
+export default function TourDetailPage({ restricted = false }) {
   const { tourId } = useParams();
   const navigate = useNavigate();
   const [sp, setSp] = useSearchParams();
@@ -56,8 +60,8 @@ export default function TourDetailPage() {
   }, [pendingAdd, clearPendingAdd]);
 
   const load = useCallback(
-    async (useLang, opts) => fetchTourDetail(tourId, useLang, opts),
-    [tourId],
+    async (useLang, opts) => (restricted ? fetchRestrictedTour : fetchTourDetail)(tourId, useLang, opts),
+    [tourId, restricted],
   );
 
   useEffect(() => {
@@ -68,12 +72,16 @@ export default function TourDetailPage() {
       .then((result) => { if (!abort.signal.aborted) { loadedTour.current=result; setTour(result); } })
       .catch((e) => {
         if (abort.signal.aborted || e.name === 'AbortError') return;
+        if (restricted && e.status === 404) {
+          navigate(unlockPath(tourId), { replace: true, state: { lost: true } });
+          return;
+        }
         if (hasPrevious && e.status !== 404) setLanguageError({ requested:requestedLanguage, message:e.message || 'Không đổi được ngôn ngữ. Nội dung trước vẫn được giữ.' });
         else setError({ message:e.offline ? 'Mất kết nối mạng' : e.status === 404 ? 'Tour không còn khả dụng' : e.message, offline:e.offline, notFound:e.status === 404 });
       })
       .finally(() => { if (!abort.signal.aborted) { setLoading(false); setLangBusy(false); } });
     return () => abort.abort();
-  }, [tourId, requestedLanguage, langRetry, load]);
+  }, [tourId, requestedLanguage, langRetry, load, restricted, navigate]);
 
   const changeLang = (code) => {
     if (langBusy || code === tour?.selectedLanguage) return;
@@ -123,7 +131,7 @@ export default function TourDetailPage() {
     const p = new URLSearchParams({ mode });
     if (lang) p.set('lang', lang);
     if (stop) p.set('stop', stop);
-    return `/tour/${encodeURIComponent(tour.id)}/play?${p.toString()}`;
+    return `/tour/${encodeURIComponent(tour.id)}/${restricted ? 'restricted/play' : 'play'}?${p.toString()}`;
   };
   const hasGeo =
     (tour.places || []).some((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)) ||
@@ -160,6 +168,7 @@ export default function TourDetailPage() {
         <h1 className="intro__title">{tour.title}</h1>
 
         <div className="intro__chips">
+          {restricted ? <span className="chip chip--live"><Icon name="eye-off" size={13} /> Bản thử nghiệm (truy cập hạn chế)</span> : null}
           {tour.city ? <span className="chip"><Icon name="map-pin" size={13} /> {tour.city}</span> : null}
           <span className="chip"><Icon name="list" size={13} /> {tour.placeCount} điểm</span>
           {tour.duration ? <span className="chip"><Icon name="clock" size={13} /> {formatMinutes(tour.duration)}</span> : null}
@@ -167,7 +176,7 @@ export default function TourDetailPage() {
         </div>
 
         <div className="detail__rating">
-          <Rating value={tour.averageRating} count={tour.ratingCount} />
+          {restricted ? null : <Rating value={tour.averageRating} count={tour.ratingCount} />}
           <span className="muted small"><Icon name="volume" size={13} /> {voiceLabel(tour.voiceLabel)}</span>
         </div>
 
@@ -197,7 +206,7 @@ export default function TourDetailPage() {
         {tour.description ? <p className="intro__desc">{tour.description}</p> : null}
 
         {/* Đánh giá: chỉ điểm trung bình cho tới khi có UC05 */}
-        {tour.ratingCount ? (
+        {tour.ratingCount && !restricted ? (
           <section className="detail__section" aria-labelledby="rev-h">
             <h2 className="detail__h2" id="rev-h">Đánh giá</h2>
             <p className="muted small">
@@ -243,13 +252,15 @@ export default function TourDetailPage() {
                   >
                     <Icon name={previewing === p.id ? 'pause' : 'play'} size={16} />
                   </button>
-                  <button
-                    className="iconbtn iconbtn--sm"
-                    onClick={() => setAdding({ placeId: p.id, name: p.name })}
-                    aria-label={`Thêm ${p.name} vào lịch trình`}
-                  >
-                    <Icon name="plus" size={16} />
-                  </button>
+                  {restricted ? null : (
+                    <button
+                      className="iconbtn iconbtn--sm"
+                      onClick={() => setAdding({ placeId: p.id, name: p.name })}
+                      aria-label={`Thêm ${p.name} vào lịch trình`}
+                    >
+                      <Icon name="plus" size={16} />
+                    </button>
+                  )}
                 </li>
               ))}
             </ol>
@@ -270,7 +281,7 @@ export default function TourDetailPage() {
         </div>
       ) : null}
 
-      <AddToItinerarySheet open={!!adding} place={adding} onClose={() => setAdding(null)} />
+      {restricted ? null : <AddToItinerarySheet open={!!adding} place={adding} onClose={() => setAdding(null)} />}
     </div>
   );
 }
