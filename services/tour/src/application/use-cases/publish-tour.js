@@ -10,6 +10,7 @@
 // Without it: direct publish as today.
 // #240 (CHATBOT_EVENTS_ENABLED): with `catalog`, entering public sends tour.published and
 // UnpublishTour sends tour.unpublished (reason 'unpublished'), after the save.
+// UC14 (#269): a restricted tour is refused (409 tour_restricted): restricted mode must be turned off first.
 // =========================================================
 import { checkPublishReadiness } from '../../domain/tour/publish-readiness.js';
 import {
@@ -17,6 +18,7 @@ import {
   NotTourOwnerError,
   TourNotReadyError,
   TourStatusTransitionError,
+  TourRestrictedError,
 } from '../../domain/errors/index.js';
 import { submitTourForModeration } from './submit-for-moderation.js';
 import { notifyTourPublished, notifyTourUnpublished } from './notify-tour-catalog.js';
@@ -73,6 +75,9 @@ export class PublishTour {
   async execute(input) {
     const tour = await loadOwned(this.tourRepo, input);
     if (tour.isPublic()) return { tour: tour.toPublic(), changed: false };
+    // UC14 (#269): a restricted tour is never sent to moderation / published as is; the author turns
+    // restricted mode off first (back to draft, testers lose access), then submits (UC15).
+    if (tour.isRestricted()) throw new TourRestrictedError();
     if (!tour.canPublish()) {
       throw new TourStatusTransitionError('Tour đang bị quản trị viên ẩn/hạn chế, không thể tự xuất bản');
     }
