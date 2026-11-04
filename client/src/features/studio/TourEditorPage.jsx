@@ -3,6 +3,7 @@
 //   - Sửa nội dung (tên/ngôn ngữ/loại/thành phố/thời lượng/mô tả/ảnh bìa).
 //     Lưu chỉ gửi các trường THAY ĐỔI; sửa tour công khai sẽ về Nháp (A1).
 //   - Xoá tour (A2) — xác nhận bằng ConfirmDialog.
+//   - Lịch sử kiểm duyệt (UC16): trạng thái + thông báo về tour này kèm lý do.
 // Các bước khác (điểm dừng, vùng kích hoạt, ngôn ngữ, xuất bản) nằm trên stepper
 // của StudioTourLayout.
 // =========================================================
@@ -12,7 +13,8 @@ import Icon from '../../components/Icon.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import TourForm from './TourForm.jsx';
 import { useStudioTour } from './StudioTourLayout.jsx';
-import { updateTour, deleteTour } from '../../lib/studio.js';
+import TourModerationHistory from '../notifications/TourModerationHistory.jsx';
+import { updateTour, deleteTour, statusMeta } from '../../lib/studio.js';
 
 export default function TourEditorPage() {
   const navigate = useNavigate();
@@ -95,6 +97,8 @@ export default function TourEditorPage() {
         serverError={saveError}
         onSubmit={onSave}
       />
+
+      <TourModerationHistory tourId={tour.id} statusLabel={statusMeta(tour.status).label} />
 
       <section className="studio-danger">
         <h2 className="studio__h2">Vùng nguy hiểm</h2>

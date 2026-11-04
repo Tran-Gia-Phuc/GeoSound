@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Icon from '../../components/Icon.jsx';
 import AppHeader from '../../components/shell/AppHeader.jsx';
+import AdminNav from './AdminNav.jsx';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { getOnlineDevices } from '../../lib/sessions.js';
 import { formatDateTime, formatLastActive } from '../../lib/format.js';
@@ -69,7 +70,8 @@ export default function OnlineDevicesPage() {
 
   return (
     <div className="page admin-devices">
-      <AppHeader title="Thiết bị đang online" backTo="/account" />
+      <AppHeader title="Thiết bị đang online" backTo="/admin" />
+      <AdminNav />
 
       {error ? (
         <div className="alert alert--warn" role="alert">

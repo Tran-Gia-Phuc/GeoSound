@@ -88,3 +88,20 @@ export function formatDateTime(iso) {
   const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   return `${time} ${d.toLocaleDateString('vi-VN')}`;
 }
+
+/**
+ * Relative time of a notification (UC16): "Vừa xong", "x phút trước", "x giờ trước",
+ * "x ngày trước" (under a week), then the date. Invalid date -> ''.
+ */
+export function formatRelative(iso, now = Date.now()) {
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return '';
+  const min = Math.floor(Math.max(0, now - t) / 60000);
+  if (min < 1) return 'Vừa xong';
+  if (min < 60) return `${min} phút trước`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h} giờ trước`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d} ngày trước`;
+  return new Date(t).toLocaleDateString('vi-VN');
+}
