@@ -10,13 +10,14 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import Icon from '../Icon.jsx';
 import { useAuth } from '../../auth/AuthContext.jsx';
+import { badgeText, useUnreadCount } from '../../features/notifications/UnreadCount.jsx';
 import './studio-navigation.css';
 
 const TABS = [
   { to: '/', icon: 'search', label: 'Khám phá', match: (p) => p === '/' || p.startsWith('/tour/') },
   { to: '/itineraries', icon: 'route', label: 'Lịch trình', match: (p) => p.startsWith('/itinerar') || p.startsWith('/shared/') },
   { to: '/studio', icon: 'mic', label: 'Studio', match: (p) => p.startsWith('/studio'), contributorOnly: true },
-  { to: '/account', icon: 'user', label: 'Tài khoản', match: (p) => p.startsWith('/account') },
+  { to: '/account', icon: 'user', label: 'Tài khoản', match: (p) => p.startsWith('/account') || p.startsWith('/notifications') },
 ];
 
 function initials(user) {
@@ -26,6 +27,8 @@ function initials(user) {
 export default function AppLayout({ tabs = true }) {
   const { pathname } = useLocation();
   const { authenticated, user, isContributor } = useAuth();
+  const { unread } = useUnreadCount(); // UC16: always 0 for a guest
+  const unreadLabel = unread ? `, ${unread} thông báo chưa đọc` : '';
   const visible = TABS.filter((t) => !t.contributorOnly || isContributor);
   const inStudio = isContributor && pathname.startsWith('/studio');
   const studioLinks = [
@@ -58,6 +61,16 @@ export default function AppLayout({ tabs = true }) {
                 </NavLink>
               ))}
           </nav>
+          {authenticated ? (
+            <NavLink
+              to="/notifications"
+              className={({ isActive }) => `topnav__bell ${isActive ? 'is-active' : ''}`}
+              aria-label={`Thông báo${unreadLabel}`}
+            >
+              <Icon name="bell" size={20} />
+              {unread ? <span className="notif-badge" aria-hidden="true">{badgeText(unread)}</span> : null}
+            </NavLink>
+          ) : null}
           <NavLink
             to="/account"
             className={() => `topnav__account ${pathname.startsWith('/account') ? 'is-active' : ''}`}
@@ -98,14 +111,20 @@ export default function AppLayout({ tabs = true }) {
         <nav className="tabbar" aria-label="Điều hướng chính">
           {visible.map((t) => {
             const active = t.match(pathname);
+            // UC16: the account tab carries the unread badge on phones (the menu has "Thông báo").
+            const badge = t.to === '/account' && unread ? badgeText(unread) : null;
             return (
               <NavLink
                 key={t.to}
                 to={t.to}
                 className={() => `tabbar__item ${active ? 'is-active' : ''}`}
                 aria-current={active ? 'page' : undefined}
+                aria-label={badge ? `${t.label}${unreadLabel}` : undefined}
               >
-                <Icon name={t.icon} size={22} />
+                <span className="tabbar__icon">
+                  <Icon name={t.icon} size={22} />
+                  {badge ? <span className="notif-badge" aria-hidden="true">{badge}</span> : null}
+                </span>
                 <span>{t.label}</span>
               </NavLink>
             );

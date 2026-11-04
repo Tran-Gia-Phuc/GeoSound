@@ -1,7 +1,7 @@
 // =========================================================
 // AccountPage (/account) — tab "Tài khoản":
 //   - Chưa đăng nhập: Đăng nhập / Đăng ký (khách không bắt buộc có tài khoản).
-//   - Đã đăng nhập: hồ sơ, lối tắt Lịch trình / Thiết bị (UC23) / Studio, trở thành tác giả, đăng xuất.
+//   - Đã đăng nhập: hồ sơ, lối tắt Thông báo (UC16) / Lịch trình / Thiết bị (UC23) / Studio, trở thành tác giả, đăng xuất.
 //   - Giao diện sáng / tối / theo hệ thống (chuyển vào đây từ mọi header).
 // =========================================================
 import { Link, useNavigate } from 'react-router-dom';
@@ -9,6 +9,7 @@ import Icon from '../../components/Icon.jsx';
 import AppHeader from '../../components/shell/AppHeader.jsx';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { useTheme, THEME_OPTIONS } from '../../hooks/useTheme.js';
+import { badgeText, useUnreadCount } from '../notifications/UnreadCount.jsx';
 
 const ROLE_LABELS = { tourist: 'Khách du lịch', contributor: 'Tác giả tour', admin: 'Quản trị viên' };
 
@@ -16,6 +17,7 @@ export default function AccountPage() {
   const navigate = useNavigate();
   const { authenticated, user, isContributor, isAdmin, logout } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { unread } = useUnreadCount();
 
   return (
     <div className="page page--narrow">
@@ -48,6 +50,15 @@ export default function AccountPage() {
 
       {authenticated ? (
         <nav className="menu" aria-label="Lối tắt">
+          <Link className="menu__item" to="/notifications">
+            <Icon name="bell" size={20} /> <span>Thông báo</span>
+            {unread ? (
+              <span className="notif-badge notif-badge--inline">
+                {badgeText(unread)}<span className="sr-only"> chưa đọc</span>
+              </span>
+            ) : null}
+            <Icon name="chevron-left" size={16} className="menu__chev" />
+          </Link>
           <Link className="menu__item" to="/itineraries">
             <Icon name="route" size={20} /> <span>Lịch trình của tôi</span>
             <Icon name="chevron-left" size={16} className="menu__chev" />
