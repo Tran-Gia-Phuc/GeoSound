@@ -3,6 +3,7 @@
 // tabs={false}; trình phát / đăng nhập là toàn màn hình.
 //   /account            — tài khoản + giao diện sáng/tối
 //   /account/devices    — thiết bị đang đăng nhập (UC23, cần đăng nhập)
+//   /notifications      — trung tâm thông báo (UC16, cần đăng nhập)
 //   /                   — Khám phá: tìm tour + địa điểm (UC02, UC07) — ?tab=&q=&city=…
 //   /login, /register   — đăng nhập / đăng ký (chọn vai trò) (UC01)
 //   /forgot-password    — quên mật khẩu (UC01 A2)
@@ -55,6 +56,8 @@ import PublishStepPage from './features/studio/PublishStepPage.jsx';
 import AccountPage from './features/account/AccountPage.jsx';
 import DevicesPage from './features/account/DevicesPage.jsx';
 import OnlineDevicesPage from './features/admin/OnlineDevicesPage.jsx';
+import NotificationsPage from './features/notifications/NotificationsPage.jsx';
+import { UnreadCountLayout } from './features/notifications/UnreadCount.jsx';
 import SessionWatcher from './auth/SessionWatcher.jsx';
 import AppLayout from './components/shell/AppLayout.jsx';
 import { previewTour } from './lib/studio.js';
@@ -105,6 +108,8 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     // SessionWatcher: sends the user to /login when the server ends the session (UC23).
     <Route element={<SessionWatcher />}>
+      {/* UC16: các màn có khung app dùng chung một số thông báo chưa đọc */}
+      <Route element={<UnreadCountLayout />}>
       {/* Màn gốc của các tab */}
       <Route element={<AppLayout />}>
         <Route path="/" element={<DiscoverPage />} />
@@ -113,6 +118,7 @@ const router = createBrowserRouter(
         <Route path="/itineraries" element={<ItinerariesPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/account/devices" element={<RequireAuth><DevicesPage /></RequireAuth>} />
+        <Route path="/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
         <Route path="/admin/devices" element={<RequireAuth><OnlineDevicesPage /></RequireAuth>} />
         <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />
         <Route path="/studio/tours/new" element={<RequireContributor><TourCreatePage /></RequireContributor>} />
@@ -130,6 +136,7 @@ const router = createBrowserRouter(
         <Route path="/tour/:tourId" element={<TourDetailPage />} />
         <Route path="/itineraries/:id" element={<RequireAuth><ItineraryEditorPage /></RequireAuth>} />
         <Route path="/shared/:token" element={<SharedItineraryPage />} />
+      </Route>
       </Route>
 
       {/* Toàn màn hình */}
