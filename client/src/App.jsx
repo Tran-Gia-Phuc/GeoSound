@@ -71,7 +71,7 @@ function RedirectToDiscover({ tab }) {
 // UC04 mở từ chi tiết tour (UC02) — thoát thì quay về chi tiết tour.
 function PlayTourRoute() {
   const { tourId } = useParams();
-  return <TourPlayerPage backTo={`/tour/${tourId}`} backLabel="Chi tiết tour" />;
+  return <TourPlayerPage backTo={`/tour/${tourId}`} backLabel="Chi tiết tour" rateHref={`/tour/${tourId}#ratings`} />;
 }
 
 // UC13 — xem thử tour của chính tác giả: tái dùng trình phát UC04 nhưng nguồn là
