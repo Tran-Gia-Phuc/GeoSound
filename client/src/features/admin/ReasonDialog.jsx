@@ -2,6 +2,8 @@
 // ReasonDialog — confirm an admin decision with a reason box (UC20 hide / restore / dismiss,
 // reused by UC21). `required` makes the reason mandatory; the length limit is REASON_MAX.
 // The parent closes it; `error` shows a server error (e.g. 422) inside the dialog.
+// `children` adds fields under the reason (UC21 suspension length); `validate()` checks them
+// and returns an error text or null.
 // =========================================================
 import { useEffect, useId, useState } from 'react';
 import Modal from '../../components/Modal.jsx';
@@ -16,6 +18,8 @@ export default function ReasonDialog({
   danger = false,
   busy = false,
   error = null,
+  validate,
+  children,
   onConfirm,
   onCancel,
 }) {
@@ -35,6 +39,8 @@ export default function ReasonDialog({
     const text = reason.trim();
     if (required && !text) return setInvalid('Vui lòng nhập lý do');
     if (text.length > REASON_MAX) return setInvalid(`Lý do tối đa ${REASON_MAX} ký tự`);
+    const extra = validate ? validate() : null;
+    if (extra) return setInvalid(extra);
     setInvalid(null);
     onConfirm(text);
   }
@@ -65,6 +71,7 @@ export default function ReasonDialog({
             </span>
           )}
         </div>
+        {children}
         <div className="confirm__actions">
           <button type="button" className="btn btn--ghost" onClick={onCancel} disabled={busy}>Huỷ</button>
           <button type="submit" className={`btn ${danger ? 'btn--danger' : 'btn--primary'}`} disabled={busy}>

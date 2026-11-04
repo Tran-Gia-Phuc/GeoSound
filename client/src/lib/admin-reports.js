@@ -17,11 +17,15 @@ export const REPORT_REASON_LABELS = {
 };
 export const reasonLabel = (r) => REPORT_REASON_LABELS[r] || r || 'Khác';
 
-/** Vietnamese labels of the admin_actions log entries (UC21 adds more later). */
+/** Vietnamese labels of the admin_actions log entries (UC20 tours, UC21 accounts). */
 export const ADMIN_ACTION_LABELS = {
   hide_tour: 'Ẩn tour',
   restore_tour: 'Khôi phục tour',
   dismiss_reports: 'Bỏ qua báo cáo',
+  warn_user: 'Cảnh báo tài khoản',
+  suspend_user: 'Tạm khoá tài khoản',
+  ban_user: 'Cấm tài khoản',
+  restore_user: 'Khôi phục tài khoản',
 };
 export const actionLabel = (a) => ADMIN_ACTION_LABELS[a] || a;
 
