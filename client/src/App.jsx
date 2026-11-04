@@ -17,6 +17,8 @@
 //   /shared/:token      — xem lịch trình được chia sẻ (UC07/A4, công khai)
 //   /itinerary/:id/go   — đi theo lịch trình của tôi (UC08, cần đăng nhập)
 //   /shared/:token/go   — đi theo lịch trình được chia sẻ (UC08, công khai)
+//   /admin              — khu quản trị (chỉ quản trị viên): /admin/reports (UC20), /admin/reports/:tourId,
+//                         /admin/devices (UC23)
 //   /studio             — tour của tôi (UC09, chỉ người đóng góp)
 //   /studio/tours/new   — tạo tour (UC09)
 //   /studio/tours/:id   — soạn tour theo các bước (StudioTourLayout + stepper):
@@ -59,6 +61,9 @@ import PublishStepPage from './features/studio/PublishStepPage.jsx';
 import AccountPage from './features/account/AccountPage.jsx';
 import DevicesPage from './features/account/DevicesPage.jsx';
 import OnlineDevicesPage from './features/admin/OnlineDevicesPage.jsx';
+import AdminHomePage from './features/admin/AdminHomePage.jsx';
+import ReportedToursPage from './features/admin/ReportedToursPage.jsx';
+import ReportDossierPage from './features/admin/ReportDossierPage.jsx';
 import NotificationsPage from './features/notifications/NotificationsPage.jsx';
 import { UnreadCountLayout } from './features/notifications/UnreadCount.jsx';
 import SessionWatcher from './auth/SessionWatcher.jsx';
@@ -78,7 +83,7 @@ function RedirectToDiscover({ tab }) {
 // UC04 mở từ chi tiết tour (UC02) — thoát thì quay về chi tiết tour.
 function PlayTourRoute() {
   const { tourId } = useParams();
-  return <TourPlayerPage backTo={`/tour/${tourId}`} backLabel="Chi tiết tour" />;
+  return <TourPlayerPage backTo={`/tour/${tourId}`} backLabel="Chi tiết tour" rateHref={`/tour/${tourId}#ratings`} />;
 }
 
 // UC14 — trình nghe bản truy cập hạn chế (chủ tour hoặc người thử đã mở khoá).
@@ -137,6 +142,9 @@ const router = createBrowserRouter(
         <Route path="/account" element={<AccountPage />} />
         <Route path="/account/devices" element={<RequireAuth><DevicesPage /></RequireAuth>} />
         <Route path="/tour/:tourId/unlock" element={<RequireAuth><UnlockTourPage /></RequireAuth>} />
+        <Route path="/admin" element={<RequireAuth><AdminHomePage /></RequireAuth>} />
+        <Route path="/admin/reports" element={<RequireAuth><ReportedToursPage /></RequireAuth>} />
+        <Route path="/admin/reports/:tourId" element={<RequireAuth><ReportDossierPage /></RequireAuth>} />
         <Route path="/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
         <Route path="/admin/devices" element={<RequireAuth><OnlineDevicesPage /></RequireAuth>} />
         <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />
