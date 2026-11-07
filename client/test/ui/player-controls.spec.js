@@ -76,13 +76,29 @@ test('seek uses real media time in 15-second increments and clamps', async ({ pa
   await page.waitForTimeout(400);
   const pause = page.getByRole('button', { name: 'Tạm dừng', exact: true });
   if (await pause.isVisible()) await pause.click();
+  // Paused media: every position below is exact, so a stale or snapped-back seek fails the test.
+  await expect(page.getByRole('button', { name: 'Phát', exact: true })).toBeVisible();
+  const position = () => expect.poll(async () => Number(await slider.inputValue()));
+  const forward = page.getByRole('button', { name: 'Tua tới 15 giây' });
+  const back = page.getByRole('button', { name: 'Tua lùi 15 giây' });
   await slider.focus();
   await slider.press('Home');
-  await expect.poll(async () => Number(await slider.inputValue())).toBeLessThan(1);
-  await page.getByRole('button', { name: 'Tua tới 15 giây' }).click();
-  await expect.poll(async () => Number(await slider.inputValue())).toBeCloseTo(15, 0);
-  await page.getByRole('button', { name: 'Tua lùi 15 giây' }).click();
-  await expect.poll(async () => Number(await slider.inputValue())).toBeLessThan(1);
-  await page.getByRole('button', { name: 'Tua lùi 15 giây' }).click();
-  await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThanOrEqual(0);
+  await position().toBe(0);
+  await forward.click();
+  await position().toBe(15);
+  await forward.click();
+  await position().toBe(30);
+  await back.click();
+  await position().toBe(15);
+  await back.click();
+  await position().toBe(0);
+  await back.click();
+  await position().toBe(0);
+  // Clamp at the real media duration (the WAV is 90 s long).
+  await slider.press('End');
+  await position().toBeCloseTo(90, 1);
+  await forward.click();
+  await position().toBeCloseTo(90, 1);
+  await back.click();
+  await position().toBeCloseTo(75, 1);
 });

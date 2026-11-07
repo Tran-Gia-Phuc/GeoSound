@@ -74,7 +74,7 @@ Limits: title 200, tour description 5000, place name 200, place description 2000
 - Small commits, "one commit, one change", format `<type>: <short description>` with `feat, docs, fix, chore, test, refactor`.
 - **Never `git add .` or `git add -A`.** Add explicit paths. Untracked files `CNPM-main/`, `PROJECT_TREE.md`, `package-lock.json` at the repo root are not ours: never add them.
 - Do not push, open a PR or merge unless the user says so. Before asking to push, show `git log --oneline` of the branch. PR: `gh pr create --base develop --fill --body "Closes #<N>"`; merge with "Create a merge commit" (no squash, no `--admin`).
-- Merge only when no CI check fails. The `Client — browser smoke tests` job (`player-controls.spec.js`) is known to be flaky: rerun the failed job and merge when green. After a merge, check the issue is CLOSED (else close it with "Done in PR #<PR>").
+- Merge only when no CI check fails. A failing `Client — browser smoke tests` job is a real failure since #300 fixed the seek bug (the old "known flaky" `player-controls.spec.js`): read the log and fix it; rerun only for a clear infrastructure error (runner, network). After a merge, check the issue is CLOSED (else close it with "Done in PR #<PR>").
 - Docs go under `docs/` in the right phase folder with a `README.md` index; never delete old docs.
 
 ## 6. Safety
@@ -91,7 +91,7 @@ Limits: title 200, tour description 5000, place name 200, place description 2000
 The host has no `node_modules` or Python deps: tests run in throwaway containers from the built images. The exact commands (AI pytest, Node tests in the image and repo layouts, Prisma validate) are in `.claude/agents/test-runner.md` and `.claude/skills/ai-task/SKILL.md` step 3; the e2e with the AI stub is in `docs/03-testing/moderation-e2e.md`.
 
 - Whole stack: `docker compose up -d --build` (needs the root `.env`, which you must not read). Add `--build` after changing `requirements.txt` or `package.json`. Phone demo through ngrok: `scripts/demo/start-demo.ps1` (`docs/04-guides/phone-demo.md`). The client source is mounted: client changes are live without a rebuild.
-- Client UI tests (Playwright, on a copy of `client/`): the exact command is in `.claude/skills/uc-task/SKILL.md` step 7. `player-controls.spec.js` "seek ..." also fails on `develop`; compare before blaming a change.
+- Client UI tests (Playwright, on a copy of `client/`): the exact command is in `.claude/skills/uc-task/SKILL.md` step 7.
 - Compose check: `docker compose -f docker-compose.yml config -q`; never run `config` without `-q` (it prints secrets).
 - Logs: `docker compose logs --tail 30 <service>`. Use `git --no-pager`. The root `.env` must have no duplicated keys.
 
