@@ -21,7 +21,7 @@ they follow. Any signed-in user can edit their own name, introduction and avatar
 | R5 | Follow and unfollow are idempotent. The unique pair (follower, author) decides; concurrent follows of the same pair leave one row. Unfollow is always allowed, so a follow of an author who later lost the page can still be removed |
 | R6 | Avatar: uploaded by the client through the existing Media upload; Auth only stores the URL. Accepted: any `https://` URL, the Media form `http(s)://<host>/api/media/files/images/...`, or the path `/api/media/files/images/...`. Refused: `javascript:`, `data:`, other `http` paths, protocol-relative `//host`, user info, whitespace, backslashes, `..` segments, more than 500 characters |
 | R7 | Bio: trimmed, at most 500 characters; full name trimmed, 1..120. `null` or blank clears bio and avatar; the full name cannot be cleared |
-| R8 | The author page never shows the email, role, status or sign-in data. Only `PATCH /me/profile` (the owner) returns the email |
+| R8 | The author page never shows the email, role, status or sign-in data. Only the owner routes `GET` / `PATCH /me/profile` return the email |
 | R9 | Only public tours are listed on the page (UC18 business rule); an author without public tours shows an empty list (E1) |
 | R10 | No notification to followers when an author publishes (AI_PLAN L12) |
 
@@ -60,6 +60,7 @@ only the given profile columns (never the password, role or UC21 status).
 | `PUT` | `/authors/:id/follow` | signed in | | `{ following: true, followerCount }` |
 | `DELETE` | `/authors/:id/follow` | signed in | | `{ following: false, followerCount }` |
 | `GET` | `/me/following` | signed in | `page` (1..), `limit` (1..50, default 20) | `{ items, total, page, limit }`, newest follow first |
+| `GET` | `/me/profile` | signed in, any role | | `{ id, email, fullName, role, bio, avatarUrl }` (#298) |
 | `PATCH` | `/me/profile` | signed in, any role | `{ fullName?, bio?, avatarUrl? }`, at least one | author + `email`, `role` |
 
 Author: `{ id, fullName, avatarUrl, bio, followerCount, joinedAt }`; follow list items add
@@ -67,7 +68,7 @@ Author: `{ id, fullName, avatarUrl, bio, followerCount, joinedAt }`; follow list
 
 Errors: 400 `validation_error` (body or query; Vietnamese message per field), 400 `self_follow`,
 401 from the guard, 404 `author_not_found` "Không tìm thấy tác giả", 404 `user_not_found` (profile
-edit of an account that no longer exists).
+read or edit of an account that no longer exists).
 
 The access token `name` claim (UC05) follows the new full name at the next refresh; nothing else changes.
 
@@ -86,6 +87,9 @@ None. Follows and profile data stay inside Auth (R10).
 - `/authors/:id`: avatar, name, bio, follower count, follow button (sign-in prompt when anonymous),
   public tours (empty state for E1). Linked from the tour detail author line.
 - Account menu: "Hồ sơ tác giả" (edit name, bio, avatar via Media upload) and "Đang theo dõi".
+- The profile editor (`/account/profile`) starts from `GET /me/profile` for every role (#298): a
+  tourist or admin has no author page, so neither the author page nor the stored user is a source
+  for the bio and avatar. Loading and error-with-retry states.
 - Avatar URLs go through `localizeUrl` like other Media URLs.
 
 ## 8. Checks

@@ -17,6 +17,7 @@ import {
   FollowAuthor,
   UnfollowAuthor,
   ListFollowing,
+  GetMyProfile,
   UpdateMyProfile,
 } from '../src/application/use-cases/author-page.js';
 import { updateProfileSchema, followingQuerySchema } from '../src/application/dtos/schemas.js';
@@ -117,6 +118,7 @@ function world() {
     follow: new FollowAuthor(deps),
     unfollow: new UnfollowAuthor(deps),
     following: new ListFollowing(deps),
+    me: new GetMyProfile(deps),
     update: new UpdateMyProfile(deps),
   };
 }
@@ -265,7 +267,7 @@ test('DTOs: profile body needs one field, null / blank clear, bad URL refused; f
 async function withServer(w, fn) {
   const authorController = new AuthorController({
     getAuthorProfile: w.profile, getFollowState: w.state, followAuthor: w.follow,
-    unfollowAuthor: w.unfollow, listFollowing: w.following, updateMyProfile: w.update,
+    unfollowAuthor: w.unfollow, listFollowing: w.following, getMyProfile: w.me, updateMyProfile: w.update,
   });
   // Stand-in for shared verifyJwt(roles): "Bearer <userId>:<role>".
   const guard = (roles = []) => (req, res, next) => {
@@ -313,6 +315,7 @@ test('HTTP: author page is public; follow routes need sign-in', async () => {
     assert.equal((await call('PUT', '/authors/c1/follow')).status, 401);
     assert.equal((await call('DELETE', '/authors/c1/follow')).status, 401);
     assert.equal((await call('GET', '/me/following')).status, 401);
+    assert.equal((await call('GET', '/me/profile')).status, 401);
     assert.equal((await call('PATCH', '/me/profile', { body: { bio: 'x' } })).status, 401);
   });
 });
@@ -346,5 +349,39 @@ test('HTTP: follow, state, unfollow, self follow, list, profile update', async (
       const bad = await call('PATCH', '/me/profile', { as: 'c1:contributor', body });
       assert.deepEqual([bad.status, bad.body.code], [400, 'validation_error'], JSON.stringify(body));
     }
+  });
+});
+
+test('GetMyProfile (#298): own profile for any role, with email and role; 404 user_not_found when gone', async () => {
+  const w = world();
+  assert.deepEqual(await w.me.execute({ userId: 'c1' }), {
+    id: 'c1', email: 'an@mail.com', fullName: 'Nguyễn An', role: 'contributor', bio: 'Hướng dẫn viên Hội An', avatarUrl: null,
+  });
+  assert.deepEqual(await w.me.execute({ userId: 't1' }), {
+    id: 't1', email: 't1@mail.com', fullName: 'Khách 1', role: 'tourist', bio: null, avatarUrl: null,
+  });
+  assert.equal((await w.me.execute({ userId: 'admin1' })).role, 'admin');
+  // Not an author page: a restricted account still reads its own profile.
+  assert.equal((await w.me.execute({ userId: 'banned' })).id, 'banned');
+  for (const id of ['ghost', '', undefined]) {
+    await assert.rejects(w.me.execute({ userId: id }), (e) => e.status === 404 && e.code === 'user_not_found', String(id));
+  }
+});
+
+test('HTTP: GET /me/profile returns the caller profile and reflects PATCH; 404 when the account is gone', async () => {
+  const w = world();
+  await withServer(w, async (call) => {
+    const admin = await call('GET', '/me/profile', { as: 'admin1:admin' });
+    assert.equal(admin.status, 200);
+    assert.deepEqual(Object.keys(admin.body).sort(), ['avatarUrl', 'bio', 'email', 'fullName', 'id', 'role']);
+    assert.deepEqual([admin.body.email, admin.body.role, admin.body.bio], ['ad@mail.com', 'admin', null]);
+    assert.equal(admin.body.passwordHash, undefined);
+
+    await call('PATCH', '/me/profile', { as: 't1:tourist', body: { bio: 'Thích đi bộ', avatarUrl: '/api/media/files/images/a.png' } });
+    const tourist = await call('GET', '/me/profile', { as: 't1:tourist' });
+    assert.deepEqual([tourist.status, tourist.body.bio, tourist.body.avatarUrl], [200, 'Thích đi bộ', '/api/media/files/images/a.png']);
+
+    const gone = await call('GET', '/me/profile', { as: 'ghost:tourist' });
+    assert.deepEqual([gone.status, gone.body.code], [404, 'user_not_found']);
   });
 });

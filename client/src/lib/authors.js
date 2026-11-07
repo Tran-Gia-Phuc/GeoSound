@@ -39,6 +39,15 @@ export function listFollowing({ page = 1, limit = 20 } = {}, opts) {
   return api.get(`/api/auth/me/following?page=${page}&limit=${limit}`, { ...opts, auth: true });
 }
 
+/**
+ * Signed in, any role (#298): GET /api/auth/me/profile -> { id, email, fullName, role, bio, avatarUrl }.
+ * 404 user_not_found when the account is gone.
+ */
+export async function getMyProfile(opts) {
+  const body = await api.get('/api/auth/me/profile', { ...opts, auth: true });
+  return body?.profile ?? body?.user ?? body;
+}
+
 /** Same rules as the server (R7). Returns { fullName?, bio? } messages; {} when valid. */
 export function validateProfile({ fullName, bio }) {
   const errors = {};

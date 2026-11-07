@@ -51,6 +51,7 @@ import {
   FollowAuthor,
   UnfollowAuthor,
   ListFollowing,
+  GetMyProfile,
   UpdateMyProfile,
 } from './application/use-cases/author-page.js';
 import { sessionPolicy } from './config.js';
@@ -147,6 +148,7 @@ export function buildContainer(env = process.env, { verifyJwt = null, publish = 
     followAuthor: new FollowAuthor(authorDeps),
     unfollowAuthor: new UnfollowAuthor(authorDeps),
     listFollowing: new ListFollowing(authorDeps),
+    getMyProfile: new GetMyProfile(authorDeps),
     updateMyProfile: new UpdateMyProfile(authorDeps),
   });
   const purgeEndedSessions = new PurgeEndedSessions({ sessionRepo, retentionDays: policy.retentionDays });

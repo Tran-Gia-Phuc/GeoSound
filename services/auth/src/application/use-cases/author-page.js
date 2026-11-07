@@ -5,6 +5,7 @@
 //   FollowAuthor      idempotent; not yourself (R4); only active contributors (R3)
 //   UnfollowAuthor    idempotent; always allowed, so a stale follow can be removed
 //   ListFollowing     authors I follow, newest follow first, paged
+//   GetMyProfile      #298: id, email, fullName, role, bio, avatarUrl of the signed-in account (any role)
 //   UpdateMyProfile   A1: fullName, bio, avatarUrl of the signed-in account (any role)
 // Ports injected: userRepo (UserRepository), followRepo (FollowRepository).
 // =========================================================
@@ -121,5 +122,25 @@ export class UpdateMyProfile extends AuthorUseCase {
     if (!user) throw new UserNotFoundError();
     const followerCount = await this.followRepo.countFollowers(user.id);
     return { ...user.toAuthorProfile(followerCount), email: user.email, role: user.role };
+  }
+}
+
+export class GetMyProfile extends AuthorUseCase {
+  /**
+   * #298: the signed-in account's own profile for the editor (any role, any status: the caller
+   * holds a valid token). 404 user_not_found when the account is gone.
+   * @param {{ userId: string }} input
+   */
+  async execute({ userId }) {
+    const user = userId ? await this.userRepo.findById(String(userId)) : null;
+    if (!user) throw new UserNotFoundError();
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+      bio: user.bio ?? null,
+      avatarUrl: user.avatarUrl ?? null,
+    };
   }
 }
