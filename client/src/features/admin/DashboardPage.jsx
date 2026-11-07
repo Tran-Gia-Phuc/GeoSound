@@ -4,10 +4,11 @@
 //     ?period=custom&from=YYYY-MM-DD&to=YYYY-MM-DD (UTC days, `to` included, max 366 days).
 //   - Tiles: tours waiting for review (now), average review time, reported tours in the period,
 //     tours with open reports now (link to the UC20 queue).
-//   - Top contributors (author id -> UC21 account page) and admin actions by type as CSS bars.
+//   - Top contributors (name + avatar from the public author API, short id fallback, link to the
+//     UC21 account page) and admin actions by type as CSS bars.
 //   - No data (E1): zeros and "Chưa có dữ liệu", never an empty chart.
 // =========================================================
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import AppHeader from '../../components/shell/AppHeader.jsx';
@@ -16,6 +17,8 @@ import AdminNav from './AdminNav.jsx';
 import { adminErrorMessage } from './admin-errors.js';
 import { getDashboard, periodError, presetPeriod } from '../../lib/admin-dashboard.js';
 import { actionLabel } from '../../lib/admin-reports.js';
+import { getAuthor } from '../../lib/authors.js';
+import AuthorAvatar from '../authors/AuthorAvatar.jsx';
 
 const NO_DATA = 'Chưa có dữ liệu';
 const PERIODS = [
@@ -23,6 +26,43 @@ const PERIODS = [
   { value: '30', label: '30 ngày' },
   { value: 'custom', label: 'Tuỳ chọn' },
 ];
+
+const shortId = (id) => String(id || '').slice(0, 8);
+
+/**
+ * Public profiles of the given author ids (#299): one GET /api/auth/authors/:id per id for the
+ * life of the page, all in parallel, never blocking the render. A failed call (404 for a
+ * non-contributor or banned author, network error) is kept as null so the row shows the short id.
+ * Returns { [id]: author | null } with only the settled ids.
+ */
+function useAuthors(ids) {
+  const requested = useRef(new Set());
+  const [authors, setAuthors] = useState({});
+  const key = ids.join(',');
+  useEffect(() => {
+    for (const id of key ? key.split(',') : []) {
+      if (requested.current.has(id)) continue;
+      requested.current.add(id);
+      getAuthor(id)
+        .then((a) => (a && a.fullName ? a : null))
+        .catch(() => null)
+        .then((a) => setAuthors((m) => ({ ...m, [id]: a })));
+    }
+  }, [key]);
+  return authors;
+}
+
+function ContributorCell({ id, author }) {
+  const name = author?.fullName;
+  return (
+    <Link to={`/admin/users/${encodeURIComponent(id)}`} className="admin-author" title={id}>
+      <AuthorAvatar key={author?.avatarUrl || 'none'} name={name || '?'} url={author?.avatarUrl} size={28} />
+      <span className="admin-author__name" data-testid="contributor-name">
+        {name || shortId(id)}
+      </span>
+    </Link>
+  );
+}
 
 const fmtNumber = (n) => Number(n || 0).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
 
@@ -125,6 +165,7 @@ function Dashboard() {
   const pending = data?.pendingReview || {};
   const hours = Number(data?.averageReviewHours || 0);
   const top = data?.topContributors || [];
+  const authors = useAuthors(top.map((c) => c.authorId).filter(Boolean));
 
   return (
     <div className="page admin-page admin-dashboard">
@@ -211,7 +252,7 @@ function Dashboard() {
                 <p className="muted small">{NO_DATA}</p>
               ) : (
                 <div className="admin-table__wrap">
-                  <table className="admin-table" aria-label="Tác giả nổi bật">
+                  <table className="admin-table admin-table--top" aria-label="Tác giả nổi bật">
                     <thead>
                       <tr>
                         <th scope="col">Tác giả</th>
@@ -223,9 +264,7 @@ function Dashboard() {
                       {top.map((c) => (
                         <tr key={c.authorId} data-testid="top-contributor">
                           <td>
-                            <Link to={`/admin/users/${encodeURIComponent(c.authorId)}`} className="admin-table__sub">
-                              {c.authorId}
-                            </Link>
+                            <ContributorCell id={c.authorId} author={authors[c.authorId]} />
                           </td>
                           <td>{fmtNumber(c.publicTours)}</td>
                           <td>★ {Number(c.averageRating || 0).toFixed(1)}</td>
