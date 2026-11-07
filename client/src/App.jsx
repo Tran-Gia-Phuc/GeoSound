@@ -58,6 +58,7 @@ import RouteConfigPage from './features/studio/RouteConfigPage.jsx';
 import LanguagesPage from './features/studio/LanguagesPage.jsx';
 import StudioTourLayout from './features/studio/StudioTourLayout.jsx';
 import PublishStepPage from './features/studio/PublishStepPage.jsx';
+import TourStatsPage from './features/studio/TourStatsPage.jsx';
 import AccountPage from './features/account/AccountPage.jsx';
 import DevicesPage from './features/account/DevicesPage.jsx';
 import OnlineDevicesPage from './features/admin/OnlineDevicesPage.jsx';
@@ -85,7 +86,7 @@ function RedirectToDiscover({ tab }) {
 // UC04 mở từ chi tiết tour (UC02) — thoát thì quay về chi tiết tour.
 function PlayTourRoute() {
   const { tourId } = useParams();
-  return <TourPlayerPage backTo={`/tour/${tourId}`} backLabel="Chi tiết tour" rateHref={`/tour/${tourId}#ratings`} reportable />;
+  return <TourPlayerPage backTo={`/tour/${tourId}`} backLabel="Chi tiết tour" rateHref={`/tour/${tourId}#ratings`} reportable recordStats />;
 }
 
 // UC14 — trình nghe bản truy cập hạn chế (chủ tour hoặc người thử đã mở khoá).
@@ -159,6 +160,7 @@ const router = createBrowserRouter(
           <Route path="route" element={<RouteConfigPage />} />
           <Route path="languages" element={<LanguagesPage />} />
           <Route path="publish" element={<PublishStepPage />} />
+          <Route path="stats" element={<TourStatsPage />} />
         </Route>
       </Route>
 
