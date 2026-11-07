@@ -27,21 +27,25 @@ export class PrismaInAppNotificationRepository {
     return count === 1;
   }
 
-  where(userId, unreadOnly) {
-    return unreadOnly ? { userId, readAt: null } : { userId };
+  /** Always scoped to the user; tourId (#297) narrows to one tour, unreadOnly to unread rows. */
+  where(userId, { unreadOnly = false, tourId } = {}) {
+    const where = { userId };
+    if (unreadOnly) where.readAt = null;
+    if (tourId) where.tourId = tourId;
+    return where;
   }
 
-  list(userId, { unreadOnly = false, skip = 0, take = 20 } = {}) {
+  list(userId, { unreadOnly = false, tourId, skip = 0, take = 20 } = {}) {
     return this.prisma.inAppNotification.findMany({
-      where: this.where(userId, unreadOnly),
+      where: this.where(userId, { unreadOnly, tourId }),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip,
       take,
     });
   }
 
-  count(userId, { unreadOnly = false } = {}) {
-    return this.prisma.inAppNotification.count({ where: this.where(userId, unreadOnly) });
+  count(userId, { unreadOnly = false, tourId } = {}) {
+    return this.prisma.inAppNotification.count({ where: this.where(userId, { unreadOnly, tourId }) });
   }
 
   /** @returns {Promise<'updated'|'already_read'|'not_found'>} */

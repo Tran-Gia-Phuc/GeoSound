@@ -64,7 +64,10 @@ async function mockNotifications(page, items, handlers = {}) {
       if (handlers.list) return handlers.list(route, state, u);
       const pageNo = Number(u.searchParams.get('page') || 1);
       const limit = Number(u.searchParams.get('limit') || 20);
-      const filtered = u.searchParams.get('unread') === 'true' ? state.items.filter((n) => !n.read) : state.items;
+      const tourId = u.searchParams.get('tourId');
+      const filtered = state.items
+        .filter((n) => u.searchParams.get('unread') !== 'true' || !n.read)
+        .filter((n) => !tourId || n.tourId === tourId);
       return json(route, {
         items: filtered.slice((pageNo - 1) * limit, pageNo * limit),
         page: pageNo,
@@ -184,7 +187,8 @@ test('open a tour notification: mark read, open the Studio tour with its history
   await expect(page).toHaveURL(new RegExp(`/studio/tours/${id}$`));
   expect(state.calls).toContain(`POST /api/notifications/${rejected.id}/read`);
   await expect(tabBadge(page)).toHaveCount(0);
-  // History of this tour only (the approval of another tour is filtered out).
+  // History of this tour only: the server filters by tourId (the approval of another tour is not shown).
+  expect(state.calls).toContain(`GET /api/notifications?page=1&limit=20&tourId=${id}`);
   const history = page.locator('.tour-history');
   await expect(history).toHaveAttribute('open', '');
   await expect(history).toContainText('Lịch sử kiểm duyệt');
@@ -304,7 +308,7 @@ test('Studio history: collapsed until opened, then loads; error with retry', asy
     list: (route, st) =>
       fail
         ? route.abort('failed')
-        : json(route, { items: st.items, page: 1, limit: 50, total: st.items.length, unread: 1 }),
+        : json(route, { items: st.items.filter((n) => n.tourId === id), page: 1, limit: 20, total: 2, unread: 1 }),
   });
   await page.goto(`/studio/tours/${id}`);
   const history = page.locator('.tour-history');
@@ -316,5 +320,57 @@ test('Studio history: collapsed until opened, then loads; error with retry', asy
   fail = false;
   await history.getByRole('button', { name: 'Thử lại' }).click();
   await expect(history.getByTestId('notification')).toHaveCount(2);
-  expect(state.calls).toContain('GET /api/notifications?page=1&limit=50');
+  expect(state.calls).toContain(`GET /api/notifications?page=1&limit=20&tourId=${id}`);
+  await expect(history.getByRole('button', { name: 'Xem thêm' })).toHaveCount(0);
+  await expect(history).not.toContainText('Chỉ xét');
+});
+
+test('Studio history: older notifications of the tour with "Xem thêm", page error with retry', async ({ page }) => {
+  await signIn(page);
+  // 45 notifications of this tour, mixed with other tours' ones: the server filter keeps them all.
+  const many = [];
+  for (let i = 0; i < 60; i += 1) {
+    many.push({
+      ...changes,
+      id: `n-${i}`,
+      tourId: i % 4 === 3 ? secondId : id,
+      title: `Thông báo số ${i}`,
+      body: null,
+      data: {},
+      read: true,
+      createdAt: minutesAgo(10 + i),
+    });
+  }
+  let failPage2 = true;
+  const state = await mockNotifications(page, many, {
+    list: (route, st, u) => {
+      const pageNo = Number(u.searchParams.get('page'));
+      const limit = Number(u.searchParams.get('limit'));
+      if (pageNo === 2 && failPage2) {
+        failPage2 = false;
+        return route.abort('failed');
+      }
+      const mine = st.items.filter((n) => n.tourId === u.searchParams.get('tourId'));
+      return json(route, { items: mine.slice((pageNo - 1) * limit, pageNo * limit), page: pageNo, limit, total: mine.length, unread: 0 });
+    },
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/studio/tours/${id}`);
+  const history = page.locator('.tour-history');
+  await history.locator('summary').click();
+  const list = history.getByTestId('notification');
+  await expect(list).toHaveCount(20);
+  await history.getByRole('button', { name: 'Xem thêm' }).click();
+  await expect(history.getByRole('alert')).toContainText('Không thể kết nối, vui lòng thử lại');
+  await expect(list).toHaveCount(20);
+  await history.getByRole('button', { name: 'Thử lại' }).click();
+  await expect(list).toHaveCount(40);
+  await history.getByRole('button', { name: 'Xem thêm' }).click();
+  await expect(list).toHaveCount(45);
+  await expect(history.getByRole('button', { name: 'Xem thêm' })).toHaveCount(0);
+  await expect(history).toContainText('Thông báo số 58');
+  await expect(history).not.toContainText('Thông báo số 59');
+  expect(state.calls).toContain(`GET /api/notifications?page=3&limit=20&tourId=${id}`);
+  expect(state.calls.every((c) => !c.startsWith('GET /api/notifications?') || c.includes(`tourId=${id}`))).toBeTruthy();
+  await noOverflow(page);
 });

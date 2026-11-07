@@ -39,5 +39,6 @@ model InAppNotification {
 
   @@index([userId, createdAt])
   @@index([userId, readAt])
+  @@index([userId, tourId, createdAt]) // #297: Studio history of one tour (GET /?tourId=)
   @@map("in_app_notifications")
 }

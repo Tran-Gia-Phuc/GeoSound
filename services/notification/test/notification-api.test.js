@@ -131,3 +131,51 @@ test('HTTP: sign-in required, own list, paging, unread count, read, read-all', a
   // The other user is untouched.
   assert.deepEqual(await call('/unread-count', { user: 'u2' }).then((r) => r.json()), { unread: 2 });
 });
+
+test('#297 tourId filter: one tour of the caller only, paged, unread stays global', async (t) => {
+  const TA = '11111111-1111-4111-8111-111111111111';
+  const TB = '22222222-2222-4222-8222-222222222222';
+  let tick = 0;
+  const repo = new MemoryNotificationRepository({ clock: () => new Date(T0 + (tick++) * 60_000) });
+  const { storeInApp } = buildContainer({ repository: repo, requireAuth: (_q, _s, n) => n(), logger: silent });
+  // u1: 12 notifications on tour A, 3 on tour B; u2: 2 on tour A (same tour id, other user).
+  for (let i = 0; i < 12; i += 1) {
+    await storeInApp('tour.reported', { tourId: TA, contributorId: 'u1', tourTitle: 'A', count: i, reason: `A${i}` });
+  }
+  for (let i = 0; i < 3; i += 1) {
+    await storeInApp('tour.reported', { tourId: TB, contributorId: 'u1', tourTitle: 'B', count: i, reason: `B${i}` });
+  }
+  for (let i = 0; i < 2; i += 1) {
+    await storeInApp('tour.reported', { tourId: TA, contributorId: 'u2', tourTitle: 'A', count: i, reason: `U2-${i}` });
+  }
+
+  const list = new ListNotifications({ repository: repo });
+  const a1 = await list.execute({ userId: 'u1', tourId: TA, page: 1, limit: 5 });
+  assert.equal(a1.total, 12);
+  assert.equal(a1.unread, 15); // global badge count, not the tour's
+  assert.deepEqual(a1.items.map((i) => i.body), ['A11', 'A10', 'A9', 'A8', 'A7']);
+  const a3 = await list.execute({ userId: 'u1', tourId: TA, page: 3, limit: 5 });
+  assert.deepEqual(a3.items.map((i) => i.body), ['A1', 'A0']);
+  const none = await list.execute({ userId: 'u1', tourId: '33333333-3333-4333-8333-333333333333' });
+  assert.equal(none.total, 0);
+  assert.deepEqual(none.items, []);
+  // Without tourId the list is unchanged (all tours).
+  assert.equal((await list.execute({ userId: 'u1' })).total, 15);
+
+  const call = await serve(t, repo);
+  let body = await call(`/?tourId=${TA}&limit=5&page=2`, { user: 'u1' }).then((r) => r.json());
+  assert.equal(body.total, 12);
+  assert.equal(body.unread, 15);
+  assert.deepEqual(body.items.map((i) => i.body), ['A6', 'A5', 'A4', 'A3', 'A2']);
+  assert.ok(body.items.every((i) => i.tourId === TA));
+  body = await call(`/?tourId=${TA}`, { user: 'u2' }).then((r) => r.json());
+  assert.equal(body.total, 2);
+  assert.ok(body.items.every((i) => i.body.startsWith('U2-')));
+  body = await call(`/?tourId=${TB}&unread=true`, { user: 'u1' }).then((r) => r.json());
+  assert.equal(body.total, 3);
+  for (const bad of ['?tourId=t1', '?tourId=', '?tourId=not-a-uuid']) {
+    const r = await call(`/${bad}`, { user: 'u1' });
+    assert.equal(r.status, 400, bad);
+    assert.equal((await r.json()).code, 'validation_error');
+  }
+});
