@@ -126,9 +126,9 @@ Second wave (asked 2026-11-08), one branch and PR each, closing the `[Frontend A
 
 | # | Feature | Frontend A issues | Service(s) | Branch | Status |
 | --- | --- | --- | --- | --- | --- |
-| 10 | UC15 submit a tour for review: checklist, "Gửi duyệt", AI pass / warning / rejected / changes requested states, forbidden-zone details, long-running `ai_checking` polling, place moderation chips | #109 to #114, #137 | client (Tour only if a field is missing) | `feature/uc15-submission-ui` | in progress |
-| 11 | UC19 admin review screens: queue, read-only dossier and preview, approve, reject with reason, request changes | #122 to #126 | client (backend #243 exists) | `feature/uc19-admin-review-ui` | in progress |
-| 12 | Offline download (UC03): package manifest, download with progress, pause / resume, library, delete one language, insufficient storage; UC17 `download` beacon | #103, #104, #158 to #161 | Tour (package API), client | `feature/offline-download` | in progress |
+| 10 | UC15 submit a tour for review: checklist, "Gửi duyệt", AI pass / warning / rejected / changes requested states, forbidden-zone details, long-running `ai_checking` polling, place moderation chips | #109 to #114, #137 | client (Tour only if a field is missing) | `feature/uc15-submission-ui` | done (PR #314) |
+| 11 | UC19 admin review screens: queue, read-only dossier and preview, approve, reject with reason, request changes | #122 to #126 | client (backend #243 exists) | `feature/uc19-admin-review-ui` | done (PR #310) |
+| 12 | Offline download (UC03): package manifest, download with progress, pause / resume, library, delete one language, insufficient storage; UC17 `download` beacon | #103, #104, #158 to #161 | Tour (package API), client | `feature/offline-download` | done (PR #311; table fix #313) |
 
 ### 6.2 Decisions (L = later UCs)
 
