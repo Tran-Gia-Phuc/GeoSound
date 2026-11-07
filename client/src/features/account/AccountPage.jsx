@@ -2,6 +2,7 @@
 // AccountPage (/account) — tab "Tài khoản":
 //   - Chưa đăng nhập: Đăng nhập / Đăng ký (khách không bắt buộc có tài khoản).
 //   - Đã đăng nhập: hồ sơ, lối tắt Thông báo (UC16) / Hồ sơ, Tác giả đang theo dõi (UC18) / Lịch trình / Thiết bị (UC23) / Studio, trở thành tác giả, đăng xuất.
+//   - Mọi người (cả khách): lối tắt "Tour đã tải" (UC03, dữ liệu trên thiết bị).
 //   - Giao diện sáng / tối / theo hệ thống (chuyển vào đây từ mọi header).
 // =========================================================
 import { Link, useNavigate } from 'react-router-dom';
@@ -120,6 +121,18 @@ export default function AccountPage() {
           )}
         </nav>
       ) : null}
+
+      {/* UC03: offline tours live on this device, no account needed. */}
+      <nav className="menu" aria-label="Trên thiết bị này">
+        <Link className="menu__item" to="/offline">
+          <Icon name="download" size={20} />
+          <span>
+            Tour đã tải
+            <span className="muted small menu__sub">Nghe khi không có mạng, quản lý dung lượng</span>
+          </span>
+          <Icon name="chevron-left" size={16} className="menu__chev" />
+        </Link>
+      </nav>
 
       <section className="card">
         <h2 className="section-title">Giao diện</h2>
