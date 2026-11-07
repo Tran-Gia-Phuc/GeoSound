@@ -28,6 +28,8 @@ import ModePicker from '../player/ModePicker.jsx';
 import AddToItinerarySheet from '../itineraries/AddToItinerarySheet.jsx';
 import { playPreview, stopPreview } from '../../lib/preview-audio.js';
 import { usePendingAdd } from '../../hooks/usePendingAdd.js';
+import { useAuth } from '../../auth/AuthContext.jsx';
+import { recordTourActivity } from '../../lib/tour-stats.js';
 
 // Mở thẳng bằng link chia sẻ (không có lịch sử) → về Khám phá.
 import './detail-a.css';
@@ -48,6 +50,10 @@ export default function TourDetailPage({ restricted = false }) {
   const [langRetry, setLangRetry] = useState(0);
   const requestedLanguage = sp.get('lang') || '';
   const loadedTour = useRef(null);
+  const viewedTour = useRef(null); // UC17: tour id whose 'view' was already sent
+  const { authenticated } = useAuth();
+  const authRef = useRef(authenticated);
+  authRef.current = authenticated;
   const [previewing, setPreviewing] = useState(null); // id điểm đang nghe thử
   const [adding, setAdding] = useState(null); // { placeId, name } cho sheet "Thêm vào…"
 
@@ -71,7 +77,15 @@ export default function TourDetailPage({ restricted = false }) {
     const hasPrevious = loadedTour.current?.id === tourId;
     setLoading(!hasPrevious); setLangBusy(hasPrevious); setError(null); setLanguageError(null);
     load(requestedLanguage || undefined, { signal:abort.signal })
-      .then((result) => { if (!abort.signal.aborted) { loadedTour.current=result; setTour(result); } })
+      .then((result) => {
+        if (abort.signal.aborted) return;
+        loadedTour.current=result; setTour(result);
+        // UC17: one 'view' per opened public detail (not the restricted view, not a language change).
+        if (!restricted && viewedTour.current !== tourId) {
+          viewedTour.current = tourId;
+          recordTourActivity(tourId, 'view', { language: result?.selectedLanguage, authenticated: authRef.current });
+        }
+      })
       .catch((e) => {
         if (abort.signal.aborted || e.name === 'AbortError') return;
         if (restricted && e.status === 404) {

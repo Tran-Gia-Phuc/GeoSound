@@ -62,6 +62,7 @@ const P = {
     </>
   ),
   list: <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />,
+  chart: <path d="M4 20h16M7 16v-5M12 16V7M17 16v-8" />,
   crosshair: (
     <>
       <circle cx="12" cy="12" r="8" />
