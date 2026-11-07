@@ -125,6 +125,8 @@ export async function fixtures(page) {
     const u = new URL(route.request().url()),
       method = route.request().method(),
       path = u.pathname;
+    // UC17: statistics beacons are fire and forget (204).
+    if (method === 'POST' && path.endsWith('/activity')) return route.fulfill({ status: 204 });
     if (path === '/api/tours') return json(route, { tours: [tour], total: 1, page: 1, limit: 12 });
     if (path === '/api/places') return json(route, { items: [], total: 0, page: 1, pageSize: 12 });
     if (path === '/api/tours/' + id + '/ratings')
@@ -136,6 +138,7 @@ export async function fixtures(page) {
         total: 0,
       });
     if (path === '/api/tours/' + id + '/ratings/mine') return json(route, { rating: null });
+    if (path === '/api/tours/' + id + '/reports/mine') return json(route, { report: null });
     if (path === '/api/tours/' + id)
       return json(route, {
         tour: { ...tour, selectedLanguage: u.searchParams.get('lang') || 'vi' },

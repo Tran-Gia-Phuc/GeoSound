@@ -23,10 +23,13 @@ import Icon from '../../components/Icon.jsx';
 import TourMap from '../player/TourMap.jsx';
 import Rating from './Rating.jsx';
 import RatingsSection from './RatingsSection.jsx';
+import ReportTour from './ReportTour.jsx';
 import ModePicker from '../player/ModePicker.jsx';
 import AddToItinerarySheet from '../itineraries/AddToItinerarySheet.jsx';
 import { playPreview, stopPreview } from '../../lib/preview-audio.js';
 import { usePendingAdd } from '../../hooks/usePendingAdd.js';
+import { useAuth } from '../../auth/AuthContext.jsx';
+import { recordTourActivity } from '../../lib/tour-stats.js';
 
 // Mở thẳng bằng link chia sẻ (không có lịch sử) → về Khám phá.
 import './detail-a.css';
@@ -47,6 +50,10 @@ export default function TourDetailPage({ restricted = false }) {
   const [langRetry, setLangRetry] = useState(0);
   const requestedLanguage = sp.get('lang') || '';
   const loadedTour = useRef(null);
+  const viewedTour = useRef(null); // UC17: tour id whose 'view' was already sent
+  const { authenticated } = useAuth();
+  const authRef = useRef(authenticated);
+  authRef.current = authenticated;
   const [previewing, setPreviewing] = useState(null); // id điểm đang nghe thử
   const [adding, setAdding] = useState(null); // { placeId, name } cho sheet "Thêm vào…"
 
@@ -70,7 +77,15 @@ export default function TourDetailPage({ restricted = false }) {
     const hasPrevious = loadedTour.current?.id === tourId;
     setLoading(!hasPrevious); setLangBusy(hasPrevious); setError(null); setLanguageError(null);
     load(requestedLanguage || undefined, { signal:abort.signal })
-      .then((result) => { if (!abort.signal.aborted) { loadedTour.current=result; setTour(result); } })
+      .then((result) => {
+        if (abort.signal.aborted) return;
+        loadedTour.current=result; setTour(result);
+        // UC17: one 'view' per opened public detail (not the restricted view, not a language change).
+        if (!restricted && viewedTour.current !== tourId) {
+          viewedTour.current = tourId;
+          recordTourActivity(tourId, 'view', { language: result?.selectedLanguage, authenticated: authRef.current });
+        }
+      })
       .catch((e) => {
         if (abort.signal.aborted || e.name === 'AbortError') return;
         if (restricted && e.status === 404) {
@@ -185,6 +200,8 @@ export default function TourDetailPage({ restricted = false }) {
         <div className="detail__rating">
           {restricted ? null : <Rating value={tour.averageRating} count={tour.ratingCount} />}
           <span className="muted small"><Icon name="volume" size={13} /> {voiceLabel(tour.voiceLabel)}</span>
+          {/* UC06: small, not prominent */}
+          {restricted ? null : <ReportTour tour={tour} />}
         </div>
 
         {languageError ? <div className="alert alert--warn" role="alert"><Icon name="alert-triangle" size={18} /><div><b>Chưa đổi được ngôn ngữ</b><p>{languageError.message}</p><p>Đang hiển thị {langLabel(tour.selectedLanguage)}.</p><button className="btn btn--sm" onClick={()=>setLangRetry((n)=>n+1)}>Thử lại ngôn ngữ</button><button className="btn btn--ghost btn--sm" onClick={()=>setSp((prev)=>{const n=new URLSearchParams(prev);n.set('lang',tour.selectedLanguage);return n;})}>Giữ ngôn ngữ hiện tại</button></div></div> : null}
@@ -208,6 +225,13 @@ export default function TourDetailPage({ restricted = false }) {
             })}
             {langBusy ? <Icon name="loader" size={16} className="spin" /> : null}
           </div>
+        ) : null}
+
+        {/* UC18: author page link — only when the detail carries authorId. */}
+        {tour.authorId ? (
+          <Link className="linkbtn detail__author" to={`/authors/${encodeURIComponent(tour.authorId)}`}>
+            <Icon name="user" size={14} /> {tour.authorName ? `Tác giả: ${tour.authorName}` : 'Xem trang tác giả'}
+          </Link>
         ) : null}
 
         {tour.description ? <p className="intro__desc">{tour.description}</p> : null}

@@ -20,7 +20,7 @@ function fakeRouteConfigRepo(byTour) {
 const publicTour = {
   id: 't1', title: 'Phố cổ Hội An', description: 'đi dạo bộ', coverImageUrl: null,
   city: 'Hội An', type: 'walking', originalLanguage: 'vi', status: 'public',
-  duration: 120, averageRating: 4.5, ratingCount: 10,
+  duration: 120, averageRating: 4.5, ratingCount: 10, authorId: 'author-1',
 };
 const ttsTour = { ...publicTour, id: 't2', originalLanguage: 'en' };
 const draftTour = { ...publicTour, id: 't3', status: 'draft' };
@@ -47,6 +47,7 @@ function uc(tours = [publicTour, ttsTour, draftTour]) {
 test('chi tiết tour công khai: số điểm, nhãn giọng người thật, route, reviews rỗng', async () => {
   const d = await uc().execute({ id: 't1' });
   assert.equal(d.id, 't1');
+  assert.equal(d.authorId, 'author-1'); // UC18 author link, UC05/UC06 own-tour checks
   assert.equal(d.placeCount, 2);
   assert.equal(d.voiceLabel, 'human'); // có điểm audio người thật
   assert.deepEqual(d.availableLanguages, ['vi']);

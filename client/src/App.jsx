@@ -4,6 +4,9 @@
 //   /account            — tài khoản + giao diện sáng/tối
 //   /account/devices    — thiết bị đang đăng nhập (UC23, cần đăng nhập)
 //   /notifications      — trung tâm thông báo (UC16, cần đăng nhập)
+//   /account/profile    — sửa hồ sơ (UC18 A1, cần đăng nhập)
+//   /account/following  — tác giả đang theo dõi (UC18, cần đăng nhập)
+//   /authors/:id        — trang tác giả công khai + theo dõi (UC18)
 //   /                   — Khám phá: tìm tour + địa điểm (UC02, UC07) — ?tab=&q=&city=…
 //   /login, /register   — đăng nhập / đăng ký (chọn vai trò) (UC01)
 //   /forgot-password    — quên mật khẩu (UC01 A2)
@@ -59,6 +62,7 @@ import RouteConfigPage from './features/studio/RouteConfigPage.jsx';
 import LanguagesPage from './features/studio/LanguagesPage.jsx';
 import StudioTourLayout from './features/studio/StudioTourLayout.jsx';
 import PublishStepPage from './features/studio/PublishStepPage.jsx';
+import TourStatsPage from './features/studio/TourStatsPage.jsx';
 import AccountPage from './features/account/AccountPage.jsx';
 import DevicesPage from './features/account/DevicesPage.jsx';
 import OnlineDevicesPage from './features/admin/OnlineDevicesPage.jsx';
@@ -72,6 +76,9 @@ import ActionLogPage from './features/admin/ActionLogPage.jsx';
 import ActionDetailPage from './features/admin/ActionDetailPage.jsx';
 import NotificationsPage from './features/notifications/NotificationsPage.jsx';
 import { UnreadCountLayout } from './features/notifications/UnreadCount.jsx';
+import AuthorPage from './features/authors/AuthorPage.jsx';
+import ProfileEditPage from './features/authors/ProfileEditPage.jsx';
+import FollowingPage from './features/authors/FollowingPage.jsx';
 import SessionWatcher from './auth/SessionWatcher.jsx';
 import AppLayout from './components/shell/AppLayout.jsx';
 import { previewTour } from './lib/studio.js';
@@ -89,7 +96,7 @@ function RedirectToDiscover({ tab }) {
 // UC04 mở từ chi tiết tour (UC02) — thoát thì quay về chi tiết tour.
 function PlayTourRoute() {
   const { tourId } = useParams();
-  return <TourPlayerPage backTo={`/tour/${tourId}`} backLabel="Chi tiết tour" rateHref={`/tour/${tourId}#ratings`} />;
+  return <TourPlayerPage backTo={`/tour/${tourId}`} backLabel="Chi tiết tour" rateHref={`/tour/${tourId}#ratings`} reportable recordStats />;
 }
 
 // UC14 — trình nghe bản truy cập hạn chế (chủ tour hoặc người thử đã mở khoá).
@@ -151,6 +158,9 @@ const router = createBrowserRouter(
         <Route path="/admin" element={<RequireAuth><AdminHomePage /></RequireAuth>} />
         <Route path="/admin/reports" element={<RequireAuth><ReportedToursPage /></RequireAuth>} />
         <Route path="/admin/reports/:tourId" element={<RequireAuth><ReportDossierPage /></RequireAuth>} />
+        <Route path="/account/profile" element={<RequireAuth><ProfileEditPage /></RequireAuth>} />
+        <Route path="/account/following" element={<RequireAuth><FollowingPage /></RequireAuth>} />
+        <Route path="/authors/:id" element={<AuthorPage />} />
         <Route path="/admin/users" element={<RequireAuth><UsersPage /></RequireAuth>} />
         <Route path="/admin/users/:id" element={<RequireAuth><UserDetailPage /></RequireAuth>} />
         <Route path="/admin/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
@@ -166,6 +176,7 @@ const router = createBrowserRouter(
           <Route path="route" element={<RouteConfigPage />} />
           <Route path="languages" element={<LanguagesPage />} />
           <Route path="publish" element={<PublishStepPage />} />
+          <Route path="stats" element={<TourStatsPage />} />
         </Route>
       </Route>
 

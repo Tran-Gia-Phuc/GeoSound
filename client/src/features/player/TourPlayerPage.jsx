@@ -28,6 +28,9 @@ import LanguageMenu from './LanguageMenu.jsx';
 import SimControls from './SimControls.jsx';
 import SimBar, { SIM_SPEEDS } from './SimBar.jsx';
 import CompletionDialog from './CompletionDialog.jsx';
+import ReportTour from '../tours/ReportTour.jsx';
+import { useAuth } from '../../auth/AuthContext.jsx';
+import { recordTourActivity } from '../../lib/tour-stats.js';
 import { useBack } from '../../components/shell/AppHeader.jsx';
 
 const STALE_MS = 12000;
@@ -60,6 +63,8 @@ function rememberRecent(id, title) {
  *   completeAction?: { label: string, to: string }, // nút chính ở hộp hoàn thành
  *   freshProgress?: boolean, // xem thử: luôn bắt đầu lại từ đầu (không nhớ điểm đã nghe)
  *   rateHref?: string,       // UC05: link "Đánh giá tour" on the end screen (public tours only)
+ *   recordStats?: boolean,   // UC17: send play / complete beacons (public tours only)
+ *   reportable?: boolean,    // UC06: "Báo cáo tour" button in the topbar (public tours only)
  * }} [props]
  */
 export default function TourPlayerPage({
@@ -75,6 +80,8 @@ export default function TourPlayerPage({
   completeAction = { label: 'Khám phá tour khác', to: '/' },
   freshProgress = false,
   rateHref,
+  reportable = false,
+  recordStats = false,
 } = {}) {
   const { tourId } = useParams();
   const [sp, setSp] = useSearchParams();
@@ -157,7 +164,23 @@ export default function TourPlayerPage({
   const userPos = position ? { ...position, stale: !simulate && liveStale } : null;
 
   // ---- Lõi phát ----
-  const onComplete = useCallback(() => setShowComplete(true), []);
+  // UC17: fire-and-forget beacons, once per action and page (the server also dedups per day).
+  const { authenticated } = useAuth();
+  const statsRef = useRef({ sent: new Set(), authenticated, language: undefined });
+  statsRef.current.authenticated = authenticated;
+  const sendStat = useCallback(
+    (action) => {
+      const s = statsRef.current;
+      if (!recordStats || !tourId || s.sent.has(action)) return;
+      s.sent.add(action);
+      recordTourActivity(tourId, action, { language: s.language, authenticated: s.authenticated });
+    },
+    [recordStats, tourId],
+  );
+  const onComplete = useCallback(() => {
+    sendStat('complete');
+    setShowComplete(true);
+  }, [sendStat]);
   const engine = usePlaybackEngine({
     tour,
     mode,
@@ -167,6 +190,12 @@ export default function TourPlayerPage({
     markVisited,
     onComplete,
   });
+
+  statsRef.current.language = tour?.selectedLanguage;
+  // UC17: 'play' when the first stop starts playing.
+  useEffect(() => {
+    if (engine.currentPlaceId && engine.currentRole === 'place') sendStat('play');
+  }, [engine.currentPlaceId, engine.currentRole, sendStat]);
 
   const walkPath = useMemo(() => densifyPath(tour?.route?.path ?? [], 14), [tour]);
 
@@ -457,6 +486,7 @@ export default function TourPlayerPage({
           <button className="iconbtn" onClick={() => setListOpen(true)} aria-label="Danh sách điểm">
             <Icon name="list" size={20} />
           </button>
+          {reportable ? <ReportTour tour={tour} variant="player" /> : null}
         </div>
       </header>
 

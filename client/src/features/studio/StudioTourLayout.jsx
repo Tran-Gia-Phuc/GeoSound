@@ -128,6 +128,16 @@ export default function StudioTourLayout() {
                 </NavLink>
               </li>
             ))}
+            {/* UC17: statistics of this tour (not an editing step) */}
+            <li>
+              <NavLink
+                to={`/studio/tours/${id}/stats`}
+                className={({ isActive }) => `stepper__step stepper__step--optional ${isActive ? 'is-active' : ''}`}
+              >
+                <span className="stepper__num" aria-hidden="true"><Icon name="chart" size={14} /></span>
+                <span className="stepper__label">Thống kê</span>
+              </NavLink>
+            </li>
           </ol>
         </nav>
         <Outlet />
