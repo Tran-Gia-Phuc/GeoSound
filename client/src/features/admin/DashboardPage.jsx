@@ -2,7 +2,7 @@
 // DashboardPage (/admin/dashboard) — UC22 moderation dashboard.
 //   - Period in the URL: ?period=7 (default, backend default window), ?period=30, or
 //     ?period=custom&from=YYYY-MM-DD&to=YYYY-MM-DD (UTC days, `to` included, max 366 days).
-//   - Tiles: tours waiting for review (now), average review time, reported tours in the period,
+//   - Tiles: tours waiting for review (now, link to the UC19 queue), average review time, reported tours in the period,
 //     tours with open reports now (link to the UC20 queue).
 //   - Top contributors (name + avatar from the public author API, short id fallback, link to the
 //     UC21 account page) and admin actions by type as CSS bars.
@@ -228,6 +228,7 @@ function Dashboard() {
               label="Tour chờ duyệt (hiện tại)"
               value={fmtNumber(pending.total)}
               hint={`${fmtNumber(pending.pending_review)} chờ duyệt · ${fmtNumber(pending.ai_warning)} cảnh báo AI`}
+              to="/admin/reviews"
             />
             <Tile
               testId="tile-review-time"

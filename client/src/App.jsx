@@ -22,7 +22,8 @@
 //   /shared/:token/go   — đi theo lịch trình được chia sẻ (UC08, công khai)
 //   /offline            — tour đã tải trên thiết bị (UC03, không cần tài khoản)
 //   /offline/:tourId/play — nghe tour đã tải từ dữ liệu trên máy (UC03 → UC04, chạy không cần mạng)
-//   /admin              — khu quản trị (chỉ quản trị viên): /admin/reports (UC20), /admin/reports/:tourId,
+//   /admin              — khu quản trị (chỉ quản trị viên): /admin/reviews, /admin/reviews/:tourId (UC19),
+//                         /admin/reports (UC20), /admin/reports/:tourId,
 //                         /admin/users (UC21), /admin/users/:id, /admin/devices (UC23),
 //                         /admin/dashboard, /admin/actions, /admin/actions/:id (UC22)
 //   /studio             — tour của tôi (UC09, chỉ người đóng góp)
@@ -71,6 +72,8 @@ import OnlineDevicesPage from './features/admin/OnlineDevicesPage.jsx';
 import AdminHomePage from './features/admin/AdminHomePage.jsx';
 import ReportedToursPage from './features/admin/ReportedToursPage.jsx';
 import ReportDossierPage from './features/admin/ReportDossierPage.jsx';
+import ReviewQueuePage from './features/admin/ReviewQueuePage.jsx';
+import ReviewDossierPage from './features/admin/ReviewDossierPage.jsx';
 import UsersPage from './features/admin/UsersPage.jsx';
 import UserDetailPage from './features/admin/UserDetailPage.jsx';
 import DashboardPage from './features/admin/DashboardPage.jsx';
@@ -177,6 +180,8 @@ const router = createBrowserRouter(
         <Route path="/account/devices" element={<RequireAuth><DevicesPage /></RequireAuth>} />
         <Route path="/tour/:tourId/unlock" element={<RequireAuth><UnlockTourPage /></RequireAuth>} />
         <Route path="/admin" element={<RequireAuth><AdminHomePage /></RequireAuth>} />
+        <Route path="/admin/reviews" element={<RequireAuth><ReviewQueuePage /></RequireAuth>} />
+        <Route path="/admin/reviews/:tourId" element={<RequireAuth><ReviewDossierPage /></RequireAuth>} />
         <Route path="/admin/reports" element={<RequireAuth><ReportedToursPage /></RequireAuth>} />
         <Route path="/admin/reports/:tourId" element={<RequireAuth><ReportDossierPage /></RequireAuth>} />
         <Route path="/account/profile" element={<RequireAuth><ProfileEditPage /></RequireAuth>} />
