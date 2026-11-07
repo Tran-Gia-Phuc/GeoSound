@@ -6,12 +6,19 @@
 //   - E2 vùng cấm: vẽ vùng cấm màu đỏ trên bản đồ + gợi ý kéo ghim ra ngoài.
 //   - Danh sách điểm: sắp xếp lên/xuống (A2, thay kéo-thả = a11y), sửa (A3), xoá
 //     (xác nhận bằng ConfirmDialog).
+//   - UC15 #137 (máy chủ bật kiểm duyệt): chip trạng thái quét AI của từng điểm (nội dung + ảnh),
+//     tự cập nhật mỗi 5 s khi còn điểm đang quét; #113 chi tiết vùng cấm (tên, loại) khi lưu bị chặn.
 // =========================================================
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import PlaceForm from './PlaceForm.jsx';
+import PlaceModerationChip from './PlaceModerationChip.jsx';
+import ForbiddenZoneDetails from './ForbiddenZoneDetails.jsx';
+import { useToast } from '../../components/Toast.jsx';
+import { useVisiblePoll } from '../../hooks/useVisiblePoll.js';
+import { POLL_INTERVAL_MS, errorText, isModerationMode } from '../../lib/submission.js';
 import AddressSearch from './AddressSearch.jsx';
 import { useStudioTour } from './StudioTourLayout.jsx';
 import TourMap from '../player/TourMap.jsx';
@@ -20,7 +27,9 @@ import { PLACE_TYPE_LABELS, listPlaces, addPlace, updatePlace, deletePlace, reor
 export default function PlacesManagerPage() {
   const { id } = useParams();
   const [sp, setSp] = useSearchParams();
-  const { refresh: refreshTour } = useStudioTour();
+  const { refresh: refreshTour, readiness } = useStudioTour();
+  const moderation = isModerationMode(readiness);
+  const toast = useToast();
   const [places, setPlaces] = useState(null); // null = đang tải
   const [loadError, setLoadError] = useState('');
   const [editing, setEditing] = useState(null); // null | 'new' | <placeId>
@@ -30,7 +39,7 @@ export default function PlacesManagerPage() {
   const [pin, setPin] = useState(null); // { lat, lng } ghim đang đặt
   const [pick, setPick] = useState(null); // { lat, lng, nonce } bơm vào PlaceForm
   const [focus, setFocus] = useState(null); // { lat, lng, nonce } bay bản đồ tới
-  const [blocked, setBlocked] = useState(null); // { name, geometry } vùng cấm vừa vướng
+  const [blocked, setBlocked] = useState(null); // { name, type, geometry } vùng cấm vừa vướng
   const [confirmDel, setConfirmDel] = useState(null); // { id, name }
   const nonce = useRef(0);
 
@@ -46,6 +55,17 @@ export default function PlacesManagerPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // #137 — places being scanned by the AI: refresh the list every 5 s while the page is visible.
+  const anyChecking = !!places?.some((p) => p.moderationStatus === 'checking');
+  const { error: pollError, retry: retryPoll } = useVisiblePoll(
+    async () => {
+      const next = await listPlaces(id);
+      setPlaces(next);
+      if (!next.some((p) => p.moderationStatus === 'checking')) refreshTour();
+    },
+    { enabled: moderation && anyChecking, intervalMs: POLL_INTERVAL_MS },
+  );
 
   const editingPlace = typeof editing === 'string' && editing !== 'new'
     ? places?.find((p) => p.id === editing)
@@ -101,12 +121,13 @@ export default function PlacesManagerPage() {
     setFormError('');
     setBlocked(null);
     try {
+      let saved = null;
       if (editing === 'new') {
         // tạo: bỏ audioUrl rỗng, bỏ images rỗng
         const payload = { name: values.name, type: values.type, description: values.description, lat: values.lat, lng: values.lng };
         if (values.images.length) payload.images = values.images;
         if (values.audioUrl) payload.audioUrl = values.audioUrl;
-        await addPlace(id, payload);
+        saved = await addPlace(id, payload);
       } else {
         // sửa: chỉ gửi trường thay đổi; audio rỗng + trước có → null để gỡ
         const patch = {};
@@ -127,15 +148,23 @@ export default function PlacesManagerPage() {
           closeForm();
           return;
         }
-        await updatePlace(id, editing, patch);
+        saved = await updatePlace(id, editing, patch);
       }
       await load();
       refreshTour();
       closeForm();
+      if (saved?.moderationStatus === 'checking') {
+        toast.show('Đã lưu điểm. AI đang kiểm duyệt nội dung và ảnh của điểm này.');
+      }
     } catch (e) {
       // E2 — vẽ vùng cấm để tác giả thấy phải dời ghim đi đâu.
-      if (e.code === 'forbidden_zone' && e.zone?.geometry) setBlocked(e.zone);
-      setFormError(e.message || 'Lưu điểm thất bại');
+      // #113 — tên + loại vùng cấm hiện trong form (ForbiddenZoneDetails).
+      if (e.code === 'forbidden_zone') {
+        setBlocked(e.zone ?? {});
+        setFormError('');
+      } else {
+        setFormError(errorText(e, 'Lưu điểm thất bại'));
+      }
     } finally {
       setBusy(false);
     }
@@ -177,6 +206,13 @@ export default function PlacesManagerPage() {
 
   return (
     <div className="studio-step placeseditor">
+      {pollError ? (
+        <div className="alert alert--warn" role="alert">
+          <Icon name="alert-triangle" size={18} className="alert__icon" />
+          <div>Chưa cập nhật được kết quả quét AI: {errorText(pollError, 'lỗi không xác định')}</div>
+          <button className="btn btn--sm" onClick={retryPoll}>Thử lại</button>
+        </div>
+      ) : null}
       {loadError ? (
         <div className="alert alert--warn" role="alert">
           <Icon name="alert-triangle" size={18} className="alert__icon" />
@@ -220,8 +256,12 @@ export default function PlacesManagerPage() {
                   <Icon name="x" size={16} />
                 </button>
               </div>
+              {blocked ? (
+                <ForbiddenZoneDetails zone={blocked} placeName={editingPlace?.name} onMap={!!blocked.geometry} />
+              ) : null}
               <PlaceForm
                 key={editing}
+                moderation={moderation}
                 initial={editingPlace || undefined}
                 pick={pick}
                 onManualCoords={(c) => placePin(c, { fly: true, toForm: false })}
@@ -258,6 +298,9 @@ export default function PlacesManagerPage() {
                       <span className="stop__seq">{i + 1}</span>
                       <button className="stop__main" onClick={() => openForm(p.id)}>
                         <span className="stop__name">{p.name}</span>
+                        {moderation || (p.moderationStatus && p.moderationStatus !== 'approved') ? (
+                          <PlaceModerationChip status={p.moderationStatus} />
+                        ) : null}
                         <span className="stop__leg muted small">
                           {PLACE_TYPE_LABELS[p.type] || p.type}
                           {' · '}

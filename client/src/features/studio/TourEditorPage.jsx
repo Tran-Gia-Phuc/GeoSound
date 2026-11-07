@@ -4,6 +4,8 @@
 //     Lưu chỉ gửi các trường THAY ĐỔI; sửa tour công khai sẽ về Nháp (A1).
 //   - Xoá tour (A2) — xác nhận bằng ConfirmDialog.
 //   - Lịch sử kiểm duyệt (UC16): trạng thái + thông báo về tour này kèm lý do.
+//   - UC15: tour bị AI / Admin trả về → nhắc xem lý do ở bước Gửi duyệt; sửa tour đang duyệt
+//     → báo tour đã rút khỏi hàng chờ (về Nháp).
 // Các bước khác (điểm dừng, vùng kích hoạt, ngôn ngữ, xuất bản) nằm trên stepper
 // của StudioTourLayout.
 // =========================================================
@@ -15,6 +17,9 @@ import TourForm from './TourForm.jsx';
 import { useStudioTour } from './StudioTourLayout.jsx';
 import TourModerationHistory from '../notifications/TourModerationHistory.jsx';
 import { updateTour, deleteTour, statusMeta } from '../../lib/studio.js';
+import { IN_REVIEW_STATUSES, submissionResult } from '../../lib/submission.js';
+
+const NEEDS_FIX = new Set(['ai-rejected', 'changes', 'admin-rejected']);
 
 export default function TourEditorPage() {
   const navigate = useNavigate();
@@ -45,12 +50,16 @@ export default function TourEditorPage() {
     setSaveError('');
     setNotice('');
     try {
+      const wasInReview = IN_REVIEW_STATUSES.has(tour.status);
       const res = await updateTour(tour.id, patch);
       if (res.tour) setTour(res.tour);
       await refresh();
-      setNotice(
-        res.requiresResubmit ? 'Đã lưu. Tour công khai đã chuyển về Nháp — cần xuất bản lại.' : 'Đã lưu thay đổi.',
-      );
+      let msg = 'Đã lưu thay đổi.';
+      if (res.requiresResubmit) msg = 'Đã lưu. Tour công khai đã chuyển về Nháp — cần xuất bản lại.';
+      else if (wasInReview && res.tour?.status === 'draft') {
+        msg = 'Đã lưu. Tour đã rút khỏi hàng chờ duyệt và về Nháp — cần gửi duyệt lại.';
+      }
+      setNotice(msg);
     } catch (e) {
       setSaveError(e.message || 'Lưu thất bại');
     } finally {
@@ -71,6 +80,7 @@ export default function TourEditorPage() {
   }
 
   const noPlaces = readiness && !readiness.placeCount;
+  const result = submissionResult(tour);
 
   return (
     <div className="studio-step studio__main--narrow">
@@ -79,6 +89,14 @@ export default function TourEditorPage() {
           <Icon name="map-pin" size={18} className="alert__icon" />
           <div>Tour chưa có điểm dừng nào. Thêm điểm đầu tiên để khách nghe được tour.</div>
           <Link className="btn btn--primary btn--sm" to={`/studio/tours/${tour.id}/places`}>Thêm điểm</Link>
+        </div>
+      ) : null}
+
+      {result && NEEDS_FIX.has(result.kind) ? (
+        <div className={`alert ${result.tone === 'danger' ? 'alert--warn' : ''}`} role="status">
+          <Icon name="alert-triangle" size={18} className="alert__icon" />
+          <div>{result.title}. {result.text}</div>
+          <Link className="btn btn--sm" to={`/studio/tours/${tour.id}/publish`}>Xem lý do</Link>
         </div>
       ) : null}
 
