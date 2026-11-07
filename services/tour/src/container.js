@@ -99,6 +99,7 @@ import { SaveRouteConfig } from './application/use-cases/save-route-config.js';
 
 import { SearchTours } from './application/use-cases/search-tours.js';
 import { GetPublicTour } from './application/use-cases/get-public-tour.js';
+import { GetTourPackage } from './application/use-cases/get-tour-package.js';
 import { PreviewTour } from './application/use-cases/preview-tour.js';
 
 import { GetLanguageConfig } from './application/use-cases/get-language-config.js';
@@ -236,6 +237,14 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     // UC02 — tìm & xem tour công khai (ngôn ngữ/nhãn giọng lấy từ cấu hình UC12)
     searchTours: new SearchTours({ tourRepo, placeRepo }),
     getPublicTour: new GetPublicTour({
+      tourRepo,
+      placeRepo,
+      routeConfigRepo,
+      tourLanguageRepo,
+      placeTranslationRepo,
+    }),
+    // UC03 (#103) — offline package manifest (same view as the detail + asset list)
+    getTourPackage: new GetTourPackage({
       tourRepo,
       placeRepo,
       routeConfigRepo,
