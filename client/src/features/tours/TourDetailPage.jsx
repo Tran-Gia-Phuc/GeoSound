@@ -5,7 +5,9 @@
 //   - Chọn ngôn ngữ nghe (A2) → cập nhật nội dung + nhãn giọng (đặt gần hành động).
 //   - Mỗi điểm: chạm → nghe tại điểm đó; ▶ nghe thử ngay; ＋ thêm vào lịch trình.
 //   - Thanh hành động DÍNH ĐÁY: [Nghe thử] [Bắt đầu đi tour] → trình phát mở
-//     thẳng theo ?mode= (không còn màn intro thứ hai). Tải offline (UC03) ẩn.
+//     thẳng theo ?mode= (không còn màn intro thứ hai).
+//   - UC03: mục "Tải về để nghe offline" (chọn ngôn ngữ, tiến trình, tạm dừng/tiếp tục) cho tour
+//     công khai; không có ở bản truy cập hạn chế (UC14).
 //   - E3: tour không còn khả dụng → thông báo + quay lại danh sách.
 //   - UC14: `restricted` = bản dành cho người thử (GET /api/tours/:id/restricted):
 //     trình phát ở /tour/:id/restricted/play, không thêm vào lịch trình, không
@@ -30,6 +32,7 @@ import { playPreview, stopPreview } from '../../lib/preview-audio.js';
 import { usePendingAdd } from '../../hooks/usePendingAdd.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { recordTourActivity } from '../../lib/tour-stats.js';
+import OfflineDownload from '../offline/OfflineDownload.jsx';
 
 // Mở thẳng bằng link chia sẻ (không có lịch sử) → về Khám phá.
 import './detail-a.css';
@@ -296,6 +299,9 @@ export default function TourDetailPage({ restricted = false }) {
             <div>Tour này chưa có điểm nào để nghe.</div>
           </div>
         )}
+
+        {/* UC03: offline package of the public tour (not for the restricted test version) */}
+        {!restricted && hasPlaces ? <OfflineDownload key={tour.id} tour={tour} /> : null}
 
       </aside>
 

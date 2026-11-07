@@ -17,7 +17,7 @@ const TABS = [
   { to: '/', icon: 'search', label: 'Khám phá', match: (p) => p === '/' || p.startsWith('/tour/') },
   { to: '/itineraries', icon: 'route', label: 'Lịch trình', match: (p) => p.startsWith('/itinerar') || p.startsWith('/shared/') },
   { to: '/studio', icon: 'mic', label: 'Studio', match: (p) => p.startsWith('/studio'), contributorOnly: true },
-  { to: '/account', icon: 'user', label: 'Tài khoản', match: (p) => p.startsWith('/account') || p.startsWith('/notifications') },
+  { to: '/account', icon: 'user', label: 'Tài khoản', match: (p) => p.startsWith('/account') || p.startsWith('/notifications') || p.startsWith('/offline') },
 ];
 
 function initials(user) {

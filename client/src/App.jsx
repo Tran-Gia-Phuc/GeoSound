@@ -20,6 +20,8 @@
 //   /shared/:token      — xem lịch trình được chia sẻ (UC07/A4, công khai)
 //   /itinerary/:id/go   — đi theo lịch trình của tôi (UC08, cần đăng nhập)
 //   /shared/:token/go   — đi theo lịch trình được chia sẻ (UC08, công khai)
+//   /offline            — tour đã tải trên thiết bị (UC03, không cần tài khoản)
+//   /offline/:tourId/play — nghe tour đã tải từ dữ liệu trên máy (UC03 → UC04, chạy không cần mạng)
 //   /admin              — khu quản trị (chỉ quản trị viên): /admin/reviews, /admin/reviews/:tourId (UC19),
 //                         /admin/reports (UC20), /admin/reports/:tourId,
 //                         /admin/users (UC21), /admin/users/:id, /admin/devices (UC23),
@@ -84,6 +86,8 @@ import ProfileEditPage from './features/authors/ProfileEditPage.jsx';
 import FollowingPage from './features/authors/FollowingPage.jsx';
 import SessionWatcher from './auth/SessionWatcher.jsx';
 import AppLayout from './components/shell/AppLayout.jsx';
+import OfflineLibraryPage from './features/offline/OfflineLibraryPage.jsx';
+import { loadOfflineDetail } from './lib/offline-store.js';
 import { previewTour } from './lib/studio.js';
 import { fetchRestrictedTour } from './lib/restricted-access.js';
 
@@ -112,6 +116,23 @@ function PlayRestrictedRoute() {
       backTo={`/tour/${tourId}/restricted`}
       backLabel="Chi tiết tour"
       remember={false}
+    />
+  );
+}
+
+// UC03 — nghe tour đã tải: dữ liệu + tệp lấy từ máy (blob: URL), không gọi mạng; thoát về thư viện.
+// Không gửi thống kê (đang offline) và không có nút báo cáo.
+function PlayOfflineRoute() {
+  const { tourId } = useParams();
+  return (
+    <TourPlayerPage
+      loadDetail={(lang) => loadOfflineDetail(tourId, lang)}
+      progressKey={`offline:${tourId}`}
+      backTo="/offline"
+      backLabel="Tour đã tải"
+      remember={false}
+      completeAction={{ label: 'Về Tour đã tải', to: '/offline' }}
+      errorActions={() => <Link className="btn btn--primary" to="/offline">Tour đã tải</Link>}
     />
   );
 }
@@ -166,6 +187,7 @@ const router = createBrowserRouter(
         <Route path="/account/profile" element={<RequireAuth><ProfileEditPage /></RequireAuth>} />
         <Route path="/account/following" element={<RequireAuth><FollowingPage /></RequireAuth>} />
         <Route path="/authors/:id" element={<AuthorPage />} />
+        <Route path="/offline" element={<OfflineLibraryPage />} />
         <Route path="/admin/users" element={<RequireAuth><UsersPage /></RequireAuth>} />
         <Route path="/admin/users/:id" element={<RequireAuth><UserDetailPage /></RequireAuth>} />
         <Route path="/admin/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
@@ -199,6 +221,7 @@ const router = createBrowserRouter(
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/tour/:tourId/play" element={<PlayTourRoute />} />
+      <Route path="/offline/:tourId/play" element={<PlayOfflineRoute />} />
       <Route path="/tour/:tourId/restricted/play" element={<RequireAuth><PlayRestrictedRoute /></RequireAuth>} />
       <Route path="/itinerary/:id/go" element={<RequireAuth><ItineraryPlayerPage /></RequireAuth>} />
       <Route path="/shared/:token/go" element={<SharedItineraryPlayerPage />} />

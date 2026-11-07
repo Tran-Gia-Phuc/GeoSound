@@ -31,6 +31,14 @@ export function buildPublicTourRouter({ publicTourController }) {
     wrap(publicTourController.detail)
   );
 
+  // UC03 (#103) — offline package manifest of a public tour for one language.
+  r.get(
+    `/:id(${UUID})/package`,
+    validateParams(detailParamSchema),
+    validateQuery(detailQuerySchema),
+    wrap(publicTourController.package)
+  );
+
   return r;
 }
 
