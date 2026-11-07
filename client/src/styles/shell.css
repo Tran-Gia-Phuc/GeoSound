@@ -815,3 +815,110 @@
 .restricted__off {
   color: var(--danger);
 }
+
+/* ---------- Admin dashboard and action log (UC22) ---------- */
+.admin-stat--link {
+  color: inherit;
+  text-decoration: none;
+}
+.admin-stat--link:hover {
+  border-color: var(--primary);
+}
+.admin-dashboard__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sp-3);
+}
+@media (min-width: 900px) {
+  .admin-dashboard__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.admin-dashboard__more {
+  margin-top: var(--sp-3);
+  align-self: flex-start;
+}
+.admin-filters__dates {
+  align-items: end;
+}
+.admin-filters__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--sp-2);
+}
+.admin-filters__grid .input {
+  width: 100%;
+  min-width: 0;
+}
+.admin-filters__actions {
+  justify-content: flex-start;
+  gap: var(--sp-2);
+}
+/* One-series horizontal bars: thin bar, rounded data end, value as text ink. */
+.admin-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.admin-bars__row {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 14px;
+}
+.admin-bars__label {
+  overflow-wrap: anywhere;
+}
+.admin-bars__track {
+  height: 12px;
+  background: var(--surface-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.admin-bars__fill {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+  border-radius: 0 4px 4px 0;
+}
+.admin-bars__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  min-width: 2ch;
+  text-align: right;
+}
+.admin-log__reason {
+  min-width: 12rem;
+  overflow-wrap: anywhere;
+}
+.admin-readonly {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+.admin-fields {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.admin-fields__pair {
+  display: grid;
+  grid-template-columns: minmax(0, 10rem) minmax(0, 1fr);
+  gap: var(--sp-2);
+}
+.admin-fields dt {
+  color: var(--fg-muted);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.admin-fields dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
