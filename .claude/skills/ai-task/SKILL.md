@@ -90,7 +90,7 @@ until [ "$(gh pr checks <PR> | grep -c -E 'pass|fail')" -ge 3 ] && [ "$(gh pr ch
 ```
 
 - Merge only if `gh pr checks <PR> | grep -q fail` finds nothing: `gh pr merge <PR> --merge` (no squash, no `--admin`).
-- A failing `Client — browser smoke tests` on a PR that does not touch `client/`: check the log (`gh run view <run> --log-failed`); if it is the known flaky `player-controls.spec.js`, `gh run rerun <run> --failed`, wait, then merge when green. Anything else: stop and report.
+- A failing `Client — browser smoke tests` on a PR that does not touch `client/`: check the log (`gh run view <run> --log-failed`); rerun (`gh run rerun <run> --failed`) only for an infrastructure error (runner, network, registry); a failing test is real since #300 fixed the old `player-controls` seek bug: stop and report.
 - Merge blocked (conflict, required review): stop, report "chờ người merge".
 
 ## 7. After merge

@@ -265,12 +265,23 @@ export function useAudioController({ onEnded } = {}) {
     else if (status === 'paused') resume();
   }, [pause, resume]);
 
+  // #300: the new position goes into state at once. Waiting for 'timeupdate' let React restore the
+  // controlled range to the old time, and the range's trailing 'change' event then seeked back there.
   const seek = useCallback((sec) => {
     const a = audioRef.current;
     if (trackRef.current?.kind === 'url' && a && a.seekable.length > 0 && Number.isFinite(a.duration)) {
-      a.currentTime = Math.max(0, Math.min(sec, a.duration));
+      const time = Math.max(0, Math.min(Number(sec) || 0, a.duration));
+      a.currentTime = time;
+      lastPosition.current = { trackId: trackRef.current.id ?? null, time };
+      patch({ currentTime: time });
     }
-  }, []);
+  }, [patch]);
+
+  // Relative seek (±15 s buttons) from the media element's real time, not the last rendered state.
+  const seekBy = useCallback((delta) => {
+    const a = audioRef.current;
+    if (a && Number.isFinite(a.currentTime)) seek(a.currentTime + delta);
+  }, [seek]);
 
   const stop = useCallback(() => {
     playGeneration.current += 1;
@@ -324,8 +335,8 @@ export function useAudioController({ onEnded } = {}) {
   }, [clearTts]);
 
   return useMemo(
-    () => ({ state, playTrack, retry, toggle, pause, resume, seek, stop, unlock, ttsSupported }),
-    [state, playTrack, retry, toggle, pause, resume, seek, stop, unlock, ttsSupported],
+    () => ({ state, playTrack, retry, toggle, pause, resume, seek, seekBy, stop, unlock, ttsSupported }),
+    [state, playTrack, retry, toggle, pause, resume, seek, seekBy, stop, unlock, ttsSupported],
   );
 }
 
