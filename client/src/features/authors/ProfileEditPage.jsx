@@ -3,6 +3,8 @@
 // their name (1–120), introduction (max 500, counter) and avatar. The avatar is
 // uploaded through the Media upload (FileDrop), then its URL is saved with
 // PATCH /api/auth/me/profile; "Gỡ" saves null. Only changed fields are sent.
+// The form starts from GET /api/auth/me/profile for every role (#298), with
+// loading and error-with-retry states.
 // =========================================================
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -11,7 +13,7 @@ import AppHeader from '../../components/shell/AppHeader.jsx';
 import FileDrop from '../../components/media/FileDrop.jsx';
 import { useToast } from '../../components/Toast.jsx';
 import { useAuth } from '../../auth/AuthContext.jsx';
-import { BIO_MAX, NAME_MAX, getAuthor, updateProfile, validateProfile } from '../../lib/authors.js';
+import { BIO_MAX, NAME_MAX, getMyProfile, updateProfile, validateProfile } from '../../lib/authors.js';
 
 const OFFLINE_MESSAGE = 'Không thể kết nối, vui lòng thử lại';
 const errorMessage = (e, fallback) => (e?.offline ? OFFLINE_MESSAGE : e?.message || fallback);
@@ -24,27 +26,28 @@ export default function ProfileEditPage() {
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [reload, setReload] = useState(0);
 
-  // Contributors have a public page with the current bio and avatar; others start from the stored user.
+  // Every role reads its own profile (#298): the editor never starts from stale stored data.
   useEffect(() => {
     let alive = true;
-    const fromUser = { fullName: user?.fullName || '', bio: user?.bio || '', avatarUrl: user?.avatarUrl || '' };
-    const apply = (v) => {
-      if (!alive) return;
-      setInitial(v);
-      setValues(v);
-    };
-    if (isContributor && user?.id) {
-      getAuthor(user.id)
-        .then((a) => apply({ fullName: a.fullName || fromUser.fullName, bio: a.bio || '', avatarUrl: a.avatarUrl || '' }))
-        .catch(() => apply(fromUser));
-    } else {
-      apply(fromUser);
-    }
+    setInitial(null);
+    setLoadError('');
+    getMyProfile()
+      .then((p) => {
+        if (!alive) return;
+        const v = { fullName: p?.fullName || '', bio: p?.bio || '', avatarUrl: p?.avatarUrl || '' };
+        setInitial(v);
+        setValues(v);
+      })
+      .catch((err) => {
+        if (alive) setLoadError(errorMessage(err, 'Chưa tải được hồ sơ'));
+      });
     return () => {
       alive = false;
     };
-  }, [isContributor, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id, reload]);
 
   const set = (key) => (value) => {
     setValues((v) => ({ ...v, [key]: value }));
@@ -90,7 +93,17 @@ export default function ProfileEditPage() {
   return (
     <div className="page page--narrow profile-edit">
       <AppHeader title={title} backTo="/account" />
-      {initial === null ? (
+      {loadError ? (
+        <div className="alert alert--warn" role="alert">
+          <Icon name="alert-triangle" size={18} className="alert__icon" />
+          <div>
+            {loadError}
+            <div className="row">
+              <button type="button" className="btn btn--ghost" onClick={() => setReload((n) => n + 1)}>Thử lại</button>
+            </div>
+          </div>
+        </div>
+      ) : initial === null ? (
         <p className="muted author-loading"><Icon name="loader" size={18} className="spin" /> Đang tải…</p>
       ) : (
         <form className="card studio-form profile-form" onSubmit={onSubmit} noValidate>

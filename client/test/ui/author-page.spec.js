@@ -157,9 +157,10 @@ test('own author page: no follow button, a link to edit the profile', async ({ p
   expect(state.calls.filter((c) => c.endsWith('follow'))).toHaveLength(0);
 });
 
-/** Profile edit: author read, media upload and PATCH /me/profile. */
-async function mockProfile(page, { patch } = {}) {
-  const state = { bodies: [], uploads: 0 };
+/** Profile edit: GET /me/profile (#298), media upload and PATCH /me/profile. */
+async function mockProfile(page, { patch, me, meStatus } = {}) {
+  const state = { bodies: [], uploads: 0, reads: 0, meStatus };
+  const mine = me ?? { id: aid, email: 'test@example.test', fullName: author.fullName, role: 'contributor', bio: author.bio, avatarUrl: author.avatarUrl };
   await mockAuthor(page);
   await page.route('**/api/media/uploads**', (route) => {
     state.uploads += 1;
@@ -168,6 +169,12 @@ async function mockProfile(page, { patch } = {}) {
   });
   await page.route('**/api/media/files/**', (route) => route.fulfill({ status: 404 }));
   await page.route('**/api/auth/me/profile', (route) => {
+    if (route.request().method() === 'GET') {
+      state.reads += 1;
+      if (state.meStatus === 'offline') return route.abort();
+      if (state.meStatus) return json(route, { code: 'user_not_found', error: 'Không tìm thấy người dùng' }, state.meStatus);
+      return json(route, mine);
+    }
     const body = route.request().postDataJSON();
     state.bodies.push(body);
     if (patch) return patch(route, body);
@@ -185,7 +192,8 @@ test('contributor edits the profile: validation, avatar upload, save and remove'
   await expect(page).toHaveURL(/\/account\/profile$/);
   const name = page.getByLabel('Họ tên *');
   const bio = page.getByLabel('Giới thiệu');
-  await expect(name).toHaveValue(author.fullName); // from the author page, not the stored user
+  await expect(name).toHaveValue(author.fullName); // from GET /me/profile, not the stored user
+  expect(state.reads).toBeGreaterThan(0); // dev StrictMode may read twice on mount
   await expect(bio).toHaveValue(author.bio);
   await noOverflow(page);
 
@@ -238,18 +246,51 @@ test('profile: server error is shown; no change sends nothing', async ({ page })
   await expect(page.getByRole('alert').filter({ hasText: 'Ảnh đại diện không hợp lệ' })).toBeVisible();
 });
 
-test('tourist: menu says "Hồ sơ", the form starts from the stored user', async ({ page }) => {
+test('tourist: menu says "Hồ sơ", the form starts from GET /me/profile with bio and avatar', async ({ page }) => {
   await signIn(page, 'tourist');
-  const state = await mockProfile(page);
+  const state = await mockProfile(page, {
+    me: { id: 't1', email: 'test@example.test', fullName: 'Khách Du Lịch', role: 'tourist', bio: 'Thích đi bộ phố cổ.', avatarUrl: 'http://localhost:8080/api/media/files/images/me.png' },
+  });
   await page.goto('/account');
   await expect(page.getByRole('link', { name: 'Hồ sơ tác giả' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Xem trang tác giả của tôi' })).toHaveCount(0);
   await page.getByRole('link', { name: 'Hồ sơ', exact: true }).click();
-  await expect(page.getByLabel('Họ tên *')).toHaveValue('Test contributor');
+  await expect(page.getByLabel('Họ tên *')).toHaveValue('Khách Du Lịch'); // not the stored 'Test contributor'
+  await expect(page.getByLabel('Giới thiệu')).toHaveValue('Thích đi bộ phố cổ.');
+  await expect(page.getByRole('button', { name: 'Gỡ' })).toBeVisible(); // the avatar is loaded
   await page.getByLabel('Họ tên *').fill('Khách Mới');
   await page.getByRole('button', { name: 'Lưu hồ sơ' }).click();
   await expect(toast(page, 'Đã lưu hồ sơ')).toBeVisible();
-  expect(state.bodies[0]).toEqual({ fullName: 'Khách Mới' });
+  expect(state.bodies[0]).toEqual({ fullName: 'Khách Mới' }); // bio and avatar unchanged: not sent
+});
+
+test('admin: the editor loads the own profile too', async ({ page }) => {
+  await signIn(page, 'admin');
+  const state = await mockProfile(page, {
+    me: { id: 'ad1', email: 'test@example.test', fullName: 'Quản trị viên', role: 'admin', bio: 'Phụ trách duyệt nội dung.', avatarUrl: null },
+  });
+  await page.goto('/account/profile');
+  await expect(page.getByLabel('Họ tên *')).toHaveValue('Quản trị viên');
+  await expect(page.getByLabel('Giới thiệu')).toHaveValue('Phụ trách duyệt nội dung.');
+  await expect(page.getByRole('link', { name: 'Xem trang tác giả' })).toHaveCount(0);
+  expect(state.reads).toBeGreaterThan(0);
+});
+
+test('profile load: error with retry, then the form', async ({ page }) => {
+  await signIn(page, 'tourist');
+  const state = await mockProfile(page, { meStatus: 'offline' });
+  await page.goto('/account/profile');
+  await expect(page.getByRole('alert').filter({ hasText: 'Không thể kết nối, vui lòng thử lại' })).toBeVisible();
+  await expect(page.getByLabel('Họ tên *')).toHaveCount(0);
+  const before = state.reads;
+  state.meStatus = 404;
+  await page.getByRole('button', { name: 'Thử lại' }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Không tìm thấy người dùng' })).toBeVisible();
+  expect(state.reads).toBe(before + 1);
+  state.meStatus = undefined;
+  await page.getByRole('button', { name: 'Thử lại' }).click();
+  await expect(page.getByLabel('Họ tên *')).toHaveValue(author.fullName);
+  expect(state.reads).toBe(before + 2);
 });
 
 test('following list: paging and links to the author page', async ({ page }) => {
