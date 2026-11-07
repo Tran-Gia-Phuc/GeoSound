@@ -136,6 +136,7 @@ export async function fixtures(page) {
         total: 0,
       });
     if (path === '/api/tours/' + id + '/ratings/mine') return json(route, { rating: null });
+    if (path === '/api/tours/' + id + '/reports/mine') return json(route, { report: null });
     if (path === '/api/tours/' + id)
       return json(route, {
         tour: { ...tour, selectedLanguage: u.searchParams.get('lang') || 'vi' },
