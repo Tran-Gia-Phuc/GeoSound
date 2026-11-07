@@ -5,13 +5,15 @@
 import { api } from './api.js';
 
 /**
- * GET /api/notifications?page=&limit=&unread= ->
+ * GET /api/notifications?page=&limit=&unread=&tourId= ->
  * { items: [{ id, type, tourId, title, body, data, read, createdAt }], page, limit, total, unread }
- * Newest first; `total` follows the filter, `unread` is the user's unread count.
+ * Newest first; `total` follows the filters (`tourId` = one tour only, #297), `unread` is the
+ * user's unread count over all tours.
  */
-export function listNotifications({ page = 1, limit = 20, unread = false } = {}, opts) {
+export function listNotifications({ page = 1, limit = 20, unread = false, tourId } = {}, opts) {
   const q = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (unread) q.set('unread', 'true');
+  if (tourId) q.set('tourId', tourId);
   return api.get(`/api/notifications?${q}`, { ...opts, auth: true });
 }
 
