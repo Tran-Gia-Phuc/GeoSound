@@ -78,6 +78,7 @@ test('chỉ trả tour công khai, bỏ tour nháp; sort popular theo ratingCoun
   const { tours: cards, total } = await run();
   assert.equal(total, 3); // t1,t2,t4 (t3 draft bị loại)
   assert.deepEqual(cards.map((c) => c.id), ['t1', 't4', 't2']);
+  assert.deepEqual(cards.map((c) => c.authorId), ['a1', 'a1', 'a2']); // UC18 author link on cards
 });
 
 test('từ khóa khớp tên/mô tả', async () => {

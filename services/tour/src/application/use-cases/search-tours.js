@@ -83,6 +83,7 @@ function buildCard(tour, stats, distanceMeters, anchor) {
     type: tour.type,
     originalLanguage: tour.originalLanguage,
     duration: tour.duration,
+    authorId: tour.authorId, // UC18 author link on cards
     averageRating: tour.averageRating,
     ratingCount: tour.ratingCount,
     placeCount: s.count,
