@@ -105,3 +105,17 @@ export function formatRelative(iso, now = Date.now()) {
   if (d < 7) return `${d} ngày trước`;
   return new Date(t).toLocaleDateString('vi-VN');
 }
+
+/** Bytes -> "512 B" / "3,2 KB" / "4,8 MB" / "1,2 GB" (vi-VN decimal comma). Invalid -> ''. */
+export function formatBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return '';
+  if (bytes < 1024) return `${Math.round(bytes)} B`;
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  let v = bytes / 1024;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i += 1;
+  }
+  return `${v.toFixed(v >= 100 ? 0 : 1).replace('.', ',')} ${units[i]}`;
+}
