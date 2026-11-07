@@ -120,6 +120,8 @@ listed per UC describe the screen states; they are closed together with the UC w
 | 8 | UC14 restricted access (passcode) | #269 | P2 | Tour, AI indexer filter, client | | #107, #108 | `feature/uc14-restricted-access` | done: backend PR #285, client PR #289 |
 | 9 | UC18 author page and follow | #272 | P2 | Auth (profile, follows), Tour (public tours), client | | #118 to #120 | `feature/uc18-author-page` | done: backend PR #282, client PR #292; `authorId` in public detail and cards PR #293 |
 
+Follow-ups (2026-11-08): #297 notification list filtered by `tourId` on the server, the Studio moderation history pages from it (PR #303, new index: push the `notification` schema); #298 `GET /api/auth/me/profile` for the profile editor of every role (PR #305); #299 author names in the dashboard top contributors (PR #302); #300 the old "flaky" `player-controls` seek test was a player bug (the range slider re-render undid the seek), fixed with exact assertions (PR #304); #306 race in `notifications.spec` fixed (PR #307); guide `docs/04-guides/run-on-a-new-machine.md` (PR #301). Not part of these UCs: offline download (Frontend issues #103, #104, #158 to #161), so UC17 has no download count yet.
+
 ### 6.2 Decisions (L = later UCs)
 
 | # | Question | Decision |
