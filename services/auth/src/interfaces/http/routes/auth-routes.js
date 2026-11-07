@@ -76,6 +76,7 @@ export function buildAuthRouter({ authController, adminUsersController, authorCo
       r.put('/authors/:id/follow', requireAuth, wrap(c.follow));
       r.delete('/authors/:id/follow', requireAuth, wrap(c.unfollow));
       r.get('/me/following', requireAuth, validateQuery(followingQuerySchema), wrap(c.following));
+      r.get('/me/profile', requireAuth, wrap(c.myProfile));
       r.patch('/me/profile', requireAuth, validateBody(updateProfileSchema), wrap(c.updateProfile));
     }
   }

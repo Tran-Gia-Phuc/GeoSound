@@ -4,10 +4,10 @@
 // =========================================================
 
 export class AuthorController {
-  /** @param {{ getAuthorProfile, getFollowState, followAuthor, unfollowAuthor, listFollowing, updateMyProfile }} useCases */
+  /** @param {{ getAuthorProfile, getFollowState, followAuthor, unfollowAuthor, listFollowing, getMyProfile, updateMyProfile }} useCases */
   constructor(useCases) {
     this.uc = useCases;
-    for (const m of ['profile', 'followState', 'follow', 'unfollow', 'following', 'updateProfile']) {
+    for (const m of ['profile', 'followState', 'follow', 'unfollow', 'following', 'myProfile', 'updateProfile']) {
       this[m] = this[m].bind(this);
     }
   }
@@ -30,6 +30,10 @@ export class AuthorController {
 
   async following(req, res) {
     res.json(await this.uc.listFollowing.execute({ userId: req.user?.sub, ...(req.validatedQuery ?? {}) }));
+  }
+
+  async myProfile(req, res) {
+    res.json(await this.uc.getMyProfile.execute({ userId: req.user?.sub }));
   }
 
   async updateProfile(req, res) {
