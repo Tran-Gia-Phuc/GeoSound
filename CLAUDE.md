@@ -5,7 +5,7 @@ Read this file first in every session, then read `AI_PLAN.md` (decisions, curren
 - **`/ai-task <N>`** (`.claude/skills/ai-task/SKILL.md`): AI / Moderation issues of `AI_PLAN.md` section 4.
 - **`/uc-task <N | UCnn>`** (`.claude/skills/uc-task/SKILL.md`): the later use cases of `AI_PLAN.md` section 6 (`docs/use case/lam-sau`, label `uc-later`, issues #267 to #275): design note approved by the user → backend → client → tests → live check → PR → merge.
 
-**Priority:** phases 1, 2 and 3 (place moderation, tour moderation, chatbot), the Tour side (#180, #240), the gateway chat route (#188), UC#19 admin review (#243), UC23 signed-in devices (#247, #248, #251, #256, #265), the Notification email lookup (#258) and the Android audio fix (#263) are merged and checked on the real stack. **Next work: the later use cases, in the order of `AI_PLAN.md` section 6.1, one issue per UC.** Only on request: real-model eval baseline, smaller AI image, UC23 IP location.
+**Priority:** phases 1, 2 and 3 (place moderation, tour moderation, chatbot), the Tour side (#180, #240), the gateway chat route (#188), UC#19 admin review (#243), UC23 signed-in devices (#247, #248, #251, #256, #265), the Notification email lookup (#258) , the Android audio fix (#263) and the nine later use cases (UC05, UC06, UC14, UC16, UC17, UC18, UC20, UC21, UC22: backend + client, issues #267 to #275, PRs #277 to #295) are merged and checked on the real stack. Next work only on request: offline download (UC17 download beacon), real-model eval baseline, smaller AI image, UC23 IP location.
 
 ## 1. Role and language
 

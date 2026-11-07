@@ -47,7 +47,7 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 | D28 | Signed-in devices (UC23, #247 backend, #248 client) | Design `docs/02-design/device-sessions.md`: `auth.sessions`, `sid` in tokens, refresh rotation with reuse detection, revocation in Redis checked by `verifyJwt`, no business limit (cap `AUTH_MAX_SESSIONS`=100), new-device email (demo inbox `SECURITY_ALERT_TO` in `.env`, never in the repo) |
 
 
-## 3. Current state (2026-11-03)
+## 3. Current state (2026-11-07)
 
 - **Phases 1, 2 and 3 work end to end on the real stack** (Supabase, RabbitMQ, real Gemini), checked on 2026-10-30:
   - place moderation (approved / rejected with reasons, publish blocked by a rejected place), tour moderation (`ai_warning` / `pending_review`), edit while in review withdraws to `draft`;
@@ -57,7 +57,7 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 - Backend tasks handed over to the user are done: UC19 admin review, UC23 devices (including password change, #256, and the admin online view, #265), contributor email lookup for Notification (#258). Real SMTP (Gmail app password) is set in the user's `.env` and works (checked 2026-11-01).
 - An admin account is made by hand: `update app_auth.users set role = 'admin' where email = '...'` in the Supabase SQL editor, then sign in again. There is no admin sign-up.
 - Phones reach the stack through ngrok (`scripts/demo/`, fixed domain per teammate in `.env`); media URLs on `localhost` are rewritten by the client (#263).
-- Next work: the later use cases in section 6 (`/uc-task`).
+- Later use cases (section 6): all nine done on 2026-11-07, backend and client, schemas pushed to Supabase and every route checked on the real stack (2026-11-04). The `[Frontend A]` issues #105 to #108, #115 to #121, #127 to #136 and #162 to #165 are closed with their UC PRs.
 - Both Tour flags are off by default. To turn the full flow on: `MODERATION_EVENTS_ENABLED=true` and `CHATBOT_EVENTS_ENABLED=true` in `.env`, plus `INTERNAL_SERVICE_TOKEN`, `CHATBOT_ENABLED`, `CHATBOT_INDEXER_ENABLED`, `DATABASE_URL_AI`, `DATABASE_URL_DIRECT_AI` (and `CHAT_MEMORY_BACKEND=postgres` for shared chat memory).
 - Nothing waits for other owners. With moderation on, a tour stops at `pending_review` until an admin decides through `/api/tours/admin/reviews` (UC#19, #243). The Supabase password shared in chat must be reset by the project owner.
 - Never run real Gemini without an explicit request.
@@ -110,15 +110,15 @@ listed per UC describe the screen states; they are closed together with the UC w
 
 | # | UC | Issue | Priority | Service(s) | Depends on | Frontend A issues | Branch | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | UC05 rating and review | #267 | P0 | Tour (+ Auth `name` claim), client | | #105, #162, #163 | `feature/uc05-ratings` | backend done (part of #267, needs the `tour` schema push); client next |
-| 2 | UC06 report a tour | #268 | P1 | Tour, client | | #106, #164, #165 | `feature/uc06-reports` | backend done (part of #268, needs the `tour` schema push); client next |
-| 3 | UC20 admin handling of reports | #273 | P1 | Tour, client | UC06 | #127 to #130 | `feature/uc20-report-handling` | backend done (part of #273, needs the `tour` schema push); client next |
-| 4 | UC16 status and in-app notifications | #270 | P1 | Notification (+ HTTP port), Gateway, client | | #115, #116 | `feature/uc16-notifications` | backend done (part of #270, needs the `notification` schema push and a notification rebuild); client next |
-| 5 | UC21 admin account actions | #274 | P2 | Auth, Tour (violation history), client | | #131 to #135 | `feature/uc21-account-actions` | Auth + Notification backend done (part of #274, needs the `app_auth` schema push); violation history and log come with UC22; client next |
-| 6 | UC22 dashboard and action log | #275 | P2 | Tour, client | UC20, UC21 | #121, #136 | `feature/uc22-dashboard-log` | backend done (part of #275, needs the `tour` schema push); client next |
-| 7 | UC17 tour statistics | #271 | P1 | Tour, client | UC05 | #117 | `feature/uc17-tour-stats` | backend done (part of #271, needs the `tour` schema push); client next |
-| 8 | UC14 restricted access (passcode) | #269 | P2 | Tour, AI indexer filter, client | | #107, #108 | `feature/uc14-restricted-access` | backend done (part of #269, needs the `tour` schema push); client next |
-| 9 | UC18 author page and follow | #272 | P2 | Auth (profile, follows), Tour (public tours), client | | #118 to #120 | `feature/uc18-author-page` | backend done (part of #272, needs the `app_auth` schema push); client next |
+| 1 | UC05 rating and review | #267 | P0 | Tour (+ Auth `name` claim), client | | #105, #162, #163 | `feature/uc05-ratings` | done: backend PR #277, client PR #288; schema pushed 2026-11-04 |
+| 2 | UC06 report a tour | #268 | P1 | Tour, client | | #106, #164, #165 | `feature/uc06-reports` | done: backend PR #278, client PR #291 |
+| 3 | UC20 admin handling of reports | #273 | P1 | Tour, client | UC06 | #127 to #130 | `feature/uc20-report-handling` | done: backend PR #280, client PR #287 |
+| 4 | UC16 status and in-app notifications | #270 | P1 | Notification (+ HTTP port), Gateway, client | | #115, #116 | `feature/uc16-notifications` | done: backend PR #279, client PR #286 |
+| 5 | UC21 admin account actions | #274 | P2 | Auth, Tour (violation history), client | | #131 to #135 | `feature/uc21-account-actions` | done: backend PR #281 (Auth) + #283 (violation history, log), client PR #290 |
+| 6 | UC22 dashboard and action log | #275 | P2 | Tour, client | UC20, UC21 | #121, #136 | `feature/uc22-dashboard-log` | done: backend PR #283, client PR #295 |
+| 7 | UC17 tour statistics | #271 | P1 | Tour, client | UC05 | #117 | `feature/uc17-tour-stats` | done: backend PR #284, client PR #294 (no download beacon: the client has no offline download yet) |
+| 8 | UC14 restricted access (passcode) | #269 | P2 | Tour, AI indexer filter, client | | #107, #108 | `feature/uc14-restricted-access` | done: backend PR #285, client PR #289 |
+| 9 | UC18 author page and follow | #272 | P2 | Auth (profile, follows), Tour (public tours), client | | #118 to #120 | `feature/uc18-author-page` | done: backend PR #282, client PR #292; `authorId` in public detail and cards PR #293 |
 
 ### 6.2 Decisions (L = later UCs)
 
