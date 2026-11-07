@@ -17,8 +17,11 @@ export const REPORT_REASON_LABELS = {
 };
 export const reasonLabel = (r) => REPORT_REASON_LABELS[r] || r || 'Khác';
 
-/** Vietnamese labels of the admin_actions log entries (UC20 tours, UC21 accounts). */
+/** Vietnamese labels of the admin_actions log entries (UC19 reviews, UC20 tours, UC21 accounts). */
 export const ADMIN_ACTION_LABELS = {
+  approve_tour: 'Duyệt tour',
+  reject_tour: 'Từ chối tour',
+  request_tour_changes: 'Yêu cầu sửa tour',
   hide_tour: 'Ẩn tour',
   restore_tour: 'Khôi phục tour',
   dismiss_reports: 'Bỏ qua báo cáo',

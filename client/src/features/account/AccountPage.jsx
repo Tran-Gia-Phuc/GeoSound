@@ -86,7 +86,7 @@ export default function AccountPage() {
               <Icon name="sliders" size={20} />
               <span>
                 Quản trị
-                <span className="muted small menu__sub">Báo cáo vi phạm, tài khoản và thiết bị</span>
+                <span className="muted small menu__sub">Dashboard, báo cáo vi phạm, tài khoản, nhật ký</span>
               </span>
               <Icon name="chevron-left" size={16} className="menu__chev" />
             </Link>

@@ -21,7 +21,8 @@
 //   /itinerary/:id/go   — đi theo lịch trình của tôi (UC08, cần đăng nhập)
 //   /shared/:token/go   — đi theo lịch trình được chia sẻ (UC08, công khai)
 //   /admin              — khu quản trị (chỉ quản trị viên): /admin/reports (UC20), /admin/reports/:tourId,
-//                         /admin/users (UC21), /admin/users/:id, /admin/devices (UC23)
+//                         /admin/users (UC21), /admin/users/:id, /admin/devices (UC23),
+//                         /admin/dashboard, /admin/actions, /admin/actions/:id (UC22)
 //   /studio             — tour của tôi (UC09, chỉ người đóng góp)
 //   /studio/tours/new   — tạo tour (UC09)
 //   /studio/tours/:id   — soạn tour theo các bước (StudioTourLayout + stepper):
@@ -70,6 +71,9 @@ import ReportedToursPage from './features/admin/ReportedToursPage.jsx';
 import ReportDossierPage from './features/admin/ReportDossierPage.jsx';
 import UsersPage from './features/admin/UsersPage.jsx';
 import UserDetailPage from './features/admin/UserDetailPage.jsx';
+import DashboardPage from './features/admin/DashboardPage.jsx';
+import ActionLogPage from './features/admin/ActionLogPage.jsx';
+import ActionDetailPage from './features/admin/ActionDetailPage.jsx';
 import NotificationsPage from './features/notifications/NotificationsPage.jsx';
 import { UnreadCountLayout } from './features/notifications/UnreadCount.jsx';
 import AuthorPage from './features/authors/AuthorPage.jsx';
@@ -159,6 +163,9 @@ const router = createBrowserRouter(
         <Route path="/authors/:id" element={<AuthorPage />} />
         <Route path="/admin/users" element={<RequireAuth><UsersPage /></RequireAuth>} />
         <Route path="/admin/users/:id" element={<RequireAuth><UserDetailPage /></RequireAuth>} />
+        <Route path="/admin/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
+        <Route path="/admin/actions" element={<RequireAuth><ActionLogPage /></RequireAuth>} />
+        <Route path="/admin/actions/:id" element={<RequireAuth><ActionDetailPage /></RequireAuth>} />
         <Route path="/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
         <Route path="/admin/devices" element={<RequireAuth><OnlineDevicesPage /></RequireAuth>} />
         <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />
