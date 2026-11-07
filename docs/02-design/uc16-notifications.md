@@ -43,9 +43,13 @@ model InAppNotification {
 
   @@index([userId, createdAt])
   @@index([userId, readAt])
+  @@index([userId, tourId, createdAt]) // #297: history of one tour
   @@map("in_app_notifications")
 }
 ```
+
+The index `(user_id, tour_id, created_at)` was added with #297 (additive, no data change) for the tour
+filter of section 4; it must be pushed to the `notification` schema like the table.
 
 Additive: one new table. The placeholder model `Notification` (`notifications`) is kept untouched (it may
 already exist in the shared database).
@@ -76,7 +80,7 @@ Schema push (by hand, never on start; the Notification container does not run `p
 
 | Method | Path | Query / body | Response |
 | --- | --- | --- | --- |
-| `GET` | `/` | `page` (1..), `limit` (1..50, default 20), `unread=true\|false` | `{ items: [{ id, type, tourId, title, body, data, read, createdAt }], page, limit, total, unread }`, newest first; `total` follows the filter, `unread` is the user's unread count |
+| `GET` | `/` | `page` (1..), `limit` (1..50, default 20), `unread=true\|false`, `tourId` (uuid, optional) | `{ items: [{ id, type, tourId, title, body, data, read, createdAt }], page, limit, total, unread }`, newest first; `total` follows the filters, `unread` is the user's unread count over all tours |
 | `GET` | `/unread-count` | | `{ unread }` |
 | `POST` | `/:id/read` | | 204 (also when already read) |
 | `POST` | `/read-all` | | `{ updated }` |
@@ -85,6 +89,13 @@ Schema push (by hand, never on start; the Notification container does not run `p
 Errors: 401 without or with an invalid / revoked token, 400 `validation_error` ("Tham số không hợp lệ")
 for a bad query, 404 `notification_not_found` ("Không tìm thấy thông báo") for another user's, unknown or
 malformed id.
+
+Tour filter (#297): `tourId` narrows the list and `total` to the caller's notifications about that tour
+(still scoped to the user of the token: another user's notifications of the same tour are never
+returned); paging works as without the filter. `unread` stays the global count so the badge does not
+change with the filter. A `tourId` that is not a uuid is a 400 `validation_error`. The Studio history
+(`TourModerationHistory`) uses it with 20 per page and "Xem thêm", replacing the former client-side
+filter of the latest 50 notifications.
 
 ## 5. Events
 

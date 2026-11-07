@@ -1018,3 +1018,25 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+/* Dashboard top contributors (#299): avatar + one-line name, numbers never wrap on a phone. */
+.admin-table--top td {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.admin-table--top td:first-child {
+  width: 100%;
+  max-width: 0;
+}
+.admin-author {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.admin-author__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

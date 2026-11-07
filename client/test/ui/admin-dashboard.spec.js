@@ -1,4 +1,5 @@
 // UC22 (#275, Frontend A #121 and #136): admin dashboard, action log and log detail.
+// #299: top contributor names and avatars from the public author API.
 import { test, expect } from '@playwright/test';
 import { json, signIn, fixtures, noOverflow, id as tourId, userId } from './fixtures.js';
 
@@ -32,6 +33,28 @@ const logItems = [
   { id: 'l2', adminId: userId, action: 'suspend_user', targetType: 'user', targetId: target, reason: 'Spam',
     data: { until: hoursAgo(-48) }, createdAt: hoursAgo(5) },
 ];
+
+const authorProfiles = {
+  [authorA]: { id: authorA, fullName: 'Nguyễn Văn A', avatarUrl: null, bio: null, followerCount: 3, joinedAt: hoursAgo(900) },
+  [authorB]: { id: authorB, fullName: 'Trần Thị B', avatarUrl: null, bio: null, followerCount: 0, joinedAt: hoursAgo(900) },
+};
+
+/**
+ * Mocks GET /api/auth/authors/:id (registered after fixtures(), so it wins). `handler(route, id)`
+ * overrides the answer; returns the list of requested ids.
+ */
+async function mockAuthors(page, handler) {
+  const asked = [];
+  await page.route(/\/api\/auth\/authors\/[^/]+$/, (route) => {
+    const id = decodeURIComponent(new URL(route.request().url()).pathname.split('/').pop());
+    asked.push(id);
+    if (handler) return handler(route, id);
+    return authorProfiles[id]
+      ? json(route, { author: authorProfiles[id] })
+      : json(route, { error: 'Không tìm thấy tác giả', code: 'author_not_found' }, 404);
+  });
+  return asked;
+}
 
 /** Mocks the UC22 endpoints; `handlers[key](route)` overrides one of dashboard | actions | action. */
 async function mockInsights(page, handlers = {}) {
@@ -76,7 +99,7 @@ test('dashboard shows the tiles, top contributors and actions by type', async ({
   await expect(top).toHaveCount(2);
   await expect(top.nth(0)).toContainText('5');
   await expect(top.nth(0)).toContainText('★ 4.6');
-  await expect(page.getByRole('link', { name: authorA })).toHaveAttribute('href', `/admin/users/${authorA}`);
+  await expect(page.getByRole('link', { name: authorA.slice(0, 8) })).toHaveAttribute('href', `/admin/users/${authorA}`);
 
   const bars = page.getByTestId('action-bar');
   await expect(bars).toHaveCount(3);
@@ -85,6 +108,50 @@ test('dashboard shows the tiles, top contributors and actions by type', async ({
   await expect(bars.nth(1)).toContainText('Ẩn tour');
   await expect(bars.nth(2)).toContainText('Cấm tài khoản');
   expect(calls[0]).toMatchObject({ key: 'dashboard', method: 'GET', params: {} });
+});
+
+test('top contributors show the author names, one request per author, cached for the page', async ({ page }) => {
+  await signIn(page, 'admin');
+  await mockInsights(page);
+  const asked = await mockAuthors(page);
+  await page.goto('/admin/dashboard');
+  const top = page.getByTestId('top-contributor');
+  await expect(top.nth(0).getByTestId('contributor-name')).toHaveText('Nguyễn Văn A');
+  await expect(top.nth(1).getByTestId('contributor-name')).toHaveText('Trần Thị B');
+  await expect(page.getByRole('link', { name: 'Nguyễn Văn A' })).toHaveAttribute('href', `/admin/users/${authorA}`);
+  await expect(page.getByRole('link', { name: 'Trần Thị B' })).toHaveAttribute('href', `/admin/users/${authorB}`);
+  await expect(top.nth(0).locator('.author-avatar')).toHaveText('N');
+
+  // Another period returns the same authors: no new profile request.
+  await page.getByRole('radio', { name: '30 ngày' }).click();
+  await expect(page).toHaveURL(/period=30/);
+  await expect(top.nth(0).getByTestId('contributor-name')).toHaveText('Nguyễn Văn A');
+  expect(asked.sort()).toEqual([authorA, authorB].sort());
+});
+
+test('the dashboard renders before the profiles, and a failed profile falls back to the short id', async ({ page }) => {
+  await signIn(page, 'admin');
+  await mockInsights(page);
+  let release;
+  const gate = new Promise((r) => (release = r));
+  const asked = await mockAuthors(page, async (route, id) => {
+    if (id === authorB) return route.abort('failed'); // network error
+    await gate; // A stays pending until released
+    return json(route, { error: 'Không tìm thấy tác giả', code: 'author_not_found' }, 404);
+  });
+  await page.goto('/admin/dashboard');
+  const top = page.getByTestId('top-contributor');
+  // Tiles and rows are there while A's profile is still loading: short ids as placeholders.
+  await expect(page.getByTestId('tile-pending')).toContainText('6');
+  await expect(top.nth(0).getByTestId('contributor-name')).toHaveText(authorA.slice(0, 8));
+  await expect(top.nth(1).getByTestId('contributor-name')).toHaveText(authorB.slice(0, 8));
+  release();
+  await expect.poll(() => asked.length).toBe(2);
+  await expect(top.nth(0).getByTestId('contributor-name')).toHaveText(authorA.slice(0, 8));
+  await expect(page.getByRole('link', { name: authorA.slice(0, 8) })).toHaveAttribute('href', `/admin/users/${authorA}`);
+  await expect(page.getByRole('link', { name: authorA.slice(0, 8) })).toHaveAttribute('title', authorA);
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByTestId('action-bar')).toHaveCount(3);
 });
 
 test('period filter: 30 days and a custom range are sent as from/to and kept in the URL', async ({ page }) => {
@@ -228,6 +295,9 @@ test('unknown log row shows "Không tìm thấy bản ghi"', async ({ page }) =>
 test('admin home lists the dashboard first; screens fit 390 px', async ({ page }) => {
   await signIn(page, 'admin');
   await mockInsights(page);
+  await mockAuthors(page, (route, id) =>
+    json(route, { author: { ...authorProfiles[id], fullName: 'Nguyễn Thị Phương Thảo Hoàng Minh Châu Anh' } }),
+  );
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/admin');
   const menu = page.getByRole('navigation', { name: 'Màn quản trị' }).getByRole('link');
@@ -235,6 +305,13 @@ test('admin home lists the dashboard first; screens fit 390 px', async ({ page }
   await expect(page.getByRole('navigation', { name: 'Màn quản trị' }).getByRole('link', { name: /Nhật ký hành động/ })).toBeVisible();
   await menu.first().click();
   await expect(page.getByTestId('action-bar')).toHaveCount(3);
+  const name = page.getByTestId('contributor-name').first();
+  await expect(name).toContainText('Nguyễn Thị Phương');
+  // One line per name (ellipsis), the table stays inside its card.
+  const box = await name.boundingBox();
+  expect(box.height).toBeLessThan(30);
+  const wrap = await page.locator('.admin-table__wrap').first().evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
+  expect(wrap).toBe(true);
   await noOverflow(page);
   await page.getByRole('radio', { name: 'Tuỳ chọn' }).click();
   await noOverflow(page);

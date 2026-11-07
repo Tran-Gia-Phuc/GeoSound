@@ -121,8 +121,8 @@ MSYS_NO_PATHCONV=1 docker run --rm -v "<root>/client:/src:ro" -w /work mcr.micro
 - Use-case tests with in-memory fakes, HTTP tests with a stand-in for `verifyJwt(roles)` (see
   `services/auth/test/online-devices.test.js`), Playwright specs with mocked routes (see
   `client/test/ui/admin-devices.spec.js`).
-- `player-controls.spec.js` "seek ..." is a known failure on `develop` too: compare with
-  `git archive develop client` before blaming the change.
+- A UI test that fails on your branch: compare with `git archive develop client` to see whether `develop`
+  fails too (the old `player-controls` seek failure was a player bug, fixed in #300).
 
 ## 8. Live check (real stack, no test data in other people's schemas)
 
@@ -136,7 +136,7 @@ MSYS_NO_PATHCONV=1 docker run --rm -v "<root>/client:/src:ro" -w /work mcr.micro
 - Update the design note with what changed, `.env.example`, and the UC row in `AI_PLAN.md` section 6.
 - Commits (`git add` explicit paths only): schema -> domain/use cases -> routes/wiring -> backend tests
   -> client -> client tests -> docs. Message `<type>: <short description>` + attribution trailer.
-- PR, CI wait, flaky rerun, merge and close check: exactly `.claude/skills/ai-task/SKILL.md` steps 6 and 7
+- PR, CI wait, merge and close check: exactly `.claude/skills/ai-task/SKILL.md` steps 6 and 7
   (`gh pr create --base develop --fill --body "Closes #<N> ..."`, merge commit, no squash, no `--admin`).
 
 ## 10. Report

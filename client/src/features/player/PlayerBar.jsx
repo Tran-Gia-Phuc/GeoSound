@@ -10,7 +10,7 @@ import './player-transport-a.css';
 const ROLE_LABEL = { place: 'Đang nghe', hint: 'Gợi ý đi tiếp', nav: 'Chỉ đường' };
 
 export default function PlayerBar({ audio, engine, hideTitle = false }) {
-  const { state, toggle, seek } = audio;
+  const { state, toggle, seek, seekBy } = audio;
   const { currentPlace, currentRole, prev, next, canPrev, canNext } = engine;
 
   const playing = state.status === 'playing';
@@ -83,7 +83,7 @@ export default function PlayerBar({ audio, engine, hideTitle = false }) {
         </button>
         <button
           className="iconbtn player-transport-a"
-          onClick={() => seek((state.currentTime || 0) - 15)}
+          onClick={() => seekBy(-15)}
           disabled={!state.canSeek}
           aria-label="Tua lùi 15 giây"
         >
@@ -108,7 +108,7 @@ export default function PlayerBar({ audio, engine, hideTitle = false }) {
 
         <button
           className="iconbtn player-transport-a"
-          onClick={() => seek((state.currentTime || 0) + 15)}
+          onClick={() => seekBy(15)}
           disabled={!state.canSeek}
           aria-label="Tua tới 15 giây"
         >
