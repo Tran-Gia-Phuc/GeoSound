@@ -10,6 +10,7 @@ const listQuery = z.object({
   page: z.coerce.number().int().min(1).max(100000).default(1),
   limit: z.coerce.number().int().min(1).max(MAX_LIMIT).default(DEFAULT_LIMIT),
   unread: z.enum(['true', 'false']).optional(),
+  tourId: z.string().uuid().optional(), // #297: only this tour's notifications (still the caller's own)
 });
 
 const idParam = z.string().uuid();
@@ -48,8 +49,8 @@ export class NotificationController {
     const userId = userIdOf(req);
     const parsed = listQuery.safeParse(req.query);
     if (!parsed.success) throw validationError(parsed.error.flatten().fieldErrors);
-    const { page, limit, unread } = parsed.data;
-    res.json(await this.listNotifications.execute({ userId, page, limit, unreadOnly: unread === 'true' }));
+    const { page, limit, unread, tourId } = parsed.data;
+    res.json(await this.listNotifications.execute({ userId, page, limit, unreadOnly: unread === 'true', tourId }));
   };
 
   unreadCount = async (req, res) => {

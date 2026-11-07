@@ -20,18 +20,18 @@ export class MemoryNotificationRepository {
     return true;
   }
 
-  mine(userId, unreadOnly) {
-    return this.rows.filter((r) => r.userId === userId && (!unreadOnly || !r.readAt));
+  mine(userId, unreadOnly, tourId) {
+    return this.rows.filter((r) => r.userId === userId && (!unreadOnly || !r.readAt) && (!tourId || r.tourId === tourId));
   }
 
-  async list(userId, { unreadOnly = false, skip = 0, take = 20 } = {}) {
-    return this.mine(userId, unreadOnly)
+  async list(userId, { unreadOnly = false, tourId, skip = 0, take = 20 } = {}) {
+    return this.mine(userId, unreadOnly, tourId)
       .sort((a, b) => b.createdAt - a.createdAt || (a.id < b.id ? 1 : -1))
       .slice(skip, skip + take);
   }
 
-  async count(userId, { unreadOnly = false } = {}) {
-    return this.mine(userId, unreadOnly).length;
+  async count(userId, { unreadOnly = false, tourId } = {}) {
+    return this.mine(userId, unreadOnly, tourId).length;
   }
 
   async markRead(userId, id, now) {
