@@ -18,7 +18,6 @@ export const TOUR_STATUS_META = {
   changes_requested: { label: 'Cần chỉnh sửa', tone: 'warn' },
   restricted: { label: 'Truy cập hạn chế', tone: 'warn' },
   hidden: { label: 'Đang ẩn', tone: 'muted' },
-  changes_requested: { label: 'Cần chỉnh sửa', tone: 'warn' }, // UC19 / A3
 };
 export const statusMeta = (status) =>
   TOUR_STATUS_META[status] || { label: status || 'Không rõ', tone: 'neutral' };
