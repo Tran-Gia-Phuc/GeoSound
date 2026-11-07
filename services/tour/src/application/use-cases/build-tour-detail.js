@@ -54,6 +54,7 @@ export function buildTourDetailView({ tour, places, route = null, langs = [], tr
     type: tour.type,
     originalLanguage: source,
     duration: tour.duration,
+    authorId: tour.authorId, // public: links the author page (UC18) and hides own-tour rating / report (UC05, UC06)
     averageRating: tour.averageRating,
     ratingCount: tour.ratingCount,
     placeCount: places.length,
