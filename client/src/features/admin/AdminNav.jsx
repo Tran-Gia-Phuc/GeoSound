@@ -8,6 +8,7 @@ import { NavLink } from 'react-router-dom';
 
 export const ADMIN_LINKS = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: 'sliders', hint: 'Hàng chờ duyệt, thời gian duyệt, báo cáo, tác giả nổi bật' },
+  { to: '/admin/reviews', label: 'Duyệt tour', icon: 'check-circle', hint: 'Hàng chờ duyệt: cảnh báo AI trước, duyệt, từ chối hoặc yêu cầu chỉnh sửa' },
   { to: '/admin/reports', label: 'Tour bị báo cáo', icon: 'alert-triangle', hint: 'Xử lý báo cáo vi phạm của du khách' },
   { to: '/admin/users', label: 'Tài khoản', icon: 'user', hint: 'Tìm tài khoản, cảnh báo, tạm khoá, cấm hoặc khôi phục' },
   { to: '/admin/actions', label: 'Nhật ký hành động', icon: 'list', hint: 'Ai đã duyệt, ẩn, cấm gì và khi nào (chỉ đọc)' },
