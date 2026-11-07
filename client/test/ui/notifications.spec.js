@@ -185,10 +185,10 @@ test('open a tour notification: mark read, open the Studio tour with its history
   await expect(tabBadge(page)).toHaveText('1');
   await rows(page).first().getByRole('button').click();
   await expect(page).toHaveURL(new RegExp(`/studio/tours/${id}$`));
-  expect(state.calls).toContain(`POST /api/notifications/${rejected.id}/read`);
+  await expect.poll(() => state.calls).toContain(`POST /api/notifications/${rejected.id}/read`);
   await expect(tabBadge(page)).toHaveCount(0);
   // History of this tour only: the server filters by tourId (the approval of another tour is not shown).
-  expect(state.calls).toContain(`GET /api/notifications?page=1&limit=20&tourId=${id}`);
+  await expect.poll(() => state.calls).toContain(`GET /api/notifications?page=1&limit=20&tourId=${id}`);
   const history = page.locator('.tour-history');
   await expect(history).toHaveAttribute('open', '');
   await expect(history).toContainText('Lịch sử kiểm duyệt');
@@ -320,7 +320,7 @@ test('Studio history: collapsed until opened, then loads; error with retry', asy
   fail = false;
   await history.getByRole('button', { name: 'Thử lại' }).click();
   await expect(history.getByTestId('notification')).toHaveCount(2);
-  expect(state.calls).toContain(`GET /api/notifications?page=1&limit=20&tourId=${id}`);
+  await expect.poll(() => state.calls).toContain(`GET /api/notifications?page=1&limit=20&tourId=${id}`);
   await expect(history.getByRole('button', { name: 'Xem thêm' })).toHaveCount(0);
   await expect(history).not.toContainText('Chỉ xét');
 });
@@ -370,7 +370,7 @@ test('Studio history: older notifications of the tour with "Xem thêm", page err
   await expect(history.getByRole('button', { name: 'Xem thêm' })).toHaveCount(0);
   await expect(history).toContainText('Thông báo số 58');
   await expect(history).not.toContainText('Thông báo số 59');
-  expect(state.calls).toContain(`GET /api/notifications?page=3&limit=20&tourId=${id}`);
+  await expect.poll(() => state.calls).toContain(`GET /api/notifications?page=3&limit=20&tourId=${id}`);
   expect(state.calls.every((c) => !c.startsWith('GET /api/notifications?') || c.includes(`tourId=${id}`))).toBeTruthy();
   await noOverflow(page);
 });
