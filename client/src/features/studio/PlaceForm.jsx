@@ -5,6 +5,8 @@
 // công") — gõ toạ độ thì báo ngược lên trang cha để dời ghim (onManualCoords).
 // Ảnh (nhiều) + audio người thật tuỳ chọn — TẢI FILE LÊN (không phải dán URL);
 // không có audio thì hệ thống đọc mô tả bằng giọng máy (UC12).
+// UC15 #137 (máy chủ bật kiểm duyệt): trạng thái quét AI của điểm (nội dung + ảnh) kèm lý do;
+// sửa tên / mô tả / ảnh sẽ gửi điểm cho AI quét lại.
 // =========================================================
 import { useEffect, useState } from 'react';
 import Icon from '../../components/Icon.jsx';
@@ -12,6 +14,15 @@ import FileDrop from '../../components/media/FileDrop.jsx';
 import ImageListField from '../../components/media/ImageListField.jsx';
 import { useDirtyGuard } from '../../hooks/useDirtyGuard.jsx';
 import { PLACE_TYPE_OPTIONS } from '../../lib/studio.js';
+import PlaceModerationChip from './PlaceModerationChip.jsx';
+import ModerationReasons from './ModerationReasons.jsx';
+
+const MODERATION_HINT = {
+  checking: 'AI đang quét nội dung và ảnh của điểm này. Bạn vẫn có thể sửa; lưu lại sẽ quét lại từ đầu.',
+  approved: 'Nội dung và ảnh của điểm đã qua kiểm duyệt AI.',
+  warning: 'AI có cảnh báo nhưng không chặn gửi duyệt; Admin sẽ xem các lý do này.',
+  rejected: 'AI đã từ chối điểm này. Sửa theo lý do dưới đây rồi lưu để AI quét lại; tour chưa gửi duyệt được khi còn điểm bị từ chối.',
+};
 
 const isHttpUrl = (s) => {
   try {
@@ -23,8 +34,10 @@ const isHttpUrl = (s) => {
 };
 
 export default function PlaceForm({
-  initial, pick, onManualCoords, serverError, busy, onSubmit, onCancel,
+  initial, pick, onManualCoords, serverError, busy, onSubmit, onCancel, moderation = false,
 }) {
+  const modStatus = initial?.moderationStatus;
+  const showModeration = !!initial && (moderation || (modStatus && modStatus !== 'approved'));
   const [start] = useState(() => ({
     name: initial?.name ?? '',
     type: initial?.type ?? 'landmark',
@@ -94,6 +107,19 @@ export default function PlaceForm({
 
   return (
     <form className="studio-form place-form" onSubmit={submit} noValidate>
+      {showModeration && MODERATION_HINT[modStatus] ? (
+        <div className={`place-form__moderation place-form__moderation--${modStatus}`} role="status" aria-label="Kiểm duyệt AI của điểm">
+          <div className="place-form__moderation-head">
+            <span className="small"><b>Kiểm duyệt AI</b></span>
+            <PlaceModerationChip status={modStatus} />
+          </div>
+          <p className="small muted">{MODERATION_HINT[modStatus]}</p>
+          <ModerationReasons reasons={initial.moderationReasons} label="Lý do kiểm duyệt của điểm" />
+        </div>
+      ) : null}
+      {moderation && !initial ? (
+        <p className="field__hint">Sau khi thêm, AI sẽ kiểm duyệt tên, mô tả và ảnh của điểm.</p>
+      ) : null}
       {serverError ? (
         <div className="alert alert--warn" role="alert">
           <Icon name="alert-triangle" size={18} className="alert__icon" />

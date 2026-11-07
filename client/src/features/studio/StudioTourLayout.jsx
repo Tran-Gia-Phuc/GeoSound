@@ -12,6 +12,7 @@ import Icon from '../../components/Icon.jsx';
 import AppHeader from '../../components/shell/AppHeader.jsx';
 import { StatusChip } from './StudioHeader.jsx';
 import { getMyTour, getPublishReadiness, statusMeta } from '../../lib/studio.js';
+import { IN_REVIEW_STATUSES, isModerationMode } from '../../lib/submission.js';
 
 const StudioTourContext = createContext(null);
 
@@ -26,9 +27,14 @@ const check = (readiness, key) => readiness?.checks?.find((c) => c.key === key);
 
 function buildSteps(tour, readiness) {
   const placeCount = readiness?.placeCount ?? 0;
-  const placesOk = !!check(readiness, 'places')?.ok && !!check(readiness, 'placeDescriptions')?.ok;
+  // UC15: in moderation mode a place still being scanned / rejected by the AI is not done yet.
+  const placesOk = !!check(readiness, 'places')?.ok && !!check(readiness, 'placeDescriptions')?.ok
+    && check(readiness, 'placesModeration')?.ok !== false;
   const infoOk = !!check(readiness, 'title')?.ok && !!check(readiness, 'language')?.ok;
   const isPublic = tour?.status === 'public';
+  let lastLabel = 'Xuất bản';
+  if (isPublic) lastLabel = 'Đã xuất bản';
+  else if (isModerationMode(readiness)) lastLabel = IN_REVIEW_STATUSES.has(tour?.status) ? 'Đang duyệt' : 'Gửi duyệt';
   return [
     { to: '', end: true, label: 'Thông tin', state: infoOk ? 'done' : 'todo' },
     {
@@ -39,7 +45,7 @@ function buildSteps(tour, readiness) {
     // Vùng kích hoạt luôn có mặc định khi tour có điểm — bước này để tuỳ chỉnh.
     { to: 'route', label: 'Vùng kích hoạt', state: placeCount ? 'done' : 'idle' },
     { to: 'languages', label: 'Ngôn ngữ', state: 'optional' },
-    { to: 'publish', label: isPublic ? 'Đã xuất bản' : 'Xuất bản', state: isPublic ? 'done' : readiness?.ready ? 'ready' : 'idle' },
+    { to: 'publish', label: lastLabel, state: isPublic ? 'done' : readiness?.ready ? 'ready' : 'idle' },
   ];
 }
 

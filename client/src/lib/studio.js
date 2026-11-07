@@ -43,13 +43,16 @@ export async function deleteTour(id) {
   return api.del(`/api/tours/mine/${encodeURIComponent(id)}`, { auth: true });
 }
 
-// ---- UC09 / A3: xuất bản thẳng (chưa qua kiểm duyệt) ----
+// ---- UC09 / A3: xuất bản thẳng; UC15: gửi duyệt khi máy chủ bật kiểm duyệt (lib/submission.js) ----
 /** { status, canPublish, ready, checks: [{ key, ok, required, label }] } */
 export async function getPublishReadiness(id) {
   const b = await api.get(`/api/tours/mine/${encodeURIComponent(id)}/readiness`, { auth: true });
   return b.readiness;
 }
-/** Chưa đủ điều kiện → ApiError 422 với err.missing = [{ key, label }]. */
+/**
+ * Chưa đủ điều kiện → ApiError 422 với err.missing = [{ key, label }].
+ * UC15: trả tour với status 'ai_checking' (đã gửi kiểm duyệt) hoặc 'public' (xuất bản thẳng).
+ */
 export async function publishTour(id) {
   const b = await api.post(`/api/tours/mine/${encodeURIComponent(id)}/publish`, {}, { auth: true });
   return b.tour;
