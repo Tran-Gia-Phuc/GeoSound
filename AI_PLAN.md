@@ -122,6 +122,14 @@ listed per UC describe the screen states; they are closed together with the UC w
 
 Follow-ups (2026-11-08): #297 notification list filtered by `tourId` on the server, the Studio moderation history pages from it (PR #303, new index: push the `notification` schema); #298 `GET /api/auth/me/profile` for the profile editor of every role (PR #305); #299 author names in the dashboard top contributors (PR #302); #300 the old "flaky" `player-controls` seek test was a player bug (the range slider re-render undid the seek), fixed with exact assertions (PR #304); #306 race in `notifications.spec` fixed (PR #307); guide `docs/04-guides/run-on-a-new-machine.md` (PR #301). Not part of these UCs: offline download (Frontend issues #103, #104, #158 to #161), so UC17 has no download count yet.
 
+Second wave (asked 2026-11-08), one branch and PR each, closing the `[Frontend A]` issues listed:
+
+| # | Feature | Frontend A issues | Service(s) | Branch | Status |
+| --- | --- | --- | --- | --- | --- |
+| 10 | UC15 submit a tour for review: checklist, "Gửi duyệt", AI pass / warning / rejected / changes requested states, forbidden-zone details, long-running `ai_checking` polling, place moderation chips | #109 to #114, #137 | client (Tour only if a field is missing) | `feature/uc15-submission-ui` | in progress |
+| 11 | UC19 admin review screens: queue, read-only dossier and preview, approve, reject with reason, request changes | #122 to #126 | client (backend #243 exists) | `feature/uc19-admin-review-ui` | in progress |
+| 12 | Offline download (UC03): package manifest, download with progress, pause / resume, library, delete one language, insufficient storage; UC17 `download` beacon | #103, #104, #158 to #161 | Tour (package API), client | `feature/offline-download` | in progress |
+
 ### 6.2 Decisions (L = later UCs)
 
 | # | Question | Decision |
@@ -140,6 +148,8 @@ Follow-ups (2026-11-08): #297 notification list filtered by `tourId` on the serv
 | L12 | UC18 author page (Q10) | Profile (avatar uploaded through Media, bio) and follows; no follower notification for now |
 | L13 | UC20 / UC21 (Q11, Q12) | Restore puts a hidden tour straight back to public (no new moderation, no appeal). Suspension presets 1, 7, 30 days or an end date; warnings never escalate automatically |
 | L14 | UC22 log (Q13, Q14) | One append-only table `admin_actions` in Tour for UC19, UC20 and UC21 actions; Auth publishes an event for each account action and Tour records it. Top contributor = most public tours with average rating >= 4 and no hidden tour in the period |
+| L15 | UC15 / UC19 (2026-11-08) | The user builds the UC15 submission screens and the UC19 admin review screens (were Frontend A) so a tour can go author -> AI -> admin in the UI. With `MODERATION_EVENTS_ENABLED=true` the Studio publish action submits for review (`ai_checking`); without it, it publishes directly as before |
+| L16 | Offline download (2026-11-08) | A package = tour content for one language + images + human-recorded audio files; stops without audio are read by the device voice. Stored in IndexedDB with per-asset transfer state (pause / resume / recovery), images shared between languages are reference-counted, sizes come from the stored bytes. A package is ready only when every asset is stored; then the UC17 `download` beacon is sent once. The service worker of the production build makes `/offline` open without network (the Vite dev server in Docker has no service worker) |
 
 ### 6.3 Open questions (ask in the `uc-task` gate, then move the answer to 6.2)
 

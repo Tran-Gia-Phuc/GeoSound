@@ -4,10 +4,10 @@
 // =========================================================
 
 export class PublicTourController {
-  /** @param {{ searchTours, getPublicTour }} useCases */
+  /** @param {{ searchTours, getPublicTour, getTourPackage? }} useCases */
   constructor(useCases) {
     this.uc = useCases;
-    for (const m of ['search', 'detail']) this[m] = this[m].bind(this);
+    for (const m of ['search', 'detail', 'package']) this[m] = this[m].bind(this);
   }
 
   // Bước 1–5 — tìm tour công khai (rỗng = gợi ý phổ biến)
@@ -23,5 +23,14 @@ export class PublicTourController {
       lang: req.validatedQuery.lang,
     });
     res.json({ tour });
+  }
+
+  // UC03 (#103) — offline package manifest (?lang= = the language to download)
+  async package(req, res) {
+    const pkg = await this.uc.getTourPackage.execute({
+      id: req.validatedParams.id,
+      lang: req.validatedQuery.lang,
+    });
+    res.json(pkg);
   }
 }

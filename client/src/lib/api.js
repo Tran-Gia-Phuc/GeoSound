@@ -7,7 +7,7 @@
 // =========================================================
 import { readAuth, writeAuth, clearAuth, endSession, getAccessToken, getRefreshToken } from './token-store.js';
 import { getDeviceId } from './device-id.js';
-import { localizeUrls } from './media-url.js';
+import { localizeUrl, localizeUrls } from './media-url.js';
 
 const BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -148,6 +148,21 @@ export const api = {
   put: (path, body, opts) => request('PUT', path, { ...opts, body }),
   del: (path, opts) => request('DELETE', path, opts),
 };
+
+/**
+ * UC03 offline download: raw request for one media file (image / audio) of a tour package.
+ * Returns the Response; the caller reads the bytes as a Blob. Local gateway URLs are rewritten
+ * like every other response (#263). Network failure -> ApiError { offline: true }.
+ * @param {string} url @param {{ method?: 'GET'|'HEAD', signal?: AbortSignal }} [opts]
+ */
+export async function fetchAsset(url, { method = 'GET', signal } = {}) {
+  try {
+    return await fetch(localizeUrl(url, BASE), { method, signal, cache: 'no-store' });
+  } catch (e) {
+    if (e?.name === 'AbortError') throw e;
+    throw new ApiError('Không kết nối được máy chủ', { offline: true });
+  }
+}
 
 /**
  * Chi tiết tour công khai + route + ngôn ngữ/TTS (UC02 detail, dùng cho UC04).

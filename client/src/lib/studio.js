@@ -15,6 +15,7 @@ export const TOUR_STATUS_META = {
   pending_review: { label: 'Chờ duyệt', tone: 'info' },
   public: { label: 'Công khai', tone: 'live' },
   rejected: { label: 'Bị từ chối', tone: 'danger' },
+  changes_requested: { label: 'Cần chỉnh sửa', tone: 'warn' },
   restricted: { label: 'Truy cập hạn chế', tone: 'warn' },
   hidden: { label: 'Đang ẩn', tone: 'muted' },
   changes_requested: { label: 'Cần chỉnh sửa', tone: 'warn' }, // UC19 / A3

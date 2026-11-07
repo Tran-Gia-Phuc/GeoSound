@@ -2,12 +2,22 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// PWA: service worker cache tour + audio TTS để chạy offline (tech-stack.md §1, §3).
+// PWA (tech-stack.md §1, §3; UC03 docs/02-design/offline-download.md): the production build's
+// service worker precaches the app shell and answers every navigation with index.html, so
+// /offline and /offline/:id/play open without network. Tour content and files are NOT cached
+// here: downloaded packages live in IndexedDB (lib/offline-store.js). The Vite dev server
+// (Docker) does not run the service worker: test true offline with `vite build` + `vite preview`.
 export default defineConfig({
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//],
+        cleanupOutdatedCaches: true,
+      },
       manifest: {
         name: 'GeoSound',
         short_name: 'GeoSound',
