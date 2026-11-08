@@ -45,7 +45,7 @@
 - **E2.** GPS yếu → *"GPS yếu (±… m). Bạn có thể chọn điểm thủ công."*; vị trí không cập nhật → *"Tín hiệu vị trí chưa cập nhật. Đang chờ GPS…"*.
 - **E3.** Lịch trình không tồn tại → 404 `itinerary_not_found`; không phải chủ sở hữu → 403 `not_itinerary_owner`; chưa đăng nhập ở `/itinerary/:id/go` → chuyển tới `/login`. `loadOwnedItinerary()`, `RequireAuth`
 - **E4.** Liên kết chia sẻ đã bị thu hồi hoặc sai → 404, client hiện lỗi tải.
-- **E5.** Mất mạng khi mở trình phát → không tải được lịch trình (không có bản offline cho lịch trình).
+- **E5.** Mất mạng khi mở `/itinerary/:id/go` → không tải được lịch trình; nếu đã tải gói offline (UC07 A3), mở từ **Tour đã tải** (`/offline/itinerary:<id>/play`, `PlayOfflineRoute` → `loadOfflineDetail()`).
 
 ## Extension Points
 
@@ -80,7 +80,7 @@ Tourist bắt đầu đi theo lịch trình đã lập, hoặc mở liên kết 
 | R2 | Vùng kích hoạt: hình tròn quanh mỗi điểm, bán kính `radius_meters` của snapshot (mặc định 50 m), ưu tiên 0, không có audio dẫn đường |
 | R3 | Audio: ưu tiên audio người thật; không có audio thì đọc văn bản bằng giọng thiết bị (Web Speech). Không có TTS dựng trên server |
 | R4 | Chỉ chủ sở hữu đi theo `/itinerary/:id/go`; liên kết chia sẻ là chỉ đọc |
-| R5 | Không có chế độ offline cho lịch trình |
+| R5 | Lịch trình dùng offline qua gói tải (UC07 A3); trình phát `/itinerary/:id/go` vẫn cần mạng |
 
 ## Hiện thực trong hệ thống
 
@@ -115,7 +115,6 @@ Tourist bắt đầu đi theo lịch trình đã lập, hoặc mở liên kết 
 | R2 | `ItineraryItem`, `DEFAULT_RADIUS_METERS` | `services/tour/src/domain/entities/itinerary-item.js` |
 | Lưu trữ | `PrismaItineraryRepository.findById()`, `findByShareToken()` | `services/tour/src/infrastructure/persistence/prisma-itinerary-repository.js` |
 
-- **Giới hạn đã biết:** không có gói tải offline cho lịch trình; cần mạng để mở trình phát.
 
 ## Author(s)
 

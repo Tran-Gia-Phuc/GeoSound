@@ -9,7 +9,7 @@ export class ItineraryController {
   constructor(useCases) {
     this.uc = useCases;
     for (const m of [
-      'create', 'listMine', 'getOne', 'rename', 'remove',
+      'create', 'listMine', 'getOne', 'package', 'rename', 'remove',
       'addItem', 'removeItem', 'reorder', 'share',
     ]) {
       this[m] = this[m].bind(this);
@@ -37,6 +37,17 @@ export class ItineraryController {
       lang: req.validatedQuery?.lang,
     });
     res.json({ itinerary: data });
+  }
+
+  // UC07/UC08 — offline package of the itinerary (UC03 shape)
+  async package(req, res) {
+    res.json(
+      await this.uc.getItineraryPackage.execute({
+        ownerId: this.#owner(req),
+        itineraryId: req.validatedParams.id,
+        lang: req.validatedQuery?.lang,
+      }),
+    );
   }
 
   async rename(req, res) {

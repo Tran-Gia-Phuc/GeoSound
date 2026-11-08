@@ -14,6 +14,8 @@ import {
 } from '../../lib/itineraries.js';
 import { useToast } from '../../components/Toast.jsx';
 import ShareDialog from './ShareDialog.jsx';
+import OfflineDownload from '../offline/OfflineDownload.jsx';
+import { itineraryPackageId } from '../../lib/offline-download.js';
 import ModePicker from '../player/ModePicker.jsx';
 import PlaceDetailSheet from '../discover/PlaceDetailSheet.jsx';
 import { useBack } from '../../components/shell/AppHeader.jsx';
@@ -229,6 +231,17 @@ export default function ItineraryEditorPage() {
             ))}
           </ol>
         )}
+        {places.length ? (
+          <OfflineDownload
+            key={view.id}
+            tour={{
+              id: itineraryPackageId(view.id),
+              selectedLanguage: view.selectedLanguage,
+              availableLanguages: view.availableLanguages,
+            }}
+            note="Bản tải là ảnh chụp lịch trình lúc tải; sau khi sửa lịch trình, mở Tour đã tải để cập nhật."
+          />
+        ) : null}
       </main>
 
       {places.length ? (

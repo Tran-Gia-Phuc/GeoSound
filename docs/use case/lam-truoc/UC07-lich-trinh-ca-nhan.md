@@ -38,7 +38,7 @@
 | A2.3 | Tourist đổi tên lịch trình. | `PATCH /api/itineraries/:id { name }`. `renameItinerary()` → `RenameItinerary.execute()` |
 | A2.4 | Tourist xóa cả lịch trình (từ "Lịch trình của tôi"). | `DELETE /api/itineraries/:id`. `deleteItinerary()` → `DeleteItinerary.execute()` |
 
-**A3. Dùng khi không có mạng.** Lịch trình **không** có gói tải offline riêng; tải offline chỉ có cho tour (UC03). Lịch trình luôn được tải từ server.
+**A3. Tải lịch trình về dùng offline.** Ở trình chỉnh sửa (`/itineraries/:id`), mục **"Tải về để nghe offline"** (giống UC03) tải gói của lịch trình: client gọi `GET /api/itineraries/:id/package?lang=` kèm token (chỉ chủ sở hữu), Tour trả gói cùng dạng UC03 (`detail` = view lịch trình, `assets` = ảnh và audio ghi âm của các điểm, `revision` = thời điểm sửa mới nhất). Gói lưu trong IndexedDB dưới mã `itinerary:<id>`, hiện trong **Tour đã tải** với nhãn "Lịch trình", nghe ở `/offline/itinerary:<id>/play` không cần mạng; không gửi beacon UC17. Gói là ảnh chụp lúc tải: sau khi sửa lịch trình, "Có bản mới" ở Tour đã tải cho tải lại. `OfflineDownload` → `startDownload()` → `fetchTourPackage()` → `ItineraryController.package()` → `GetItineraryPackage.execute()` → `buildItineraryView()`, `buildPackageAssets()`
 
 **A4. Chia sẻ lịch trình.**
 
@@ -106,6 +106,7 @@ Tourist muốn tự lên kế hoạch chuyến đi từ các địa điểm quan
   - `PATCH /api/itineraries/:id`, `DELETE /api/itineraries/:id`
   - `POST /api/itineraries/:id/items`, `PATCH /api/itineraries/:id/items`, `DELETE /api/itineraries/:id/items/:itemId`
   - `POST /api/itineraries/:id/share`
+  - `GET /api/itineraries/:id/package?lang=` (gói offline, A3)
   - `GET /api/itineraries/shared/:token?lang=` (công khai)
 - **Sự kiện (RabbitMQ):** không có.
 - **Dữ liệu:** `tour.itineraries` (`owner_id`, `name`, `share_token`); `tour.itinerary_items` (`place_id`, `tour_id`, `name`, `type`, `lat`, `lng`, `images`, `radius_meters`, `source_language`, `available_languages`, `audio_by_lang`, `sequence`).
@@ -113,6 +114,9 @@ Tourist muốn tự lên kế hoạch chuyến đi từ các địa điểm quan
 
 | Bước | Hàm / lớp | File |
 |---|---|---|
+| A3 | `GetItineraryPackage.execute()`, `ItineraryController.package()` | `services/tour/src/application/use-cases/get-itinerary-package.js`, `services/tour/src/interfaces/http/controllers/itinerary-controller.js` |
+| A3 | `itineraryPackageId()`, `isItineraryPackage()`, `fetchTourPackage()`, `startDownload()` | `client/src/lib/offline-download.js` |
+| A3 | `OfflineDownload` (trong `ItineraryEditorPage`) | `client/src/features/offline/OfflineDownload.jsx`, `client/src/features/itineraries/ItineraryEditorPage.jsx` |
 | 1–3 | `DiscoverPage`, `PlaceDetailSheet` | `client/src/features/discover/` |
 | 4–7, E2 | `AddToItinerarySheet` | `client/src/features/itineraries/AddToItinerarySheet.jsx` |
 | E2 | `usePendingAdd()`, `nextWithPendingAdd()` | `client/src/hooks/usePendingAdd.js` |
@@ -132,7 +136,6 @@ Tourist muốn tự lên kế hoạch chuyến đi từ các địa điểm quan
 | Lưu trữ | `PrismaItineraryRepository` (`create`, `findById`, `findByShareToken`, `listByOwner`, `save`, `delete`) | `services/tour/src/infrastructure/persistence/prisma-itinerary-repository.js` |
 | 2 | `searchPublicPlaces()`, `countPublicPlaces()` | `services/tour/src/infrastructure/persistence/prisma-place-repository.js` |
 
-- **Giới hạn đã biết:** chưa có tải offline cho lịch trình (chỉ tour có, UC03).
 
 ## Author(s)
 

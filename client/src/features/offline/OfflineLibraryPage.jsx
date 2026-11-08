@@ -17,7 +17,7 @@ import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 import { useToast } from '../../components/Toast.jsx';
 import { formatBytes, formatDateTime, langLabel } from '../../lib/format.js';
 import { deletePackage, packageBytes, releasableBytes } from '../../lib/offline-store.js';
-import { fetchTourPackage, storageEstimate } from '../../lib/offline-download.js';
+import { fetchTourPackage, isItineraryPackage, storageEstimate } from '../../lib/offline-download.js';
 import { useOfflineLibrary } from './useOfflineLibrary.js';
 import { useDownloadActions } from './useDownloadActions.js';
 import PackageProgress from './PackageProgress.jsx';
@@ -151,6 +151,7 @@ export default function OfflineLibraryPage() {
                 <div className="offline-tour__head">
                   {lib.covers[g.tourId] ? <img className="offline-tour__cover" src={lib.covers[g.tourId]} alt="" /> : null}
                   <h2 className="offline-tour__title">{g.title || 'Tour không tên'}</h2>
+                  {isItineraryPackage(g.tourId) ? <span className="chip">Lịch trình</span> : null}
                 </div>
                 <ul className="offline-tour__langs" aria-label={`Ngôn ngữ đã tải của ${g.title}`}>
                   {g.packages.map((p) => {

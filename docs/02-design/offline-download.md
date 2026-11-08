@@ -101,3 +101,11 @@ server used in Docker does not run the service worker: test true offline with
 - No pre-rendered TTS on the server (UC03 step 3): the device voice reads stops without audio.
 - Tests: `services/tour/test/tour-package.test.js`; `client/test/ui/offline.spec.js` (mocked
   manifest and media, `context.setOffline(true)`, reload mid-download, quota stubs).
+
+## Itinerary packages (updated 2026-11-08)
+
+UC07 A3: `GET /api/itineraries/:id/package?lang=` (owner only, `GetItineraryPackage`) returns the same shape
+as the tour package (`buildItineraryView` + `buildPackageAssets`, revision = newest of the itinerary
+`updatedAt` and the items `createdAt`). The client stores it under the device id `itinerary:<id>`
+(`itineraryPackageId()`), so the library, the offline player and the update check work unchanged;
+`fetchTourPackage()` picks the itinerary route from the prefix, and no UC17 beacon is sent.

@@ -29,6 +29,7 @@ export function buildItineraryRouter({ itineraryController }) {
   r.post('/', validateBody(createItinerarySchema), wrap(itineraryController.create));
   r.get('/', wrap(itineraryController.listMine));
   r.get('/:id', validateParams(itineraryIdParamSchema), validateQuery(langQuerySchema), wrap(itineraryController.getOne));
+  r.get('/:id/package', validateParams(itineraryIdParamSchema), validateQuery(langQuerySchema), wrap(itineraryController.package)); // offline (UC08)
   r.patch('/:id', validateParams(itineraryIdParamSchema), validateBody(renameItinerarySchema), wrap(itineraryController.rename));
   r.delete('/:id', validateParams(itineraryIdParamSchema), wrap(itineraryController.remove));
 

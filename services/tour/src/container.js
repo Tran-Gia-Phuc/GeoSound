@@ -111,6 +111,7 @@ import { UpdateTranslation } from './application/use-cases/update-translation.js
 import { CreateItinerary } from './application/use-cases/create-itinerary.js';
 import { ListMyItineraries } from './application/use-cases/list-my-itineraries.js';
 import { GetItinerary } from './application/use-cases/get-itinerary.js';
+import { GetItineraryPackage } from './application/use-cases/get-itinerary-package.js';
 import { RenameItinerary } from './application/use-cases/rename-itinerary.js';
 import { DeleteItinerary } from './application/use-cases/delete-itinerary.js';
 import { AddItineraryItem } from './application/use-cases/add-itinerary-item.js';
@@ -276,6 +277,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     createItinerary: new CreateItinerary({ itineraryRepo }),
     listMyItineraries: new ListMyItineraries({ itineraryRepo }),
     getItinerary: new GetItinerary({ itineraryRepo }),
+    getItineraryPackage: new GetItineraryPackage({ itineraryRepo }),
     renameItinerary: new RenameItinerary({ itineraryRepo }),
     deleteItinerary: new DeleteItinerary({ itineraryRepo }),
     addItineraryItem: new AddItineraryItem({ itineraryRepo, placeRepo, tourRepo, tourLanguageRepo, placeTranslationRepo }),
