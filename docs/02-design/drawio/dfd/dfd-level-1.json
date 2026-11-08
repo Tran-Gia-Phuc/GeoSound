@@ -1,0 +1,584 @@
+{
+  "pages": [
+    {
+      "name": "DFD cấp 1",
+      "title": "DFD cấp 1 – GeoSound",
+      "nodes": [
+        {
+          "id": "P1",
+          "kind": "process",
+          "label": "1.0 | Quản lý tài khoản & phiên đăng nhập (UC01, UC18, UC23)",
+          "x": 700,
+          "y": 990
+        },
+        {
+          "id": "P2",
+          "kind": "process",
+          "label": "2.0 | Tìm, xem, nghe & tải tour offline (UC02–UC04)",
+          "x": 700,
+          "y": 330
+        },
+        {
+          "id": "P3",
+          "kind": "process",
+          "label": "3.0 | Lịch trình cá nhân (UC07, UC08)",
+          "x": 700,
+          "y": 0
+        },
+        {
+          "id": "P7",
+          "kind": "process",
+          "label": "7.0 | Đánh giá, báo cáo & thống kê (UC05, UC06, UC17)",
+          "x": 700,
+          "y": 660
+        },
+        {
+          "id": "P4",
+          "kind": "process",
+          "label": "4.0 | Quản lý nội dung tour (UC09–UC14)",
+          "x": 1400,
+          "y": 0
+        },
+        {
+          "id": "P5",
+          "kind": "process",
+          "label": "5.0 | Kiểm duyệt tự động bằng AI (UC15)",
+          "x": 1400,
+          "y": 330
+        },
+        {
+          "id": "P6",
+          "kind": "process",
+          "label": "6.0 | Duyệt tour, xử lý vi phạm & giám sát (UC19–UC22)",
+          "x": 1400,
+          "y": 990
+        },
+        {
+          "id": "P8",
+          "kind": "process",
+          "label": "8.0 | Thông báo (UC16)",
+          "x": 1400,
+          "y": 660
+        },
+        {
+          "id": "P9",
+          "kind": "process",
+          "label": "9.0 | Trợ lý du lịch AI (UC24)",
+          "x": 1400,
+          "y": 1320
+        },
+        {
+          "id": "D1",
+          "kind": "store",
+          "label": "D1 | Tài khoản, phiên, theo dõi tác giả",
+          "x": 300,
+          "y": 1140
+        },
+        {
+          "id": "D2",
+          "kind": "store",
+          "label": "D2 | OTP & phiên bị thu hồi (Redis)",
+          "x": 300,
+          "y": 960
+        },
+        {
+          "id": "D12",
+          "kind": "store",
+          "label": "D12 | Gói offline trên thiết bị",
+          "x": 300,
+          "y": 220
+        },
+        {
+          "id": "D3",
+          "kind": "store",
+          "label": "D3 | Tour, điểm dừng, route, bản dịch, vùng cấm",
+          "x": 1030,
+          "y": 440
+        },
+        {
+          "id": "D4",
+          "kind": "store",
+          "label": "D4 | Tệp media (ảnh, audio)",
+          "x": 1030,
+          "y": 180
+        },
+        {
+          "id": "D5",
+          "kind": "store",
+          "label": "D5 | Lịch trình",
+          "x": 1030,
+          "y": 50
+        },
+        {
+          "id": "D6",
+          "kind": "store",
+          "label": "D6 | Đánh giá, báo cáo, thống kê",
+          "x": 1030,
+          "y": 790
+        },
+        {
+          "id": "D7",
+          "kind": "store",
+          "label": "D7 | Nhật ký quản trị",
+          "x": 1030,
+          "y": 1130
+        },
+        {
+          "id": "D8",
+          "kind": "store",
+          "label": "D8 | Hồ sơ kiểm duyệt",
+          "x": 1720,
+          "y": 390
+        },
+        {
+          "id": "D9",
+          "kind": "store",
+          "label": "D9 | Thông báo trong app",
+          "x": 1720,
+          "y": 730
+        },
+        {
+          "id": "D10",
+          "kind": "store",
+          "label": "D10 | Chỉ mục tri thức (vector + đồ thị)",
+          "x": 1030,
+          "y": 1310
+        },
+        {
+          "id": "D11",
+          "kind": "store",
+          "label": "D11 | Hội thoại chatbot",
+          "x": 1030,
+          "y": 1440
+        },
+        {
+          "id": "USER",
+          "kind": "entity",
+          "label": "Người dùng (Khách / Contributor / Admin)",
+          "x": -60,
+          "y": 1090
+        },
+        {
+          "id": "TOURIST",
+          "kind": "entity",
+          "label": "Khách du lịch",
+          "x": -60,
+          "y": 230
+        },
+        {
+          "id": "CONTRIB",
+          "kind": "entity",
+          "label": "Người đăng nội dung (Contributor)",
+          "x": 2120,
+          "y": 250
+        },
+        {
+          "id": "ADMIN",
+          "kind": "entity",
+          "label": "Quản trị viên (Admin)",
+          "x": 2120,
+          "y": 1160
+        },
+        {
+          "id": "LLM",
+          "kind": "entity",
+          "label": "Nhà cung cấp LLM (Gemini / Groq)",
+          "x": 2120,
+          "y": 500
+        },
+        {
+          "id": "MAP",
+          "kind": "entity",
+          "label": "Dịch vụ địa chỉ (Nominatim)",
+          "x": 1385,
+          "y": -230
+        },
+        {
+          "id": "SMTP",
+          "kind": "entity",
+          "label": "Máy chủ email (SMTP)",
+          "x": 2120,
+          "y": 900
+        },
+        {
+          "id": "SMTP2",
+          "kind": "entity",
+          "label": "Máy chủ email (SMTP) *",
+          "x": 685,
+          "y": 1300
+        },
+        {
+          "id": "TOURIST2",
+          "kind": "entity",
+          "label": "Khách du lịch *",
+          "x": 1385,
+          "y": 1560
+        },
+        {
+          "id": "CONTRIB2",
+          "kind": "entity",
+          "label": "Contributor *",
+          "x": -60,
+          "y": 730
+        }
+      ],
+      "flows": [
+        {
+          "from": "USER",
+          "to": "P1",
+          "label": "Đăng ký, đăng nhập, OTP,<br>hồ sơ, theo dõi tác giả"
+        },
+        {
+          "from": "P1",
+          "to": "USER",
+          "label": "Token, danh sách thiết bị,<br>trang tác giả"
+        },
+        {
+          "from": "P1",
+          "to": "D1",
+          "label": "Tài khoản, phiên"
+        },
+        {
+          "from": "D1",
+          "to": "P1",
+          "label": "Thông tin tài khoản"
+        },
+        {
+          "from": "P1",
+          "to": "D2",
+          "label": "OTP, phiên thu hồi"
+        },
+        {
+          "from": "D2",
+          "to": "P1",
+          "label": "OTP cần đối chiếu"
+        },
+        {
+          "from": "P1",
+          "to": "SMTP2",
+          "label": "Email OTP"
+        },
+        {
+          "from": "P1",
+          "to": "P8",
+          "label": "Đăng nhập thiết bị mới,<br>xử lý tài khoản, email người nhận"
+        },
+        {
+          "from": "P6",
+          "to": "P1",
+          "label": "Lệnh cảnh cáo / tạm khóa / cấm"
+        },
+        {
+          "from": "P1",
+          "to": "P6",
+          "label": "Danh sách tài khoản,<br>sự kiện xử lý tài khoản"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P2",
+          "label": "Từ khóa, chọn tour,<br>vị trí GPS, mã truy cập"
+        },
+        {
+          "from": "P2",
+          "to": "TOURIST",
+          "label": "Chi tiết tour,<br>thuyết minh, audio"
+        },
+        {
+          "from": "D3",
+          "to": "P2",
+          "label": "Tour công khai, điểm,<br>route, bản dịch"
+        },
+        {
+          "from": "D4",
+          "to": "P2",
+          "label": "Ảnh, audio"
+        },
+        {
+          "from": "P2",
+          "to": "D12",
+          "label": "Gói tour"
+        },
+        {
+          "from": "D12",
+          "to": "P2",
+          "label": "Tour đã tải"
+        },
+        {
+          "from": "P2",
+          "to": "P7",
+          "label": "Lượt xem / nghe /<br>hoàn thành / tải"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P3",
+          "label": "Tạo, sửa, chia sẻ lịch trình"
+        },
+        {
+          "from": "P3",
+          "to": "TOURIST",
+          "label": "Lịch trình, quãng đường,<br>link chia sẻ"
+        },
+        {
+          "from": "P3",
+          "to": "D5",
+          "label": "Lịch trình, điểm (snapshot)"
+        },
+        {
+          "from": "D5",
+          "to": "P3",
+          "label": "Lịch trình"
+        },
+        {
+          "from": "D3",
+          "to": "P3",
+          "label": "Điểm của tour công khai"
+        },
+        {
+          "from": "P3",
+          "to": "D12",
+          "label": "Gói lịch trình"
+        },
+        {
+          "from": "CONTRIB",
+          "to": "P4",
+          "label": "Tour, điểm, ảnh, audio, route,<br>ngôn ngữ, passcode, gửi duyệt"
+        },
+        {
+          "from": "P4",
+          "to": "CONTRIB",
+          "label": "Trạng thái tour,<br>checklist, bản xem thử"
+        },
+        {
+          "from": "P4",
+          "to": "D3",
+          "label": "Nội dung tour"
+        },
+        {
+          "from": "D3",
+          "to": "P4",
+          "label": "Tour, vùng cấm"
+        },
+        {
+          "from": "P4",
+          "to": "D4",
+          "label": "Tệp ảnh, audio"
+        },
+        {
+          "from": "P4",
+          "to": "MAP",
+          "label": "Địa chỉ"
+        },
+        {
+          "from": "MAP",
+          "to": "P4",
+          "label": "Tọa độ"
+        },
+        {
+          "from": "P4",
+          "to": "LLM",
+          "label": "Văn bản cần dịch"
+        },
+        {
+          "from": "LLM",
+          "to": "P4",
+          "label": "Bản dịch"
+        },
+        {
+          "from": "P4",
+          "to": "P5",
+          "label": "Nội dung gửi kiểm duyệt"
+        },
+        {
+          "from": "P5",
+          "to": "P4",
+          "label": "Kết quả kiểm duyệt"
+        },
+        {
+          "from": "D4",
+          "to": "P5",
+          "label": "Ảnh điểm dừng"
+        },
+        {
+          "from": "P5",
+          "to": "D8",
+          "label": "Ca kiểm duyệt"
+        },
+        {
+          "from": "D8",
+          "to": "P5",
+          "label": "Ca cần thử lại"
+        },
+        {
+          "from": "P5",
+          "to": "LLM",
+          "label": "Văn bản, ảnh cần kiểm duyệt"
+        },
+        {
+          "from": "LLM",
+          "to": "P5",
+          "label": "Loại vi phạm, mức độ"
+        },
+        {
+          "from": "P5",
+          "to": "P8",
+          "label": "Tour bị AI từ chối"
+        },
+        {
+          "from": "ADMIN",
+          "to": "P6",
+          "label": "Duyệt / từ chối / yêu cầu sửa,<br>xử lý báo cáo, thao tác tài khoản"
+        },
+        {
+          "from": "P6",
+          "to": "ADMIN",
+          "label": "Hàng chờ, hồ sơ,<br>dashboard, nhật ký"
+        },
+        {
+          "from": "P6",
+          "to": "D3",
+          "label": "Trạng thái tour"
+        },
+        {
+          "from": "D3",
+          "to": "P6",
+          "label": "Tour cần duyệt / bị báo cáo"
+        },
+        {
+          "from": "P6",
+          "to": "D7",
+          "label": "Hành động quản trị"
+        },
+        {
+          "from": "D7",
+          "to": "P6",
+          "label": "Nhật ký"
+        },
+        {
+          "from": "D6",
+          "to": "P6",
+          "label": "Báo cáo, số liệu thống kê"
+        },
+        {
+          "from": "P6",
+          "to": "P8",
+          "label": "Quyết định duyệt, ẩn tour"
+        },
+        {
+          "from": "P6",
+          "to": "P9",
+          "label": "Tour được duyệt / bị ẩn"
+        },
+        {
+          "from": "P4",
+          "to": "P9",
+          "label": "Tour công khai / bị gỡ",
+          "via": [
+            [
+              1640,
+              80
+            ],
+            [
+              1640,
+              1400
+            ]
+          ]
+        },
+        {
+          "from": "TOURIST",
+          "to": "P7",
+          "label": "Đánh giá, báo cáo vi phạm"
+        },
+        {
+          "from": "P7",
+          "to": "TOURIST",
+          "label": "Đánh giá của tour"
+        },
+        {
+          "from": "P7",
+          "to": "D6",
+          "label": "Đánh giá, báo cáo, lượt"
+        },
+        {
+          "from": "D6",
+          "to": "P7",
+          "label": "Số liệu"
+        },
+        {
+          "from": "P7",
+          "to": "D3",
+          "label": "Điểm trung bình, cờ báo cáo"
+        },
+        {
+          "from": "P7",
+          "to": "CONTRIB2",
+          "label": "Thống kê tour"
+        },
+        {
+          "from": "P7",
+          "to": "P8",
+          "label": "Tour bị báo cáo"
+        },
+        {
+          "from": "P8",
+          "to": "D9",
+          "label": "Thông báo"
+        },
+        {
+          "from": "D9",
+          "to": "P8",
+          "label": "Thông báo chưa đọc"
+        },
+        {
+          "from": "P8",
+          "to": "CONTRIB",
+          "label": "Thông báo trong app"
+        },
+        {
+          "from": "P8",
+          "to": "SMTP",
+          "label": "Email thông báo, cảnh báo"
+        },
+        {
+          "from": "TOURIST2",
+          "to": "P9",
+          "label": "Câu hỏi, vị trí"
+        },
+        {
+          "from": "P9",
+          "to": "TOURIST2",
+          "label": "Câu trả lời + nguồn"
+        },
+        {
+          "from": "P9",
+          "to": "D10",
+          "label": "Chỉ mục tour"
+        },
+        {
+          "from": "D10",
+          "to": "P9",
+          "label": "Đoạn văn liên quan"
+        },
+        {
+          "from": "P9",
+          "to": "D11",
+          "label": "Tin nhắn, trích dẫn"
+        },
+        {
+          "from": "D11",
+          "to": "P9",
+          "label": "Lịch sử hội thoại"
+        },
+        {
+          "from": "P9",
+          "to": "LLM",
+          "label": "Câu hỏi + ngữ cảnh"
+        },
+        {
+          "from": "LLM",
+          "to": "P9",
+          "label": "Câu trả lời"
+        }
+      ]
+    }
+  ]
+}
