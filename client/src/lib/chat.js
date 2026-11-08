@@ -158,15 +158,54 @@ export function createSseParser() {
   };
 }
 
+// Questions about the user's own position ("gần tôi", "quanh đây", "near me").
+const ASKS_HERE = /(gần|quanh|xung quanh|cạnh|kế bên)\s+(tôi|mình|đây|em|chỗ (tôi|mình|này))|quanh đây|gần nhất|near me|nearby|around here|close to me/i;
+
+/** True when the question needs the user's position (UC24). */
+export function asksForLocation(message) {
+  return ASKS_HERE.test(message || '');
+}
+
+function readPosition(timeout) {
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve(null),
+      { enableHighAccuracy: false, timeout, maximumAge: 300000 },
+    );
+  });
+}
+
+/**
+ * Position to send with a chat question, or null. When the browser already allows
+ * location it is always sent (no prompt); otherwise the browser is asked only for a
+ * "near me" question. Denied, unsupported or slow (6 s) -> null: the question is sent
+ * without it and the assistant answers from the text.
+ */
+export async function locationFor(message) {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) return null;
+  let granted = false;
+  try {
+    granted = (await navigator.permissions?.query({ name: 'geolocation' }))?.state === 'granted';
+  } catch {
+    /* Permissions API missing: decide from the question */
+  }
+  if (!granted && !asksForLocation(message)) return null;
+  return readPosition(6000);
+}
+
 /**
  * POST /api/chat and stream the answer. `onEvent(name, data)` is called for every
  * SSE event (meta, token, citations, done, error). Resolves when the stream ends.
  * Throws ChatError for HTTP errors and network failures, AbortError when aborted.
+ * `location` {lat, lng} (optional) lets the assistant answer "near me" questions.
  * @param {{ message: string, sessionId?: string|null, signal?: AbortSignal,
+ *           location?: {lat: number, lng: number}|null,
  *           onEvent: (name: string, data: any) => void }} opts
  */
-export async function streamChat({ message, sessionId, signal, onEvent }) {
+export async function streamChat({ message, sessionId, signal, location, onEvent }) {
   const body = { message };
+  if (location) body.location = { lat: location.lat, lng: location.lng };
   if (sessionId) body.session_id = sessionId;
   let res;
   try {
