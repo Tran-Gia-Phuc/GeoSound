@@ -4,64 +4,93 @@
 |---|---|
 | **Use Case Number** | UC19 |
 | **Use Case Name** | Duyệt / từ chối tour (Kiểm duyệt Admin – Tầng 2) |
-| **Actor(s)** | Admin (Quản trị viên kiểm duyệt) |
+| **Actor(s)** | Admin (Quản trị viên kiểm duyệt); Hệ thống: Tour service, Notification service |
 | **Priority** | P0 |
-| **Maturity** | Focused |
-| **Summary** | Admin xem hàng chờ kiểm duyệt (ưu tiên tour có AI Warning), xem chi tiết và preview tour như khách thật, rồi duyệt công khai, từ chối kèm lý do, hoặc yêu cầu contributor chỉnh sửa và gửi lại. |
+| **Maturity** | Implemented |
+| **Summary** | Admin xem hàng chờ các tour đã qua bước AI (tour có AI Warning lên đầu), mở hồ sơ chỉ đọc của tour (nội dung, các điểm, ảnh, audio, cấu hình lộ trình, lý do AI / kiểm tra vị trí, lịch sử quyết định), rồi duyệt công khai, từ chối kèm lý do, hoặc yêu cầu tác giả chỉnh sửa và gửi lại. |
 
 ## Basic Course of Events
 
 | # | Actor Action | System Response |
 |---|---|---|
-| 1 | Admin mở trang **"Hàng chờ kiểm duyệt"**. | |
-| 2 | | Hệ thống hiển thị danh sách tour chờ duyệt, sắp xếp theo thời gian gửi và **ưu tiên tour có cờ AI Warning lên đầu**. *E1* |
-| 3 | Admin chọn một tour để xem chi tiết. | |
-| 4 | | Hệ thống hiển thị chi tiết tour: ảnh, mô tả, các điểm, audio, vùng kích hoạt, kết quả AI check kèm lý do (nếu bị flag). |
-| 5 | Admin preview tour như một khách thật (GPS giả lập, nghe audio, xem route). *A1* | |
-| 6 | Admin ra quyết định **Duyệt**. *A2, A3* | |
-| 7 | | Hệ thống chuyển tour sang **"Công khai"**; tour xuất hiện trong tìm kiếm (UC02) và cho phép tải (UC03). |
-| 8 | | Hệ thống ghi log hành động và gửi thông báo cho contributor (UC16). |
-| 9 | | Use case kết thúc tại đây. |
+| 1 | Admin mở trang **"Hàng chờ kiểm duyệt"** (`/admin/reviews`). | |
+| 2 | | Tour service trả về các tour ở trạng thái `ai_warning` hoặc `pending_review`: `ai_warning` lên đầu, sau đó tour chờ lâu nhất trước (theo thời điểm kết quả AI về). Mỗi dòng có tên, chip trạng thái (AI Warning / Chờ duyệt), thành phố, số lý do AI / vị trí, thời điểm gửi. Danh sách không phân trang. *E1, E2* |
+| 3 | Admin chọn một tour. | |
+| 4 | | Hệ thống hiển thị hồ sơ chỉ đọc (`/admin/reviews/:tourId`): thông tin tour, lý do kiểm duyệt (trường, loại, nguồn `AI` / `Kiểm tra vị trí`, mức độ), các điểm theo thứ tự (mô tả, ảnh, audio thu âm hoặc ghi chú "Giọng đọc máy (TTS) từ mô tả", vùng kích hoạt, trạng thái kiểm duyệt từng điểm), cấu hình lộ trình và audio chỉ đường, lịch sử quyết định. *A1, E3* |
+| 5 | Admin chọn **Duyệt** và xác nhận trong hộp thoại "Duyệt tour này?". *A2, A3* | |
+| 6 | | Tour service đổi trạng thái sang `public` bằng câu lệnh cập nhật có điều kiện (chỉ khi tour còn ở `ai_warning` / `pending_review`), xoá `reviewReason`, ghi một dòng `tour_review_actions` và một dòng `admin_actions` (`approve_tour`) trong cùng giao dịch. *E4* |
+| 7 | | Sau khi commit, Tour phát `tour.approved` (và `tour.published` nếu bật `CHATBOT_EVENTS_ENABLED`). Notification tạo thông báo trong app và gửi email cho tác giả (UC16). |
+| 8 | | Client hiện thông báo "Đã duyệt tour, tour đã công khai" và quay về hàng chờ. Tour xuất hiện trong tìm kiếm (UC02) và tải được (UC03). Use case kết thúc. |
 
 ## Alternative Path
 
-**A1. Preview tour** → hệ thống chạy tour ở chế độ GPS giả lập cho Admin, quay về bước 6.
+**A1. Xem trước nội dung** → Admin nghe audio, mở ảnh và xem cấu hình lộ trình ngay trong hồ sơ. Hồ sơ chỉ đọc: không có nút sửa nội dung, đánh giá, báo cáo. Quay về bước 5.
 
-**A2. Từ chối tour** → Admin chọn lý do (danh sách có sẵn hoặc tự do); hệ thống chuyển tour sang **"Bị từ chối"**, ghi log và thông báo contributor kèm lý do (UC16). Use case kết thúc.
+**A2. Từ chối tour** → Admin nhập lý do (bắt buộc, 1 đến 1000 ký tự, nhập tự do) trong hộp thoại "Từ chối tour này?". Tour chuyển sang `rejected`, lý do lưu vào `reviewReason`, ghi log (`reject`, `reject_tour`), phát `tour.rejected`; tác giả nhận thông báo và email kèm lý do. Tác giả có thể sửa và gửi lại (UC15). Use case kết thúc.
 
-**A3. Yêu cầu chỉnh sửa (lỗi nhỏ)** → hệ thống chuyển tour sang **"Cần chỉnh sửa"** và gửi yêu cầu cho contributor để sửa và gửi duyệt lại (UC15). Use case kết thúc.
+**A3. Yêu cầu chỉnh sửa** → Admin nhập ghi chú chung và ghi chú cho từng điểm; client ghép thành một lý do ("Điểm 2 – <tên>: <ghi chú>"). Tour chuyển sang `changes_requested` (không công khai), ghi log (`request_changes`, `request_tour_changes`), phát `tour.changes_requested`; tác giả nhận "Tour cần chỉnh sửa" kèm lý do, sửa rồi gửi lại (UC15). Use case kết thúc.
 
 ## Exception Path
 
-- **E1.** Không còn tour nào trong hàng chờ → hiển thị danh sách rỗng.
+- **E1.** Không có tour nào chờ duyệt → danh sách rỗng.
+- **E2.** Không có token hợp lệ → 401; tài khoản không phải admin → 403.
+- **E3.** `tourId` không phải UUID → 400; tour không tồn tại → 404.
+- **E4.** Tour không còn ở `ai_warning` / `pending_review` (hoặc admin khác đã quyết định trước) → 409; client hiện "Tour không còn ở trạng thái chờ duyệt" và tải lại hồ sơ.
+- **E5.** Từ chối / yêu cầu chỉnh sửa thiếu lý do hoặc lý do quá 1000 ký tự → 422, lỗi hiện trong hộp thoại.
+- **E6.** Gửi sự kiện thất bại → chỉ ghi log ở Tour, quyết định vẫn thành công.
 
 ## Extension Points
 
-- UC15 – Gửi tour đi duyệt (gửi lại); UC16 – Theo dõi trạng thái & thông báo; UC22 – Dashboard thống kê & log.
+- UC15 – Gửi tour đi duyệt (đầu vào hàng chờ, và gửi lại sau A2 / A3); UC16 – Theo dõi trạng thái & thông báo; UC22 – Dashboard thống kê & log.
 
 ## Triggers
 
-Có tour ở trạng thái "Chờ Admin duyệt" trong hàng chờ.
+Moderation phát `tour.ai_passed` cho một tour; Tour chuyển tour sang `pending_review` (hoặc `ai_warning` khi có `warning: true`) và ghi `reviewQueuedAt`.
 
 ## Assumptions
 
-- Chế độ preview GPS giả lập khả dụng.
+- Tài khoản admin được tạo thủ công (đổi `role` thành `admin` trong cơ sở dữ liệu Auth).
+- Notification tra email tác giả qua Auth (`/internal/users/:id/contact`); nếu tra cứu thất bại thì bỏ qua email.
 
 ## Preconditions
 
-- Admin đã đăng nhập; có ít nhất một tour "Chờ Admin duyệt".
+- Admin đã đăng nhập; có ít nhất một tour ở `ai_warning` hoặc `pending_review`.
 
 ## Post Conditions
 
-- Tour chuyển sang **Công khai** / **Bị từ chối** / **Cần chỉnh sửa**; hành động được ghi log; contributor được thông báo.
+- Tour ở `public`, `rejected` hoặc `changes_requested`; `review_reason` lưu lý do cuối (null khi duyệt).
+- Một dòng `tour_review_actions` (`action`, `reason`, `from_status`, `admin_id`) và một dòng `admin_actions` được ghi trong cùng giao dịch.
+- Đã phát `tour.approved` / `tour.rejected` / `tour.changes_requested` (và `tour.published` khi duyệt, nếu bật cờ chatbot); tác giả có thông báo trong app và email.
 
 ## Reference: Business Rules
 
-- Đây là **Tầng 2** của mô hình kiểm duyệt 3 tầng (Admin review).
-- Tour có **AI Warning** ưu tiên lên đầu hàng chờ.
-- **Từ chối phải kèm lý do**; mọi hành động được **ghi log** (UC22).
-- Admin **không tạo/sửa nội dung** tour — chỉ quyết định trạng thái.
-- *Xem hàng chờ, xem chi tiết, preview* là các action trong use case này (gộp A1–A5 của user story).
+- Đây là **Tầng 2** của mô hình kiểm duyệt (sau AI ở UC15, trước báo cáo cộng đồng ở UC20).
+- Chỉ quyết định được từ `ai_warning` hoặc `pending_review`; tour bị AI Reject không vào hàng chờ.
+- Hàng chờ: `ai_warning` trước, sau đó cũ nhất trước (theo `updatedAt`).
+- Từ chối và yêu cầu chỉnh sửa **bắt buộc có lý do** (trim, 1..1000 ký tự); duyệt không cần lý do.
+- Ghi có điều kiện: hai admin cùng quyết định thì chỉ một người thắng, người kia nhận 409.
+- Admin **không sửa nội dung** tour, chỉ quyết định trạng thái.
+- `changes_requested` nằm trong nhóm trạng thái tác giả được gửi duyệt lại, giống `rejected`.
+- `tour_review_actions.tour_id` không có khoá ngoại: log còn lại khi tour bị xoá.
+
+## Hiện thực trong hệ thống
+
+- **Dịch vụ:**
+  - Client: hàng chờ, hồ sơ, hộp thoại xác nhận / lý do.
+  - Gateway: chuyển `/api/tours/...` sang Tour.
+  - Tour: hàng chờ, hồ sơ, quyết định, log, phát sự kiện; kiểm tra quyền bằng `verifyJwt(['admin'])`.
+  - Notification: thông báo trong app và email cho tác giả.
+  - AI (chatbot indexer): nhận `tour.published` khi bật cờ.
+- **Màn hình (client):** `/admin/reviews` (`ReviewQueuePage`), `/admin/reviews/:tourId` (`ReviewDossierPage`, `ReasonDialog`, `RequestChangesDialog`) trong `client/src/features/admin/`; API helper `client/src/lib/admin-reviews.js`.
+- **API (qua gateway):**
+  - `GET /api/tours/admin/reviews`
+  - `GET /api/tours/admin/reviews/:tourId`
+  - `POST /api/tours/admin/reviews/:tourId/approve`
+  - `POST /api/tours/admin/reviews/:tourId/reject` `{ reason }`
+  - `POST /api/tours/admin/reviews/:tourId/request-changes` `{ reason }`
+- **Sự kiện (RabbitMQ):** consume `tour.ai_passed` (vào hàng chờ); publish `tour.approved`, `tour.rejected`, `tour.changes_requested`, `tour.published`. Không gửi gì khi cả `MODERATION_EVENTS_ENABLED` và `CHATBOT_EVENTS_ENABLED` đều tắt.
+- **Dữ liệu (schema `tour`):** `tours.status`, `tours.review_reason`, `tours.review_queued_at`; `tour_review_actions`; `admin_actions`.
+- **Tài liệu thiết kế:** [admin-review-api.md](../../02-design/admin-review-api.md), [uc22-dashboard-log.md](../../02-design/uc22-dashboard-log.md), [uc16-notifications.md](../../02-design/uc16-notifications.md), [moderation-architecture.md](../../02-design/moderation-architecture.md).
 
 ## Author(s)
 
@@ -69,7 +98,7 @@ Có tour ở trạng thái "Chờ Admin duyệt" trong hàng chờ.
 
 ## Date
 
-2026-10-18
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
 
 ## Activity Diagram
 
@@ -77,8 +106,31 @@ Có tour ở trạng thái "Chờ Admin duyệt" trong hàng chờ.
 
 ## Sequence Diagram
 
-(bổ sung sau)
+```mermaid
+sequenceDiagram
+    actor Admin
+    participant Client
+    participant Gateway
+    participant Tour
+    participant RabbitMQ
+    participant Notification
+    Admin->>Client: Mở /admin/reviews
+    Client->>Gateway: GET /api/tours/admin/reviews
+    Gateway->>Tour: GET /admin/reviews
+    Tour-->>Client: { tours } (ai_warning trước)
+    Admin->>Client: Mở hồ sơ, bấm Duyệt
+    Client->>Gateway: POST /api/tours/admin/reviews/:tourId/approve
+    Gateway->>Tour: POST /admin/reviews/:tourId/approve
+    Tour->>Tour: UPDATE có điều kiện + tour_review_actions + admin_actions
+    Tour-->>Client: 200 { message, tour, action: approve }
+    Tour-)RabbitMQ: tour.approved (+ tour.published)
+    RabbitMQ-)Notification: tour.approved
+    Notification->>Notification: Thông báo trong app + email tác giả
+```
 
 ## Boundary
 
-Trang Hàng chờ kiểm duyệt, Màn hình Chi tiết tour chờ duyệt (kèm kết quả AI), Chế độ Preview GPS giả lập, Hộp thoại Từ chối/Yêu cầu chỉnh sửa.
+- Trang Hàng chờ kiểm duyệt (`/admin/reviews`).
+- Trang Hồ sơ tour chờ duyệt (`/admin/reviews/:tourId`): lý do AI / vị trí, các điểm, lộ trình, lịch sử.
+- Hộp thoại Duyệt, Từ chối (lý do), Yêu cầu chỉnh sửa (ghi chú chung và từng điểm).
+- Trang chủ quản trị (`/admin`) với thanh điều hướng admin.
