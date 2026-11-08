@@ -50,6 +50,23 @@ export async function resetPasswordAndLogin({ email, otp, newPassword }) {
 }
 
 /**
+ * UC01 / UC23 R6 — change the password of the signed-in account.
+ * POST /api/auth/change-password { currentPassword, newPassword } -> { message, revoked }.
+ * This session stays signed in; every other session is signed out (`revoked` = how many).
+ */
+export async function changePassword({ currentPassword, newPassword }) {
+  return api.post('/api/auth/change-password', { currentPassword, newPassword }, { auth: true });
+}
+
+/** Client check of a new password (same rule as Auth `Password`: 8+ characters, letters and digits). */
+export function newPasswordProblem(password) {
+  if (!password) return 'Vui lòng nhập mật khẩu mới';
+  if (password.length < 8) return 'Mật khẩu phải có tối thiểu 8 ký tự';
+  if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) return 'Mật khẩu phải gồm cả chữ và số';
+  return null;
+}
+
+/**
  * Sign out (UC23 A2): ask Auth to end this session, then clear the tokens.
  * The request is best effort: it starts with the current token before the
  * tokens are cleared and its errors are ignored, so sign-out never blocks.

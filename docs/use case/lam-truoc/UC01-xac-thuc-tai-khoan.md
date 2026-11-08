@@ -49,7 +49,7 @@
 
 **A4. Làm mới phiên (ngầm).** Khi một request cần đăng nhập nhận 401, client gọi `POST /api/auth/refresh` một lần (khoá giữa các tab), nhận cặp token mới rồi gọi lại request. Refresh token cũ hết giá trị (xoay vòng). Phiên đã kết thúc → `401 session_revoked`, client xoá token và đưa về `/login` với thông báo *"Phiên đăng nhập đã kết thúc trên thiết bị này"*. `refreshTokens()` (`lib/api.js`) → `RefreshToken.execute()`; `onSessionEnded()` → `SessionWatcher`
 
-**A5. Đổi mật khẩu khi đang đăng nhập.** `POST /api/auth/change-password` (`currentPassword`, `newPassword`): sai mật khẩu hiện tại → `400 wrong_password`; mật khẩu mới phải khác mật khẩu cũ; thành công → đăng xuất mọi thiết bị khác, thiết bị hiện tại giữ nguyên (UC23). `ChangePassword.execute()`
+**A5. Đổi mật khẩu khi đang đăng nhập.** Từ Tài khoản → **"Đổi mật khẩu"** (`/account/password`), người dùng nhập mật khẩu hiện tại, mật khẩu mới và nhập lại; client kiểm tra trước (tối thiểu 8 ký tự, gồm chữ và số, khác mật khẩu cũ, nhập lại khớp) rồi gọi `POST /api/auth/change-password` (`currentPassword`, `newPassword`): sai mật khẩu hiện tại → `400 wrong_password`; mật khẩu mới phải khác mật khẩu cũ; thành công → đăng xuất mọi thiết bị khác, thiết bị hiện tại giữ nguyên (UC23); client báo *"Đã đổi mật khẩu. Đã đăng xuất N thiết bị khác."* và quay về `/account`. `ChangePasswordPage` → `changePassword()`, `newPasswordProblem()` → `ChangePassword.execute()`
 
 **A6. Đăng xuất.** Nút "Đăng xuất" ở `/account` gọi `POST /api/auth/logout` (kết thúc phiên hiện tại) và xoá token trên máy. `logout()` (`lib/auth.js`) → `Logout.execute()`
 
@@ -132,6 +132,8 @@ Người dùng muốn dùng tính năng cần tài khoản (lịch trình, Studi
 | A1.6 | `VerifyRegistrationOtp.execute()` | `services/auth/src/application/use-cases/verify-registration-otp.js` |
 | A2 | `ForgotPassword.execute()`, `ResetPassword.execute()` | `services/auth/src/application/use-cases/forgot-password.js`, `reset-password.js` |
 | A4 | `RefreshToken.execute()` | `services/auth/src/application/use-cases/refresh-token.js` |
+| A5 | `ChangePasswordPage` | `client/src/features/account/ChangePasswordPage.jsx` |
+| A5 | `changePassword()`, `newPasswordProblem()` | `client/src/lib/auth.js` |
 | A5 | `ChangePassword.execute()` | `services/auth/src/application/use-cases/change-password.js` |
 | 6 | `SessionManager.start()` | `services/auth/src/application/services/session-manager.js` |
 | 6 | `JwtTokenService.issueTokens()`, `.verifyRefresh()` | `services/auth/src/infrastructure/security/jwt-token-service.js` |
@@ -143,7 +145,6 @@ Người dùng muốn dùng tính năng cần tài khoản (lịch trình, Studi
 - **Tài liệu thiết kế:** [notification-otp-design.md](../../02-design/notification-otp-design.md), [device-sessions.md](../../02-design/device-sessions.md).
 - **Giới hạn đã biết:**
   - Mẫu email OTP HTML của Notification (`send-otp-email.js`) chưa được nối với Auth; Auth gửi email văn bản thuần.
-  - API đổi mật khẩu (A5) đã có nhưng client chưa có màn hình đổi mật khẩu.
 
 ## Author(s)
 
@@ -184,6 +185,7 @@ sequenceDiagram
 ## Boundary
 
 - Màn Đăng nhập `/login` (tab Đăng nhập / Đăng ký, thông báo phiên đã kết thúc).
+- Màn Đổi mật khẩu `/account/password` (A5, cần đăng nhập).
 - Màn Đăng ký `/register` (3 bước: Vai trò, Thông tin, Xác thực OTP, màn "Đăng ký thành công").
 - Màn Quên mật khẩu `/forgot-password` (nhập email, nhập OTP + mật khẩu mới).
 - Màn Tài khoản `/account` (nút Đăng xuất).

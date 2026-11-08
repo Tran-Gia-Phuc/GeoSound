@@ -69,6 +69,7 @@ import PublishStepPage from './features/studio/PublishStepPage.jsx';
 import TourStatsPage from './features/studio/TourStatsPage.jsx';
 import AccountPage from './features/account/AccountPage.jsx';
 import DevicesPage from './features/account/DevicesPage.jsx';
+import ChangePasswordPage from './features/account/ChangePasswordPage.jsx';
 import OnlineDevicesPage from './features/admin/OnlineDevicesPage.jsx';
 import AdminHomePage from './features/admin/AdminHomePage.jsx';
 import ReportedToursPage from './features/admin/ReportedToursPage.jsx';
@@ -180,6 +181,7 @@ const router = createBrowserRouter(
         <Route path="/itineraries" element={<ItinerariesPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/account/devices" element={<RequireAuth><DevicesPage /></RequireAuth>} />
+        <Route path="/account/password" element={<RequireAuth><ChangePasswordPage /></RequireAuth>} />
         <Route path="/tour/:tourId/unlock" element={<RequireAuth><UnlockTourPage /></RequireAuth>} />
         <Route path="/admin" element={<RequireAuth><AdminHomePage /></RequireAuth>} />
         <Route path="/admin/reviews" element={<RequireAuth><ReviewQueuePage /></RequireAuth>} />
