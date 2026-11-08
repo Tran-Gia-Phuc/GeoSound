@@ -1,0 +1,24 @@
+{
+  "uc": "UC23",
+  "steps": [
+    { "id": "s1", "text": "1. Người dùng vào Tài khoản → “Thiết bị đang đăng nhập”.", "alts": ["A3", "A4", "A5"] },
+    { "id": "s2", "decision": true, "text": "2. Auth trả các phiên còn hiệu lực: tên thiết bị, vị trí, lúc đăng nhập, lần hoạt động cuối; tải được? E4.", "exceptions": [
+      { "id": "E4", "text": "E4. Không tải được → “Chưa tải được danh sách thiết bị” kèm nút “Thử lại”.", "back": "s2" } ] },
+    { "id": "s3", "decision": true, "text": "3. Client hiển thị “Thiết bị này” đứng đầu, các thiết bị khác theo hoạt động gần nhất; có thiết bị khác? E1.", "exceptions": [
+      { "id": "E1", "text": "E1. Chỉ có thiết bị hiện tại → một dòng “Thiết bị này”, ẩn nút “Đăng xuất tất cả thiết bị khác”.", "back": "end" } ] },
+    { "id": "s4", "decision": true, "text": "4. Người dùng nhấn “Đăng xuất thiết bị” ở một thiết bị khác? A1, A2.", "alts": ["A1", "A2"] },
+    { "id": "s5", "text": "5. Client hỏi “Đăng xuất khỏi <tên thiết bị>?”: thiết bị đó sẽ cần đăng nhập lại." },
+    { "id": "s6", "text": "6. Người dùng xác nhận." },
+    { "id": "s7", "decision": true, "text": "7. Auth thu hồi phiên và đánh dấu trong Redis; client bỏ dòng đó, báo “Đã đăng xuất <tên thiết bị>”; thành công? E2, E3.", "exceptions": [
+      { "id": "E2", "text": "E2. Phiên đã đăng xuất / hết hạn hoặc không phải của mình → “Thiết bị này đã đăng xuất”, tải lại danh sách.", "back": "s2" },
+      { "id": "E3", "text": "E3. Mất mạng → “Không thể kết nối, vui lòng thử lại”; phiên thiết bị kia không đổi.", "back": "s4" } ] },
+    { "id": "s8", "text": "8. Thiết bị bị đăng xuất: request kế tiếp bị từ chối (401), xóa token, chuyển tới đăng nhập với “Phiên đăng nhập đã kết thúc trên thiết bị này”." }
+  ],
+  "alts": [
+    { "id": "A3", "steps": ["A3.1. Hệ thống tự đăng xuất: đặt lại / đổi mật khẩu, admin tạm khóa / cấm, đăng nhập lại cùng thiết bị.", "A3.2. Hoặc phiên quá 7 ngày không dùng / quá 30 ngày, token cũ bị dùng lại, vượt 100 phiên."], "to": "s8" },
+    { "id": "A4", "steps": ["A4.1. Đăng nhập trên thiết bị chưa từng có phiên.", "A4.2. Notification gửi email “Đăng nhập mới trên <thiết bị>” tới email tài khoản."], "to": "end" },
+    { "id": "A5", "steps": ["A5.1. Admin mở trang thiết bị online (người không phải admin → 403).", "A5.2. Hệ thống hiện tổng số thiết bị, số đang online (120 giây), tài khoản online; tự làm mới mỗi 30 giây."], "to": "end" },
+    { "id": "A1", "steps": ["A1.1. Người dùng nhấn “Đăng xuất tất cả thiết bị khác” và xác nhận.", "A1.2. Auth thu hồi mọi phiên trừ phiên hiện tại; toast “Đã đăng xuất n thiết bị”."], "to": "s8" },
+    { "id": "A2", "steps": ["A2.1. Người dùng nhấn “Đăng xuất” ở trang Tài khoản.", "A2.2. Hệ thống thu hồi phiên hiện tại và xóa token."], "to": "end" }
+  ]
+}

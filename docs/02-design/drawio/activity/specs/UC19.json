@@ -1,0 +1,23 @@
+{
+  "uc": "UC19",
+  "steps": [
+    { "id": "s1", "text": "1. Admin mở trang “Hàng chờ kiểm duyệt”." },
+    { "id": "s2", "decision": true, "text": "2. Hệ thống trả các tour “AI Warning” (lên đầu) và “Chờ duyệt” (chờ lâu nhất trước) kèm tên, thành phố, số lý do; có tour và có quyền? E1, E2.", "exceptions": [
+      { "id": "E1", "text": "E1. Không có tour nào chờ duyệt → danh sách rỗng.", "back": "end" },
+      { "id": "E2", "text": "E2. Không có token hợp lệ → 401; tài khoản không phải admin → 403.", "back": "end" } ] },
+    { "id": "s3", "text": "3. Admin chọn một tour." },
+    { "id": "s4", "decision": true, "text": "4. Hệ thống hiển thị hồ sơ chỉ đọc: thông tin tour, lý do kiểm duyệt, các điểm, lộ trình, lịch sử quyết định; tìm thấy tour? A1, E3.", "alts": ["A1"], "exceptions": [
+      { "id": "E3", "text": "E3. Mã tour sai định dạng → 400; tour không tồn tại → 404.", "back": "s3" } ] },
+    { "id": "s5", "decision": true, "text": "5. Admin chọn “Duyệt” và xác nhận “Duyệt tour này?”? A2, A3.", "alts": ["A2", "A3"] },
+    { "id": "s6", "decision": true, "text": "6. Hệ thống đổi tour sang Công khai (chỉ khi còn chờ duyệt), xoá lý do, ghi log quyết định trong cùng giao dịch; tour còn chờ duyệt? E4.", "exceptions": [
+      { "id": "E4", "text": "E4. Tour không còn chờ duyệt (admin khác đã quyết định) → 409 “Tour không còn ở trạng thái chờ duyệt”, tải lại hồ sơ.", "back": "s4" } ] },
+    { "id": "s7", "decision": true, "text": "7. Hệ thống phát sự kiện tour đã duyệt; Notification gửi thông báo và email cho tác giả (UC16); gửi được? E6.", "exceptions": [
+      { "id": "E6", "text": "E6. Gửi sự kiện thất bại → chỉ ghi log, quyết định vẫn thành công.", "back": "s8" } ] },
+    { "id": "s8", "text": "8. Client báo “Đã duyệt tour, tour đã công khai”, quay về hàng chờ; tour xuất hiện trong tìm kiếm (UC02) và tải được (UC03)." }
+  ],
+  "alts": [
+    { "id": "A1", "steps": ["A1.1. Admin nghe audio, mở ảnh, xem cấu hình lộ trình trong hồ sơ (không sửa, đánh giá, báo cáo)."], "to": "s5" },
+    { "id": "A2", "steps": ["A2.1. Admin chọn “Từ chối”, nhập lý do (bắt buộc, 1–1000 ký tự; sai → lỗi trong hộp thoại, E5).", "A2.2. Tour chuyển sang Bị từ chối, ghi log, phát sự kiện.", "A2.3. Tác giả nhận thông báo và email kèm lý do, có thể sửa và gửi lại (UC15)."], "to": "end" },
+    { "id": "A3", "steps": ["A3.1. Admin chọn “Yêu cầu chỉnh sửa”, nhập ghi chú chung và từng điểm (E5 như A2).", "A3.2. Client ghép thành một lý do; tour chuyển sang Cần chỉnh sửa, ghi log, phát sự kiện.", "A3.3. Tác giả nhận “Tour cần chỉnh sửa”, sửa rồi gửi lại (UC15)."], "to": "end" }
+  ]
+}

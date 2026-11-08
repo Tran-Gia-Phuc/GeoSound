@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Trang-1" id="uc13-activity">
+    <mxGraphModel dx="5475" dy="2875" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 48px;&quot;&gt;UC13&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="-1310" y="-110" as="geometry" />
+        </mxCell>
+        <mxCell id="3" parent="1" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#ff0000;" value="" vertex="1">
+          <mxGeometry height="40" width="40" x="-20" y="0" as="geometry" />
+        </mxCell>
+        <mxCell id="4" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="1. Ở bước Xuất bản, contributor nhấn “Xem thử như khách”." vertex="1">
+          <mxGeometry height="60" width="220" x="-110" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="5" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="2. Hệ thống mở trang xem thử và tải bản xem thử của tour; xem thử được? E1, E2." vertex="1">
+          <mxGeometry height="130" width="320" x="-160" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="6" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="3. Hệ thống kiểm quyền tác giả, dựng view như chi tiết công khai (điểm, ảnh, bản dịch, route, vùng) kèm nhãn xem thử." vertex="1">
+          <mxGeometry height="90" width="220" x="-110" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="7" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="4. Trình phát mở chế độ “Xem thử — đi bộ mô phỏng”: vị trí mô phỏng ở đầu route, không cần GPS thật." vertex="1">
+          <mxGeometry height="90" width="220" x="-110" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="8" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="5. Contributor bấm đi bộ mô phỏng (chọn tốc độ) hoặc chạm bản đồ để dời vị trí." vertex="1">
+          <mxGeometry height="75" width="220" x="-110" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="9" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="6. Vào vùng kích hoạt, trình phát tự phát điểm như UC04 (ưu tiên vùng cao hơn), hiện văn bản, ảnh, gợi ý, audio chỉ đường; phát được? E3." vertex="1">
+          <mxGeometry height="160" width="320" x="-160" y="835" as="geometry" />
+        </mxCell>
+        <mxCell id="10" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="7. Contributor kiểm tra nội dung; ổn thì nhấn “Về bước Xuất bản” hoặc “Về trình chỉnh sửa”? A2, A3." vertex="1">
+          <mxGeometry height="130" width="320" x="-160" y="1055" as="geometry" />
+        </mxCell>
+        <mxCell id="11" parent="1" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#ff0000;" value="" vertex="1">
+          <mxGeometry height="40" width="40" x="-20" y="1275" as="geometry" />
+        </mxCell>
+        <mxCell id="12" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E1. Tour chưa có điểm nào → “Chưa thể xem thử: tour cần có ít nhất một điểm dừng”, nút “Thêm điểm dừng”." vertex="1">
+          <mxGeometry height="90" width="250" x="355" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="13" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E2. Tour của người khác (403) hoặc không tồn tại (404) → báo lỗi." vertex="1">
+          <mxGeometry height="60" width="250" x="355" y="295" as="geometry" />
+        </mxCell>
+        <mxCell id="14" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E3. Trình duyệt chặn âm thanh / không có giọng cho ngôn ngữ → báo và cho phát lại (như UC04)." vertex="1">
+          <mxGeometry height="75" width="250" x="355" y="830" as="geometry" />
+        </mxCell>
+        <mxCell id="15" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A1.1. Contributor chọn “Xem thử từng điểm”, chọn điểm trong danh sách để nghe, không dùng vị trí." vertex="1">
+          <mxGeometry height="90" width="220" x="-510" y="805" as="geometry" />
+        </mxCell>
+        <mxCell id="16" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A2.1. Contributor phát hiện lỗi, bấm nút sửa trên điểm." vertex="1">
+          <mxGeometry height="60" width="220" x="-910" y="1215" as="geometry" />
+        </mxCell>
+        <mxCell id="17" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A2.2. Hệ thống mở sửa điểm (UC10); route / vùng sửa ở UC11, bản dịch ở UC12." vertex="1">
+          <mxGeometry height="75" width="220" x="-910" y="1325" as="geometry" />
+        </mxCell>
+        <mxCell id="18" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A3.1. Contributor đổi ngôn ngữ nghe." vertex="1">
+          <mxGeometry height="60" width="220" x="-1310" y="1215" as="geometry" />
+        </mxCell>
+        <mxCell id="19" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A3.2. Hệ thống tải lại bản xem thử theo ngôn ngữ mới." vertex="1">
+          <mxGeometry height="60" width="220" x="-1310" y="1325" as="geometry" />
+        </mxCell>
+        <mxCell id="20" edge="1" parent="1" source="3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="4" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="21" edge="1" parent="1" source="4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="5" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="22" edge="1" parent="1" source="5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="6" value="yes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="23" edge="1" parent="1" source="6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="7" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="24" edge="1" parent="1" source="7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="8" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="25" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="9" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="26" edge="1" parent="1" source="9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="10" value="yes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="27" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="11" value="yes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="28" edge="1" parent="1" source="5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="12" value="no">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="29" edge="1" parent="1" source="12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="11" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="30" edge="1" parent="1" source="5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="13" value="no">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="31" edge="1" parent="1" source="13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="11" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="32" edge="1" parent="1" source="9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="14" value="no">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="33" edge="1" parent="1" source="14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="9" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="34" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="15" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="35" edge="1" parent="1" source="15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="10" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="36" edge="1" parent="1" source="16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="17" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="37" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="16" value="no">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="38" edge="1" parent="1" source="17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="11" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="39" edge="1" parent="1" source="18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="19" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="40" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="18" value="no">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="41" edge="1" parent="1" source="19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="7" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

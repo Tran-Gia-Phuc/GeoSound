@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Trang-1" id="uc01-activity">
+    <mxGraphModel dx="5475" dy="2875" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 48px;&quot;&gt;UC01&lt;/font&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="-2110" y="-110" as="geometry" />
+        </mxCell>
+        <mxCell id="3" parent="1" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#ff0000;" value="" vertex="1">
+          <mxGeometry height="40" width="40" x="-20" y="0" as="geometry" />
+        </mxCell>
+        <mxCell id="4" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="1. Người dùng mở “Đăng nhập”, hoặc bị chuyển tới từ một màn cần đăng nhập. Chưa có tài khoản → A1." vertex="1">
+          <mxGeometry height="90" width="220" x="-110" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="5" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="2. Client hiển thị form: Email, Mật khẩu, link “Quên mật khẩu”." vertex="1">
+          <mxGeometry height="75" width="220" x="-110" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="6" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="3. Người dùng nhập email, mật khẩu và nhấn “Đăng nhập”; đủ các trường? E1." vertex="1">
+          <mxGeometry height="115" width="320" x="-160" y="375" as="geometry" />
+        </mxCell>
+        <mxCell id="7" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="4. Client gửi yêu cầu đăng nhập kèm mã thiết bị ngẫu nhiên lưu trên máy." vertex="1">
+          <mxGeometry height="75" width="220" x="-110" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="8" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="5. Auth chuẩn hoá email, kiểm tra trạng thái tài khoản và mật khẩu; hợp lệ? E2, E3/E4." vertex="1">
+          <mxGeometry height="130" width="320" x="-160" y="685" as="geometry" />
+        </mxCell>
+        <mxCell id="9" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="6. Auth tạo (hoặc thay) phiên thiết bị và trả token; thiết bị mới → gửi cảnh báo đăng nhập (UC23)." vertex="1">
+          <mxGeometry height="90" width="220" x="-110" y="875" as="geometry" />
+        </mxCell>
+        <mxCell id="10" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="7. Client lưu phiên và điều hướng: về màn trước đó, Contributor → Studio, Tourist / Admin → Khám phá." vertex="1">
+          <mxGeometry height="90" width="220" x="-110" y="1025" as="geometry" />
+        </mxCell>
+        <mxCell id="11" parent="1" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#ff0000;" value="" vertex="1">
+          <mxGeometry height="40" width="40" x="-20" y="1205" as="geometry" />
+        </mxCell>
+        <mxCell id="12" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E1. Bỏ trống trường → báo “Vui lòng nhập email” / “Vui lòng nhập mật khẩu”." vertex="1">
+          <mxGeometry height="75" width="250" x="355" y="348" as="geometry" />
+        </mxCell>
+        <mxCell id="13" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E2. Sai email hoặc mật khẩu → “Email hoặc mật khẩu không đúng”; sai 5 lần liên tiếp → tạm khóa 15 phút, gợi ý đặt lại mật khẩu." vertex="1">
+          <mxGeometry height="90" width="250" x="355" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="14" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E3/E4. Tài khoản bị cấm → “Tài khoản đã bị khóa, vui lòng liên hệ Admin”; bị tạm khoá có thời hạn → báo thời điểm mở khoá." vertex="1">
+          <mxGeometry height="90" width="250" x="355" y="770" as="geometry" />
+        </mxCell>
+        <mxCell id="15" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A1.1. Người dùng chọn “Đăng ký”, chọn vai trò (Khách du lịch / Tác giả), nhập họ tên, email, mật khẩu." vertex="1">
+          <mxGeometry height="90" width="220" x="-510" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="16" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A1.2. Auth kiểm tra (E5–E7: email sai định dạng, mật khẩu yếu, email đã có), giữ thông tin tạm và gửi OTP 6 số qua email." vertex="1">
+          <mxGeometry height="105" width="220" x="-510" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="17" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A1.3. Người dùng nhập OTP (có thể “Gửi lại mã”, A3); Auth tạo tài khoản. OTP sai / quá 120 giây → E8, E9." vertex="1">
+          <mxGeometry height="90" width="220" x="-510" y="505" as="geometry" />
+        </mxCell>
+        <mxCell id="18" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A1.4. Trang Đăng ký: “Đăng ký thành công!” rồi đăng nhập lại; tab Đăng ký: đăng nhập luôn." vertex="1">
+          <mxGeometry height="75" width="220" x="-510" y="645" as="geometry" />
+        </mxCell>
+        <mxCell id="19" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A2.1. Người dùng chọn “Quên mật khẩu”, nhập email; Auth luôn trả cùng một câu, chỉ gửi OTP khi tài khoản có thật và chưa bị cấm." vertex="1">
+          <mxGeometry height="105" width="220" x="-910" y="345" as="geometry" />
+        </mxCell>
+        <mxCell id="20" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A2.2. Người dùng nhập OTP và mật khẩu mới (E6, E8, E9)." vertex="1">
+          <mxGeometry height="60" width="220" x="-910" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="21" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A2.3. Auth đổi mật khẩu, gỡ tạm khoá, đăng xuất mọi thiết bị; client quay về màn Đăng nhập." vertex="1">
+          <mxGeometry height="90" width="220" x="-910" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="22" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A4.1. Request nhận 401 → client làm mới phiên một lần rồi gọi lại; phiên đã kết thúc → về Đăng nhập, báo “Phiên đăng nhập đã kết thúc trên thiết bị này”." vertex="1">
+          <mxGeometry height="120" width="220" x="-1310" y="1145" as="geometry" />
+        </mxCell>
+        <mxCell id="23" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A5.1. Người dùng vào “Đổi mật khẩu”, nhập mật khẩu hiện tại, mật khẩu mới (tối thiểu 8 ký tự, gồm chữ và số) và nhập lại." vertex="1">
+          <mxGeometry height="105" width="220" x="-1710" y="1145" as="geometry" />
+        </mxCell>
+        <mxCell id="24" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A5.2. Auth đổi mật khẩu, đăng xuất các thiết bị khác; báo “Đã đổi mật khẩu. Đã đăng xuất N thiết bị khác.”" vertex="1">
+          <mxGeometry height="90" width="220" x="-1710" y="1300" as="geometry" />
+        </mxCell>
+        <mxCell id="25" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A6.1. Người dùng nhấn “Đăng xuất”; Auth kết thúc phiên hiện tại, client xoá token trên máy." vertex="1">
+          <mxGeometry height="90" width="220" x="-2110" y="1145" as="geometry" />
+        </mxCell>
+        <mxCell id="26" edge="1" parent="1" source="3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="4" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="27" edge="1" parent="1" source="4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="5" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="28" edge="1" parent="1" source="5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="6" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="29" edge="1" parent="1" source="6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="7" value="yes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="30" edge="1" parent="1" source="7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="8" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="31" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="9" value="yes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="32" edge="1" parent="1" source="9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="10" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="33" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="11" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="34" edge="1" parent="1" source="6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="12" value="no">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="35" edge="1" parent="1" source="12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="6" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="36" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="13" value="no">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="37" edge="1" parent="1" source="13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="6" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="38" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="14" value="no">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="39" edge="1" parent="1" source="14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="11" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="40" edge="1" parent="1" source="15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="16" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="41" edge="1" parent="1" source="16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="17" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="42" edge="1" parent="1" source="17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="18" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="43" edge="1" parent="1" source="4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="15" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="44" edge="1" parent="1" source="18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="10" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="45" edge="1" parent="1" source="19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="20" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="46" edge="1" parent="1" source="20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="21" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="47" edge="1" parent="1" source="5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="19" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="48" edge="1" parent="1" source="21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="4" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="49" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="22" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="50" edge="1" parent="1" source="22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="11" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="51" edge="1" parent="1" source="23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="24" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="52" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="23" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="53" edge="1" parent="1" source="24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="11" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="54" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="25" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="55" edge="1" parent="1" source="25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="11" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

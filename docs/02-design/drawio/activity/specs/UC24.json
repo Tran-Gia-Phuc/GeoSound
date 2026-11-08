@@ -1,0 +1,25 @@
+{
+  "uc": "UC24",
+  "steps": [
+    { "id": "s1", "text": "1. Tourist bấm nút nổi “Hỏi trợ lý” hoặc mở trang chat.", "alts": ["A1"] },
+    { "id": "s2", "decision": true, "text": "2. Client kiểm tra chatbot đang bật và tải lịch sử của phiên đã lưu; chatbot đang bật? E1.", "exceptions": [
+      { "id": "E1", "text": "E1. Chatbot tắt → ẩn nút nổi, trang chat hiện “Chatbot đang tắt”; phiên hết hạn → xóa phiên, bắt đầu trống.", "back": "end" } ] },
+    { "id": "s3", "text": "3. Client hiện lời chào “Xin chào! Bạn muốn khám phá gì hôm nay?” và các gợi ý.", "alts": ["A2"] },
+    { "id": "s4", "decision": true, "text": "4. Tourist nhập câu hỏi (1–1000 ký tự) hoặc chọn gợi ý, rồi gửi; hợp lệ? E2.", "exceptions": [
+      { "id": "E2", "text": "E2. Câu hỏi rỗng hoặc quá 1000 ký tự → “Câu hỏi không hợp lệ. Vui lòng nhập từ 1 đến 1000 ký tự.”", "back": "s4" } ] },
+    { "id": "s5", "decision": true, "text": "5. Client gửi câu hỏi (kèm vị trí nếu được phép); Gateway giới hạn tần suất theo IP rồi chuyển tới AI; trong giới hạn? E3.", "exceptions": [
+      { "id": "E3", "text": "E3. Quá 5 lượt / phút hoặc 100 lượt / ngày → “Bạn đã hỏi quá nhiều trong thời gian ngắn, vui lòng thử lại sau …”.", "back": "s4" } ] },
+    { "id": "s6", "decision": true, "text": "6. AI phân loại → lập kế hoạch → tìm tour / địa điểm (tối đa 5) → trả lời (Gemini, dự phòng Groq) → lọc trích dẫn; trả lời được? A3, E4.", "alts": ["A3"], "exceptions": [
+      { "id": "E4", "text": "E4. AI bận → “Trợ lý đang bận…”; mọi LLM lỗi → “Trợ lý tạm thời không phản hồi”; nội dung bị chặn → từ chối lịch sự.", "back": "s4" } ] },
+    { "id": "s7", "decision": true, "text": "7. AI trả luồng; client hiện câu trả lời dần dần, biến dấu tour / địa điểm thành liên kết, thêm danh sách “Nguồn”; nhận trọn vẹn? A4, E5.", "alts": ["A4"], "exceptions": [
+      { "id": "E5", "text": "E5. Lỗi giữa luồng, mất kết nối hoặc không có mạng → báo lỗi tương ứng, có nút “Thử lại”.", "back": "s4" } ] },
+    { "id": "s8", "text": "8. Tourist bấm một nguồn → client mở chi tiết tour (UC02); nguồn địa điểm mở tour chứa địa điểm đó." },
+    { "id": "s9", "text": "9. Lượt hỏi đáp được lưu vào bộ nhớ phiên." }
+  ],
+  "alts": [
+    { "id": "A1", "steps": ["A1.1. Từ bảng chat nổi, Tourist chọn “Mở toàn màn hình”.", "A1.2. Mở trang chat với cùng phiên."], "to": "s2" },
+    { "id": "A2", "steps": ["A2.1. Tourist chọn “Cuộc trò chuyện mới”.", "A2.2. Client quên phiên cũ; lượt hỏi sau tạo phiên mới."], "to": "s4" },
+    { "id": "A3", "steps": ["A3.1. Ngoài phạm vi (đặt chỗ, giá, dữ liệu cá nhân) hoặc không có dữ liệu → câu trả lời soạn sẵn, không gọi LLM.", "A3.2. Câu chào hỏi → một lần gọi LLM, không tra chỉ mục."], "to": "s7" },
+    { "id": "A4", "steps": ["A4.1. Tourist bấm “Dừng” khi đang nhận.", "A4.2. Client hủy luồng; giữ phần đã nhận, ghi nhãn “Đã dừng”."], "to": "s9" }
+  ]
+}
