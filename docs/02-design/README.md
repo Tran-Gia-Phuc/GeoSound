@@ -29,4 +29,5 @@ Expected later:
 - [UC14 restricted access with a passcode](uc14-restricted-access.md)
 - [UC03 offline tour download (package, library, pause/resume, storage)](offline-download.md)
 - [OTP email templates and SMTP verification](notification-otp-design.md)
+- [Database tables of every service (for the ERD)](database-tables.md)
 - [General ERD — supplied reference (draw.io)](drawio/erd-general.drawio)
