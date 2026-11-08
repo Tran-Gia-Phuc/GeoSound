@@ -12,6 +12,7 @@ import { Tour } from '../src/domain/entities/tour.js';
 
 import { CreateItinerary } from '../src/application/use-cases/create-itinerary.js';
 import { GetItinerary } from '../src/application/use-cases/get-itinerary.js';
+import { GetItineraryPackage } from '../src/application/use-cases/get-itinerary-package.js';
 import { RenameItinerary } from '../src/application/use-cases/rename-itinerary.js';
 import { AddItineraryItem } from '../src/application/use-cases/add-itinerary-item.js';
 import { RemoveItineraryItem } from '../src/application/use-cases/remove-itinerary-item.js';
@@ -108,6 +109,7 @@ function deps() {
     itineraryRepo,
     create: new CreateItinerary({ itineraryRepo }),
     get: new GetItinerary({ itineraryRepo }),
+    pack: new GetItineraryPackage({ itineraryRepo }),
     rename: new RenameItinerary({ itineraryRepo }),
     add: new AddItineraryItem({ itineraryRepo, placeRepo: fakePlaceRepo(), tourRepo, tourLanguageRepo: langRepo, placeTranslationRepo: txRepo }),
     remove: new RemoveItineraryItem({ itineraryRepo }),
@@ -229,4 +231,22 @@ test('khám phá địa điểm — lọc + sắp theo khoảng cách khi có to
   // gần (15.879,108.329) nhất là p-tts
   assert.equal(res.items[0].placeId, 'p-tts');
   assert.ok('distanceMeters' in res.items[0]);
+});
+
+test('gói offline lịch trình — chỉ chủ sở hữu; ảnh + audio ghi âm là tệp, tts:// thành null; ngôn ngữ không có → 400', async () => {
+  const d = deps();
+  const { id } = await d.create.execute({ ownerId: OWNER, name: 'Offline' });
+  await d.add.execute({ ownerId: OWNER, itineraryId: id, placeId: 'p-human' });
+  await d.add.execute({ ownerId: OWNER, itineraryId: id, placeId: 'p-tts' });
+  const pkg = await d.pack.execute({ ownerId: OWNER, itineraryId: id, lang: 'vi' });
+  assert.equal(pkg.kind, 'itinerary');
+  assert.equal(pkg.itineraryId, id);
+  assert.equal(pkg.language, 'vi');
+  assert.equal(pkg.detail.isItinerary, true);
+  assert.equal(pkg.detail.places.length, 2);
+  const urls = pkg.assets.map((a) => a.url).sort();
+  assert.deepEqual(urls, ['https://a/p1.mp3', 'https://i/p1.jpg']);
+  assert.ok(pkg.detail.places.every((p) => p.audioUrl === null || p.audioUrl.startsWith('https://')));
+  await assert.rejects(() => d.pack.execute({ ownerId: OTHER, itineraryId: id }), (e) => e.status === 403);
+  await assert.rejects(() => d.pack.execute({ ownerId: OWNER, itineraryId: id, lang: 'ja' }), (e) => e.status === 400);
 });
