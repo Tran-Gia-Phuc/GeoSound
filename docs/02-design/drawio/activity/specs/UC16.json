@@ -1,0 +1,21 @@
+{
+  "uc": "UC16",
+  "steps": [
+    { "id": "s1", "text": "1. (Nền) Khi có sự kiện tour (AI từ chối, duyệt, từ chối, cần chỉnh sửa, ẩn, khôi phục, bị báo cáo), Notification lưu thông báo và gửi email cho tác giả (trừ “bị báo cáo”)." },
+    { "id": "s2", "text": "2. Client lấy số chưa đọc khi mở app, khi trang được focus và mỗi 60 giây; hiển thị huy hiệu (“99+” khi trên 99)." },
+    { "id": "s3", "decision": true, "text": "3. Contributor mở “Thông báo”; hệ thống hiển thị danh sách mới nhất trước; tải được và có thông báo? E1, E2, E4, E5.", "exceptions": [
+      { "id": "E1", "text": "E1. Không có thông báo nào → “Chưa có thông báo nào”.", "back": "end" },
+      { "id": "E2", "text": "E2. Mất kết nối → “Không thể kết nối, vui lòng thử lại”; huy hiệu giữ số cuối cùng đã biết.", "back": "s3" },
+      { "id": "E4", "text": "E4/E5. Tham số sai → “Tham số không hợp lệ”; chưa đăng nhập hoặc phiên đã đăng xuất → 401.", "back": "end" } ] },
+    { "id": "s4", "text": "4. Contributor lọc “Chưa đọc” hoặc nhấn “Xem thêm”; client tải lại danh sách.", "alts": ["A1"] },
+    { "id": "s5", "decision": true, "text": "5. Contributor mở một thông báo; hệ thống đánh dấu đã đọc, giảm huy hiệu, mở trang tour trong Studio; tìm thấy? A3, E3.", "alts": ["A3"], "exceptions": [
+      { "id": "E3", "text": "E3. Thông báo của người khác, không tồn tại hoặc id sai → “Không tìm thấy thông báo”.", "back": "s4" } ] },
+    { "id": "s6", "text": "6. Contributor xem nhãn trạng thái tour (Nháp, Đang kiểm duyệt AI, Chờ duyệt, Công khai, Bị từ chối, ...) và lịch sử thông báo của tour." },
+    { "id": "s7", "decision": true, "text": "7. Contributor cần sửa tour và gửi duyệt lại? A2.", "alts": ["A2"] }
+  ],
+  "alts": [
+    { "id": "A1", "steps": ["A1.1. Còn thông báo chưa đọc: contributor nhấn “Đánh dấu tất cả đã đọc”.", "A1.2. Hệ thống đánh dấu tất cả đã đọc, huy hiệu về 0."], "to": "s5" },
+    { "id": "A3", "steps": ["A3.1. Thông báo tài khoản (Admin cảnh báo / tạm khoá / cấm / khôi phục, UC21): có cả thông báo trong app và email.", "A3.2. Mở thông báo chuyển tới trang tài khoản."], "to": "end" },
+    { "id": "A2", "steps": ["A2.1. Từ trang tour trong Studio, contributor sửa tour (UC09 / UC10 / UC11).", "A2.2. Contributor gửi duyệt lại (UC15)."], "to": "end" }
+  ]
+}

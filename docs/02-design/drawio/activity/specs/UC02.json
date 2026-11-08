@@ -1,0 +1,40 @@
+{
+  "uc": "UC02",
+  "steps": [
+    { "id": "s1", "text": "1. Tourist mở app (màn “Khám phá”)." },
+    { "id": "s2", "text": "2. Client hiện ô tìm kiếm, tab Tour / Địa điểm, chip thành phố, “Gần bạn”, “Mở gần đây” và danh sách “Phổ biến”.", "alts": ["A4"] },
+    { "id": "s3", "text": "3. Tourist gõ từ khoá, chọn thành phố hoặc mở “Lọc” để chọn ngôn ngữ, loại tour.", "alts": ["A1", "A2"] },
+    { "id": "s4", "text": "4. Client tự tìm sau 300 ms (không cần nút “Tìm”); mọi tiêu chí nằm trên đường dẫn." },
+    { "id": "s5", "decision": true, "text": "5. Tour trả các tour công khai khớp (ảnh bìa, tên, thành phố, thời lượng, số điểm, đánh giá, nhãn giọng, tác giả); có kết quả? E1, E2.", "exceptions": [
+      { "id": "E1", "text": "E1. Không có kết quả → “Không tìm thấy tour phù hợp”, gợi ý đổi từ khoá và nút “Xoá tìm kiếm & bộ lọc”.", "back": "s3" },
+      { "id": "E2", "text": "E2. Mất mạng → “Mất kết nối mạng”; tour đã tải vẫn mở được ở “Tour đã tải” (UC03).", "back": "end" } ] },
+    { "id": "s6", "text": "6. Tourist chọn một tour." },
+    { "id": "s7", "decision": true, "text": "7. Client mở chi tiết tour: mô tả, bản đồ route và điểm dừng, đánh giá (UC05), nhãn giọng, tác giả (UC18); tour còn công khai? E3.", "exceptions": [
+      { "id": "E3", "text": "E3. Tour nháp, ẩn, hạn chế hoặc đã xoá → “Tour không còn khả dụng”, nút quay lại danh sách.", "back": "s6" } ] },
+    { "id": "s8", "text": "8. Tourist chọn ngôn ngữ nghe.", "alts": ["A3"] },
+    { "id": "s9", "text": "9. Tour trả chi tiết theo ngôn ngữ đó: text từng điểm, audio và nhãn giọng mới." },
+    { "id": "s10", "text": "10. Tourist chọn “Nghe thử” hoặc “Bắt đầu đi tour” ở thanh hành động dưới.", "alts": ["A5"] },
+    { "id": "s11", "text": "11. Client mở trình phát ở chế độ nghe từ xa hoặc đi theo GPS (UC04)." }
+  ],
+  "alts": [
+    { "id": "A4", "steps": [
+      "A4.1. Tourist chuyển sang tab “Địa điểm”; client tìm các địa điểm công khai theo từ khoá, thành phố, loại, vị trí.",
+      "A4.2. Chạm thẻ mở chi tiết (mô tả, ảnh, nghe thử); nút “＋” thêm điểm vào lịch trình (UC07, cần đăng nhập)."
+    ], "to": "end" },
+    { "id": "A1", "steps": [
+      "A1.1. Tourist chọn sắp xếp “Phổ biến”, “Đánh giá cao”, “Mới nhất” hoặc “Gần tôi”.",
+      "A1.2. “Gần tôi” xin quyền vị trí, xếp theo khoảng cách tới điểm đầu tour; không có quyền vị trí → không sắp theo khoảng cách (E4)."
+    ], "to": "s5" },
+    { "id": "A2", "steps": [
+      "A2.1. Tourist chuyển sang dạng “Bản đồ”: tour ghim tại điểm xuất phát, địa điểm ghim tại chỗ.",
+      "A2.2. Tourist chạm ghim để mở chi tiết."
+    ], "to": "s7" },
+    { "id": "A3", "steps": [
+      "A3.1. Chỉ chọn được ngôn ngữ mà mọi điểm đã có bản dịch; ngôn ngữ chưa dịch xong hiện là “đang chờ”."
+    ], "to": "s9" },
+    { "id": "A5", "steps": [
+      "A5.1. Nghe thử một điểm ngay trong danh sách, hoặc chạm điểm để mở trình phát tại điểm đó.",
+      "A5.2. “Tải về để nghe offline” (UC03), “Báo cáo” (UC06), đánh giá (UC05), trang tác giả (UC18)."
+    ], "to": "end" }
+  ]
+}

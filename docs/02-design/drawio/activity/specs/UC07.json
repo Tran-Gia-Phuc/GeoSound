@@ -1,0 +1,26 @@
+{
+  "uc": "UC07",
+  "steps": [
+    { "id": "s1", "text": "1. Tourist mở màn “Khám phá”, tab Địa điểm.", "alts": ["A1"] },
+    { "id": "s2", "decision": true, "text": "2. Hệ thống hiển thị địa điểm thuộc tour công khai (có vị trí thì sắp theo khoảng cách); có kết quả? E1.", "exceptions": [
+      { "id": "E1", "text": "E1. Không có địa điểm phù hợp → “Không tìm thấy địa điểm phù hợp”, gợi ý đổi từ khóa, bỏ bộ lọc hoặc dùng “Gần tôi”.", "back": "s1" } ] },
+    { "id": "s3", "text": "3. Tourist chọn một địa điểm xem chi tiết (tên, loại, mô tả, ảnh, audio người thật nếu có, tên tour gốc)." },
+    { "id": "s4", "decision": true, "text": "4. Tourist chọn “Thêm vào lịch trình” (ở Khám phá hoặc nút ＋ trong chi tiết tour); đã đăng nhập? E2.", "exceptions": [
+      { "id": "E2", "text": "E2. Chưa đăng nhập → mời đăng nhập (UC01); thao tác thêm được giữ lại qua bước đăng nhập.", "back": "s5" } ] },
+    { "id": "s5", "text": "5. Hệ thống mở bảng “Thêm vào…”: danh sách lịch trình của tôi và ô “Lịch trình mới”." },
+    { "id": "s6", "decision": true, "text": "6. Tourist chọn một lịch trình hoặc đặt tên lịch trình mới; tên hợp lệ? E3.", "exceptions": [
+      { "id": "E3", "text": "E3. Thiếu tên → “Vui lòng đặt tên lịch trình”; quá 120 ký tự → “Tên lịch trình tối đa 120 ký tự”.", "back": "s6" } ] },
+    { "id": "s7", "decision": true, "text": "7. Hệ thống tạo lịch trình (nếu mới), kiểm tra địa điểm thuộc tour công khai, lưu bản chụp điểm ở cuối; thêm được? E4.", "exceptions": [
+      { "id": "E4", "text": "E4. Địa điểm không tồn tại hoặc tour gốc không còn công khai → “Địa điểm không khả dụng để thêm vào lịch trình”.", "back": "s3" } ] },
+    { "id": "s8", "decision": true, "text": "8. Tourist mở lịch trình để sắp xếp, đổi tên, xóa điểm; có quyền truy cập? A2, E5.", "alts": ["A2"], "exceptions": [
+      { "id": "E5", "text": "E5. Lịch trình không tồn tại (404), không phải chủ sở hữu (403) hoặc thứ tự sắp xếp không khớp (400) → báo lỗi.", "back": "end" } ] },
+    { "id": "s9", "text": "9. Hệ thống hiển thị bản đồ, danh sách điểm, tổng quãng đường, thời gian đi bộ ước tính và khoảng cách từng chặng." },
+    { "id": "s10", "decision": true, "text": "10. Tourist chia sẻ lịch trình, tải về offline hoặc bắt đầu đi theo (UC08)? A3, A4.", "alts": ["A3", "A4"] }
+  ],
+  "alts": [
+    { "id": "A1", "steps": ["A1.1. Tourist nhập từ khóa hoặc chọn thành phố, loại.", "A1.2. Hệ thống tải lại danh sách (tối đa 50 mỗi trang)."], "to": "s2" },
+    { "id": "A2", "steps": ["A2.1. Đổi thứ tự bằng nút lên / xuống → đánh lại thứ tự, tính lại quãng đường.", "A2.2. Bỏ một điểm ngay, thông báo có nút “Hoàn tác”.", "A2.3. Đổi tên lịch trình hoặc xóa cả lịch trình."], "to": "s9" },
+    { "id": "A3", "steps": ["A3.1. Tourist chọn “Tải về để nghe offline” (chỉ chủ sở hữu).", "A3.2. Hệ thống lưu gói trong “Tour đã tải” nhãn “Lịch trình”, nghe không cần mạng; sửa lịch trình thì báo “Có bản mới”."], "to": "end" },
+    { "id": "A4", "steps": ["A4.1. Tourist mở “Chia sẻ lịch trình” và tạo liên kết (hoặc tắt chia sẻ để thu hồi).", "A4.2. Hệ thống hiện liên kết và nút Copy.", "A4.3. Người nhận mở liên kết: xem chỉ đọc, có thể “Đi theo lịch trình này” (UC08)."], "to": "end" }
+  ]
+}
