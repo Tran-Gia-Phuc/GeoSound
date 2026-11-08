@@ -374,6 +374,13 @@ def cite(answer: str, retrieved: list[dict]) -> tuple[str, list[dict]]:
         if hits:
             positions.append((min(hits), item))
     positions.sort(key=lambda pair: pair[0])
-    citations = [{"kind": item["kind"], "id": item["id"], "title": item["title"]}
-                 for _, item in positions]
+    citations = [_citation(item) for _, item in positions]
     return cleaned, citations
+
+
+def _citation(item: dict) -> dict:
+    """Citation {kind, id, title}; a place also carries its `tour_id` so the client can link it."""
+    citation = {"kind": item["kind"], "id": item["id"], "title": item["title"]}
+    if item["kind"] == "place" and item.get("tour_id"):
+        citation["tour_id"] = item["tour_id"]
+    return citation

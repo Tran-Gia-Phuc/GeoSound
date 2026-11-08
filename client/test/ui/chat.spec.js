@@ -104,6 +104,42 @@ test('streams an answer, turns markers into links and lists the sources', async 
   await expect(page).toHaveURL(new RegExp(`/tour/${id}$`));
 });
 
+test('"near me" question sends the position; a place citation with tour_id links to its tour', async ({ page, context }) => {
+  await context.grantPermissions(['geolocation']);
+  await context.setGeolocation({ latitude: 15.877, longitude: 108.326 });
+  const calls = await chatOn(page, {
+    chat: (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'text/event-stream',
+        body: sse([
+          ['meta', { session_id: SESSION, lang: 'vi' }],
+          ['token', { text: `Gần bạn có Chùa Cầu [place:${PLACE_ID}].` }],
+          ['citations', { items: [{ kind: 'place', id: PLACE_ID, title: 'Chùa Cầu', tour_id: id }] }],
+          ['done', { finish_reason: 'stop', llm_calls: 1 }],
+        ]),
+      }),
+  });
+  await page.goto('/');
+  const panel = await openPanel(page);
+  const box = panel.getByRole('textbox', { name: 'Câu hỏi cho trợ lý' });
+  await box.fill('Có gì hay gần tôi?');
+  await box.press('Enter');
+
+  const answer = panel.getByTestId('chat-answer');
+  await expect(answer.getByRole('link', { name: 'Nguồn 1: Địa điểm Chùa Cầu' })).toHaveAttribute('href', `/tour/${id}`);
+  expect(calls.chat[0]).toEqual({ message: 'Có gì hay gần tôi?', location: { lat: 15.877, lng: 108.326 } });
+});
+
+test('no location permission and a normal question: no position is asked or sent', async ({ page }) => {
+  const calls = await chatOn(page);
+  await page.goto('/');
+  const panel = await openPanel(page);
+  await panel.getByRole('button', { name: 'Gợi ý tour đi bộ ở Hội An' }).click();
+  await expect(panel.getByTestId('chat-answer')).toContainText('Chuyện phố cổ');
+  expect(calls.chat[0].location).toBeUndefined();
+});
+
 test('reloads the stored conversation; "Cuộc trò chuyện mới" forgets it', async ({ page }) => {
   await page.addInitScript((sid) => {
     if (!sessionStorage.getItem('seeded')) {

@@ -17,10 +17,10 @@
 | 2 | | Client kiểm tra chatbot đang bật (một lần mỗi lần tải trang) và tải lịch sử của phiên lưu trong `localStorage` bằng `GET /api/chat/history?session_id=`. *E1, A2* `probeChat()`, `fetchChatHistory()` → `chat_history()` → `ChatService.history()` |
 | 3 | | Client hiện lời chào *"Xin chào! Bạn muốn khám phá gì hôm nay?"* và các gợi ý (ví dụ "Gợi ý tour đi bộ ở Hội An"). `ChatView` |
 | 4 | Tourist nhập câu hỏi (1–1000 ký tự) hoặc chọn một gợi ý, rồi gửi. *E2* | |
-| 5 | | Client gọi `POST /api/chat { message, session_id? }`. Gateway áp giới hạn tần suất chat theo IP, thêm `x-internal-token` và chuyển tới AI `/chat`. *E3* `useChat()` → `streamChat()` → `createChatRateLimit()`, `mountChat()` |
+| 5 | | Client gọi `POST /api/chat { message, session_id?, location? }`. `location` {lat, lng} được gửi khi trình duyệt đã cho phép vị trí, hoặc khi câu hỏi nói về vị trí của người dùng ("gần tôi", "quanh đây", "near me"); lúc đó trình duyệt hỏi quyền, từ chối hoặc quá 6 giây thì gửi không kèm vị trí. `locationFor()`, `asksForLocation()`. Gateway áp giới hạn tần suất chat theo IP, thêm `x-internal-token` và chuyển tới AI `/chat`. *E3* `useChat()` → `streamChat()` → `createChatRateLimit()`, `mountChat()` |
 | 6 | | AI service chạy một lượt LangGraph: `classify` (ngôn ngữ, ý định) → `plan` → `retrieve` (tìm lai vector + đồ thị, tối đa 5 mục) → `answer` (một lần gọi LLM: Gemini, dự phòng Groq) → `cite` (giữ trích dẫn hợp lệ, bỏ id bịa). *A3, E4* `chat()` → `ChatService.turn()` → `ChatAgent.run()` → `build_graph()` (`classify`, `plan`, `retrieve`, `answer`, `cite`) → `HybridRetriever.search_tours()` / `search_places()` / `nearby_places()`; LLM qua `GuardedChatModel.ainvoke()` |
 | 7 | | AI trả luồng SSE: `meta` (`session_id`, `lang`), nhiều `token`, `citations`, `done`. Client hiện câu trả lời dần dần, biến các dấu `[tour:ID]` / `[place:ID]` thành liên kết đánh số và thêm danh sách **"Nguồn"**. *E5* `stream_turn()`, `split_tokens()` → `createSseParser()`, `splitMarkers()` |
-| 8 | Tourist bấm một nguồn tour. | Client mở chi tiết tour `/tour/:id` (UC02). `citationHref()` |
+| 8 | Tourist bấm một nguồn (tour, hoặc địa điểm có `tour_id`). | Client mở chi tiết tour `/tour/:id` (UC02); nguồn địa điểm mở tour chứa địa điểm đó. `citationHref()`, `rules._citation()` |
 | 9 | | Lượt hỏi đáp được lưu vào bộ nhớ phiên; use case kết thúc tại đây. |
 
 ## Alternative Path
@@ -106,13 +106,14 @@ Tourist muốn được gợi ý hoặc giải thích về tour, địa điểm 
 | 1, E1 | `ChatLauncher`, `ChatPage` | `client/src/features/chat/ChatLauncher.jsx`, `ChatPage.jsx` |
 | 3, 7 | `ChatView` | `client/src/features/chat/ChatView.jsx` |
 | 4–7, A2, A4 | `useChat()` | `client/src/features/chat/useChat.js` |
-| 2, 5, 7, 8 | `probeChat()`, `fetchChatHistory()`, `streamChat()`, `createSseParser()`, `splitMarkers()`, `citationHref()` | `client/src/lib/chat.js` |
+| 2, 5, 7, 8 | `probeChat()`, `fetchChatHistory()`, `locationFor()`, `asksForLocation()`, `streamChat()`, `createSseParser()`, `splitMarkers()`, `citationHref()` | `client/src/lib/chat.js` |
 | 5, A4 | `mountChat()` | `gateway/src/chat.js` |
 | 5, E3 | `createChatRateLimit()`, `createRedisStore()` | `gateway/src/chat-rate-limit.js` |
 | 5–7, E2 | `chat()`, `chat_history()`, `stream_turn()`, `require_chat_enabled()`, `ChatRequest` | `services/ai/app/api/chat.py` |
 | 6, 9 | `ChatService.turn()`, `ChatService.history()`, `GuardedChatModel` | `services/ai/app/chatbot/service.py` |
 | 6 | `ChatAgent.run()` | `services/ai/app/chatbot/agent.py` |
 | 6 | `build_graph()` (nút `classify`, `plan`, `retrieve`, `answer`, `cite`) | `services/ai/app/chatbot/graph/builder.py` |
+| 6, 8 | `classify()`, `cite()`, `_citation()` (trích dẫn địa điểm kèm `tour_id`) | `services/ai/app/chatbot/graph/rules.py` |
 | 6 | `build_tools()` (`search_tours`, `search_places`, `nearby_places`) | `services/ai/app/chatbot/tools/search.py` |
 | 6, R6 | `HybridRetriever` (`search_tours`, `search_places`, `nearby_places`) | `services/ai/app/chatbot/rag/hybrid_retriever.py` |
 | E4, R5 | `SlidingWindowLimiter`, `ChatBusyError` | `services/ai/app/chatbot/limits.py` |
@@ -123,8 +124,6 @@ Tourist muốn được gợi ý hoặc giải thích về tour, địa điểm 
 
 - **Tài liệu thiết kế:** [chatbot-architecture.md](../../02-design/chatbot-architecture.md).
 - **Giới hạn đã biết:**
-  - Client không gửi vị trí người dùng (`location`), nên câu hỏi "gần tôi" không dùng được tọa độ thật.
-  - Trích dẫn địa điểm chưa có liên kết tới tour chứa nó (sự kiện `citations` không có `tour_id`), nên chỉ trích dẫn tour mở được.
   - "Luồng" là câu trả lời đầy đủ được tách theo từ sau khi lượt chạy xong, không phải token trực tiếp từ LLM.
 
 ## Author(s)

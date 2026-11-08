@@ -12,6 +12,7 @@ import {
   clearChatSession,
   fetchChatHistory,
   getChatSession,
+  locationFor,
   markChatDisabled,
   probeChat,
   setChatSession,
@@ -109,10 +110,13 @@ export default function useChat({ onDisabled } = {}) {
       ]);
       let gotEvent = false;
       try {
+        const location = await locationFor(text);
+        if (ctrl.signal.aborted) throw new DOMException('Aborted', 'AbortError');
         await streamChat({
           message: text,
           sessionId: getChatSession(),
           signal: ctrl.signal,
+          location,
           onEvent: (name, data) => {
             gotEvent = true;
             if (name === 'meta' && data?.session_id) setChatSession(data.session_id);
