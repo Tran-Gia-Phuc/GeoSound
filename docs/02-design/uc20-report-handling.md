@@ -82,7 +82,7 @@ writes check again. Errors: 400 for a bad UUID or query, 401 / 403 (R2), 404 `to
 | --- | --- | --- | --- |
 | hide | `tour.hidden` (existing) | `tourId, reason, contributorId, tourTitle, at` | Notification (email with the reason, template exists) |
 | hide | `tour.unpublished` reason `hidden` | as #240, only with `CHATBOT_EVENTS_ENABLED=true` | AI chatbot indexer |
-| restore | `tour.restored` (new, additive) | `tourId, reason? (1..1000), contributorId?, tourTitle?, at?` | none yet (Notification can tell the author later) |
+| restore | `tour.restored` (new, additive) | `tourId, reason? (1..1000), contributorId?, tourTitle?, at?` | Notification: in-app notice and email to the author (updated 2026-11-08) |
 | restore | `tour.published` | full public tour, as a UC19 approval | AI chatbot indexer |
 | dismiss | none | | |
 

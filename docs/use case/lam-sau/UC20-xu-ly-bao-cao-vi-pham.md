@@ -23,7 +23,7 @@
 
 ## Alternative Path
 
-**A1. Khôi phục tour bị ẩn (report bomb)** → chỉ từ `hidden`, lý do không bắt buộc. Tour về `public` ngay, không kiểm duyệt lại, không có kháng nghị. Các báo cáo giữ nguyên. Ghi `restore_tour`, phát `tour.restored` (và `tour.published` nếu bật cờ chatbot). Notification không đăng ký `tour.restored`, nên tác giả chưa được báo khi khôi phục. `RestoreHiddenTour.execute()`, `PrismaAdminReportRepository.restoreIf()`, `EventAdminReportPublisher.restored()`
+**A1. Khôi phục tour bị ẩn (report bomb)** → chỉ từ `hidden`, lý do không bắt buộc. Tour về `public` ngay, không kiểm duyệt lại, không có kháng nghị. Các báo cáo giữ nguyên. Ghi `restore_tour`, phát `tour.restored` (và `tour.published` nếu bật cờ chatbot). Notification nhận `tour.restored`: lưu thông báo trong app "Tour … đã được hiển thị lại" và gửi email cho tác giả (`handleEvent()`, `buildInAppNotification()`, `buildTourEmail()`). `RestoreHiddenTour.execute()`, `PrismaAdminReportRepository.restoreIf()`, `EventAdminReportPublisher.restored()`
 
 **A2. Bỏ qua báo cáo (không vi phạm)** → chỉ khi tour có báo cáo mở, lý do không bắt buộc. Báo cáo mở → `dismissed`, bộ đếm và cờ được xoá, trạng thái tour giữ nguyên, `tours.updated_at` không đổi. Ghi `dismiss_reports`, không phát sự kiện. `DismissTourReports.execute()`, `PrismaAdminReportRepository.dismissIf()`
 

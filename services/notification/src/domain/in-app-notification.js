@@ -12,6 +12,7 @@ export const IN_APP_EVENTS = Object.freeze([
   'tour.rejected',
   'tour.changes_requested',
   'tour.hidden',
+  'tour.restored',
   'tour.reported',
   'tts.render.completed',
 ]);
@@ -30,6 +31,7 @@ const TITLES = {
   'tour.rejected': (t) => (t ? `Tour ${t} bị từ chối` : 'Tour của bạn bị từ chối'),
   'tour.changes_requested': (t) => (t ? `Tour ${t} cần chỉnh sửa` : 'Tour của bạn cần chỉnh sửa'),
   'tour.hidden': (t) => (t ? `Tour ${t} đã bị ẩn` : 'Tour của bạn đã bị ẩn'),
+  'tour.restored': (t) => (t ? `Tour ${t} đã được hiển thị lại` : 'Tour của bạn đã được hiển thị lại'),
   'tour.reported': (t) => (t ? `Tour ${t} bị khách báo cáo` : 'Tour của bạn bị khách báo cáo'),
   'tts.render.completed': (t) => (t ? `Thuyết minh của tour ${t} đã sẵn sàng` : 'Thuyết minh cho tour của bạn đã sẵn sàng'),
 };

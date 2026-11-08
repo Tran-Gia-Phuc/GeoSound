@@ -13,7 +13,7 @@
 
 | # | Actor Action | System Response |
 |---|---|---|
-| 1 | | (Nền) Khi có sự kiện tour (`tour.ai_rejected`, `tour.approved`, `tour.rejected`, `tour.changes_requested`, `tour.hidden`, `tour.reported`), Notification lưu một dòng `in_app_notifications` cho `contributorId` với tiêu đề tiếng Việt và lý do, rồi gửi email cho tác giả (email trong sự kiện, nếu thiếu thì tra Auth theo `contributorId`). Mọi sự kiện trên đều có email, trừ `tour.reported` (chỉ có thông báo trong app). `handleEvent()`, `createStoreInAppNotification()`, `buildInAppNotification()`, `sourceKeyOf()`, `PrismaInAppNotificationRepository.createIfAbsent()`, `buildTourEmail()`, `createContributorLookup()` |
+| 1 | | (Nền) Khi có sự kiện tour (`tour.ai_rejected`, `tour.approved`, `tour.rejected`, `tour.changes_requested`, `tour.hidden`, `tour.restored`, `tour.reported`), Notification lưu một dòng `in_app_notifications` cho `contributorId` với tiêu đề tiếng Việt và lý do, rồi gửi email cho tác giả (email trong sự kiện, nếu thiếu thì tra Auth theo `contributorId`). Mọi sự kiện trên đều có email, trừ `tour.reported` (chỉ có thông báo trong app). `handleEvent()`, `createStoreInAppNotification()`, `buildInAppNotification()`, `sourceKeyOf()`, `PrismaInAppNotificationRepository.createIfAbsent()`, `buildTourEmail()`, `createContributorLookup()` |
 | 2 | | Client (đã đăng nhập) gọi `GET /api/notifications/unread-count` khi mở app, khi trang được focus và mỗi 60 giây; hiển thị huy hiệu số chưa đọc ("99+" khi trên 99). `UnreadCountProvider`, `getUnreadCount()` → `NotificationController`, `CountUnread.execute()` |
 | 3 | Contributor mở **Thông báo** (`/notifications`). | Client gọi `GET /api/notifications?page=1&limit=20`; hiển thị danh sách mới nhất trước: tiêu đề, lý do, các lý do AI (với `tour.ai_rejected`), thời gian, dấu chưa đọc. *E1, E2* `NotificationsPage`, `listNotifications()` → `ListNotifications.execute()`, `toView()`; `NotificationItem` |
 | 4 | Contributor lọc "Chưa đọc" hoặc nhấn "Xem thêm". *A1* | Client tải lại với `unread=true` hoặc trang kế tiếp. `listNotifications()` → `ListNotifications.execute()` |
@@ -68,14 +68,14 @@ Tour của contributor đổi trạng thái do AI hoặc Admin, hoặc bị khá
 - Không bao giờ lưu danh tính người báo cáo, email, id Admin hoặc khoá ngoài danh sách cho phép.
 - Chống trùng: `source_key` duy nhất (`<event>:<tourId>:<sha256 payload>`), ghi bằng `skipDuplicates`.
 - Lưu thông báo không bao giờ ném lỗi (lỗi chỉ ghi log, email vẫn gửi); dòng trong app được ghi **trước** email.
-- Email: `tour.ai_rejected`, `tour.approved`, `tour.rejected`, `tour.changes_requested`, `tour.hidden` có email (kèm lý do khi có); `tour.reported` không có email. Người nhận là email trong sự kiện, nếu thiếu thì tra Auth theo `contributorId`; không tìm được thì bỏ qua email.
+- Email: `tour.ai_rejected`, `tour.approved`, `tour.rejected`, `tour.changes_requested`, `tour.hidden`, `tour.restored` có email (kèm lý do khi có); `tour.reported` không có email. Người nhận là email trong sự kiện, nếu thiếu thì tra Auth theo `contributorId`; không tìm được thì bỏ qua email.
 - Phân trang: `limit` 1..50, mặc định 20; `unread` trả về luôn là tổng chưa đọc của người dùng (không đổi theo bộ lọc).
 - Không có web push: client hỏi số chưa đọc mỗi 60 giây.
 
 ## Hiện thực trong hệ thống
 
 - **Dịch vụ:**
-  - Tour: phát `tour.approved`, `tour.rejected`, `tour.changes_requested` (UC19), `tour.hidden` (UC20), `tour.reported` (UC06).
+  - Tour: phát `tour.approved`, `tour.rejected`, `tour.changes_requested` (UC19), `tour.hidden`, `tour.restored` (UC20), `tour.reported` (UC06).
   - Moderation: phát `tour.ai_rejected` (UC15).
   - Notification: nhận sự kiện (queue `notification.events`), lưu thông báo trong app, gửi email cho tác giả (mọi sự kiện tour trừ `tour.reported`), phục vụ HTTP (cổng 3006); kiểm tra token bị thu hồi qua Redis như Media.
   - Gateway: chuyển `/api/notifications` tới Notification.
@@ -86,7 +86,7 @@ Tour của contributor đổi trạng thái do AI hoặc Admin, hoặc bị khá
   - `GET /api/notifications/unread-count`
   - `POST /api/notifications/:id/read`
   - `POST /api/notifications/read-all`
-- **Sự kiện (RabbitMQ):** Notification tiêu thụ `tour.ai_rejected`, `tour.approved`, `tour.rejected`, `tour.changes_requested`, `tour.hidden`, `tour.reported`, `tts.render.completed`, `account.moderated`. Không phát sự kiện mới.
+- **Sự kiện (RabbitMQ):** Notification tiêu thụ `tour.ai_rejected`, `tour.approved`, `tour.rejected`, `tour.changes_requested`, `tour.hidden`, `tour.restored`, `tour.reported`, `tts.render.completed`, `account.moderated`. Không phát sự kiện mới.
 - **Dữ liệu:** `notification.in_app_notifications` (`user_id`, `type`, `tour_id`, `title`, `body`, `data`, `read_at`, `created_at`, `source_key` duy nhất; chỉ mục `(user_id, created_at)`, `(user_id, read_at)`, `(user_id, tour_id, created_at)`).
 - **Mã nguồn chính:**
 

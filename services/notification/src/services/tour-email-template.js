@@ -42,6 +42,13 @@ const specs = {
     body: (title) => `Tour ${title} đã bị ẩn khỏi GeoSound.`,
     reason: true,
   },
+  // UC20 (#273): an admin restored a hidden tour; it is public again (decision L13).
+  'tour.restored': {
+    subject: 'Tour của bạn đã được hiển thị lại',
+    heading: 'Tour đã được hiển thị lại',
+    body: (title) => `Tour ${title} đã được quản trị viên khôi phục và hiển thị lại trên GeoSound.`,
+    reason: true,
+  },
   'tts.render.completed': {
     subject: 'Âm thanh thuyết minh đã sẵn sàng',
     heading: 'Thuyết minh đã sẵn sàng',
