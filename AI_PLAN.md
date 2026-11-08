@@ -63,6 +63,15 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 - Nothing waits for other owners. With moderation on, a tour stops at `pending_review` until an admin decides through `/api/tours/admin/reviews` (UC#19, #243). The Supabase password shared in chat must be reset by the project owner.
 - Never run real Gemini without an explicit request.
 
+- Use case docs (2026-11-08, branch `docs/use-cases-sync`): all 23 UC files under `docs/use case/` were rewritten from the real code (Maturity `Implemented`, a "Hiện thực trong hệ thống" section with services, screens, API, events and tables, and a Mermaid sequence diagram). New **UC24 – Hỏi đáp với trợ lý du lịch AI** (`lam-sau/UC24-hoi-dap-tro-ly-ai.md`). The index `00-danh-sach-use-case.md` lists 24 UCs; the folders `lam-truoc` / `lam-sau` now only mean build order. Gaps found while rewriting, written as "Giới hạn đã biết" in the UC files and open until the user decides:
+  - UC14: L9 and `uc14-restricted-access.md` section 5 say unlocked testers can download offline, but the code does not allow it (the package route is public tours only, and the client hides the button on the restricted view).
+  - UC01: Auth sends the OTP email itself (Nodemailer, or a console log without SMTP); the HTML template in Notification (`send-otp-email.js`) is never called.
+  - UC01 / UC23: change password has an API (`POST /api/auth/change-password`) but no client screen.
+  - UC07 / UC08: itineraries cannot be downloaded offline (only tours, UC03).
+  - UC16: `tts.render.completed` is mapped in Notification but never published (no server TTS).
+  - UC20: `tour.restored` has no consumer, so the author gets no notice on restore.
+  - Out-of-date design notes (not edited): `chatbot-architecture.md` (indexer has its own flag `CHATBOT_INDEXER_ENABLED`; the chat rate limit is per IP only; `PublishTour` now publishes `tour.published`), `device-sessions.md` 5.6 (Media does check revocation).
+
 Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a tour with more than 50 merged reasons may hide geo reasons; "near X" questions use a 500 m radius (`NEARBY_RADIUS_M`).
 
 ## 4. Tasks (label `ai-service`)
