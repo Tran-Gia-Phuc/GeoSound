@@ -6,61 +6,78 @@
 | **Use Case Name** | Vẽ route và cấu hình kích hoạt audio |
 | **Actor(s)** | Người đăng nội dung (Contributor) |
 | **Priority** | P0 |
-| **Maturity** | Focused |
-| **Summary** | Người đăng nội dung vẽ đường route nối các điểm, đặt vùng kích hoạt (tròn/đa giác, chỉnh bán kính) cho từng điểm, đặt độ ưu tiên khi vùng chồng nhau, thêm audio chỉ đường với vùng riêng và gợi ý "đi tiếp đến đâu", để audio phát đúng lúc và khách không đi lạc. |
+| **Maturity** | Implemented |
+| **Summary** | Contributor tùy chỉnh lộ trình và vùng kích hoạt của tour: bán kính vùng tròn của từng điểm, độ ưu tiên khi các vùng chồng nhau, gợi ý "đi tiếp đến đâu" và audio chỉ đường tại ngã rẽ. Khi chưa cấu hình, hệ thống tự sinh mặc định (route nối các điểm theo thứ tự, vùng tròn 50 m) nên bước này không bắt buộc. |
 
 ## Basic Course of Events
 
 | # | Actor Action | System Response |
 |---|---|---|
-| 1 | Contributor mở tab **"Route & kích hoạt"** trong trình chỉnh sửa tour. | |
-| 2 | | Hệ thống hiển thị bản đồ với các điểm đã thêm (từ UC10). |
-| 3 | Contributor vẽ đường route nối các điểm theo thứ tự. *A1* | |
-| 4 | Contributor đặt **vùng kích hoạt** cho mỗi điểm (tròn hoặc đa giác, chỉnh bán kính/đỉnh). *E1* | |
-| 5 | Contributor đặt **độ ưu tiên** cho các điểm có vùng kích hoạt chồng nhau. *A2* | |
-| 6 | Contributor (tùy chọn) thêm **audio chỉ đường** với vùng kích hoạt riêng tại ngã rẽ. *A3* | |
-| 7 | Contributor (tùy chọn) thêm gợi ý **"đi tiếp đến đâu"** phát sau khi nghe xong mỗi điểm. | |
-| 8 | Contributor lưu cấu hình. | |
-| 9 | | Hệ thống lưu route, vùng kích hoạt, độ ưu tiên và audio chỉ đường/gợi ý. |
-| 10 | | Use case kết thúc tại đây. |
+| 1 | Contributor mở bước **Vùng kích hoạt** (`/studio/tours/:id/route`). | |
+| 2 | | Client gọi `GET .../route-config` và danh sách điểm. Tour trả cấu hình **hiệu lực**: phần đã lưu, phần thiếu điền mặc định (`isDefault = true` nếu chưa từng lưu). Bản đồ vẽ route, các điểm và vòng tròn kích hoạt. |
+| 3 | Contributor chọn một điểm (chạm ghim hoặc danh sách) và kéo thanh **bán kính** (10–300 m); vòng tròn trên bản đồ đổi theo. | |
+| 4 | Contributor đặt **độ ưu tiên** khi chồng vùng: Bình thường / Cao / Rất cao. *A2* | |
+| 5 | Contributor (tùy chọn) nhập **gợi ý "đi tiếp"** (lời nhắc và/hoặc tải audio). | |
+| 6 | Contributor (tùy chọn) thêm **audio chỉ đường**: chạm bản đồ đặt tâm (ghim kéo được), bán kính 10–150 m, nhãn, lời nhắc đọc bằng giọng máy hoặc file audio. *A3* | |
+| 7 | Contributor (tùy chọn) bấm **"Nối lại theo thứ tự điểm"** để dựng lại lộ trình. *A1* | |
+| 8 | Contributor nhấn **Lưu** (thanh lưu dính đáy chỉ hiện khi có thay đổi). | |
+| 9 | | Client gửi toàn bộ cấu hình một lần (`PUT .../route-config`). Tour kiểm từng vùng (`ActivationZone`), kiểm mỗi trigger trỏ tới điểm của tour và mỗi điểm chỉ một vùng, rồi upsert `route_configs`. *E1, E2* |
+| 10 | | Use case kết thúc; cấu hình được dùng khi khách nghe tour (UC04) và khi xem thử (UC13). |
 
 ## Alternative Path
 
-**A1. Điều chỉnh route** → hệ thống cập nhật lại route.
+**A1. Dựng lại route** → path = các tọa độ điểm theo `sequence`. Client không có công cụ vẽ tự do; nếu path rỗng thì Tour tự nối các điểm.
 
-**A2. Điều chỉnh độ ưu tiên** → hệ thống lưu ưu tiên mới (áp dụng khi tourist đi tour – UC04).
+**A2. Điều chỉnh độ ưu tiên** → lưu giá trị 0 / 10 / 20; lúc chạy (UC04) client sắp các vùng chứa vị trí theo ưu tiên giảm dần và phát điểm ưu tiên cao nhất.
 
-**A3. Thêm/sửa/xóa audio chỉ đường** → hệ thống cập nhật audio chỉ đường tương ứng.
+**A3. Thêm / sửa / xóa audio chỉ đường** → cập nhật `navAudios`; mỗi mục nhận `id` (UUID) khi lưu.
+
+**A4. Rời màn khi chưa lưu** → client hỏi lại trước khi rời (dirty guard).
 
 ## Exception Path
 
-- **E1.** Vùng kích hoạt không hợp lệ (bán kính 0, đa giác chưa khép kín) → báo lỗi, yêu cầu chỉnh.
+- **E1.** Vùng không hợp lệ → 400 `validation_error`: "Bán kính vùng kích hoạt phải lớn hơn 0", "Đa giác chưa khép kín (cần ít nhất 3 đỉnh)", "Loại vùng kích hoạt không hợp lệ (tròn hoặc đa giác)".
+- **E2.** Trigger trỏ tới điểm không thuộc tour → "Vùng kích hoạt trỏ tới điểm không thuộc tour"; hai vùng cho một điểm → "Mỗi điểm chỉ có một vùng kích hoạt". Gợi ý trống → "Gợi ý cần có text hoặc audio".
+- **E3.** Tour không tồn tại → 404 `tour_not_found`; tour của người khác → 403 `not_tour_owner`.
 
 ## Extension Points
 
-- UC12 – Cấu hình đa ngôn ngữ & TTS; UC13 – Xem thử tour.
+- UC12 – Đa ngôn ngữ & TTS; UC13 – Xem thử tour; UC04 – Nghe tour (dùng cấu hình này).
 
 ## Triggers
 
-Contributor cần thiết lập cách audio tự phát theo vị trí cho tour.
+Contributor muốn chỉnh cách audio tự phát theo vị trí cho tour.
 
 ## Assumptions
 
-- Tour đã có các điểm dừng với tọa độ hợp lệ.
+- Các điểm đã có tọa độ hợp lệ (UC10).
 
 ## Preconditions
 
-- Tour có ít nhất 2 điểm (UC10); contributor đã đăng nhập.
+- Tour có ít nhất 1 điểm (UC10); contributor là tác giả và đã đăng nhập.
 
 ## Post Conditions
 
-- Route, vùng kích hoạt, độ ưu tiên và audio chỉ đường/gợi ý được lưu — sẵn sàng cho trải nghiệm tự phát audio của tourist (UC04).
+- Một dòng trong `tour.route_configs` (1-1 với tour) chứa `path`, `triggers`, `nav_audios`. Lưu cấu hình không đổi trạng thái tour và không gửi sự kiện kiểm duyệt.
 
 ## Reference: Business Rules
 
-- Vùng kích hoạt dạng **tròn hoặc đa giác**, do tác giả tự đặt và chỉnh bán kính.
-- Khi các vùng chồng nhau, hệ thống (lúc chạy UC04) phát audio theo **độ ưu tiên do tác giả đặt**.
-- *Vẽ route, đặt vùng, đặt ưu tiên, thêm audio chỉ đường* là các action trong use case này (C10–C14).
+- Mặc định khi chưa cấu hình: route nối các điểm theo thứ tự; mỗi điểm một vùng tròn **50 m**, ưu tiên 0, không gợi ý.
+- Vùng kích hoạt: tròn (`center`, `radiusMeters` > 0, tối đa 100 km ở API) hoặc đa giác (GeoJSON Polygon khép kín, ≥ 3 đỉnh phân biệt). Studio chỉ chỉnh vùng tròn; vùng đa giác đã lưu được giữ nguyên.
+- Độ ưu tiên: số nguyên 0–1000 (Studio dùng 0 / 10 / 20); số lớn thắng khi chồng vùng.
+- Giới hạn: path tối đa 5000 đỉnh, tối đa 500 trigger và 500 audio chỉ đường; gợi ý và lời nhắc tối đa 500 ký tự, nhãn tối đa 200.
+- Audio chỉ đường không có file → trình phát đọc lời nhắc (hoặc nhãn) bằng giọng của thiết bị.
+
+## Hiện thực trong hệ thống
+
+- **Dịch vụ:** Client (bản đồ, thanh bán kính, ưu tiên); Tour (cấu hình hiệu lực, kiểm hình học, lưu); Media (audio gợi ý / chỉ đường).
+- **Màn hình (client):** `/studio/tours/:id/route` (`RouteConfigPage`, dùng `TourMap` của player); API `client/src/lib/studio.js`; lúc chạy `client/src/lib/zones.js` (`triggersAt`, `navAudiosAt`).
+- **API (qua gateway):**
+  - `GET /api/tours/mine/:tourId/route-config`
+  - `PUT /api/tours/mine/:tourId/route-config`
+  - `POST /api/media/uploads?kind=audio`
+- **Dữ liệu:** `tour.route_configs` (`tour_id` unique, `path` Json, `triggers` Json `[{placeId, zone, priority, nextHint}]`, `nav_audios` Json `[{id, label, audioUrl, text, zone}]`).
+- **Tài liệu thiết kế:** (chưa có note riêng; logic ở `services/tour/src/domain/route/effective-route.js` và `domain/value-objects/activation-zone.js`).
 
 ## Author(s)
 
@@ -68,7 +85,7 @@ Contributor cần thiết lập cách audio tự phát theo vị trí cho tour.
 
 ## Date
 
-2026-10-18
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
 
 ## Activity Diagram
 
@@ -76,8 +93,25 @@ Contributor cần thiết lập cách audio tự phát theo vị trí cho tour.
 
 ## Sequence Diagram
 
-(bổ sung sau)
+```mermaid
+sequenceDiagram
+    actor C as Contributor
+    participant Client
+    participant Gateway
+    participant Tour
+    C->>Client: Mở /studio/tours/:id/route
+    Client->>Gateway: GET /api/tours/mine/:tourId/route-config
+    Gateway->>Tour: GET /mine/:tourId/route-config
+    Tour->>Tour: effectiveRoute (mặc định 50 m)
+    Tour-->>Client: { config }
+    C->>Client: Chỉnh bán kính, ưu tiên, gợi ý, audio chỉ đường
+    C->>Client: Lưu
+    Client->>Gateway: PUT /api/tours/mine/:tourId/route-config
+    Gateway->>Tour: PUT /mine/:tourId/route-config
+    Tour->>Tour: kiểm ActivationZone, trigger thuộc tour
+    Tour-->>Client: { config }
+```
 
 ## Boundary
 
-Tab "Route & kích hoạt", Công cụ vẽ route, Công cụ vẽ vùng kích hoạt, Bảng độ ưu tiên.
+Bước Vùng kích hoạt (`/studio/tours/:id/route`): bản đồ có vòng tròn kích hoạt, danh sách điểm với thanh bán kính và mức ưu tiên, ô gợi ý "đi tiếp", mục Lộ trình ("Nối lại theo thứ tự điểm"), mục Audio chỉ đường, thanh Lưu.
