@@ -30,4 +30,5 @@ Expected later:
 - [UC03 offline tour download (package, library, pause/resume, storage)](offline-download.md)
 - [OTP email templates and SMTP verification](notification-otp-design.md)
 - [Database tables of every service (for the ERD)](database-tables.md)
+- [Activity diagrams of the use cases (draw.io XML)](drawio/activity/README.md)
 - [General ERD — supplied reference (draw.io)](drawio/erd-general.drawio)

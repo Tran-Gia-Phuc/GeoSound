@@ -123,7 +123,7 @@ Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
 
 ## Activity Diagram
 
-(bổ sung sau)
+[UC14-activity.xml](../../02-design/drawio/activity/UC14-activity.xml) (draw.io: File → Import from → Device). Nguồn: [specs/UC14.json](../../02-design/drawio/activity/specs/UC14.json).
 
 ## Sequence Diagram
 

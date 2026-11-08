@@ -157,7 +157,7 @@ Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
 
 ## Activity Diagram
 
-(bổ sung sau)
+[UC01-activity.xml](../../02-design/drawio/activity/UC01-activity.xml) (draw.io: File → Import from → Device). Nguồn: [specs/UC01.json](../../02-design/drawio/activity/specs/UC01.json).
 
 ## Sequence Diagram
 
