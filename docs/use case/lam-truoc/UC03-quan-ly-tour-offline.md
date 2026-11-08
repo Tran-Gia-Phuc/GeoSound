@@ -57,6 +57,7 @@
 
 ## Extension Points
 
+- UC14 – Truy cập hạn chế (A5: người thử đã mở khóa tải bản thử qua `GET /api/tours/:id/restricted/package`, gói có `restricted: true`, không gửi beacon).
 - UC02 – Tìm & xem tour (nơi bắt đầu tải); UC04 – Nghe tour (bản offline); UC17 – Thống kê tour (beacon `download`).
 
 ## Triggers

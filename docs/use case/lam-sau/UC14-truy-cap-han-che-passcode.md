@@ -41,6 +41,8 @@
 
 **A3. Sửa nội dung tour đang hạn chế** → tour giữ `restricted`, người thử thấy nội dung mới; không gửi sang kiểm duyệt, không phát sự kiện catalog (`Tour.applyEdits()`: `LIVE_STATUSES` chỉ có `public`). Kiểm duyệt từng điểm (`place.submitted`) vẫn chạy như tour nháp khi bật cờ.
 
+**A5. Tải bản thử về nghe offline (quyết định L9)** → ở `/tour/:tourId/restricted`, người thử đã mở khóa (hoặc tác giả) dùng mục **"Tải về để nghe offline"** như UC03. Client gọi `GET /api/tours/:id/restricted/package?lang=` kèm token; Tour kiểm tra lại quyền (grant còn hiệu lực theo phiên bản passcode) rồi trả gói giống UC03 kèm `restricted: true`. Gói lưu `restricted: true` trong IndexedDB, không gửi beacon `download` (UC17); màn **Tour đã tải** kiểm tra bản mới qua route hạn chế. Bản đã tải vẫn nghe được offline sau khi tác giả đổi mã, nhưng không cập nhật được nữa (404). `OfflineDownload` (`restricted`) → `startDownload()` → `fetchTourPackage(…, { restricted: true })` → `TourAccessController.package()` → `GetRestrictedTourPackage.execute()` → `buildTourPackage()`
+
 **A4. Muốn công khai** → tác giả tắt chế độ (A1.3) rồi gửi duyệt (UC15).
 
 ## Exception Path
@@ -79,7 +81,7 @@ Tác giả muốn thử tour với nhóm nhỏ trước khi công khai.
 - Passcode 6–32 ký tự sau khi trim, không khoảng trắng; chỉ lưu hash scrypt, không route nào trả lại passcode.
 - Mở khóa cần đăng nhập (quyết định L3); grant giữ theo tài khoản, chỉ hợp lệ khi bằng `passcode_version` hiện tại.
 - Giới hạn: tối đa 5 lần sai mỗi tài khoản và tour trong 15 phút (đếm trong DB, không dùng Redis).
-- Bản thử không cho đánh giá, báo cáo, thêm vào lịch trình, tải offline; Admin ẩn (UC20) và duyệt (UC19) không áp dụng.
+- Bản thử không cho đánh giá, báo cáo, thêm vào lịch trình; được tải offline cho người thử đã mở khóa (A5, L9); Admin ẩn (UC20) và duyệt (UC19) không áp dụng.
 
 ## Hiện thực trong hệ thống
 
@@ -87,14 +89,16 @@ Tác giả muốn thử tour với nhóm nhỏ trước khi công khai.
 - **Màn hình (client):** `/studio/tours/:id/publish` (`features/studio/RestrictedAccessPanel.jsx`); `/tour/:tourId/unlock` (`features/tours/UnlockTourPage.jsx`); `/tour/:tourId/restricted` (`TourDetailPage restricted`); `/tour/:tourId/restricted/play` (`PlayRestrictedRoute`); API `client/src/lib/restricted-access.js`.
 - **API (qua gateway):**
   - Tác giả: `GET|PUT|DELETE /api/tours/mine/:tourId/access`
-  - Người thử: `POST /api/tours/:id/unlock`, `GET /api/tours/:id/access/mine`, `GET /api/tours/:id/restricted?lang=`
+  - Người thử: `POST /api/tours/:id/unlock`, `GET /api/tours/:id/access/mine`, `GET /api/tours/:id/restricted?lang=`, `GET /api/tours/:id/restricted/package?lang=` (gói offline, A5)
 - **Dữ liệu:** `tour.tours` (`status = restricted`, `passcode_hash`, `passcode_version`, `passcode_set_at`); `tour.tour_access_grants` (unique `tour_id, user_id`, `passcode_version`); `tour.tour_unlock_attempts` (index `tour_id, user_id, created_at`).
 - **Tài liệu thiết kế:** [uc14-restricted-access.md](../../02-design/uc14-restricted-access.md), [offline-download.md](../../02-design/offline-download.md).
-- **Giới hạn đã biết:** hiện người thử không tải được bản truy cập hạn chế để nghe offline: route gói offline `GET /api/tours/:id/package` (`GetTourPackage`) chỉ đọc tour công khai (`findPublicById`) nên trả 404, và `TourDetailPage` ẩn `OfflineDownload` trên bản thử. Người thử chỉ nghe trực tuyến tại `/tour/:tourId/restricted/play`.
 - **Mã nguồn chính:**
 
 | Bước | Hàm / lớp | File |
 |---|---|---|
+| A5 | `GetRestrictedTourPackage.execute()`, `TourAccessController.package()` | `services/tour/src/application/use-cases/tour-access.js`, `services/tour/src/interfaces/http/controllers/tour-access-controller.js` |
+| A5 | `buildTourPackage()` | `services/tour/src/application/use-cases/get-tour-package.js` |
+| A5 | `OfflineDownload` (`restricted`), `fetchTourPackage()`, `startDownload()` | `client/src/features/offline/OfflineDownload.jsx`, `client/src/lib/offline-download.js` |
 | 1–5, A1 | `RestrictedAccessPanel` | `client/src/features/studio/RestrictedAccessPanel.jsx` |
 | 2–11, A1 | `getTourAccess()`, `setTourPasscode()`, `disableTourAccess()`, `unlockTour()`, `getMyTourAccess()`, `fetchRestrictedTour()`, `validatePasscode()` | `client/src/lib/restricted-access.js` |
 | 7–10 | `UnlockTourPage` | `client/src/features/tours/UnlockTourPage.jsx` |
