@@ -9,6 +9,7 @@
 //     UnlockTour          : passcode -> grant kept per account (rate limited, 429)
 //     GetMyTourAccess     : { unlocked }
 //     GetRestrictedTour   : the same detail view as the public one, for the owner or an unlocked tester
+//     GetRestrictedTourPackage : the UC03 offline package of that tour (decision L9), same checks
 // A restricted tour is never public: no admin review, no tour.published, never in search / nearby /
 // ratings / reports. Anything that is not a restricted tour (or not unlocked) answers 404.
 // =========================================================
@@ -28,6 +29,7 @@ import {
   TooManyAttemptsError,
 } from '../../domain/errors/index.js';
 import { buildTourDetailView } from './build-tour-detail.js';
+import { buildTourPackage } from './get-tour-package.js';
 
 const NOT_AVAILABLE = 'Tour không tồn tại hoặc không ở chế độ truy cập hạn chế';
 
@@ -177,5 +179,27 @@ export class GetRestrictedTour {
     ]);
     const view = buildTourDetailView({ tour, places, route: routeCfg, langs, translations, lang });
     return { ...view, restricted: true };
+  }
+}
+
+/** L9: an unlocked tester (or the owner) downloads the restricted tour for offline use (UC03 package). */
+export class GetRestrictedTourPackage {
+  /** @param {{ tourRepo, accessRepo, placeRepo, routeConfigRepo, tourLanguageRepo?, placeTranslationRepo? }} deps */
+  constructor({ tourRepo, accessRepo, placeRepo, routeConfigRepo, tourLanguageRepo = null, placeTranslationRepo = null }) {
+    this.tourRepo = tourRepo;
+    this.accessRepo = accessRepo;
+    this.placeRepo = placeRepo;
+    this.routeConfigRepo = routeConfigRepo;
+    this.tourLanguageRepo = tourLanguageRepo;
+    this.placeTranslationRepo = placeTranslationRepo;
+  }
+
+  /** @param {{ tourId: string, userId: string, lang?: string }} input */
+  async execute({ tourId, userId, lang }) {
+    const access = await loadRestrictedAccess(this.accessRepo, tourId);
+    if (!(await hasAccess(this.accessRepo, access, userId))) throw new TourNotFoundError(NOT_AVAILABLE);
+    const tour = await this.tourRepo.findById(tourId);
+    if (!tour || !tour.isRestricted()) throw new TourNotFoundError(NOT_AVAILABLE);
+    return { ...(await buildTourPackage(this, tour, lang)), restricted: true };
   }
 }

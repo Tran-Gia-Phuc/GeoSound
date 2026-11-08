@@ -1,7 +1,7 @@
 // UC03 offline tours (#103 download, #104 pause/resume, #158 library, #159 delete one language,
 // #160 empty library, #161 insufficient storage). Every API and media request is mocked.
 import { test, expect } from '@playwright/test';
-import { id, places, tour, json, fixtures, noOverflow } from './fixtures.js';
+import { id, places, tour, json, fixtures, noOverflow, signIn } from './fixtures.js';
 import { formatBytes } from '../../src/lib/format.js';
 
 const MEDIA = '/api/media/files';
@@ -371,4 +371,35 @@ test('QuotaExceededError while writing keeps completed packages, never marks rea
   await expect(box.getByText(/Đã tải ·/)).toHaveCount(2);
   expect(log.get['cover.png']).toBe(1); // shared with English, never downloaded twice
   await expect.poll(() => downloads(log).map((b) => b.language).sort()).toEqual(['en', 'vi']);
+});
+
+test('L9: an unlocked tester downloads the restricted tour with the account; no beacon; library checks the restricted package', async ({ page }) => {
+  const log = await setup(page);
+  const restrictedCalls = [];
+  await signIn(page, 'tourist');
+  await page.route(`**/api/tours/${id}/access/mine`, (route) => json(route, { unlocked: true }));
+  await page.route(`**/api/tours/${id}/restricted**`, (route) => {
+    const req = route.request();
+    const url = new URL(req.url());
+    if (url.pathname.endsWith('/restricted/package')) {
+      restrictedCalls.push(req.headers().authorization || null);
+      return json(route, { ...manifest(url.searchParams.get('lang') || 'vi', REV1), restricted: true });
+    }
+    return json(route, { tour: { ...detailFor('vi'), status: 'restricted', restricted: true } });
+  });
+  await page.goto(`/tour/${id}/restricted`);
+
+  const box = section(page);
+  await expect(box.getByText('Bản thử nghiệm: chỉ lưu trên thiết bị này')).toBeVisible();
+  await box.getByRole('button', { name: 'Tải xuống' }).click();
+  await expect(page.getByText('Tải tour thành công (Tiếng Việt)')).toBeVisible();
+  expect(log.manifests).toBe(0); // the public package is never asked for
+  expect(restrictedCalls[0]).toBe('Bearer test-access');
+  expect(log.get['p1-vi.mp3']).toBe(1); // images are also shown by the detail page itself
+
+  await box.getByRole('link', { name: 'Tour đã tải' }).click();
+  await expect(page.getByTestId('pkg-vi').getByText('Sẵn sàng offline')).toBeVisible();
+  await expect.poll(() => restrictedCalls.length).toBeGreaterThan(1); // revision check uses the restricted route
+  expect(log.manifests).toBe(0);
+  expect(downloads(log)).toHaveLength(0);
 });

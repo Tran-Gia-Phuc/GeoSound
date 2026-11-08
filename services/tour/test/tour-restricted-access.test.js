@@ -25,6 +25,7 @@ import {
   UnlockTour,
   GetMyTourAccess,
   GetRestrictedTour,
+  GetRestrictedTourPackage,
 } from '../src/application/use-cases/tour-access.js';
 import { PublishTour, GetPublishReadiness } from '../src/application/use-cases/publish-tour.js';
 import { UpdateTour } from '../src/application/use-cases/update-tour.js';
@@ -153,6 +154,7 @@ function kit() {
     unlock: new UnlockTour({ accessRepo, hasher, clock }),
     mine: new GetMyTourAccess({ accessRepo }),
     view: new GetRestrictedTour({ tourRepo, accessRepo, placeRepo, routeConfigRepo }),
+    pack: new GetRestrictedTourPackage({ tourRepo, accessRepo, placeRepo, routeConfigRepo }),
   };
 }
 
@@ -372,6 +374,26 @@ test('unlock bookkeeping never touches the tour (updated_at / saves)', async () 
 });
 
 // ---------- never public: moderation, catalog, search ----------
+test('L9 package: unlocked tester and owner get the offline package; others, old unlocks and non-restricted tours 404', async () => {
+  const k = kit();
+  await assert.rejects(k.pack.execute({ tourId: T_DRAFT, userId: AUTHOR }), { status: 404 }); // not restricted yet
+  await restrict(k);
+  await assert.rejects(k.pack.execute({ tourId: T_DRAFT, userId: 'stranger' }), { status: 404 });
+  await k.unlock.execute({ tourId: T_DRAFT, userId: 'tester', passcode: CODE });
+  const p = await k.pack.execute({ tourId: T_DRAFT, userId: 'tester', lang: 'vi' });
+  assert.equal(p.tourId, T_DRAFT);
+  assert.equal(p.language, 'vi');
+  assert.equal(p.restricted, true);
+  assert.equal(p.detail.id, T_DRAFT);
+  assert.equal(p.detail.places[0].text, 'Cầu cổ');
+  assert.ok(Array.isArray(p.assets));
+  assert.ok(!JSON.stringify(p).includes('scrypt'));
+  assert.equal((await k.pack.execute({ tourId: T_DRAFT, userId: AUTHOR })).tourId, T_DRAFT);
+  // A new passcode invalidates the old unlock for the package too.
+  await restrict(k, T_DRAFT, 'another-code-9');
+  await assert.rejects(k.pack.execute({ tourId: T_DRAFT, userId: 'tester' }), { status: 404 });
+});
+
 test('a restricted tour cannot be published / submitted for review: 409 tour_restricted, nothing sent', async () => {
   const k = kit();
   await restrict(k);

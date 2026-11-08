@@ -7,7 +7,7 @@ export class TourAccessController {
   /** @param {{ getTourAccess, setTourPasscode, disableTourAccess, unlockTour, getMyTourAccess, getRestrictedTour }} useCases */
   constructor(useCases) {
     this.uc = useCases;
-    for (const m of ['get', 'set', 'disable', 'unlock', 'mine', 'detail']) this[m] = this[m].bind(this);
+    for (const m of ['get', 'set', 'disable', 'unlock', 'mine', 'detail', 'package']) this[m] = this[m].bind(this);
   }
 
   // ---- author (owner) ----
@@ -51,5 +51,16 @@ export class TourAccessController {
       lang: req.validatedQuery.lang,
     });
     res.json({ tour });
+  }
+
+  // L9 — offline package of the restricted tour (same shape as GET /:id/package, plus restricted: true)
+  async package(req, res) {
+    res.json(
+      await this.uc.getRestrictedTourPackage.execute({
+        tourId: req.validatedParams.id,
+        userId: req.user.sub,
+        lang: req.validatedQuery.lang,
+      }),
+    );
   }
 }

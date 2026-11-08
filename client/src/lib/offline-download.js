@@ -1,6 +1,8 @@
 // =========================================================
 // UC03 offline download (#103, #104, #161) — transfers of tour packages.
 //   fetchTourPackage(tourId, lang) -> GET /api/tours/:id/package?lang= (public, no account)
+//   restricted tour (UC14, decision L9) -> GET /api/tours/:id/restricted/package?lang= (signed in,
+//   unlocked tester or owner); the package keeps `restricted: true` and sends no UC17 beacon.
 //   startDownload / resumeDownload / pauseDownload / cancelDownload / retry (= resume)
 // One transfer per package (tour + language), up to 3 files at a time, each with the transfer's
 // AbortController. Per-file state is persisted after every file, so a pause, a reload or a lost
@@ -47,10 +49,14 @@ const isOnline = () => typeof navigator === 'undefined' || navigator.onLine !== 
 
 // ---------- API ----------
 
-/** -> { tourId, language, revision, detail, assets: [{ url, kind, placeId? }] } */
-export function fetchTourPackage(tourId, lang, opts) {
+/**
+ * -> { tourId, language, revision, detail, assets: [{ url, kind, placeId? }] }
+ * `restricted: true` reads the package of an unlocked restricted tour (needs the account).
+ */
+export function fetchTourPackage(tourId, lang, { restricted = false, ...opts } = {}) {
   const q = lang ? `?lang=${encodeURIComponent(lang)}` : '';
-  return api.get(`/api/tours/${encodeURIComponent(tourId)}/package${q}`, opts);
+  const path = restricted ? 'restricted/package' : 'package';
+  return api.get(`/api/tours/${encodeURIComponent(tourId)}/${path}${q}`, restricted ? { ...opts, auth: true } : opts);
 }
 
 /** Browser quota: { quota, usage, available } or null when the browser does not tell. */
@@ -143,14 +149,14 @@ export function effectiveStatus(pkg) {
  * Starts (or refreshes, e.g. "Có bản mới") the package of one language.
  * Throws NoNetworkError, StorageFullError, ApiError (manifest).
  */
-export async function startDownload(tourId, language, { authenticated = false } = {}) {
+export async function startDownload(tourId, language, { authenticated = false, restricted = false } = {}) {
   const key = packageKey(tourId, language);
   if (active.has(key)) return;
   errors.delete(key);
   if (!isOnline()) throw rememberError(key, new NoNetworkError());
   let manifest;
   try {
-    manifest = await fetchTourPackage(tourId, language);
+    manifest = await fetchTourPackage(tourId, language, { restricted });
   } catch (e) {
     if (e?.offline) throw rememberError(key, new NoNetworkError());
     throw rememberError(key, e);
@@ -163,6 +169,7 @@ export async function startDownload(tourId, language, { authenticated = false } 
     tourId,
     language: manifest.language || language,
     title: manifest.detail?.title || prev?.title || '',
+    restricted: !!(restricted || manifest.restricted),
     revision: manifest.revision ?? null,
     detail: manifest.detail,
     detailBytes,
@@ -314,7 +321,7 @@ async function transfer(key, ctx, checkSpace) {
   }));
   requestPersistence();
   // UC17: one 'download' per completed package (the server also dedups per actor and day).
-  if (report) recordTourActivity(pkg.tourId, 'download', { language: pkg.language, authenticated: ctx.authenticated });
+  if (report && !pkg.restricted) recordTourActivity(pkg.tourId, 'download', { language: pkg.language, authenticated: ctx.authenticated });
 }
 
 async function finishStopped(key, ctx) {

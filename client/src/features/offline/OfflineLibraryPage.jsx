@@ -42,13 +42,16 @@ function useOnline() {
 /** Server revision per ready package (online only): key -> { revision } | { gone: true }. */
 function useServerRevisions(packages, online) {
   const [map, setMap] = useState({});
-  const wanted = packages.filter((p) => p.status === 'ready').map((p) => p.key).sort().join(',');
+  const ready = packages.filter((p) => p.status === 'ready');
+  const wanted = ready.map((p) => p.key).sort().join(',');
+  const restrictedKeys = ready.filter((p) => p.restricted).map((p) => p.key).sort().join(',');
   useEffect(() => {
     if (!online || !wanted) return undefined;
     const abort = new AbortController();
+    const restrictedSet = new Set(restrictedKeys.split(','));
     for (const key of wanted.split(',')) {
       const [tourId, language] = key.split('|');
-      fetchTourPackage(tourId, language, { signal: abort.signal })
+      fetchTourPackage(tourId, language, { signal: abort.signal, restricted: restrictedSet.has(key) })
         .then((m) => setMap((cur) => ({ ...cur, [key]: { revision: m.revision } })))
         .catch((e) => {
           if (e?.name === 'AbortError') return;
@@ -56,7 +59,7 @@ function useServerRevisions(packages, online) {
         });
     }
     return () => abort.abort();
-  }, [wanted, online]);
+  }, [wanted, restrictedKeys, online]);
   return map;
 }
 
@@ -186,7 +189,7 @@ export default function OfflineLibraryPage() {
                             </>
                           ) : null}
                           {p.status === 'ready' && online && (p.missing || newer(info?.revision, p.revision)) && !info?.gone ? (
-                            <button type="button" className="btn btn--sm" disabled={actions.busy} onClick={() => actions.start(p.tourId, [p.language])}>
+                            <button type="button" className="btn btn--sm" disabled={actions.busy} onClick={() => actions.start(p.tourId, [p.language], { restricted: !!p.restricted })}>
                               <Icon name="download" size={14} /> {p.missing ? 'Tải lại' : 'Cập nhật'}
                             </button>
                           ) : null}
