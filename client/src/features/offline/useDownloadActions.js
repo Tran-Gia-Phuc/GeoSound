@@ -49,12 +49,12 @@ export function useDownloadActions() {
   );
 
   const start = useCallback(
-    async (tourId, languages) => {
+    async (tourId, languages, { restricted = false } = {}) => {
       setStartError(null);
       setBusy(true);
       try {
         for (const language of languages) {
-          const ok = await handle(packageKey(tourId, language), language, () => startDownload(tourId, language, { authenticated }));
+          const ok = await handle(packageKey(tourId, language), language, () => startDownload(tourId, language, { authenticated, restricted }));
           if (!ok) break; // no space / no network: do not start the next language
         }
       } finally {

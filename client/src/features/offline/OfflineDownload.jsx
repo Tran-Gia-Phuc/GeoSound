@@ -18,7 +18,7 @@ import './offline.css';
 export const offlinePlayUrl = (tourId, language, mode = 'remote') =>
   `/offline/${encodeURIComponent(tourId)}/play?${new URLSearchParams({ lang: language, mode }).toString()}`;
 
-export default function OfflineDownload({ tour }) {
+export default function OfflineDownload({ tour, restricted = false }) {
   const lib = useOfflineLibrary(tour.id);
   const actions = useDownloadActions();
   const [checked, setChecked] = useState(() => new Set([tour.selectedLanguage]));
@@ -59,6 +59,9 @@ export default function OfflineDownload({ tour }) {
           <p className="muted small">
             Gói tải gồm nội dung, ảnh và bản ghi âm của ngôn ngữ đã chọn. Điểm không có bản ghi âm sẽ được đọc bằng giọng của thiết bị.
           </p>
+          {restricted ? (
+            <p className="muted small">Bản thử nghiệm: chỉ lưu trên thiết bị này; kiểm tra bản mới cần đăng nhập và mã truy cập còn hiệu lực.</p>
+          ) : null}
           <ul className="offline-dl__langs" aria-label="Ngôn ngữ tải về">
             {languages.map((code) => {
               const pkg = byLang.get(code);
@@ -110,7 +113,7 @@ export default function OfflineDownload({ tour }) {
                 type="button"
                 className="btn btn--primary btn--sm"
                 disabled={!toDownload.length || actions.busy}
-                onClick={() => actions.start(tour.id, toDownload)}
+                onClick={() => actions.start(tour.id, toDownload, { restricted })}
               >
                 {actions.busy ? <Icon name="loader" size={14} className="spin" /> : <Icon name="download" size={14} />}
                 {' '}Tải xuống{toDownload.length > 1 ? ` (${toDownload.length} ngôn ngữ)` : ''}

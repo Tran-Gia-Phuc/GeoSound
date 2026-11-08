@@ -301,7 +301,7 @@ export default function TourDetailPage({ restricted = false }) {
         )}
 
         {/* UC03: offline package of the public tour (not for the restricted test version) */}
-        {!restricted && hasPlaces ? <OfflineDownload key={tour.id} tour={tour} /> : null}
+        {hasPlaces ? <OfflineDownload key={tour.id} tour={tour} restricted={!!restricted} /> : null}
 
       </aside>
 
