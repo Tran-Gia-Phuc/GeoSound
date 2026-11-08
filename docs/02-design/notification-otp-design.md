@@ -39,6 +39,14 @@ implementation and the ERD's user/OTP lifecycle need reconciliation by the Auth
 owner separately. SMTP/template tests require neither an existing user nor a
 database. Nothing in Auth or the worker is rewired.
 
+Current state (updated 2026-11-08 to match the code): Auth sends the OTP email
+itself. `services/auth/src/container.js` wires `NodemailerMailer`
+(`infrastructure/mail/nodemailer-mailer.js`, plain-text body, subjects
+"Mã OTP đăng ký GeoSound" / "Mã OTP đặt lại mật khẩu GeoSound") when `SMTP_USER`
+is set, else `ConsoleMailer`, which only logs the code. The Notification
+template module `services/notification/src/services/send-otp-email.js` is not
+called by Auth or by the worker, and there is no OTP event.
+
 ## Templates
 
 | Purpose | Subject | Content |
@@ -100,6 +108,8 @@ claimed by the automated suite. Do not log SMTP credentials or real OTPs.
 ## Deferred work
 
 The team lead supplies the actual events/payloads before broker integration.
+As of 2026-11-08 this integration has not been done: the templates above are
+not used for real OTP emails (updated 2026-11-08 to match the code).
 Consumer setup, retries, duplicate handling, asynchronous expiry checks and UC16
 are outside this template-first change. No provisional event contract needs
 approval to review the templates and local SMTP test results.

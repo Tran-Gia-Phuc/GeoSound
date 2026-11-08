@@ -131,8 +131,10 @@ Where the code differs from or adds to the text above:
 - Revocation (5.3): `verifyJwt(roles, { isRevoked })` or `setSessionRevocationCheck(fn)` (per process,
   set in `src/index.js`), with `createRedisRevocationCheck(redis)` in `shared/middleware`. A Redis
   error or a lookup slower than 300 ms lets the request through (fail open, warned once). Wired in
-  Auth and Tour; Media uses `verifyJwt` but has no Redis client, so its tokens stay valid until they
-  expire (at most `JWT_ACCESS_TTL`). The gateway does not verify JWTs.
+  Auth, Tour, Media and Notification: each calls `setSessionRevocationCheck(createRedisRevocationCheck(...))`
+  in its `src/index.js` (Media: `services/media/src/index.js`, with its own Redis client), so a
+  signed-out token is refused at once by all four. The gateway does not verify JWTs.
+  (updated 2026-11-08 to match the code)
 - Revocation key TTL = `JWT_ACCESS_TTL` in seconds. If writing the key fails the sign-out is still
   saved; only the "at once" part is lost for that token.
 - Location (R12): `LocationResolver` port with a null implementation, so `location` is always null

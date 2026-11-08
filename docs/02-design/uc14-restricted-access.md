@@ -79,7 +79,11 @@ Turning on and changing the passcode is one conditional `UPDATE ... WHERE id AND
 
 The router (`tour-access-routes.js`) gets `requireAuth` and `requireContributor` injected (shared
 `verifyJwt`), and is mounted before the contributor routers so a tourist tester is not answered 403.
-Offline download for an unlocked tester is done by the client from the same view; no extra endpoint.
+Offline download (updated 2026-11-08 to match the code): an unlocked tester cannot download a
+restricted tour offline today. The package route `GET /:id/package` (UC03, `GetTourPackage`) reads
+public tours only (`findPublicById`) and answers 404 for a restricted tour, and the client hides the
+download button on the restricted view (`TourDetailPage` shows `OfflineDownload` only when not
+restricted). Testers play the restricted tour online at `/tour/:tourId/restricted/play`.
 
 ## 6. Code
 

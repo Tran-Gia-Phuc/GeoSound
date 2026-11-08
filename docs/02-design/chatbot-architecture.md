@@ -23,7 +23,7 @@ Facts from the real code that shape this design (checked in this worktree):
 | Fact | Where | Consequence |
 | --- | --- | --- |
 | A tour is visible to tourists only when `status = 'public'` | `prisma-tour-repository.js`, `tour.js` | The index holds only public tours and their places |
-| `PublishTour` sets `public` directly and publishes **no event**; `UnpublishTour` and editing a public tour move it back to `draft`, also without an event | `publish-tour.js`, `tour.js` | Today nothing tells another service that a tour became or stopped being public (section 6b) |
+| With `CHATBOT_EVENTS_ENABLED=true`, a tour entering `public` (`PublishTour`, admin approval, restore) sends `tour.published`, an edit of a public tour sends it again, and `UnpublishTour` sends `tour.unpublished` (`notifyTourPublished()` / `notifyTourUnpublished()`, `EventTourCatalogPublisher`); with the flag off, no event is sent (updated 2026-11-08 to match the code) | `publish-tour.js`, `notify-tour-catalog.js`, `event-tour-catalog-publisher.js` | Option A of section 6b is implemented (#240) |
 | `tour.approved` and `tour.hidden` exist in `shared/events` but no service publishes them yet (Notification and Media only consume) | `shared/events/index.js`, `services/*/src` | They cannot be the only ingestion signal |
 | Public read API: `GET /tours` (search, `limit` max 50, paged) and `GET /tours/:id` (detail, `?lang=`), `GET /places` (explore); all filter `status = 'public'` | `public-tour-routes.js`, `explore-routes.js` | Possible pull source (option B) |
 | `PlaceTranslation(placeId, languageCode, text)` and `TourLanguage` hold translated text | `services/tour/prisma/schema.prisma` | Translations become extra vector chunks |
@@ -37,7 +37,7 @@ Facts from the real code that shape this design (checked in this worktree):
  Client (PWA)
    │ POST /api/chat  (SSE)            GET /api/chat/history
    ▼
- Gateway :8080 ── chat rate limit (Redis, per user or IP) ── adds x-internal-token ──┐
+ Gateway :8080 ── chat rate limit (Redis, per IP) ── adds x-internal-token ──┐
                                                                                     ▼
  AI service :3004  POST /chat ─▶ LangGraph agent ─▶ retriever ─▶ Postgres schema `ai`
                                    │                              (pgvector chunks + graph tables
@@ -57,8 +57,10 @@ Request flow for one turn:
 4. The answer is streamed token by token over SSE, then a `citations` event and a `done` event.
 5. The checkpointer saves the turn (trimmed to the last N turns).
 
-Feature flag: `CHATBOT_ENABLED=false` by default. When false, `/chat` returns 404 and the indexer does not start,
-so nothing changes for other teammates.
+Feature flag: `CHATBOT_ENABLED=false` by default. When false, `/chat` returns 404 (gateway and AI service), so
+nothing changes for other teammates. The indexer has its own flag, `CHATBOT_INDEXER_ENABLED` (default off), and
+does not depend on `CHATBOT_ENABLED` (updated 2026-11-08 to match the code). The chat rate limit is keyed by
+client IP only, because the gateway does not check JWTs on the chat routes (updated 2026-11-08 to match the code).
 
 ## 3. LangGraph agent
 
@@ -309,7 +311,7 @@ becomes a problem.
 | Personal data in the index | Only tour and place content is indexed; never `authorId`, contributor email, ratings by user, itineraries or images. Chat history is per session, expires (24 h default) and is never indexed |
 | Prompt injection from tour text | Retrieved text is untrusted: wrap each item with `wrap()` / `sanitize_text()` from `moderation/validator.py` (tags, control characters removed, length clipped) and state in the system prompt that it is data. The LLM never decides tool calls, and `cite` drops ids that were not retrieved |
 | Prompt injection from the user | User message max 1000 characters, sanitised the same way; the system prompt restricts the bot to GeoSound public content |
-| Abuse and cost | Gateway chat limit (proposed 5 requests per minute and 100 per day per user or IP, `CHAT_RATE_LIMIT_PER_MIN`). Per-user limits alone can exceed the Gemini 5 requests per minute shared with moderation (5 turns times up to 2 LLM calls), so a global chat cap `CHAT_GLOBAL_RATE_LIMIT_PER_MIN` (default 2 turns per minute on Gemini) applies across all users; text-only overflow goes to Groq, and moderation keeps priority on Gemini. AI semaphore; at most 2 LLM calls per turn; prompt token budget (memory trimmed to N turns, k = 5 items, each clipped to 600 characters); answer `max_output_tokens` about 512 |
+| Abuse and cost | Gateway chat limit (5 requests per minute and 100 per day per client IP, `CHAT_RATE_LIMIT_PER_MIN`, `CHAT_RATE_LIMIT_PER_DAY`; updated 2026-11-08 to match the code). Per-user limits alone can exceed the Gemini 5 requests per minute shared with moderation (5 turns times up to 2 LLM calls), so a global chat cap `CHAT_GLOBAL_RATE_LIMIT_PER_MIN` (default 2 turns per minute on Gemini) applies across all users; text-only overflow goes to Groq, and moderation keeps priority on Gemini. AI semaphore; at most 2 LLM calls per turn; prompt token budget (memory trimmed to N turns, k = 5 items, each clipped to 600 characters); answer `max_output_tokens` about 512 |
 | Direct access to the AI service | `/chat` requires `x-internal-token`, added by the gateway; the browser never sees the token |
 | Secrets | Keys come from env only and are never logged or traced |
 

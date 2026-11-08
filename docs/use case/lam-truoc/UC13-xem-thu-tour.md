@@ -6,55 +6,87 @@
 | **Use Case Name** | Xem thử tour (preview) |
 | **Actor(s)** | Người đăng nội dung (Contributor) |
 | **Priority** | P1 |
-| **Maturity** | Focused |
-| **Summary** | Người đăng nội dung xem thử tour trong app như một khách thật (GPS giả lập, nghe audio, xem route) để kiểm tra trải nghiệm trước khi gửi duyệt/công khai. |
+| **Maturity** | Implemented |
+| **Summary** | Contributor mở tour của mình trong đúng trình phát của khách (UC04), ở mọi trạng thái, với GPS mô phỏng (đi bộ dọc route hoặc chạm bản đồ) hoặc nghe từng điểm, để kiểm tra nội dung, audio và vùng kích hoạt trước khi gửi duyệt / xuất bản. |
 
 ## Basic Course of Events
 
 | # | Actor Action | System Response |
 |---|---|---|
-| 1 | Contributor chọn **"Xem thử"** trên tour. | |
-| 2 | | Hệ thống mở chế độ preview như khách: bản đồ, route, điểm, trình phát audio, với **GPS giả lập**. *E1* |
-| 3 | Contributor di chuyển điểm GPS giả lập dọc route. *A1* | |
-| 4 | | Hệ thống tự phát audio theo vùng kích hoạt giống trải nghiệm thật (như UC04). |
-| 5 | Contributor xem text/ảnh, kiểm tra nội dung, audio và vùng kích hoạt. | |
-| 6 | Contributor thoát preview; nếu phát hiện lỗi thì quay lại chỉnh sửa. *A2* | |
-| 7 | | Use case kết thúc tại đây. |
+| 1 | Ở bước Xuất bản (`/studio/tours/:id/publish`), contributor nhấn **"Xem thử như khách"**. | |
+| 2 | | Client mở `/studio/tours/:tourId/preview?mode=gps` và gọi `GET /api/tours/mine/:tourId/preview?lang=`. *E1* `PreviewTourRoute` → `TourPlayerPage` (`loadDetail`) → `previewTour()` |
+| 3 | | Tour kiểm quyền tác giả, dựng view giống chi tiết công khai (điểm, ảnh, bản dịch, route và vùng hiệu lực) kèm `preview: true` và `status`. `PreviewController.preview()` → `PreviewTour.execute()` → `buildTourDetailView()` → `effectiveRoute()` |
+| 4 | | Trình phát mở ở chế độ "Xem thử — đi bộ mô phỏng": vị trí mô phỏng đặt ở đầu route, không cần GPS thật. `TourPlayerPage` `startGps()` (với `allowSimulation`) |
+| 5 | Contributor bấm **đi bộ mô phỏng** (chọn tốc độ) hoặc chạm bản đồ để dời vị trí. *A1* | |
+| 6 | | Khi vị trí vào vùng kích hoạt, trình phát tự phát điểm đó như UC04 (ưu tiên vùng cao hơn khi chồng nhau; audio người thật hoặc giọng của thiết bị), hiện văn bản, ảnh, gợi ý "đi tiếp" và audio chỉ đường. `startWalk()` (`SimBar`, `densifyPath()`), `usePlaybackEngine` → `triggersAt()`, `navAudiosAt()` |
+| 7 | Contributor kiểm tra nội dung; khi xong nhấn "Về bước Xuất bản" hoặc "Về trình chỉnh sửa". *A2* | |
+| 8 | | Use case kết thúc. |
 
 ## Alternative Path
 
-**A1. Chọn điểm thủ công để nghe thử** → hệ thống phát audio điểm đó không cần GPS giả lập.
+**A1. Xem thử từng điểm** → chế độ "Xem thử từng điểm" (remote): chọn điểm trong danh sách để nghe, không dùng vị trí (`startRemote()`).
 
-**A2. Phát hiện lỗi → quay lại sửa** → hệ thống chuyển về trình chỉnh sửa (UC10 / UC11 / UC12).
+**A2. Phát hiện lỗi → sửa ngay** → nút sửa trên một điểm mở `/studio/tours/:id/places?edit=<placeId>` (UC10); route / vùng sửa ở UC11, bản dịch ở UC12 (`PreviewTourRoute`, prop `editPlaceHref`).
+
+**A3. Đổi ngôn ngữ nghe** → client gọi lại preview với `?lang=` khác (`previewTour(tourId, lang)`).
 
 ## Exception Path
 
-- **E1.** Tour thiếu dữ liệu (chưa có điểm hoặc route) → thông báo không thể preview, gợi ý bổ sung.
+- **E1.** Tour chưa có điểm nào → 422 `tour_not_previewable` ("Chưa thể xem thử: tour cần có ít nhất một điểm dừng"); client hiện nút "Thêm điểm dừng". Route và vùng chưa cấu hình **không** chặn (được tự sinh). `TourNotPreviewableError`, `PreviewTourRoute` (`errorActions`)
+- **E2.** Tour của người khác → 403 `not_tour_owner`; tour không tồn tại → 404 `tour_not_found`. `PreviewTour.execute()` (`NotTourOwnerError`, `TourNotFoundError`)
+- **E3.** Trình duyệt chặn âm thanh / không có giọng cho ngôn ngữ → trình phát báo và cho phát lại (như UC04).
 
 ## Extension Points
 
-- UC10 – Thêm & quản lý địa điểm; UC11 – Vẽ route & cấu hình kích hoạt; UC12 – Cấu hình đa ngôn ngữ & TTS; UC15 – Gửi tour đi duyệt.
+- UC10 – Địa điểm; UC11 – Route & kích hoạt; UC12 – Đa ngôn ngữ & TTS; UC15 – Gửi tour đi duyệt.
 
 ## Triggers
 
-Contributor muốn kiểm tra trải nghiệm tour trước khi gửi duyệt.
+Contributor muốn kiểm tra trải nghiệm tour trước khi gửi duyệt / xuất bản.
 
 ## Assumptions
 
-- Chế độ GPS giả lập khả dụng trong app.
+- Trình duyệt hỗ trợ phát audio và Web Speech; không cần quyền định vị.
 
 ## Preconditions
 
-- Tour đã có ít nhất một điểm và route (UC10, UC11); contributor đã đăng nhập.
+- Tour có ít nhất 1 điểm (UC10); contributor là tác giả, đã đăng nhập với role `contributor`.
 
 ## Post Conditions
 
-- Contributor đã kiểm tra trải nghiệm tour; có thể sửa hoặc gửi duyệt.
+- Không có thay đổi dữ liệu: preview chỉ đọc, không đổi trạng thái tour, không ghi vào "mở gần đây" (`remember = false`), luôn bắt đầu tiến độ mới (`freshProgress`), không gửi lượt nghe vào thống kê UC17 (`recordStats` tắt).
 
 ## Reference: Business Rules
 
-- Preview **không công khai**, chỉ để kiểm thử nội bộ.
-- Preview dùng **GPS giả lập** và mô phỏng đúng trải nghiệm tourist (UC04).
+- Preview chạy với **mọi** trạng thái (draft, ai_checking, rejected, hidden...) nhưng chỉ tác giả xem được; không công khai.
+- Dùng chung dữ liệu và trình phát của khách nên kết quả giống UC04: route mặc định nối các điểm, vùng tròn 50 m nếu chưa cấu hình.
+- Công cụ mô phỏng GPS chỉ bật sẵn trong preview (khách thường cần `?debug=1`).
+
+## Hiện thực trong hệ thống
+
+- **Dịch vụ:** Client (trình phát UC04 với mô phỏng); Tour (dựng view preview, kiểm quyền).
+- **Màn hình (client):** `/studio/tours/:tourId/preview` (`PreviewTourRoute` trong `client/src/App.jsx` → `features/player/TourPlayerPage.jsx` với `allowSimulation`, `SimBar`, `TourMap`); lối vào ở `features/studio/PublishPanel.jsx`; API `client/src/lib/studio.js` (`previewTour`).
+- **API (qua gateway):** `GET /api/tours/mine/:tourId/preview?lang=`
+- **Dữ liệu:** chỉ đọc `tour.tours`, `tour.places`, `tour.route_configs`, `tour.tour_languages`, `tour.place_translations`.
+- **Tài liệu thiết kế:** (chưa có note riêng; xem `services/tour/src/application/use-cases/preview-tour.js`).
+- **Mã nguồn chính:**
+
+| Bước | Hàm / lớp | File |
+|---|---|---|
+| 1 | `PublishPanel` (nút "Xem thử như khách") | `client/src/features/studio/PublishPanel.jsx` |
+| 2, E1, A2 | `PreviewTourRoute` | `client/src/App.jsx` |
+| 2, A3 | `previewTour()` | `client/src/lib/studio.js` |
+| 4–6, A1 | `TourPlayerPage` (`startGps`, `startWalk`, `startRemote`) | `client/src/features/player/TourPlayerPage.jsx` |
+| 5 | `SimBar`, `TourMap` | `client/src/features/player/SimBar.jsx`, `TourMap.jsx` |
+| 5 | `densifyPath()` | `client/src/lib/geo.js` |
+| 6 | `usePlaybackEngine` | `client/src/hooks/usePlaybackEngine.js` |
+| 6 | `triggersAt()`, `navAudiosAt()` | `client/src/lib/zones.js` |
+| 3 | `buildPreviewRouter()`, `PreviewController.preview()` | `services/tour/src/interfaces/http/routes/preview-routes.js`, `controllers/preview-controller.js` |
+| 3 | `previewParamsSchema`, `previewQuerySchema` | `services/tour/src/application/dtos/preview-schemas.js` |
+| 3, E1 | `PreviewTour.execute()` | `services/tour/src/application/use-cases/preview-tour.js` |
+| 3 | `buildTourDetailView()` | `services/tour/src/application/use-cases/build-tour-detail.js` |
+| 3 | `effectiveRoute()` | `services/tour/src/domain/route/effective-route.js` |
+| 3 | `PrismaTourRepository.findById()`, `PrismaPlaceRepository.listByTour()`, `PrismaRouteConfigRepository.findByTour()` | `services/tour/src/infrastructure/persistence/` |
 
 ## Author(s)
 
@@ -62,7 +94,7 @@ Contributor muốn kiểm tra trải nghiệm tour trước khi gửi duyệt.
 
 ## Date
 
-2026-10-18
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
 
 ## Activity Diagram
 
@@ -70,8 +102,23 @@ Contributor muốn kiểm tra trải nghiệm tour trước khi gửi duyệt.
 
 ## Sequence Diagram
 
-(bổ sung sau)
+```mermaid
+sequenceDiagram
+    actor C as Contributor
+    participant Client
+    participant Gateway
+    participant Tour
+    C->>Client: "Xem thử như khách"
+    Client->>Gateway: GET /api/tours/mine/:tourId/preview?lang=
+    Gateway->>Tour: GET /mine/:tourId/preview
+    Tour->>Tour: kiểm tác giả, ít nhất 1 điểm
+    Tour-->>Client: { tour, preview: true, status }
+    Client->>Client: đặt vị trí mô phỏng ở đầu route
+    C->>Client: Đi bộ mô phỏng / chạm bản đồ
+    Client->>Client: triggersAt(vị trí) → phát điểm
+    C->>Client: Về bước Xuất bản
+```
 
 ## Boundary
 
-Chế độ Preview (bản đồ + GPS giả lập), Trình phát audio, Màn hình nội dung điểm.
+Trình phát xem thử (`/studio/tours/:tourId/preview`): bản đồ với vị trí mô phỏng, thanh mô phỏng (đi bộ, tốc độ), danh sách điểm (chế độ từng điểm), khung nội dung điểm, nút sửa điểm, nút "Về trình chỉnh sửa" / "Về bước Xuất bản".
