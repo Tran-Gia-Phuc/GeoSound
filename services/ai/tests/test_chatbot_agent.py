@@ -167,7 +167,7 @@ def test_data_question_calls_tools_and_cites_only_retrieved_ids():
     assert result["finish_reason"] == "stop"
     assert result["citations"] == [
         {"kind": "tour", "id": "t1", "title": "Hoi An street food walk"},
-        {"kind": "place", "id": "p2", "title": "Central Market Hoi An"},
+        {"kind": "place", "id": "p2", "title": "Central Market Hoi An", "tour_id": "t1"},
     ]
     assert "made-up-42" not in result["answer"] and "p404" not in result["answer"]
     # The retrieved items reach the prompt with their ids.
@@ -208,7 +208,8 @@ def test_nearby_with_location_uses_coordinates_and_never_stores_them():
     assert result["intent"] == "nearby"
     assert retriever.calls == [("nearby_places", {"lat": 10.7769, "lng": 106.7009,
                                                   "place_id": None, "radius_m": 500, "k": 5})]
-    assert result["citations"] == [{"kind": "place", "id": "p9", "title": "Saigon Opera House"}]
+    assert result["citations"] == [{"kind": "place", "id": "p9", "title": "Saigon Opera House",
+                                    "tour_id": "t3"}]
     snapshot = asyncio.run(agent.graph.aget_state({"configurable": {"thread_id": "s1"}}))
     assert "10.7769" not in repr(snapshot.values)
     assert "106.7009" not in repr(snapshot.values)

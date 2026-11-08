@@ -111,6 +111,19 @@ def test_cite_keeps_only_retrieved_ids_and_strips_invented_markers():
     ]
 
 
+def test_cite_gives_a_place_citation_its_tour_id():
+    retrieved = [
+        {"kind": "place", "id": "p2", "title": "Market", "text": "", "score": 1, "hops": 0,
+         "tour_id": "t1"},
+        {"kind": "tour", "id": "t1", "title": "Food tour", "text": "", "score": 1, "hops": 0},
+    ]
+    _, citations = rules.cite("Visit [place:p2] on [tour:t1].", retrieved)
+    assert citations == [
+        {"kind": "place", "id": "p2", "title": "Market", "tour_id": "t1"},
+        {"kind": "tour", "id": "t1", "title": "Food tour"},
+    ]
+
+
 @pytest.mark.parametrize("tail", ["[", "[pla", "[tour", "[tour:", "[tour:flow-chat-", "[place:p"])
 def test_cite_drops_a_marker_cut_by_the_token_limit(tail):
     # Issue #238: an answer cut by max_output_tokens can stop inside a marker.
