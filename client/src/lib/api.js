@@ -92,53 +92,62 @@ async function rotateTokens(seen) {
 }
 
 /**
- * Gọi API chung. `auth:true` gắn access token; tự refresh 1 lần khi 401.
- * @param {string} method @param {string} path
- * @param {{ body?: any, auth?: boolean, signal?: AbortSignal }} [opts]
+ * Gửi request và trả về Response thô (chưa đọc body). `auth:true` gắn access token;
+ * `refresh:true` (mặc định) tự refresh 1 lần khi 401 rồi gọi lại.
  * body là Blob/File → gửi nguyên nội dung với Content-Type của file (tải ảnh/audio).
+ * Mất mạng → ApiError { offline: true }; AbortError giữ nguyên.
  */
-export async function request(method, path, { body, auth = false, signal } = {}) {
+async function send(method, path, { body, auth = false, signal, accept = 'application/json', refresh = true } = {}) {
   const raw = typeof Blob !== 'undefined' && body instanceof Blob;
-  const doFetch = (token) => {
-    const headers = { Accept: 'application/json' };
+  const doFetch = async (token) => {
+    const headers = { Accept: accept };
     if (raw) headers['Content-Type'] = body.type || 'application/octet-stream';
     else if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (token) headers.Authorization = `Bearer ${token}`;
-    return fetch(`${BASE}${path}`, {
-      method,
-      headers,
-      signal,
-      body: raw ? body : body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    try {
+      return await fetch(`${BASE}${path}`, {
+        method,
+        headers,
+        signal,
+        body: raw ? body : body !== undefined ? JSON.stringify(body) : undefined,
+      });
+    } catch (e) {
+      if (e?.name === 'AbortError') throw e; // caller huỷ chủ động — để nguyên cho .catch bỏ qua
+      throw new ApiError('Không kết nối được máy chủ', { offline: true });
+    }
   };
 
-  let res;
-  try {
-    res = await doFetch(auth ? getAccessToken() : null);
-  } catch (e) {
-    if (e?.name === 'AbortError') throw e; // caller huỷ chủ động — để nguyên cho .catch bỏ qua
-    throw new ApiError('Không kết nối được máy chủ', { offline: true });
-  }
+  let res = await doFetch(auth ? getAccessToken() : null);
+  if (res.status !== 401 || !auth || !refresh) return res;
 
   // 401 trên request cần đăng nhập → thử refresh rồi gọi lại một lần.
-  if (res.status === 401 && auth && !refreshing) {
-    refreshing = refreshTokens().finally(() => (refreshing = null));
-  }
-  if (res.status === 401 && auth) {
-    const newToken = await (refreshing ?? Promise.resolve(null));
-    if (newToken) {
-      try {
-        res = await doFetch(newToken);
-      } catch (e) {
-        if (e?.name === 'AbortError') throw e; // caller huỷ chủ động
-        throw new ApiError('Không kết nối được máy chủ', { offline: true });
-      }
-    }
-  }
+  if (!refreshing) refreshing = refreshTokens().finally(() => (refreshing = null));
+  const newToken = await refreshing;
+  if (newToken) res = await doFetch(newToken);
+  return res;
+}
 
+/**
+ * Gọi API chung. `auth:true` gắn access token; tự refresh 1 lần khi 401.
+ * @param {string} method @param {string} path
+ * @param {{ body?: any, auth?: boolean, signal?: AbortSignal }} [opts]
+ */
+export async function request(method, path, { body, auth = false, signal } = {}) {
+  const res = await send(method, path, { body, auth, signal });
   const parsed = await parse(res);
   if (!res.ok) throw fail(res, parsed);
   return parsed;
+}
+
+/**
+ * Chatbot: request trả về Response thô để caller tự đọc luồng (Server-Sent Events) và
+ * tự đọc body lỗi. Gắn access token khi đã đăng nhập nhưng KHÔNG refresh khi 401
+ * (gateway không kiểm JWT cho chat; 401 ở đây là lỗi cấu hình). Không đổi URL media.
+ * @param {string} method @param {string} path
+ * @param {{ body?: any, signal?: AbortSignal, accept?: string }} [opts]
+ */
+export function stream(method, path, { body, signal, accept = 'text/event-stream' } = {}) {
+  return send(method, path, { body, signal, accept, auth: !!getAccessToken(), refresh: false });
 }
 
 export const api = {
@@ -147,6 +156,7 @@ export const api = {
   patch: (path, body, opts) => request('PATCH', path, { ...opts, body }),
   put: (path, body, opts) => request('PUT', path, { ...opts, body }),
   del: (path, opts) => request('DELETE', path, opts),
+  stream,
 };
 
 /**
