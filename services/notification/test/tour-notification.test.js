@@ -8,7 +8,7 @@ import { createMailer } from '../src/services/mailer.js';
 const silent = { log() {}, warn() {} };
 
 test('builds a contributor email for every tour event that needs one', () => {
-  for (const event of ['tour.approved', 'tour.rejected', 'tour.ai_rejected', 'tour.hidden', 'tts.render.completed']) {
+  for (const event of ['tour.approved', 'tour.rejected', 'tour.ai_rejected', 'tour.hidden', 'tour.restored', 'tts.render.completed']) {
     const email = buildTourEmail({ event, payload: { tourId: 't1', tourTitle: 'Phố cổ Hội An' } });
     assert.ok(email, `${event} phải có email`);
     assert.ok(email.subject.length > 0);

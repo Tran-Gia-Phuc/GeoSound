@@ -20,6 +20,7 @@ const CASES = {
   'tour.rejected': [{ reason: 'Nội dung trùng lặp' }, 'Tour «Phố cổ Hội An» bị từ chối'],
   'tour.changes_requested': [{ reason: 'Thêm ảnh điểm 2' }, 'Tour «Phố cổ Hội An» cần chỉnh sửa'],
   'tour.hidden': [{ reason: 'Nhiều báo cáo sai sự thật' }, 'Tour «Phố cổ Hội An» đã bị ẩn'],
+  'tour.restored': [{ reason: 'Báo cáo không đúng' }, 'Tour «Phố cổ Hội An» đã được hiển thị lại'],
   'tour.reported': [{ reason: 'Thông tin sai', count: 3, flagged: false }, 'Tour «Phố cổ Hội An» bị khách báo cáo'],
   'tts.render.completed': [{ assets: [{ lang: 'vi', url: 'https://x.test/a.mp3' }] }, 'Thuyết minh của tour «Phố cổ Hội An» đã sẵn sàng'],
 };
