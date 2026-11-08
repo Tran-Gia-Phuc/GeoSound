@@ -6,11 +6,14 @@
 // `tabs={false}` cho màn chi tiết có thanh hành động riêng ở đáy (chi tiết tour,
 // lịch trình…): vẫn có thanh trên ở desktop nhưng ẩn tab dưới trên điện thoại.
 // Màn toàn màn hình (trình phát, đăng nhập) nằm NGOÀI layout này.
+// Chatbot: nút nổi "Hỏi trợ lý" trên các màn có tab (không ở khu quản trị, Studio,
+// trang /chat, hay màn chi tiết có thanh hành động ở đáy).
 // =========================================================
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import Icon from '../Icon.jsx';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { badgeText, useUnreadCount } from '../../features/notifications/UnreadCount.jsx';
+import ChatLauncher from '../../features/chat/ChatLauncher.jsx';
 import './studio-navigation.css';
 
 const TABS = [
@@ -31,6 +34,7 @@ export default function AppLayout({ tabs = true }) {
   const unreadLabel = unread ? `, ${unread} thông báo chưa đọc` : '';
   const visible = TABS.filter((t) => !t.contributorOnly || isContributor);
   const inStudio = isContributor && pathname.startsWith('/studio');
+  const showChat = tabs && !/^\/(admin|studio|chat)(\/|$)/.test(pathname);
   const studioLinks = [
     { to: '/studio', end: true, icon: 'list', label: 'Tour của tôi' },
     { to: '/studio/tours/new', icon: 'plus', label: 'Tạo tour mới' },
@@ -131,6 +135,7 @@ export default function AppLayout({ tabs = true }) {
           })}
         </nav>
       ) : null}
+      {showChat ? <ChatLauncher /> : null}
     </div>
   );
 }
