@@ -20,6 +20,7 @@
 //   /shared/:token      — xem lịch trình được chia sẻ (UC07/A4, công khai)
 //   /itinerary/:id/go   — đi theo lịch trình của tôi (UC08, cần đăng nhập)
 //   /shared/:token/go   — đi theo lịch trình được chia sẻ (UC08, công khai)
+//   /chat               — trợ lý GeoSound (chatbot, #188; công khai)
 //   /offline            — tour đã tải trên thiết bị (UC03, không cần tài khoản)
 //   /offline/:tourId/play — nghe tour đã tải từ dữ liệu trên máy (UC03 → UC04, chạy không cần mạng)
 //   /admin              — khu quản trị (chỉ quản trị viên): /admin/reviews, /admin/reviews/:tourId (UC19),
@@ -87,6 +88,7 @@ import FollowingPage from './features/authors/FollowingPage.jsx';
 import SessionWatcher from './auth/SessionWatcher.jsx';
 import AppLayout from './components/shell/AppLayout.jsx';
 import OfflineLibraryPage from './features/offline/OfflineLibraryPage.jsx';
+import ChatPage from './features/chat/ChatPage.jsx';
 import { loadOfflineDetail } from './lib/offline-store.js';
 import { previewTour } from './lib/studio.js';
 import { fetchRestrictedTour } from './lib/restricted-access.js';
@@ -188,6 +190,7 @@ const router = createBrowserRouter(
         <Route path="/account/following" element={<RequireAuth><FollowingPage /></RequireAuth>} />
         <Route path="/authors/:id" element={<AuthorPage />} />
         <Route path="/offline" element={<OfflineLibraryPage />} />
+        <Route path="/chat" element={<ChatPage />} />
         <Route path="/admin/users" element={<RequireAuth><UsersPage /></RequireAuth>} />
         <Route path="/admin/users/:id" element={<RequireAuth><UserDetailPage /></RequireAuth>} />
         <Route path="/admin/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
