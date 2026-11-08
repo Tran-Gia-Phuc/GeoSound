@@ -1,0 +1,606 @@
+{
+  "pages": [
+    {
+      "name": "DFD cấp 2 – 5.0 Kiểm duyệt",
+      "title": "DFD cấp 2 – Tiến trình 5.0 Kiểm duyệt tự động bằng AI (UC15)",
+      "nodes": [
+        {
+          "id": "P51",
+          "kind": "process",
+          "label": "5.1 | Nhận nội dung gửi duyệt, mở ca kiểm duyệt",
+          "x": 300,
+          "y": 300
+        },
+        {
+          "id": "P52",
+          "kind": "process",
+          "label": "5.2 | Kiểm tra luật vị trí G1–G6 (tour)",
+          "x": 300,
+          "y": 700
+        },
+        {
+          "id": "P53",
+          "kind": "process",
+          "label": "5.3 | Gọi AI kiểm duyệt, thử lại khi lỗi tạm thời",
+          "x": 800,
+          "y": 300
+        },
+        {
+          "id": "P54",
+          "kind": "process",
+          "label": "5.4 | AI chấm nội dung & ảnh, áp ngưỡng Pass / Warning / Reject",
+          "x": 1300,
+          "y": 300
+        },
+        {
+          "id": "P55",
+          "kind": "process",
+          "label": "5.5 | Gộp kết quả AI + vị trí, công bố kết quả",
+          "x": 800,
+          "y": 700
+        },
+        {
+          "id": "P56",
+          "kind": "process",
+          "label": "5.6 | Quét định kỳ ca lỗi (sweeper)",
+          "x": 800,
+          "y": -50
+        },
+        {
+          "id": "G4",
+          "kind": "ghost",
+          "label": "4.0 | Quản lý nội dung tour",
+          "x": -200,
+          "y": 310
+        },
+        {
+          "id": "G8",
+          "kind": "ghost",
+          "label": "8.0 | Thông báo",
+          "x": 810,
+          "y": 1050
+        },
+        {
+          "id": "D8",
+          "kind": "store",
+          "label": "D8 | Hồ sơ kiểm duyệt",
+          "x": 300,
+          "y": 220
+        },
+        {
+          "id": "D4",
+          "kind": "store",
+          "label": "D4 | Tệp media (ảnh)",
+          "x": 1260,
+          "y": 220
+        },
+        {
+          "id": "LLM",
+          "kind": "entity",
+          "label": "Nhà cung cấp LLM (Gemini, dự phòng Groq)",
+          "x": 1285,
+          "y": 490
+        }
+      ],
+      "flows": [
+        {
+          "from": "G4",
+          "to": "P51",
+          "label": "Điểm / tour gửi duyệt<br>(place.submitted, tour.submitted)"
+        },
+        {
+          "from": "P51",
+          "to": "D8",
+          "label": "Ca mới (pending)"
+        },
+        {
+          "from": "P51",
+          "to": "P52",
+          "label": "Tọa độ, thứ tự điểm, loại tour"
+        },
+        {
+          "from": "P51",
+          "to": "P53",
+          "label": "Nội dung cần kiểm duyệt"
+        },
+        {
+          "from": "P53",
+          "to": "P54",
+          "label": "Yêu cầu /moderate (token nội bộ)"
+        },
+        {
+          "from": "D4",
+          "to": "P54",
+          "label": "Ảnh điểm dừng (≤5, ≤3 MB)"
+        },
+        {
+          "from": "P54",
+          "to": "LLM",
+          "label": "Một lần gọi: văn bản + ảnh"
+        },
+        {
+          "from": "LLM",
+          "to": "P54",
+          "label": "Phát hiện (loại, mức độ 0–1)"
+        },
+        {
+          "from": "P54",
+          "to": "P53",
+          "label": "Verdict, severity, lý do"
+        },
+        {
+          "from": "P53",
+          "to": "D8",
+          "label": "Lỗi tạm thời → ai_failed"
+        },
+        {
+          "from": "D8",
+          "to": "P56",
+          "label": "Ca ai_failed quá hạn"
+        },
+        {
+          "from": "P56",
+          "to": "P53",
+          "label": "Gửi lại nội dung đã lưu"
+        },
+        {
+          "from": "P53",
+          "to": "P55",
+          "label": "Kết quả AI (lỗi 422 → Warning)"
+        },
+        {
+          "from": "P52",
+          "to": "P55",
+          "label": "Vi phạm vị trí (G1 Reject, còn lại Warning)"
+        },
+        {
+          "from": "P55",
+          "to": "D8",
+          "label": "Verdict cuối, lý do, thời điểm công bố"
+        },
+        {
+          "from": "P55",
+          "to": "G4",
+          "label": "ai_passed (kèm cảnh báo) / ai_rejected"
+        },
+        {
+          "from": "P55",
+          "to": "G8",
+          "label": "Tour bị AI từ chối"
+        }
+      ]
+    },
+    {
+      "name": "DFD cấp 2 – 4.0 Nội dung tour",
+      "title": "DFD cấp 2 – Tiến trình 4.0 Quản lý nội dung tour (UC09–UC15)",
+      "nodes": [
+        {
+          "id": "P41",
+          "kind": "process",
+          "label": "4.1 | Tạo, sửa, xóa tour (UC09)",
+          "x": 500,
+          "y": 330
+        },
+        {
+          "id": "P42",
+          "kind": "process",
+          "label": "4.2 | Thêm, sửa, sắp xếp điểm dừng (UC10)",
+          "x": 500,
+          "y": 0
+        },
+        {
+          "id": "P43",
+          "kind": "process",
+          "label": "4.3 | Cấu hình route & vùng kích hoạt (UC11)",
+          "x": 500,
+          "y": 660
+        },
+        {
+          "id": "P44",
+          "kind": "process",
+          "label": "4.4 | Đa ngôn ngữ & giọng đọc (UC12)",
+          "x": 500,
+          "y": 990
+        },
+        {
+          "id": "P45",
+          "kind": "process",
+          "label": "4.5 | Xem thử tour (UC13)",
+          "x": 1200,
+          "y": 990
+        },
+        {
+          "id": "P46",
+          "kind": "process",
+          "label": "4.6 | Truy cập hạn chế bằng passcode (UC14)",
+          "x": 1200,
+          "y": 660
+        },
+        {
+          "id": "P47",
+          "kind": "process",
+          "label": "4.7 | Gửi duyệt & áp dụng kết quả kiểm duyệt (UC15)",
+          "x": 1200,
+          "y": 330
+        },
+        {
+          "id": "CONTRIB",
+          "kind": "entity",
+          "label": "Người đăng nội dung (Contributor)",
+          "x": 0,
+          "y": 260
+        },
+        {
+          "id": "MAP",
+          "kind": "entity",
+          "label": "Dịch vụ địa chỉ (Nominatim)",
+          "x": 0,
+          "y": -60
+        },
+        {
+          "id": "LLM",
+          "kind": "entity",
+          "label": "Nhà cung cấp LLM (dịch qua AI service)",
+          "x": 0,
+          "y": 980
+        },
+        {
+          "id": "D3",
+          "kind": "store",
+          "label": "D3 | Tour, điểm dừng, route, bản dịch, vùng cấm",
+          "x": 850,
+          "y": 600
+        },
+        {
+          "id": "D4",
+          "kind": "store",
+          "label": "D4 | Tệp media (ảnh, audio)",
+          "x": 300,
+          "y": 210
+        },
+        {
+          "id": "G5",
+          "kind": "ghost",
+          "label": "5.0 | Kiểm duyệt tự động",
+          "x": 1650,
+          "y": 340
+        },
+        {
+          "id": "G9",
+          "kind": "ghost",
+          "label": "9.0 | Trợ lý du lịch AI",
+          "x": 1650,
+          "y": 0
+        },
+        {
+          "id": "CONTRIB2",
+          "kind": "entity",
+          "label": "Contributor *",
+          "x": 1700,
+          "y": 610
+        }
+      ],
+      "flows": [
+        {
+          "from": "CONTRIB",
+          "to": "P41",
+          "label": "Tiêu đề, mô tả, thành phố, ảnh bìa"
+        },
+        {
+          "from": "P41",
+          "to": "D3",
+          "label": "Tour (Nháp), xóa tour"
+        },
+        {
+          "from": "P41",
+          "to": "D4",
+          "label": "Ảnh bìa"
+        },
+        {
+          "from": "P41",
+          "to": "G9",
+          "label": "Tour bị gỡ (sửa / xóa tour công khai)",
+          "labelAt": 0.55
+        },
+        {
+          "from": "CONTRIB",
+          "to": "P42",
+          "label": "Điểm: tên, mô tả, ảnh, audio, vị trí"
+        },
+        {
+          "from": "P42",
+          "to": "MAP",
+          "label": "Địa chỉ"
+        },
+        {
+          "from": "MAP",
+          "to": "P42",
+          "label": "Tọa độ"
+        },
+        {
+          "from": "D3",
+          "to": "P42",
+          "label": "Vùng cấm"
+        },
+        {
+          "from": "P42",
+          "to": "D3",
+          "label": "Điểm dừng, trạng thái checking"
+        },
+        {
+          "from": "P42",
+          "to": "D4",
+          "label": "Ảnh, audio người thật"
+        },
+        {
+          "from": "P42",
+          "to": "G5",
+          "label": "Điểm gửi kiểm duyệt",
+          "labelAt": -0.55
+        },
+        {
+          "from": "CONTRIB",
+          "to": "P43",
+          "label": "Bán kính, ưu tiên, audio chỉ đường"
+        },
+        {
+          "from": "P43",
+          "to": "D3",
+          "label": "Route, vùng kích hoạt"
+        },
+        {
+          "from": "CONTRIB",
+          "to": "P44",
+          "label": "Ngôn ngữ, giọng, sửa bản dịch"
+        },
+        {
+          "from": "P44",
+          "to": "LLM",
+          "label": "Văn bản cần dịch"
+        },
+        {
+          "from": "LLM",
+          "to": "P44",
+          "label": "Bản dịch"
+        },
+        {
+          "from": "P44",
+          "to": "D3",
+          "label": "Ngôn ngữ, bản dịch"
+        },
+        {
+          "from": "D3",
+          "to": "P45",
+          "label": "Tour mọi trạng thái"
+        },
+        {
+          "from": "P45",
+          "to": "CONTRIB2",
+          "label": "Bản xem thử (GPS mô phỏng)"
+        },
+        {
+          "from": "CONTRIB2",
+          "to": "P46",
+          "label": "Passcode, bật / tắt"
+        },
+        {
+          "from": "P46",
+          "to": "D3",
+          "label": "Hash passcode, phiên bản"
+        },
+        {
+          "from": "CONTRIB2",
+          "to": "P47",
+          "label": "Yêu cầu gửi duyệt"
+        },
+        {
+          "from": "D3",
+          "to": "P47",
+          "label": "Checklist (đủ điều kiện?)"
+        },
+        {
+          "from": "P47",
+          "to": "G5",
+          "label": "Tour gửi kiểm duyệt"
+        },
+        {
+          "from": "G5",
+          "to": "P47",
+          "label": "Kết quả kiểm duyệt (tour, điểm)"
+        },
+        {
+          "from": "P47",
+          "to": "D3",
+          "label": "Trạng thái, lý do"
+        },
+        {
+          "from": "P47",
+          "to": "CONTRIB2",
+          "label": "Trạng thái gửi duyệt"
+        },
+        {
+          "from": "P47",
+          "to": "G9",
+          "label": "Tour công khai (khi tắt kiểm duyệt)"
+        }
+      ]
+    },
+    {
+      "name": "DFD cấp 2 – 9.0 Trợ lý AI",
+      "title": "DFD cấp 2 – Tiến trình 9.0 Trợ lý du lịch AI (UC24)",
+      "nodes": [
+        {
+          "id": "P91",
+          "kind": "process",
+          "label": "9.1 | Lập chỉ mục tour công khai",
+          "x": 300,
+          "y": 0
+        },
+        {
+          "id": "P92",
+          "kind": "process",
+          "label": "9.2 | Nhận câu hỏi, giới hạn tần suất",
+          "x": 300,
+          "y": 450
+        },
+        {
+          "id": "P93",
+          "kind": "process",
+          "label": "9.3 | Phân loại ý định & lập kế hoạch",
+          "x": 750,
+          "y": 450
+        },
+        {
+          "id": "P94",
+          "kind": "process",
+          "label": "9.4 | Truy xuất lai (vector + đồ thị)",
+          "x": 1200,
+          "y": 450
+        },
+        {
+          "id": "P95",
+          "kind": "process",
+          "label": "9.5 | Sinh câu trả lời (một lần gọi LLM)",
+          "x": 1200,
+          "y": 850
+        },
+        {
+          "id": "P96",
+          "kind": "process",
+          "label": "9.6 | Gắn trích dẫn, phát trả lời, lưu hội thoại",
+          "x": 750,
+          "y": 850
+        },
+        {
+          "id": "G4",
+          "kind": "ghost",
+          "label": "4.0 | Quản lý nội dung tour",
+          "x": -200,
+          "y": -60
+        },
+        {
+          "id": "G6",
+          "kind": "ghost",
+          "label": "6.0 | Duyệt tour & xử lý vi phạm",
+          "x": -200,
+          "y": 160
+        },
+        {
+          "id": "TOURIST",
+          "kind": "entity",
+          "label": "Khách du lịch",
+          "x": -200,
+          "y": 570
+        },
+        {
+          "id": "LLM",
+          "kind": "entity",
+          "label": "Nhà cung cấp LLM (Gemini / Groq)",
+          "x": 1700,
+          "y": 860
+        },
+        {
+          "id": "D10",
+          "kind": "store",
+          "label": "D10 | Chỉ mục tri thức (vector + đồ thị)",
+          "x": 850,
+          "y": 330
+        },
+        {
+          "id": "D11",
+          "kind": "store",
+          "label": "D11 | Hội thoại chatbot",
+          "x": 850,
+          "y": 770
+        }
+      ],
+      "flows": [
+        {
+          "from": "G4",
+          "to": "P91",
+          "label": "tour.published / unpublished"
+        },
+        {
+          "from": "G6",
+          "to": "P91",
+          "label": "Tour được duyệt / bị ẩn"
+        },
+        {
+          "from": "P91",
+          "to": "D10",
+          "label": "Nút, cạnh, đoạn văn + embedding"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P92",
+          "label": "Câu hỏi, phiên, vị trí"
+        },
+        {
+          "from": "P92",
+          "to": "TOURIST",
+          "label": "Quá giới hạn (thời gian chờ)"
+        },
+        {
+          "from": "P92",
+          "to": "P93",
+          "label": "Câu hỏi hợp lệ"
+        },
+        {
+          "from": "P93",
+          "to": "P94",
+          "label": "Ý định, bộ lọc, vị trí"
+        },
+        {
+          "from": "D10",
+          "to": "P94",
+          "label": "Tour, điểm, đoạn văn liên quan"
+        },
+        {
+          "from": "P94",
+          "to": "P95",
+          "label": "≤ 5 mục ngữ cảnh (rỗng → trả lời mẫu)"
+        },
+        {
+          "from": "P95",
+          "to": "LLM",
+          "label": "Câu hỏi + ngữ cảnh"
+        },
+        {
+          "from": "LLM",
+          "to": "P95",
+          "label": "Câu trả lời"
+        },
+        {
+          "from": "P95",
+          "to": "P96",
+          "label": "Câu trả lời có dấu [tour:id] / [place:id]"
+        },
+        {
+          "from": "P96",
+          "to": "TOURIST",
+          "label": "Câu trả lời (SSE) + nguồn"
+        },
+        {
+          "from": "P96",
+          "to": "D11",
+          "label": "Tin nhắn, trích dẫn"
+        },
+        {
+          "from": "D11",
+          "to": "P95",
+          "label": "Lịch sử (các lượt gần nhất)"
+        },
+        {
+          "from": "P93",
+          "to": "P95",
+          "label": "Chào hỏi (không cần truy xuất)"
+        },
+        {
+          "from": "P93",
+          "to": "P96",
+          "label": "Ngoài phạm vi → trả lời mẫu, không gọi LLM"
+        }
+      ]
+    }
+  ]
+}
