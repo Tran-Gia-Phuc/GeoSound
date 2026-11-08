@@ -140,7 +140,6 @@ Người dùng muốn biết tài khoản đang đăng nhập ở đâu, nghi ng
 - **Tài liệu thiết kế:** [device-sessions.md](../../02-design/device-sessions.md), [notification-otp-design.md](../../02-design/notification-otp-design.md) (tra email người đóng góp, #258), [uc21-account-actions.md](../../02-design/uc21-account-actions.md).
 - **Giới hạn đã biết:**
   - Vị trí theo IP chưa làm (`NullLocationResolver`): `location` luôn rỗng, hiển thị *"Không xác định"*; email cảnh báo cũng không có vị trí.
-  - Client chưa có màn đổi mật khẩu (API `POST /api/auth/change-password` đã có).
   - Access token cũ không có `sid` (trước UC23) không bị kiểm tra thu hồi, hết hạn sau tối đa 15 phút.
 
 ## Author(s)
