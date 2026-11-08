@@ -66,6 +66,7 @@ async function startWorker() {
       EVENTS.TOUR_CHANGES_REQUESTED,
       EVENTS.TOUR_REPORTED,
       EVENTS.TOUR_HIDDEN,
+      EVENTS.TOUR_RESTORED, // UC20 — a hidden tour is public again
       EVENTS.TTS_RENDER_COMPLETED,
       EVENTS.AUTH_NEW_DEVICE_LOGIN, // UC23 / R10 — new-device sign-in alert
       EVENTS.ACCOUNT_MODERATED, // UC21 — admin warned / suspended / banned / restored the account
