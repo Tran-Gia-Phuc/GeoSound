@@ -82,6 +82,10 @@ export default function AccountPage() {
             <Icon name="user" size={20} /> <span>Thiết bị đang đăng nhập</span>
             <Icon name="chevron-left" size={16} className="menu__chev" />
           </Link>
+          <Link className="menu__item" to="/account/password">
+            <Icon name="lock" size={20} /> <span>Đổi mật khẩu</span>
+            <Icon name="chevron-left" size={16} className="menu__chev" />
+          </Link>
           {isAdmin ? (
             <Link className="menu__item" to="/admin">
               <Icon name="sliders" size={20} />
