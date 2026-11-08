@@ -18,7 +18,7 @@ import './offline.css';
 export const offlinePlayUrl = (tourId, language, mode = 'remote') =>
   `/offline/${encodeURIComponent(tourId)}/play?${new URLSearchParams({ lang: language, mode }).toString()}`;
 
-export default function OfflineDownload({ tour, restricted = false }) {
+export default function OfflineDownload({ tour, restricted = false, note = null }) {
   const lib = useOfflineLibrary(tour.id);
   const actions = useDownloadActions();
   const [checked, setChecked] = useState(() => new Set([tour.selectedLanguage]));
@@ -59,6 +59,7 @@ export default function OfflineDownload({ tour, restricted = false }) {
           <p className="muted small">
             Gói tải gồm nội dung, ảnh và bản ghi âm của ngôn ngữ đã chọn. Điểm không có bản ghi âm sẽ được đọc bằng giọng của thiết bị.
           </p>
+          {note ? <p className="muted small">{note}</p> : null}
           {restricted ? (
             <p className="muted small">Bản thử nghiệm: chỉ lưu trên thiết bị này; kiểm tra bản mới cần đăng nhập và mã truy cập còn hiệu lực.</p>
           ) : null}

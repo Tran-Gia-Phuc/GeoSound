@@ -49,12 +49,22 @@ const isOnline = () => typeof navigator === 'undefined' || navigator.onLine !== 
 
 // ---------- API ----------
 
+// UC07 / UC08: an itinerary package is stored under the device id "itinerary:<id>" (never a tour id),
+// read from GET /api/itineraries/:id/package (owner, signed in) and sends no UC17 beacon.
+export const ITINERARY_PREFIX = 'itinerary:';
+export const itineraryPackageId = (id) => `${ITINERARY_PREFIX}${id}`;
+export const isItineraryPackage = (tourId) => String(tourId ?? '').startsWith(ITINERARY_PREFIX);
+
 /**
  * -> { tourId, language, revision, detail, assets: [{ url, kind, placeId? }] }
  * `restricted: true` reads the package of an unlocked restricted tour (needs the account).
  */
 export function fetchTourPackage(tourId, lang, { restricted = false, ...opts } = {}) {
   const q = lang ? `?lang=${encodeURIComponent(lang)}` : '';
+  if (isItineraryPackage(tourId)) {
+    const itineraryId = String(tourId).slice(ITINERARY_PREFIX.length);
+    return api.get(`/api/itineraries/${encodeURIComponent(itineraryId)}/package${q}`, { ...opts, auth: true });
+  }
   const path = restricted ? 'restricted/package' : 'package';
   return api.get(`/api/tours/${encodeURIComponent(tourId)}/${path}${q}`, restricted ? { ...opts, auth: true } : opts);
 }
@@ -321,7 +331,7 @@ async function transfer(key, ctx, checkSpace) {
   }));
   requestPersistence();
   // UC17: one 'download' per completed package (the server also dedups per actor and day).
-  if (report && !pkg.restricted) recordTourActivity(pkg.tourId, 'download', { language: pkg.language, authenticated: ctx.authenticated });
+  if (report && !pkg.restricted && !isItineraryPackage(pkg.tourId)) recordTourActivity(pkg.tourId, 'download', { language: pkg.language, authenticated: ctx.authenticated });
 }
 
 async function finishStopped(key, ctx) {
