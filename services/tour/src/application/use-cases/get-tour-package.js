@@ -92,25 +92,34 @@ export class GetTourPackage {
   async execute({ id, lang }) {
     const tour = await this.tourRepo.findPublicById(id);
     if (!tour) throw new TourNotFoundError('Tour không còn khả dụng');
-
-    const [places, routeCfg, langs, translations] = await Promise.all([
-      this.placeRepo.listByTour(id),
-      this.routeConfigRepo.findByTour(id),
-      this.tourLanguageRepo?.listByTour(id) ?? [],
-      this.placeTranslationRepo?.listByTour(id) ?? [],
-    ]);
-    const view = buildTourDetailView({ tour, places, route: routeCfg, langs, translations, lang });
-    // The detail falls back to the source language; a package must be exactly the chosen one.
-    if (lang && view.selectedLanguage !== lang) throw new LanguageNotAvailableError();
-
-    const language = view.selectedLanguage;
-    const { detail, assets } = buildPackageAssets(view);
-    const revision = latestRevision([
-      tour,
-      routeCfg,
-      ...places,
-      ...translations.filter((t) => t.languageCode === language),
-    ]);
-    return { tourId: tour.id, language, revision, detail, assets };
+    return buildTourPackage(this, tour, lang);
   }
+}
+
+/**
+ * Package of an already authorised tour (public in UC03, unlocked restricted tour in UC14).
+ * @param {{ placeRepo, routeConfigRepo, tourLanguageRepo?, placeTranslationRepo? }} repos
+ * @param {object} tour @param {string} [lang]
+ */
+export async function buildTourPackage(repos, tour, lang) {
+  const id = tour.id;
+  const [places, routeCfg, langs, translations] = await Promise.all([
+    repos.placeRepo.listByTour(id),
+    repos.routeConfigRepo.findByTour(id),
+    repos.tourLanguageRepo?.listByTour(id) ?? [],
+    repos.placeTranslationRepo?.listByTour(id) ?? [],
+  ]);
+  const view = buildTourDetailView({ tour, places, route: routeCfg, langs, translations, lang });
+  // The detail falls back to the source language; a package must be exactly the chosen one.
+  if (lang && view.selectedLanguage !== lang) throw new LanguageNotAvailableError();
+
+  const language = view.selectedLanguage;
+  const { detail, assets } = buildPackageAssets(view);
+  const revision = latestRevision([
+    tour,
+    routeCfg,
+    ...places,
+    ...translations.filter((t) => t.languageCode === language),
+  ]);
+  return { tourId: id, language, revision, detail, assets };
 }

@@ -8,6 +8,7 @@
 //     POST   /:id/unlock            { passcode } -> { unlocked: true } | 403 | 404 | 429
 //     GET    /:id/access/mine       -> { unlocked }
 //     GET    /:id/restricted?lang=  -> { tour } (same view as the public detail)
+//     GET    /:id/restricted/package?lang= -> offline package (UC03 shape + restricted: true, L9)
 // Guards are injected (index.js passes shared verifyJwt), so this file never imports ../shared.
 // Mount it BEFORE the contributor routers: they apply verifyJwt(['contributor']) on '/', which would
 // answer 403 to a tourist tester.
@@ -44,6 +45,7 @@ export function buildTourAccessRouter({ tourAccessController: c, requireAuth, re
   r.post(`/:id(${UUID})/unlock`, ...tester, validateBody(unlockSchema), wrap(c.unlock));
   r.get(`/:id(${UUID})/access/mine`, ...tester, wrap(c.mine));
   r.get(`/:id(${UUID})/restricted`, ...tester, validateQuery(detailQuerySchema), wrap(c.detail));
+  r.get(`/:id(${UUID})/restricted/package`, ...tester, validateQuery(detailQuerySchema), wrap(c.package));
 
   return r;
 }

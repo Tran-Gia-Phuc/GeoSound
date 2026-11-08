@@ -86,6 +86,7 @@ import {
   UnlockTour,
   GetMyTourAccess,
   GetRestrictedTour,
+  GetRestrictedTourPackage,
 } from './application/use-cases/tour-access.js';
 
 import { AddPlace } from './application/use-cases/add-place.js';
@@ -349,6 +350,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     unlockTour: new UnlockTour({ accessRepo, hasher }),
     getMyTourAccess: new GetMyTourAccess({ accessRepo }),
     getRestrictedTour: new GetRestrictedTour({ tourRepo, accessRepo, placeRepo, routeConfigRepo, ...i18nRepos }),
+    getRestrictedTourPackage: new GetRestrictedTourPackage({ tourRepo, accessRepo, placeRepo, routeConfigRepo, ...i18nRepos }),
   };
 
   // --- interfaces (controller + router) ---
