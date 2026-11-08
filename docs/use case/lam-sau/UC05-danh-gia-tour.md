@@ -4,61 +4,106 @@
 |---|---|
 | **Use Case Number** | UC05 |
 | **Use Case Name** | Đánh giá và nhận xét tour |
-| **Actor(s)** | Khách du lịch (Tourist) |
+| **Actor(s)** | Khách du lịch (Tourist, đã đăng nhập; mọi vai trò trừ tác giả của tour) |
 | **Priority** | P0 |
-| **Maturity** | Focused |
-| **Summary** | Sau khi đi/nghe xong tour, khách du lịch chấm sao và viết nhận xét để giúp người khác chọn tour và giúp tác giả cải thiện nội dung. |
+| **Maturity** | Implemented |
+| **Summary** | Người dùng đã đăng nhập chấm 1–5 sao và viết nhận xét (không bắt buộc) cho một tour công khai, có thể sửa hoặc xóa đánh giá của mình. Mọi người (kể cả khách chưa đăng nhập) xem được điểm trung bình, số lượt, phân bố sao và danh sách nhận xét. Dữ liệu này dùng cho thống kê UC17. |
 
 ## Basic Course of Events
 
 | # | Actor Action | System Response |
 |---|---|---|
-| 1 | Tourist chọn **"Đánh giá"** (sau khi kết thúc tour ở UC04, hoặc từ chi tiết tour UC02). | |
-| 2 | | Hệ thống hiển thị form đánh giá: số sao (1–5), ô nhận xét, tùy chọn đính kèm ảnh. *E1* |
-| 3 | Tourist chọn số sao và nhập nhận xét. *E2* | |
-| 4 | Tourist nhấn **"Gửi"**. | |
-| 5 | | Hệ thống lưu đánh giá, cập nhật điểm trung bình của tour và hiển thị nhận xét. |
-| 6 | | Hệ thống thông báo *"Cảm ơn đánh giá của bạn"*. |
-| 7 | | Use case kết thúc tại đây. |
+| 1 | Tourist mở mục **"Đánh giá"** trên chi tiết tour (`/tour/:tourId#ratings`), hoặc bấm nút đánh giá ở hộp thoại kết thúc của trình phát (UC04). | |
+| 2 | | Client gọi `GET /api/tours/:id/ratings` (công khai) để hiện tóm tắt (điểm trung bình, số lượt, phân bố 1–5 sao) và danh sách nhận xét mới nhất trước, 10 mục mỗi trang. *E3* |
+| 3 | | Nếu đã đăng nhập, client gọi `GET /api/tours/:id/ratings/mine`: chưa có thì hiện form "Đánh giá tour", đã có thì hiện "Đánh giá của bạn". *E1, E4, A1* |
+| 4 | Tourist chọn số sao và nhập nhận xét (không bắt buộc, tối đa 1000 ký tự). *E2* | |
+| 5 | Tourist nhấn **"Gửi đánh giá"**. | |
+| 6 | | Client gọi `PUT /api/tours/:id/ratings/mine`. Tour lưu dòng `tour_ratings` và cập nhật `tours.average_rating`, `tours.rating_count` trong cùng một transaction, trả 201 kèm tóm tắt mới. |
+| 7 | | Client hiện thông báo *"Cảm ơn đánh giá của bạn"* và làm mới tóm tắt, danh sách. |
+| 8 | | Use case kết thúc tại đây. |
 
 ## Alternative Path
 
-**A1. Sửa / xóa đánh giá của mình.**
+**A1. Sửa đánh giá của mình.**
 
 | # | Actor Action | System Response |
 |---|---|---|
-| A1.1 | Tourist mở đánh giá đã gửi, chọn Sửa hoặc Xóa. | |
-| A1.2 | | Hệ thống cập nhật/xóa đánh giá và tính lại điểm trung bình. |
+| A1.1 | Tourist chọn Sửa trên "Đánh giá của bạn", đổi số sao hoặc nhận xét và nhấn **"Lưu thay đổi"**. | |
+| A1.2 | | `PUT /api/tours/:id/ratings/mine` trả 200 (cập nhật, không tạo dòng mới); điểm trung bình được tính lại; thông báo *"Đã cập nhật đánh giá"*. Nhận xét đã sửa hiện nhãn "đã sửa". |
+
+**A2. Xóa đánh giá của mình.**
+
+| # | Actor Action | System Response |
+|---|---|---|
+| A2.1 | Tourist chọn Xóa trên "Đánh giá của bạn". | |
+| A2.2 | | `DELETE /api/tours/:id/ratings/mine` trả 204; số lượt và điểm trung bình được tính lại; thông báo *"Đã xoá đánh giá"*. |
+
+**A3. Xem thêm nhận xét.** Tourist cuộn danh sách và tải trang tiếp theo (`page`, `limit` tối đa 50).
 
 ## Exception Path
 
-- **E1.** Chưa đăng nhập (nếu chính sách yêu cầu) → gợi ý đăng nhập (UC01).
-- **E2.** Gửi khi chưa chọn sao → thông báo *"Vui lòng chọn số sao"*.
+- **E1.** Chưa đăng nhập → thay form là nút *"Đăng nhập để đánh giá"*, dẫn tới `/login?next=...#ratings` (UC01) rồi quay lại đúng mục đánh giá. API trả 401 nếu gọi không có token.
+- **E2.** Gửi khi chưa chọn sao → *"Vui lòng chọn số sao"* (client chặn; server trả 400 `validation_error` cùng thông điệp).
+- **E3.** Tour không ở trạng thái `public` (hoặc không tồn tại) → 404 `tour_not_found`, giống chi tiết công khai.
+- **E4.** Tác giả mở tour của chính mình → không có form, hiện *"Bạn là tác giả của tour này nên không thể tự đánh giá."*; API trả 403 `own_tour`.
+- **E5.** Mất mạng → *"Không thể kết nối, vui lòng thử lại"*; xóa khi chưa có đánh giá → 404 `rating_not_found`.
 
 ## Extension Points
 
-- UC01 – Xác thực tài khoản (nếu cần đăng nhập để đánh giá).
+- UC01 – Xác thực tài khoản (đăng nhập để đánh giá).
+- UC04 – Nghe tour (nút đánh giá ở hộp thoại kết thúc).
+- UC17 – Thống kê tour (dùng điểm trung bình và phân bố sao).
 
 ## Triggers
 
-Tourist đã trải nghiệm tour và muốn để lại đánh giá.
+Tourist đã xem hoặc nghe tour và muốn để lại đánh giá.
 
 ## Assumptions
 
-- Tourist đã đi hoặc nghe tour.
+- Không bắt buộc phải nghe hết tour trước khi đánh giá.
+- Token đăng nhập có claim `name` (tên hiển thị) do Auth thêm; token cũ chưa có claim này thì tên hiện là "Người dùng GeoSound" đến lần đăng nhập hoặc làm mới token sau.
 
 ## Preconditions
 
-- Tour tồn tại; tourist đã (hoặc đang) trải nghiệm tour.
+- Tour tồn tại và có `status = 'public'`.
+- Để gửi, sửa, xóa: Tourist đã đăng nhập (UC01) và không phải tác giả của tour.
 
 ## Post Conditions
 
-- Đánh giá được lưu; điểm trung bình và thống kê tour được cập nhật (phục vụ UC17).
+- Có đúng một dòng `tour_ratings` cho mỗi cặp (tour, tài khoản), hoặc dòng đã bị xóa (A2).
+- `tours.average_rating` và `tours.rating_count` luôn khớp với mọi thay đổi; `tours.updated_at` (revision cho kiểm duyệt và danh mục) không đổi.
+- Không phát sự kiện nào.
 
 ## Reference: Business Rules
 
-- Mỗi tài khoản đánh giá **một lần/tour** (có thể sửa lại).
-- Nội dung nhận xét có thể bị kiểm duyệt; đánh giá gắn tài khoản để chống spam.
+| # | Quy tắc |
+|---|---|
+| R1 | Đánh giá cần đăng nhập (mọi vai trò); đọc đánh giá là công khai |
+| R2 | Mỗi tài khoản một đánh giá mỗi tour (khóa duy nhất `tour_id, user_id`); gửi lần hai là sửa |
+| R3 | Số sao bắt buộc, số nguyên 1–5; nhận xét không bắt buộc, được cắt khoảng trắng, tối đa 1000 ký tự |
+| R4 | Chỉ tour `public` được đánh giá và liệt kê đánh giá; trạng thái khác trả 404 |
+| R5 | Tác giả không tự đánh giá tour của mình (403 `own_tour`) |
+| R6 | Không đính kèm ảnh; nhận xét không gửi qua kiểm duyệt AI, nội dung xấu xử lý bằng báo cáo (UC06) |
+| R7 | Điểm trung bình cập nhật nguyên tử bằng SQL thô trong cùng transaction với dòng đánh giá (khóa `SELECT ... FOR UPDATE`) |
+| R8 | Nhận xét hiện tên hiển thị chụp tại lúc đánh giá (`user_name`), không bao giờ hiện email hay user id |
+| R9 | Giá trị demo đã seed trong `average_rating` / `rating_count` được giữ làm điểm xuất phát; phân bố sao chỉ tính từ các dòng thật |
+
+## Hiện thực trong hệ thống
+
+- **Dịch vụ:**
+  - Client: mục Đánh giá trên chi tiết tour, form, danh sách có phân trang.
+  - Gateway: chuyển `/api/tours` sang Tour.
+  - Tour: kiểm tra quy tắc, lưu đánh giá, cập nhật điểm trung bình.
+  - Auth: thêm claim `name` vào access token (bổ sung, các dịch vụ khác bỏ qua).
+- **Màn hình (client):** `/tour/:tourId` (mục `#ratings`, `client/src/features/tours/RatingsSection.jsx`); hộp thoại kết thúc của `/tour/:tourId/play` (`client/src/features/player/CompletionDialog.jsx`). API helper `client/src/lib/ratings.js`.
+- **API (qua gateway):**
+  - `GET /api/tours/:id/ratings?page=&limit=` (công khai)
+  - `GET /api/tours/:id/ratings/mine`
+  - `PUT /api/tours/:id/ratings/mine` (201 tạo / 200 sửa)
+  - `DELETE /api/tours/:id/ratings/mine` (204)
+- **Sự kiện (RabbitMQ):** không có. Đánh giá không đưa vào chỉ mục chatbot.
+- **Dữ liệu:** `tour.tour_ratings` (`tour_id`, `user_id`, `user_name`, `stars`, `comment`, `created_at`, `updated_at`); `tour.tours.average_rating`, `tour.tours.rating_count`.
+- **Tài liệu thiết kế:** [uc05-ratings.md](../../02-design/uc05-ratings.md).
 
 ## Author(s)
 
@@ -66,7 +111,7 @@ Tourist đã trải nghiệm tour và muốn để lại đánh giá.
 
 ## Date
 
-2026-10-18
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
 
 ## Activity Diagram
 
@@ -74,8 +119,29 @@ Tourist đã trải nghiệm tour và muốn để lại đánh giá.
 
 ## Sequence Diagram
 
-(bổ sung sau)
+```mermaid
+sequenceDiagram
+    actor U as Tourist
+    participant C as Client
+    participant G as Gateway
+    participant T as Tour
+    U->>C: Mở mục Đánh giá
+    C->>G: GET /api/tours/:id/ratings
+    G->>T: GET /tours/:id/ratings
+    T-->>C: summary + items
+    C->>G: GET /api/tours/:id/ratings/mine (JWT)
+    G->>T: chuyển tiếp
+    T-->>C: { rating: null }
+    U->>C: Chọn sao, nhập nhận xét, Gửi
+    C->>G: PUT /api/tours/:id/ratings/mine { stars, comment }
+    G->>T: chuyển tiếp
+    T->>T: Kiểm tra public, không phải tác giả; lưu tour_ratings + cập nhật average_rating (1 transaction)
+    T-->>C: 201 { rating, summary }
+    C-->>U: "Cảm ơn đánh giá của bạn"
+```
 
 ## Boundary
 
-Màn hình kết thúc tour (nút Đánh giá), Form đánh giá, Danh sách đánh giá của tour.
+- Chi tiết tour `/tour/:tourId`, mục **Đánh giá** (`#ratings`): tóm tắt sao, form "Đánh giá tour" / "Đánh giá của bạn", danh sách nhận xét.
+- Hộp thoại kết thúc của trình phát `/tour/:tourId/play` (nút dẫn tới `/tour/:tourId#ratings`).
+- Đăng nhập `/login` (khi chưa đăng nhập).
