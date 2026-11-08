@@ -76,7 +76,7 @@ client IP only, because the gateway does not check JWTs on the chat routes (upda
 | `filters` | `{city?, type?, max_duration?, topics[], near?{lat, lng, radius_m}, ref_ids[]}` | Set by `plan` |
 | `retrieved` | list of `{kind, id, title, text, score, hops}` | Set by `retrieve`, max k = 5 |
 | `answer` | string | Set by `answer` |
-| `citations` | list of `{kind, id, title}` | Set by `cite`, subset of `retrieved` |
+| `citations` | list of `{kind, id, title, tour_id?}` (`tour_id` on place citations) | Set by `cite`, subset of `retrieved` |
 | `llm_calls` | int | Budget counter, hard cap 2 per turn |
 
 ### 3.2 Nodes and edges
@@ -330,7 +330,7 @@ becomes a problem.
 | --- | --- |
 | `meta` | `{session_id, lang}` (first event) |
 | `token` | `{text}` (many) |
-| `citations` | `{items: [{kind: "tour" \| "place", id, title}]}` |
+| `citations` | `{items: [{kind: "tour" \| "place", id, title, tour_id?}]}`; `tour_id` only on a place, so the client can link it to its tour |
 | `done` | `{finish_reason: "stop" \| "no_data" \| "refused", llm_calls}` |
 | `error` | `{code, message}`; then the stream closes |
 
