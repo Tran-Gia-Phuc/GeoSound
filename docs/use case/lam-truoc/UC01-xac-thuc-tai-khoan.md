@@ -77,6 +77,7 @@ Người dùng muốn dùng tính năng cần tài khoản (lịch trình, Studi
 ## Assumptions
 
 - Người dùng có hộp thư email nhận được OTP. Không có đăng ký bằng số điện thoại / SMS.
+- Email OTP có bản HTML và bản văn bản (`buildOtpEmail()`, cùng mẫu với Notification), ghi rõ thời hạn mã; nếu mẫu lỗi vẫn gửi bản văn bản để không chặn đăng ký.
 - Khi môi trường chưa cấu hình SMTP (dev), Auth in OTP ra log (`ConsoleMailer`) thay vì gửi email.
 
 ## Preconditions
@@ -138,13 +139,13 @@ Người dùng muốn dùng tính năng cần tài khoản (lịch trình, Studi
 | 6 | `SessionManager.start()` | `services/auth/src/application/services/session-manager.js` |
 | 6 | `JwtTokenService.issueTokens()`, `.verifyRefresh()` | `services/auth/src/infrastructure/security/jwt-token-service.js` |
 | A1.4 | `RedisChallengeStore.save()`, `.get()`, `.delete()` | `services/auth/src/infrastructure/cache/redis-challenge-store.js` |
-| A1.4 | `NodemailerMailer.sendOtp()`, `ConsoleMailer.sendOtp()` | `services/auth/src/infrastructure/mail/nodemailer-mailer.js`, `console-mailer.js` |
+| A1.4 | `NodemailerMailer.sendOtp()`, `otpMessage()`, `ConsoleMailer.sendOtp()` | `services/auth/src/infrastructure/mail/nodemailer-mailer.js`, `console-mailer.js` |
+| A1.4 | `buildOtpEmail()` (email OTP HTML + văn bản) | `services/auth/src/infrastructure/mail/otp-email-template.js` |
 | 5, A1.6 | `PrismaUserRepository.findByEmail()`, `.create()`, `.save()` | `services/auth/src/infrastructure/persistence/prisma-user-repository.js` |
 | E5, E6 | `Email`, `Password` | `services/auth/src/domain/value-objects/email.js`, `password.js` |
 
 - **Tài liệu thiết kế:** [notification-otp-design.md](../../02-design/notification-otp-design.md), [device-sessions.md](../../02-design/device-sessions.md).
 - **Giới hạn đã biết:**
-  - Mẫu email OTP HTML của Notification (`send-otp-email.js`) chưa được nối với Auth; Auth gửi email văn bản thuần.
 
 ## Author(s)
 
