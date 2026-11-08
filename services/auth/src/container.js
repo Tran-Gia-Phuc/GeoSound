@@ -106,6 +106,7 @@ export function buildContainer(env = process.env, { verifyJwt = null, publish = 
         user: env.SMTP_USER,
         pass: env.SMTP_PASS,
         from: env.SMTP_FROM,
+        otpTtlSeconds,
       })
     : new ConsoleMailer();
 
