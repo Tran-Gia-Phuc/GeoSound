@@ -14,13 +14,13 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | 1 | Tourist mở lịch trình (`/itineraries/:id`) và chọn **"Đi theo lịch trình"**, hoặc người nhận mở `/shared/:token` và chọn đi theo. *A2* | |
-| 2 | | Client mở trình phát `/itinerary/:id/go` và gọi `GET /api/itineraries/:id?lang=`. Tour trả view cùng dạng chi tiết tour: các điểm theo thứ tự, `route.path` nối các điểm, mỗi điểm một vùng kích hoạt hình tròn (bán kính snapshot, mặc định 50 m). *E3* |
+| 2 | | Client mở trình phát `/itinerary/:id/go` và gọi `GET /api/itineraries/:id?lang=`. Tour trả view cùng dạng chi tiết tour: các điểm theo thứ tự, `route.path` nối các điểm, mỗi điểm một vùng kích hoạt hình tròn (bán kính snapshot, mặc định 50 m). *E3* `ItineraryPlayerPage` → `getItinerary()` → `GetItinerary.execute()` → `buildItineraryView()` |
 | 3 | Tourist chọn chế độ **"Đi theo lịch trình"** (GPS). *A1* | |
-| 4 | | Client xin quyền vị trí, hiện bản đồ với vị trí hiện tại, các điểm và điểm tiếp theo chưa nghe kèm khoảng cách. *E1, E2* |
+| 4 | | Client xin quyền vị trí, hiện bản đồ với vị trí hiện tại, các điểm và điểm tiếp theo chưa nghe kèm khoảng cách. *E1, E2* `TourPlayerPage`, `useGeolocation()` |
 | 5 | Tourist di chuyển ngoài thực địa. | |
-| 6 | | Khi vào vùng của một điểm mới, client tự mở nội dung điểm và phát audio người thật; nếu không có audio (hoặc audio lỗi), đọc văn bản bằng giọng thiết bị. |
+| 6 | | Khi vào vùng của một điểm mới, client tự mở nội dung điểm và phát audio người thật; nếu không có audio (hoặc audio lỗi), đọc văn bản bằng giọng thiết bị. `usePlaybackEngine()`, `useAudioController()` |
 | 7 | Tourist tạm dừng, tua, chuyển điểm hoặc đổi ngôn ngữ (trong các ngôn ngữ có ở lịch trình). | |
-| 8 | | Khi nghe hết các điểm, client hiện hộp thoại hoàn thành. |
+| 8 | | Khi nghe hết các điểm, client hiện hộp thoại hoàn thành. `CompletionDialog`, `useTourProgress()` |
 | 9 | | Use case kết thúc tại đây. |
 
 ## Alternative Path
@@ -30,20 +30,20 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | A1.1 | Tourist chọn chế độ **"Nghe thử từng điểm"** hoặc bấm một điểm trên danh sách / bản đồ. | |
-| A1.2 | | Client phát nội dung điểm đó mà không cần đến gần, không dùng GPS. |
+| A1.2 | | Client phát nội dung điểm đó mà không cần đến gần, không dùng GPS. `usePlaybackEngine()` (mode `remote`) |
 
 **A2. Đi theo lịch trình được chia sẻ.**
 
 | # | Actor Action | System Response |
 |---|---|---|
 | A2.1 | Người nhận mở `/shared/:token/go`. | |
-| A2.2 | | Client gọi `GET /api/itineraries/shared/:token?lang=` (công khai) và dùng cùng trình phát; người nhận không sửa được lịch trình. *E4* |
+| A2.2 | | Client gọi `GET /api/itineraries/shared/:token?lang=` (công khai) và dùng cùng trình phát; người nhận không sửa được lịch trình. *E4* `SharedItineraryPlayerPage` → `getSharedItinerary()` → `GetSharedItinerary.execute()` |
 
 ## Exception Path
 
-- **E1.** Chưa cấp quyền vị trí hoặc thiết bị không hỗ trợ → băng cảnh báo *"Chưa có quyền vị trí"* / *"Thiết bị không hỗ trợ GPS"*: *"Hãy cấp quyền vị trí, hoặc chuyển sang nghe thử từ xa."* (A1).
+- **E1.** Chưa cấp quyền vị trí hoặc thiết bị không hỗ trợ → băng cảnh báo *"Chưa có quyền vị trí"* / *"Thiết bị không hỗ trợ GPS"*: *"Hãy cấp quyền vị trí, hoặc chuyển sang nghe thử từ xa."* (A1). `useGeolocation()`
 - **E2.** GPS yếu → *"GPS yếu (±… m). Bạn có thể chọn điểm thủ công."*; vị trí không cập nhật → *"Tín hiệu vị trí chưa cập nhật. Đang chờ GPS…"*.
-- **E3.** Lịch trình không tồn tại → 404 `itinerary_not_found`; không phải chủ sở hữu → 403 `not_itinerary_owner`; chưa đăng nhập ở `/itinerary/:id/go` → chuyển tới `/login`.
+- **E3.** Lịch trình không tồn tại → 404 `itinerary_not_found`; không phải chủ sở hữu → 403 `not_itinerary_owner`; chưa đăng nhập ở `/itinerary/:id/go` → chuyển tới `/login`. `loadOwnedItinerary()`, `RequireAuth`
 - **E4.** Liên kết chia sẻ đã bị thu hồi hoặc sai → 404, client hiện lỗi tải.
 - **E5.** Mất mạng khi mở trình phát → không tải được lịch trình (không có bản offline cho lịch trình).
 
@@ -94,6 +94,27 @@ Tourist bắt đầu đi theo lịch trình đã lập, hoặc mở liên kết 
   - `GET /api/itineraries/shared/:token?lang=` (công khai)
 - **Sự kiện (RabbitMQ):** không có.
 - **Dữ liệu:** đọc `tour.itineraries` và `tour.itinerary_items` (`lat`, `lng`, `radius_meters`, `audio_by_lang`, `available_languages`, `sequence`).
+- **Mã nguồn chính:**
+
+| Bước | Hàm / lớp | File |
+|---|---|---|
+| 1 | `ItineraryEditorPage` (nút "Đi theo lịch trình") | `client/src/features/itineraries/ItineraryEditorPage.jsx` |
+| 2 | `ItineraryPlayerPage` | `client/src/features/itineraries/ItineraryPlayerPage.jsx` |
+| A2 | `SharedItineraryPlayerPage` | `client/src/features/itineraries/SharedItineraryPlayerPage.jsx` |
+| 2, A2 | `getItinerary()`, `getSharedItinerary()` | `client/src/lib/itineraries.js` |
+| 3–8 | `TourPlayerPage` | `client/src/features/player/TourPlayerPage.jsx` |
+| 4, E1, E2 | `useGeolocation()` | `client/src/hooks/useGeolocation.js` |
+| 6, A1 | `usePlaybackEngine()` | `client/src/hooks/usePlaybackEngine.js` |
+| 6, R3 | `useAudioController()` (audio + `speechSynthesis`) | `client/src/hooks/useAudioController.js` |
+| 8 | `useTourProgress()`, `CompletionDialog` | `client/src/hooks/useTourProgress.js`, `client/src/features/player/CompletionDialog.jsx` |
+| Route | `buildItineraryRouter()`, `buildPublicItineraryRouter()` | `services/tour/src/interfaces/http/routes/itinerary-routes.js`, `public-itinerary-routes.js` |
+| Controller | `ItineraryController.getOne()`, `ExploreController.shared()` | `services/tour/src/interfaces/http/controllers/itinerary-controller.js`, `explore-controller.js` |
+| 2 | `GetItinerary.execute()`, `loadOwnedItinerary()` | `services/tour/src/application/use-cases/get-itinerary.js`, `load-owned-itinerary.js` |
+| A2 | `GetSharedItinerary.execute()` | `services/tour/src/application/use-cases/get-shared-itinerary.js` |
+| 2, R2 | `buildItineraryView()` (vùng tròn, `route.path`) | `services/tour/src/application/use-cases/build-itinerary-view.js` |
+| R2 | `ItineraryItem`, `DEFAULT_RADIUS_METERS` | `services/tour/src/domain/entities/itinerary-item.js` |
+| Lưu trữ | `PrismaItineraryRepository.findById()`, `findByShareToken()` | `services/tour/src/infrastructure/persistence/prisma-itinerary-repository.js` |
+
 - **Giới hạn đã biết:** không có gói tải offline cho lịch trình; cần mạng để mở trình phát.
 
 ## Author(s)

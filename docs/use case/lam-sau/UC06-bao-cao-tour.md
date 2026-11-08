@@ -14,12 +14,12 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | 1 | Tourist bấm **"Báo cáo"** trên chi tiết tour (`/tour/:tourId`) hoặc trên thanh trên cùng của trình phát (`/tour/:tourId/play`). | |
-| 2 | | Client gọi `GET /api/tours/:id/reports/mine`. Chưa báo cáo thì hiện form "Lý do báo cáo". *E1, E3, A1* |
+| 2 | | Client gọi `GET /api/tours/:id/reports/mine`. Chưa báo cáo thì hiện form "Lý do báo cáo". *E1, E3, A1* `getMyReport()` → `GetMyTourReport.execute()` |
 | 3 | Tourist chọn một lý do: sai sự thật / phản cảm / spam / vi phạm bản quyền / khác, và nhập mô tả (bắt buộc khi chọn "khác"). *E2* | |
 | 4 | Tourist nhấn **"Gửi báo cáo"**. | |
-| 5 | | Client gọi `POST /api/tours/:id/reports`. Tour khóa dòng tour, lưu `tour_reports` (`status = open`), tăng `open_report_count`, đếm số tài khoản báo cáo đang mở trong 7 ngày qua. *A2* |
-| 6 | | Sau khi commit, Tour phát `tour.reported` (không có id người báo cáo). Notification lưu một thông báo trong ứng dụng cho tác giả (UC16), không gửi email. |
-| 7 | | Client hiện *"Đã gửi báo cáo, cảm ơn bạn"* và chuyển sang trạng thái "Bạn đã báo cáo tour này". |
+| 5 | | Client gọi `POST /api/tours/:id/reports`. Tour khóa dòng tour, lưu `tour_reports` (`status = open`), tăng `open_report_count`, đếm số tài khoản báo cáo đang mở trong 7 ngày qua. *A2* `reportTour()` → `ReportTour.execute()` → `PrismaTourReportRepository.createReport()` |
+| 6 | | Sau khi commit, Tour phát `tour.reported` (không có id người báo cáo). Notification lưu một thông báo trong ứng dụng cho tác giả (UC16), không gửi email. `EventTourReportPublisher.reported()` → `handleEvent()` → `buildInAppNotification()` |
+| 7 | | Client hiện *"Đã gửi báo cáo, cảm ơn bạn"* và chuyển sang trạng thái "Bạn đã báo cáo tour này". `ReportTour` (client) |
 | 8 | | Use case kết thúc tại đây. |
 
 ## Alternative Path
@@ -28,19 +28,19 @@
 
 | # | Actor Action | System Response |
 |---|---|---|
-| A1.1 | | `GET .../reports/mine` trả báo cáo cũ: client hiện "Bạn đã báo cáo tour này", lý do đã chọn và "Quản trị viên sẽ xem xét báo cáo của bạn." thay cho form. |
+| A1.1 | | `GET .../reports/mine` trả báo cáo cũ: client hiện "Bạn đã báo cáo tour này", lý do đã chọn và "Quản trị viên sẽ xem xét báo cáo của bạn." thay cho form. `GetMyTourReport.execute()`, `reportReasonLabel()` |
 
 **A2. Tour đạt ngưỡng báo cáo.**
 
 | # | Actor Action | System Response |
 |---|---|---|
-| A2.1 | | Nếu báo cáo `open` từ **5 tài khoản khác nhau trong 7 ngày** (tính cả báo cáo mới), Tour đặt `tours.report_flagged_at = now()` (chỉ khi đang null). Phản hồi có `flagged: true`. |
+| A2.1 | | Nếu báo cáo `open` từ **5 tài khoản khác nhau trong 7 ngày** (tính cả báo cáo mới), Tour đặt `tours.report_flagged_at = now()` (chỉ khi đang null). Phản hồi có `flagged: true`. `reportWindowStart()`, `REPORT_FLAG_THRESHOLD`, `PrismaTourReportRepository.createReport()` |
 | A2.2 | | Tour vào hàng đợi `/admin/reports` của Admin (UC20). Tour **không** bị ẩn tự động. |
 
 ## Exception Path
 
 - **E1.** Chưa đăng nhập → hộp thoại *"Bạn cần đăng nhập để báo cáo tour này."* với nút "Đăng nhập để báo cáo" (UC01); API trả 401 nếu không có token.
-- **E2.** Chưa chọn lý do → *"Vui lòng chọn lý do báo cáo"*; chọn "khác" mà không mô tả → *"Vui lòng mô tả lý do"* (server trả 400 `validation_error`).
+- **E2.** Chưa chọn lý do → *"Vui lòng chọn lý do báo cáo"*; chọn "khác" mà không mô tả → *"Vui lòng mô tả lý do"* (server trả 400 `validation_error`). `reportTourSchema`, `normalizeReportInput()`
 - **E3.** Tác giả báo cáo tour của mình → *"Bạn không thể báo cáo tour của chính mình"* (403 `own_tour`).
 - **E4.** Tour không `public` hoặc không tồn tại → 404 `tour_not_found`.
 - **E5.** Gửi trùng (ví dụ hai tab cùng lúc) → 409 `already_reported`, client hiện trạng thái "đã báo cáo".
@@ -97,6 +97,26 @@ Tourist phát hiện tour có nội dung không phù hợp.
   - `GET /api/tours/:id/reports/mine` → `{ report | null }`
 - **Sự kiện (RabbitMQ):** Tour phát `tour.reported` `{ tourId, count, reason?, flagged?, contributorId?, tourTitle?, at? }`; Notification tiêu thụ.
 - **Dữ liệu:** `tour.tour_reports` (`tour_id`, `reporter_id`, `reason`, `note`, `status`, `created_at`); `tour.tours.report_flagged_at`, `tour.tours.open_report_count`.
+- **Mã nguồn chính:**
+
+| Bước | Hàm / lớp | File |
+|---|---|---|
+| 1–7, E1 | `ReportTour` (component) | `client/src/features/tours/ReportTour.jsx` |
+| 1 (trình phát) | `TourPlayerPage` (prop `reportable`) | `client/src/features/player/TourPlayerPage.jsx` |
+| 2, A1 | `getMyReport()`, `reportReasonLabel()` | `client/src/lib/reports.js` |
+| 5 | `reportTour()` | `client/src/lib/reports.js` |
+| Route | `buildTourReportRouter()` | `services/tour/src/interfaces/http/routes/tour-report-routes.js` |
+| Controller | `TourReportController` (`report`, `mine`) | `services/tour/src/interfaces/http/controllers/tour-report-controller.js` |
+| E2 | `reportTourSchema` | `services/tour/src/application/dtos/report-schemas.js` |
+| 5–6 | `ReportTour.execute()` | `services/tour/src/application/use-cases/tour-reports.js` |
+| 2, A1 | `GetMyTourReport.execute()` | `services/tour/src/application/use-cases/tour-reports.js` |
+| R3, R5 | `normalizeReportInput()`, `reportWindowStart()`, `REPORT_FLAG_THRESHOLD`, `REPORT_WINDOW_DAYS` | `services/tour/src/domain/entities/tour-report.js` |
+| 5, A2 | `PrismaTourReportRepository.createReport()`, `findByTourAndReporter()` | `services/tour/src/infrastructure/persistence/prisma-tour-report-repository.js` |
+| 6 | `EventTourReportPublisher.reported()` | `services/tour/src/infrastructure/messaging/event-tour-report-publisher.js` |
+| 6 | `handleEvent()` | `services/notification/src/notify.js` |
+| 6 | `buildInAppNotification()` | `services/notification/src/domain/in-app-notification.js` |
+| 6 | `PrismaInAppNotificationRepository` | `services/notification/src/infrastructure/prisma-in-app-notification-repository.js` |
+
 - **Tài liệu thiết kế:** [uc06-reports.md](../../02-design/uc06-reports.md), [uc20-report-handling.md](../../02-design/uc20-report-handling.md).
 
 ## Author(s)

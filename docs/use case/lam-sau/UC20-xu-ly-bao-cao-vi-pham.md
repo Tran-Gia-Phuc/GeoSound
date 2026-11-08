@@ -14,18 +14,18 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | 1 | Admin mở trang **"Tour bị báo cáo"** (`/admin/reports`). | |
-| 2 | | Tour service trả về các tour có `open_report_count > 0`, sắp theo số báo cáo mở giảm dần, rồi tour bị gắn cờ trước, rồi báo cáo mở cũ nhất trước. Mỗi dòng có tên, trạng thái, số báo cáo, cờ, thời điểm báo cáo gần nhất và số báo cáo theo từng lý do. Có phân trang (mặc định 20, tối đa 50). *E1, E2* |
+| 2 | | Tour service trả về các tour có `open_report_count > 0`, sắp theo số báo cáo mở giảm dần, rồi tour bị gắn cờ trước, rồi báo cáo mở cũ nhất trước. Mỗi dòng có tên, trạng thái, số báo cáo, cờ, thời điểm báo cáo gần nhất và số báo cáo theo từng lý do. Có phân trang (mặc định 20, tối đa 50). *E1, E2* `ListReportQueue.execute()` |
 | 3 | Admin chọn một tour. | |
-| 4 | | Hệ thống hiển thị hồ sơ (`/admin/reports/:tourId`): tóm tắt tour (trạng thái, thành phố, điểm đánh giá), liên kết tới trang tour công khai và trang tài khoản tác giả (UC21), các báo cáo mở (lý do, ghi chú, thời gian, id người báo cáo), số báo cáo đã bỏ qua / đã xử lý, lịch sử hành động admin. Các nút chỉ hiện khi API cho phép (`actions`). *E3* |
+| 4 | | Hệ thống hiển thị hồ sơ (`/admin/reports/:tourId`): tóm tắt tour (trạng thái, thành phố, điểm đánh giá), liên kết tới trang tour công khai và trang tài khoản tác giả (UC21), các báo cáo mở (lý do, ghi chú, thời gian, id người báo cáo), số báo cáo đã bỏ qua / đã xử lý, lịch sử hành động admin. Các nút chỉ hiện khi API cho phép (`actions`). *E3* `GetReportDossier.execute()` |
 | 5 | Admin chọn **Ẩn tour**, nhập lý do và xác nhận. *A1, A2, A3* | |
-| 6 | | Trong một giao dịch: tour `public` → `hidden` (ghi có điều kiện), các báo cáo mở → `actioned`, `open_report_count` = 0, `report_flagged_at` = null, ghi một dòng `admin_actions` (`hide_tour`). *E4, E5* |
-| 7 | | Sau khi commit, Tour phát `tour.hidden` (và `tour.unpublished` lý do `hidden` nếu bật cờ chatbot). Notification tạo thông báo trong app và gửi email cảnh báo kèm lý do cho tác giả (UC16). Use case kết thúc. |
+| 6 | | Trong một giao dịch: tour `public` → `hidden` (ghi có điều kiện), các báo cáo mở → `actioned`, `open_report_count` = 0, `report_flagged_at` = null, ghi một dòng `admin_actions` (`hide_tour`). *E4, E5* `HideReportedTour.execute()`, `PrismaAdminReportRepository.hideIf()` |
+| 7 | | Sau khi commit, Tour phát `tour.hidden` (và `tour.unpublished` lý do `hidden` nếu bật cờ chatbot). Notification tạo thông báo trong app và gửi email cảnh báo kèm lý do cho tác giả (UC16). Use case kết thúc. `EventAdminReportPublisher.hidden()`, `handleEvent()` (Notification) |
 
 ## Alternative Path
 
-**A1. Khôi phục tour bị ẩn (report bomb)** → chỉ từ `hidden`, lý do không bắt buộc. Tour về `public` ngay, không kiểm duyệt lại, không có kháng nghị. Các báo cáo giữ nguyên. Ghi `restore_tour`, phát `tour.restored` (và `tour.published` nếu bật cờ chatbot). Hiện chưa có thông báo cho tác giả khi khôi phục.
+**A1. Khôi phục tour bị ẩn (report bomb)** → chỉ từ `hidden`, lý do không bắt buộc. Tour về `public` ngay, không kiểm duyệt lại, không có kháng nghị. Các báo cáo giữ nguyên. Ghi `restore_tour`, phát `tour.restored` (và `tour.published` nếu bật cờ chatbot). Notification không đăng ký `tour.restored`, nên tác giả chưa được báo khi khôi phục. `RestoreHiddenTour.execute()`, `PrismaAdminReportRepository.restoreIf()`, `EventAdminReportPublisher.restored()`
 
-**A2. Bỏ qua báo cáo (không vi phạm)** → chỉ khi tour có báo cáo mở, lý do không bắt buộc. Báo cáo mở → `dismissed`, bộ đếm và cờ được xoá, trạng thái tour giữ nguyên, `tours.updated_at` không đổi. Ghi `dismiss_reports`, không phát sự kiện.
+**A2. Bỏ qua báo cáo (không vi phạm)** → chỉ khi tour có báo cáo mở, lý do không bắt buộc. Báo cáo mở → `dismissed`, bộ đếm và cờ được xoá, trạng thái tour giữ nguyên, `tours.updated_at` không đổi. Ghi `dismiss_reports`, không phát sự kiện. `DismissTourReports.execute()`, `PrismaAdminReportRepository.dismissIf()`
 
 **A3. Tác giả vi phạm nhiều lần** → từ hồ sơ, Admin mở trang tài khoản tác giả và chuyển sang **UC21 – Quản lý tài khoản vi phạm**.
 
@@ -34,9 +34,9 @@
 - **E1.** Không có tour bị báo cáo → danh sách rỗng.
 - **E2.** Không có token hợp lệ → 401; không phải admin → 403; tham số `page` / `limit` sai → 400.
 - **E3.** `tourId` không phải UUID → 400; tour không tồn tại → 404 `tour_not_found`.
-- **E4.** Ẩn khi tour không ở `public` → 409 `tour_not_hideable`; khôi phục khi không ở `hidden` → 409 `tour_not_restorable`; bỏ qua khi không còn báo cáo mở → 409 `no_open_reports`. Hai admin cùng thao tác: một người thắng, người kia nhận 409; client hiện thông báo và tải lại hồ sơ.
+- **E4.** Ẩn khi tour không ở `public` → 409 `tour_not_hideable`; khôi phục khi không ở `hidden` → 409 `tour_not_restorable`; bỏ qua khi không còn báo cáo mở → 409 `no_open_reports` (`TourNotHideableError`, `TourNotRestorableError`, `NoOpenReportsError`). Hai admin cùng thao tác: một người thắng, người kia nhận 409; client hiện thông báo và tải lại hồ sơ.
 - **E5.** Ẩn thiếu lý do, hoặc lý do quá 1000 ký tự → 422.
-- **E6.** Gửi sự kiện thất bại → chỉ ghi log, quyết định vẫn thành công.
+- **E6.** Gửi sự kiện thất bại → chỉ ghi log, quyết định vẫn thành công (`ReportDecision.emit()`).
 
 ## Extension Points
 
@@ -89,6 +89,21 @@ Khách gửi báo cáo cho một tour (UC06), làm `open_report_count` > 0; tour
 - **Sự kiện (RabbitMQ):** publish `tour.hidden`, `tour.unpublished` (ẩn), `tour.restored`, `tour.published` (khôi phục); bỏ qua không phát gì. Không gửi khi cả hai cờ sự kiện đều tắt.
 - **Dữ liệu (schema `tour`):** `tours.status`, `tours.open_report_count`, `tours.report_flagged_at`; `tour_reports.status` (`open` / `dismissed` / `actioned`); `admin_actions`.
 - **Tài liệu thiết kế:** [uc20-report-handling.md](../../02-design/uc20-report-handling.md), [uc06-reports.md](../../02-design/uc06-reports.md), [uc16-notifications.md](../../02-design/uc16-notifications.md).
+- **Mã nguồn chính:**
+
+| Bước | Hàm / lớp | File |
+|---|---|---|
+| 1-2 | `ReportedToursPage`, `listReportedTours()` | `client/src/features/admin/ReportedToursPage.jsx`, `client/src/lib/admin-reports.js` |
+| 3-4 | `ReportDossierPage`, `getReportDossier()` | `client/src/features/admin/ReportDossierPage.jsx`, `client/src/lib/admin-reports.js` |
+| 5, A1, A2 | `hideReportedTour()`, `restoreReportedTour()`, `dismissTourReports()`, `ReasonDialog` | `client/src/lib/admin-reports.js`, `client/src/features/admin/ReasonDialog.jsx` |
+| Route | `buildAdminReportRouter()` (mount `/admin/reports`) | `services/tour/src/interfaces/http/routes/admin-report-routes.js`, `services/tour/src/index.js` |
+| Controller | `AdminReportController.queue/dossier/hide/restore/dismiss` | `services/tour/src/interfaces/http/controllers/admin-report-controller.js` |
+| 2, 4 | `ListReportQueue`, `GetReportDossier` | `services/tour/src/application/use-cases/admin-reports.js` |
+| 6, A1, A2 | `HideReportedTour`, `RestoreHiddenTour`, `DismissTourReports` (base `ReportDecision`) | `services/tour/src/application/use-cases/admin-reports.js` |
+| 6, A1, A2 | `PrismaAdminReportRepository.hideIf/restoreIf/dismissIf()` | `services/tour/src/infrastructure/persistence/prisma-admin-report-repository.js` |
+| 4 | `PrismaAdminActionRepository.listByTarget()` (lịch sử) | `services/tour/src/infrastructure/persistence/prisma-admin-action-repository.js` |
+| 7, A1 | `EventAdminReportPublisher.hidden/restored()` | `services/tour/src/infrastructure/messaging/event-admin-report-publisher.js` |
+| 7 | `handleEvent()`, `createStoreInAppNotification()`, `buildTourEmail()` | `services/notification/src/notify.js`, `services/notification/src/application/store-in-app-notification.js`, `services/notification/src/services/tour-email-template.js` |
 
 ## Author(s)
 

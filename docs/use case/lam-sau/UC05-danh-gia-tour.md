@@ -14,12 +14,12 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | 1 | Tourist mở mục **"Đánh giá"** trên chi tiết tour (`/tour/:tourId#ratings`), hoặc bấm nút đánh giá ở hộp thoại kết thúc của trình phát (UC04). | |
-| 2 | | Client gọi `GET /api/tours/:id/ratings` (công khai) để hiện tóm tắt (điểm trung bình, số lượt, phân bố 1–5 sao) và danh sách nhận xét mới nhất trước, 10 mục mỗi trang. *E3* |
-| 3 | | Nếu đã đăng nhập, client gọi `GET /api/tours/:id/ratings/mine`: chưa có thì hiện form "Đánh giá tour", đã có thì hiện "Đánh giá của bạn". *E1, E4, A1* |
+| 2 | | Client gọi `GET /api/tours/:id/ratings` (công khai) để hiện tóm tắt (điểm trung bình, số lượt, phân bố 1–5 sao) và danh sách nhận xét mới nhất trước, 10 mục mỗi trang. *E3* `listRatings()` → `ListTourRatings.execute()` |
+| 3 | | Nếu đã đăng nhập, client gọi `GET /api/tours/:id/ratings/mine`: chưa có thì hiện form "Đánh giá tour", đã có thì hiện "Đánh giá của bạn". *E1, E4, A1* `getMyRating()` → `GetMyTourRating.execute()` |
 | 4 | Tourist chọn số sao và nhập nhận xét (không bắt buộc, tối đa 1000 ký tự). *E2* | |
 | 5 | Tourist nhấn **"Gửi đánh giá"**. | |
-| 6 | | Client gọi `PUT /api/tours/:id/ratings/mine`. Tour lưu dòng `tour_ratings` và cập nhật `tours.average_rating`, `tours.rating_count` trong cùng một transaction, trả 201 kèm tóm tắt mới. |
-| 7 | | Client hiện thông báo *"Cảm ơn đánh giá của bạn"* và làm mới tóm tắt, danh sách. |
+| 6 | | Client gọi `PUT /api/tours/:id/ratings/mine`. Tour lưu dòng `tour_ratings` và cập nhật `tours.average_rating`, `tours.rating_count` trong cùng một transaction, trả 201 kèm tóm tắt mới. `saveMyRating()` → `SaveMyTourRating.execute()` → `PrismaTourRatingRepository.saveForUser()` |
+| 7 | | Client hiện thông báo *"Cảm ơn đánh giá của bạn"* và làm mới tóm tắt, danh sách. `RatingsSection` |
 | 8 | | Use case kết thúc tại đây. |
 
 ## Alternative Path
@@ -29,21 +29,21 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | A1.1 | Tourist chọn Sửa trên "Đánh giá của bạn", đổi số sao hoặc nhận xét và nhấn **"Lưu thay đổi"**. | |
-| A1.2 | | `PUT /api/tours/:id/ratings/mine` trả 200 (cập nhật, không tạo dòng mới); điểm trung bình được tính lại; thông báo *"Đã cập nhật đánh giá"*. Nhận xét đã sửa hiện nhãn "đã sửa". |
+| A1.2 | | `PUT /api/tours/:id/ratings/mine` trả 200 (cập nhật, không tạo dòng mới); điểm trung bình được tính lại; thông báo *"Đã cập nhật đánh giá"*. Nhận xét đã sửa hiện nhãn "đã sửa". `SaveMyTourRating.execute()` |
 
 **A2. Xóa đánh giá của mình.**
 
 | # | Actor Action | System Response |
 |---|---|---|
 | A2.1 | Tourist chọn Xóa trên "Đánh giá của bạn". | |
-| A2.2 | | `DELETE /api/tours/:id/ratings/mine` trả 204; số lượt và điểm trung bình được tính lại; thông báo *"Đã xoá đánh giá"*. |
+| A2.2 | | `DELETE /api/tours/:id/ratings/mine` trả 204; số lượt và điểm trung bình được tính lại; thông báo *"Đã xoá đánh giá"*. `deleteMyRating()` → `DeleteMyTourRating.execute()` → `PrismaTourRatingRepository.deleteForUser()` |
 
-**A3. Xem thêm nhận xét.** Tourist cuộn danh sách và tải trang tiếp theo (`page`, `limit` tối đa 50).
+**A3. Xem thêm nhận xét.** Tourist cuộn danh sách và tải trang tiếp theo (`page`, `limit` tối đa 50). `listRatings()` → `ListTourRatings.execute()` → `PrismaTourRatingRepository.listByTour()`
 
 ## Exception Path
 
 - **E1.** Chưa đăng nhập → thay form là nút *"Đăng nhập để đánh giá"*, dẫn tới `/login?next=...#ratings` (UC01) rồi quay lại đúng mục đánh giá. API trả 401 nếu gọi không có token.
-- **E2.** Gửi khi chưa chọn sao → *"Vui lòng chọn số sao"* (client chặn; server trả 400 `validation_error` cùng thông điệp).
+- **E2.** Gửi khi chưa chọn sao → *"Vui lòng chọn số sao"* (client chặn; server trả 400 `validation_error` cùng thông điệp). `saveRatingSchema`, `normalizeRatingInput()`
 - **E3.** Tour không ở trạng thái `public` (hoặc không tồn tại) → 404 `tour_not_found`, giống chi tiết công khai.
 - **E4.** Tác giả mở tour của chính mình → không có form, hiện *"Bạn là tác giả của tour này nên không thể tự đánh giá."*; API trả 403 `own_tour`.
 - **E5.** Mất mạng → *"Không thể kết nối, vui lòng thử lại"*; xóa khi chưa có đánh giá → 404 `rating_not_found`.
@@ -103,6 +103,27 @@ Tourist đã xem hoặc nghe tour và muốn để lại đánh giá.
   - `DELETE /api/tours/:id/ratings/mine` (204)
 - **Sự kiện (RabbitMQ):** không có. Đánh giá không đưa vào chỉ mục chatbot.
 - **Dữ liệu:** `tour.tour_ratings` (`tour_id`, `user_id`, `user_name`, `stars`, `comment`, `created_at`, `updated_at`); `tour.tours.average_rating`, `tour.tours.rating_count`.
+- **Mã nguồn chính:**
+
+| Bước | Hàm / lớp | File |
+|---|---|---|
+| 1–7 | `RatingsSection` | `client/src/features/tours/RatingsSection.jsx` |
+| 1 (từ trình phát) | `CompletionDialog` | `client/src/features/player/CompletionDialog.jsx` |
+| 2, A3 | `listRatings()` | `client/src/lib/ratings.js` |
+| 3 | `getMyRating()` | `client/src/lib/ratings.js` |
+| 6, A1 | `saveMyRating()` | `client/src/lib/ratings.js` |
+| A2 | `deleteMyRating()` | `client/src/lib/ratings.js` |
+| Route | `buildTourRatingRouter()` | `services/tour/src/interfaces/http/routes/tour-rating-routes.js` |
+| Controller | `TourRatingController` (`list`, `mine`, `save`, `remove`) | `services/tour/src/interfaces/http/controllers/tour-rating-controller.js` |
+| E2 | `saveRatingSchema`, `ratingListQuerySchema` | `services/tour/src/application/dtos/rating-schemas.js` |
+| 2 | `ListTourRatings.execute()` | `services/tour/src/application/use-cases/tour-ratings.js` |
+| 3 | `GetMyTourRating.execute()` | `services/tour/src/application/use-cases/tour-ratings.js` |
+| 6, A1 | `SaveMyTourRating.execute()` | `services/tour/src/application/use-cases/tour-ratings.js` |
+| A2 | `DeleteMyTourRating.execute()` | `services/tour/src/application/use-cases/tour-ratings.js` |
+| R3, R8 | `normalizeRatingInput()`, `reviewerName()`, `ratingDelta` | `services/tour/src/domain/entities/tour-rating.js` |
+| 6, A2, A3 | `PrismaTourRatingRepository` (`saveForUser`, `deleteForUser`, `listByTour`, `distribution`) | `services/tour/src/infrastructure/persistence/prisma-tour-rating-repository.js` |
+| Claim `name` | `User.toAuthPayload()` | `services/auth/src/domain/entities/user.js` |
+
 - **Tài liệu thiết kế:** [uc05-ratings.md](../../02-design/uc05-ratings.md).
 
 ## Author(s)

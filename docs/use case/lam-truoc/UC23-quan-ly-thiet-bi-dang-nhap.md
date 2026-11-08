@@ -14,13 +14,13 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | 1 | Người dùng vào **Tài khoản → "Thiết bị đang đăng nhập"** (`/account/devices`). | |
-| 2 | | Client gọi `GET /api/auth/sessions`; Auth trả các phiên còn hiệu lực của tài khoản: `deviceName` (vd *"Chrome trên Windows"*), `location`, `createdAt`, `lastActiveAt`, `current`. |
-| 3 | | Client hiển thị: thiết bị hiện tại đứng đầu với nhãn **"Thiết bị này"**, các thiết bị khác theo hoạt động gần nhất; mỗi dòng có vị trí (hoặc *"Không xác định"*), *"Đăng nhập lúc ..."* và *"Đang hoạt động"* / *"5 phút trước"*. *E1, E4* |
+| 2 | | Client gọi `GET /api/auth/sessions`; Auth trả các phiên còn hiệu lực của tài khoản: `deviceName` (vd *"Chrome trên Windows"*), `location`, `createdAt`, `lastActiveAt`, `current`. `listSessions()` → `AuthController.listSessions()` → `ListSessions.execute()`, `PrismaSessionRepository.listActiveByUser()`, `Session.toPublic()` |
+| 3 | | Client hiển thị: thiết bị hiện tại đứng đầu với nhãn **"Thiết bị này"**, các thiết bị khác theo hoạt động gần nhất; mỗi dòng có vị trí (hoặc *"Không xác định"*), *"Đăng nhập lúc ..."* và *"Đang hoạt động"* / *"5 phút trước"*. *E1, E4* `DevicesPage`, `sortSessions()`, `formatLastActive()` |
 | 4 | Người dùng nhấn **"Đăng xuất thiết bị"** ở một thiết bị khác. *A1, A2* | |
-| 5 | | Client hỏi *"Đăng xuất khỏi <tên thiết bị>?"* — *"Thiết bị đó sẽ cần đăng nhập lại để tiếp tục dùng tài khoản."* |
+| 5 | | Client hỏi *"Đăng xuất khỏi <tên thiết bị>?"* — *"Thiết bị đó sẽ cần đăng nhập lại để tiếp tục dùng tài khoản."* `ConfirmDialog` |
 | 6 | Người dùng xác nhận. | |
-| 7 | | Client gọi `DELETE /api/auth/sessions/:id`; Auth đặt `revoked_at`, `revoke_reason = user` và ghi khoá `revoked:sid:<sid>` vào Redis. Client bỏ dòng đó và báo *"Đã đăng xuất <tên thiết bị>"*. *E2, E3* |
-| 8 | | Trên thiết bị bị đăng xuất, request kế tiếp bị `verifyJwt` từ chối (401); refresh trả `401 session_revoked`; client xoá token và chuyển tới `/login` với thông báo *"Phiên đăng nhập đã kết thúc trên thiết bị này"*. |
+| 7 | | Client gọi `DELETE /api/auth/sessions/:id`; Auth đặt `revoked_at`, `revoke_reason = user` và ghi khoá `revoked:sid:<sid>` vào Redis. Client bỏ dòng đó và báo *"Đã đăng xuất <tên thiết bị>"*. *E2, E3* `revokeSession()` → `RevokeSession.execute()` → `SessionManager.revoke()`, `RedisRevocationStore.markRevoked()` |
+| 8 | | Trên thiết bị bị đăng xuất, request kế tiếp bị `verifyJwt` từ chối (401); refresh trả `401 session_revoked`; client xoá token và chuyển tới `/login` với thông báo *"Phiên đăng nhập đã kết thúc trên thiết bị này"*. `verifyJwt()` + `createRedisRevocationCheck()`; `RefreshToken.execute()`; `endSession()` → `SessionWatcher` |
 | 9 | | Use case kết thúc tại đây. |
 
 ## Alternative Path
@@ -30,35 +30,35 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | A1.1 | Người dùng nhấn **"Đăng xuất tất cả thiết bị khác"**. | |
-| A1.2 | | Client hỏi *"Đăng xuất N thiết bị khác?"* — *"N thiết bị sẽ bị đăng xuất. Thiết bị này vẫn giữ đăng nhập."* |
+| A1.2 | | Client hỏi *"Đăng xuất N thiết bị khác?"* — *"N thiết bị sẽ bị đăng xuất. Thiết bị này vẫn giữ đăng nhập."* `ConfirmDialog` |
 | A1.3 | Người dùng xác nhận. | |
-| A1.4 | | `POST /api/auth/sessions/revoke-others` thu hồi mọi phiên trừ phiên hiện tại (`user_all`), trả `{ revoked: n }`; danh sách chỉ còn "Thiết bị này"; toast *"Đã đăng xuất n thiết bị"*. |
+| A1.4 | | `POST /api/auth/sessions/revoke-others` thu hồi mọi phiên trừ phiên hiện tại (`user_all`), trả `{ revoked: n }`; danh sách chỉ còn "Thiết bị này"; toast *"Đã đăng xuất n thiết bị"*. `revokeOtherSessions()` → `RevokeOtherSessions.execute()` → `SessionManager.revokeAll()` |
 
-**A2. Đăng xuất chính thiết bị đang dùng.** Nút **"Đăng xuất"** ở `/account` gọi `POST /api/auth/logout` (thu hồi phiên hiện tại) và xoá token. Thiết bị hiện tại không có nút đăng xuất trong danh sách; gọi `DELETE` cho chính nó trả `409 current_session`.
+**A2. Đăng xuất chính thiết bị đang dùng.** Nút **"Đăng xuất"** ở `/account` gọi `POST /api/auth/logout` (thu hồi phiên hiện tại) và xoá token. Thiết bị hiện tại không có nút đăng xuất trong danh sách; gọi `DELETE` cho chính nó trả `409 current_session`. `logout()` (`lib/auth.js`) → `Logout.execute()`; `CurrentSessionError`
 
 **A3. Hệ thống tự đăng xuất** (không cần mở danh sách).
 
-| Tình huống | Phạm vi | `revoke_reason` |
-|---|---|---|
-| Đặt lại mật khẩu qua OTP (UC01 A2) | Tất cả thiết bị | `password_reset` |
-| Đổi mật khẩu khi đang đăng nhập (UC01 A5) | Tất cả trừ thiết bị hiện tại | `password_change` |
-| Admin tạm khoá / cấm tài khoản (UC21) | Tất cả thiết bị | `suspended` / `banned` |
-| Đăng nhập lại trên cùng `deviceId` | Phiên cũ của thiết bị đó | `user` |
-| Quá 7 ngày không hoạt động hoặc quá 30 ngày từ lúc đăng nhập (phát hiện khi refresh) | Phiên đó | `expired` |
-| Refresh token cũ bị dùng lại (dấu hiệu bị đánh cắp) | Phiên đó | `reuse` |
-| Vượt 100 phiên còn hiệu lực | Phiên lâu không hoạt động nhất | `limit` |
+| Tình huống | Phạm vi | `revoke_reason` | Hàm |
+|---|---|---|---|
+| Đặt lại mật khẩu qua OTP (UC01 A2) | Tất cả thiết bị | `password_reset` | `ResetPassword.execute()` |
+| Đổi mật khẩu khi đang đăng nhập (UC01 A5) | Tất cả trừ thiết bị hiện tại | `password_change` | `ChangePassword.execute()` |
+| Admin tạm khoá / cấm tài khoản (UC21) | Tất cả thiết bị | `suspended` / `banned` | `SuspendUser`, `BanUser` → `signOutEverywhere()` → `RevokeAllSessions.execute()` |
+| Đăng nhập lại trên cùng `deviceId` | Phiên cũ của thiết bị đó | `user` | `SessionManager.start()` |
+| Quá 7 ngày không hoạt động hoặc quá 30 ngày từ lúc đăng nhập (phát hiện khi refresh) | Phiên đó | `expired` | `RefreshToken.execute()`, `Session.isExpired()` |
+| Refresh token cũ bị dùng lại (dấu hiệu bị đánh cắp) | Phiên đó | `reuse` | `RefreshToken.execute()`, `JwtTokenService.hashRefresh()` |
+| Vượt 100 phiên còn hiệu lực | Phiên lâu không hoạt động nhất | `limit` | `SessionManager.start()` (`#enforceCap`) |
 
-**A4. Cảnh báo đăng nhập trên thiết bị mới.** Khi đăng nhập trên một `deviceId` chưa từng có phiên, Auth phát `auth.new_device_login` (`userId`, `email`, `deviceName`, `location?`, `at`); Notification gửi email *"Đăng nhập mới trên <thiết bị>"* tới email tài khoản (hoặc tới hộp thư thử nghiệm `SECURITY_ALERT_TO` nếu có cấu hình). Đăng xuất rồi đăng nhập lại trên cùng trình duyệt không gửi email.
+**A4. Cảnh báo đăng nhập trên thiết bị mới.** Khi đăng nhập trên một `deviceId` chưa từng có phiên, Auth phát `auth.new_device_login` (`userId`, `email`, `deviceName`, `location?`, `at`); Notification gửi email *"Đăng nhập mới trên <thiết bị>"* tới email tài khoản (hoặc tới hộp thư thử nghiệm `SECURITY_ALERT_TO` nếu có cấu hình). Đăng xuất rồi đăng nhập lại trên cùng trình duyệt không gửi email. `SessionManager.start()` (`#alert`) → `EventPublisher.publish()`; Notification `handleEvent()` → `handleNewDeviceLogin()`, `securityAlertRecipient()`, `buildNewDeviceEmail()`
 
-**A5. Admin xem thiết bị online.** Admin mở `/admin/devices` (menu Tài khoản): `GET /api/auth/admin/sessions` trả tổng số thiết bị đã thấy, đang đăng nhập, đang online (hoạt động trong 120 giây), số tài khoản online và danh sách thiết bị online kèm tài khoản (email, họ tên, vai trò); trang tự làm mới mỗi 30 giây. Admin không đăng xuất thiết bị của người khác ở đây.
+**A5. Admin xem thiết bị online.** Admin mở `/admin/devices` (menu Tài khoản): `GET /api/auth/admin/sessions` trả tổng số thiết bị đã thấy, đang đăng nhập, đang online (hoạt động trong 120 giây), số tài khoản online và danh sách thiết bị online kèm tài khoản (email, họ tên, vai trò); trang tự làm mới mỗi 30 giây. Admin không đăng xuất thiết bị của người khác ở đây. `OnlineDevicesPage`, `getOnlineDevices()` → `AuthController.onlineDevices()` → `GetOnlineDevices.execute()`, `PrismaSessionRepository.countStats()`, `.listOnline()`; heartbeat `sendHeartbeat()` → `SessionHeartbeat.execute()`
 
 ## Exception Path
 
-- **E1.** Chỉ có thiết bị hiện tại → một dòng "Thiết bị này", ẩn nút "Đăng xuất tất cả thiết bị khác".
-- **E2.** Thiết bị đã bị đăng xuất / hết hạn trước đó, hoặc không phải của mình → `404 session_not_found`; client báo *"Thiết bị này đã đăng xuất"* và tải lại danh sách.
-- **E3.** Mất mạng → *"Không thể kết nối, vui lòng thử lại"*; phiên của thiết bị kia không đổi.
-- **E4.** Không tải được danh sách → *"Chưa tải được danh sách thiết bị"* kèm nút **Thử lại**.
-- **E5.** Không phải admin gọi `GET /api/auth/admin/sessions` → `403`.
+- **E1.** Chỉ có thiết bị hiện tại → một dòng "Thiết bị này", ẩn nút "Đăng xuất tất cả thiết bị khác". `DevicesPage`
+- **E2.** Thiết bị đã bị đăng xuất / hết hạn trước đó, hoặc không phải của mình → `404 session_not_found`; client báo *"Thiết bị này đã đăng xuất"* và tải lại danh sách. `SessionNotFoundError` (`RevokeSession.execute()`)
+- **E3.** Mất mạng → *"Không thể kết nối, vui lòng thử lại"*; phiên của thiết bị kia không đổi. `DevicesPage` `errorMessage()`
+- **E4.** Không tải được danh sách → *"Chưa tải được danh sách thiết bị"* kèm nút **Thử lại**. `DevicesPage` `load()`
+- **E5.** Không phải admin gọi `GET /api/auth/admin/sessions` → `403`. `verifyJwt(['admin'])`
 
 ## Extension Points
 
@@ -70,8 +70,8 @@ Người dùng muốn biết tài khoản đang đăng nhập ở đâu, nghi ng
 
 ## Assumptions
 
-- Client giữ một `deviceId` ngẫu nhiên trong `localStorage` và gửi kèm khi đăng nhập / refresh, nên đăng nhập lại trên cùng trình duyệt không sinh thêm dòng.
-- Tên thiết bị suy ra từ User-Agent; vị trí hiện luôn là *"Không xác định"* (xem Giới hạn đã biết).
+- Client giữ một `deviceId` ngẫu nhiên trong `localStorage` (`getDeviceId()`) và gửi kèm khi đăng nhập / refresh, nên đăng nhập lại trên cùng trình duyệt không sinh thêm dòng.
+- Tên thiết bị suy ra từ User-Agent (`deviceNameFromUserAgent()`); vị trí hiện luôn là *"Không xác định"* (xem Giới hạn đã biết).
 
 ## Preconditions
 
@@ -113,6 +113,30 @@ Người dùng muốn biết tài khoản đang đăng nhập ở đâu, nghi ng
   - `GET /api/auth/admin/sessions` (chỉ `admin`)
 - **Sự kiện (RabbitMQ):** Auth phát `auth.new_device_login`; Notification tiêu thụ.
 - **Dữ liệu:** `app_auth.sessions` (`user_id`, `device_id`, `device_name`, `user_agent`, `ip_address`, `location`, `refresh_hash`, `created_at`, `last_active_at`, `expires_at`, `revoked_at`, `revoke_reason`); Redis `revoked:sid:<sid>`.
+- **Mã nguồn chính:**
+
+| Bước | Hàm / lớp | File |
+|---|---|---|
+| 1–7, E1–E4 | `DevicesPage`, `sortSessions()`, `load()` | `client/src/features/account/DevicesPage.jsx` |
+| 2, 7, A1, A5 | `listSessions()`, `revokeSession()`, `revokeOtherSessions()`, `sendHeartbeat()`, `getOnlineDevices()` | `client/src/lib/sessions.js` |
+| 8 | `SessionWatcher`, `useHeartbeat()` | `client/src/auth/SessionWatcher.jsx` |
+| 8 | `endSession()`, `onSessionEnded()` | `client/src/lib/token-store.js` |
+| A5 | `OnlineDevicesPage` | `client/src/features/admin/OnlineDevicesPage.jsx` |
+| Route | `buildAuthRouter()` | `services/auth/src/interfaces/http/routes/auth-routes.js` |
+| Controller | `AuthController.listSessions()`, `.revokeSession()`, `.revokeOtherSessions()`, `.logout()`, `.heartbeat()`, `.onlineDevices()` | `services/auth/src/interfaces/http/controllers/auth-controller.js` |
+| 2, 7, A1, A2 | `ListSessions`, `RevokeSession`, `RevokeOtherSessions`, `Logout` (`.execute()`) | `services/auth/src/application/use-cases/list-sessions.js`, `revoke-session.js`, `revoke-other-sessions.js`, `logout.js` |
+| A5 | `SessionHeartbeat.execute()`, `GetOnlineDevices.execute()` | `services/auth/src/application/use-cases/session-heartbeat.js`, `get-online-devices.js` |
+| 7, A3, A4 | `SessionManager.start()`, `.revoke()`, `.revokeAll()` | `services/auth/src/application/services/session-manager.js` |
+| A3 | `RevokeAllSessions.execute()`, `PurgeEndedSessions.execute()` | `services/auth/src/application/use-cases/revoke-all-sessions.js`, `purge-ended-sessions.js` |
+| 2, A3 | `Session` (`isExpired()`, `revoke()`, `touch()`, `toPublic()`), `REVOKE_REASONS` | `services/auth/src/domain/entities/session.js` |
+| 2 | `deviceNameFromUserAgent()` | `services/auth/src/domain/value-objects/device-name.js` |
+| 2, A5 | `PrismaSessionRepository.listActiveByUser()`, `.countStats()`, `.listOnline()`, `.deleteEndedBefore()` | `services/auth/src/infrastructure/persistence/prisma-session-repository.js` |
+| 7 | `RedisRevocationStore.markRevoked()` | `services/auth/src/infrastructure/cache/redis-revocation-store.js` |
+| 8 | `verifyJwt()`, `createRedisRevocationCheck()`, `setSessionRevocationCheck()` | `shared/middleware/index.js` |
+| A4 | `EventPublisher.publish()` | `services/auth/src/infrastructure/messaging/event-publisher.js` |
+| A4 | `handleEvent()`, `handleNewDeviceLogin()`, `securityAlertRecipient()` | `services/notification/src/notify.js` |
+| A4 | `buildNewDeviceEmail()` | `services/notification/src/services/security-email-template.js` |
+
 - **Tài liệu thiết kế:** [device-sessions.md](../../02-design/device-sessions.md), [notification-otp-design.md](../../02-design/notification-otp-design.md) (tra email người đóng góp, #258), [uc21-account-actions.md](../../02-design/uc21-account-actions.md).
 - **Giới hạn đã biết:**
   - Vị trí theo IP chưa làm (`NullLocationResolver`): `location` luôn rỗng, hiển thị *"Không xác định"*; email cảnh báo cũng không có vị trí.
@@ -141,12 +165,12 @@ sequenceDiagram
     participant Redis
     participant Other as Client (thiết bị B)
     Client->>Gateway: GET /api/auth/sessions
-    Gateway->>Auth: GET /sessions
+    Gateway->>Auth: ListSessions.execute()
     Auth-->>Client: {sessions[]} (current = A)
     Client->>Gateway: DELETE /api/auth/sessions/:idB
-    Gateway->>Auth: DELETE /sessions/:idB
-    Auth->>Auth: revoked_at, revoke_reason = user
-    Auth->>Redis: SET revoked:sid:<idB> (TTL 15 phút)
+    Gateway->>Auth: RevokeSession.execute()
+    Auth->>Auth: SessionManager.revoke(): revoked_at, reason user
+    Auth->>Redis: markRevoked(): SET revoked:sid:<idB> (TTL 15 phút)
     Auth-->>Client: 204
     Other->>Gateway: request với access token của B
     Gateway->>Auth: chuyển tiếp (gateway không kiểm JWT)
@@ -154,7 +178,7 @@ sequenceDiagram
     Auth-->>Other: 401
     Other->>Gateway: POST /api/auth/refresh
     Auth-->>Other: 401 session_revoked
-    Other->>Other: xoá token, chuyển /login
+    Other->>Other: endSession(), chuyển /login
 ```
 
 ## Boundary

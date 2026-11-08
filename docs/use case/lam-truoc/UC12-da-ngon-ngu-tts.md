@@ -14,28 +14,28 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | 1 | Contributor mở bước **Ngôn ngữ** (`/studio/tours/:id/languages`). | |
-| 2 | | Client gọi `GET .../languages`: ngôn ngữ gốc, ngôn ngữ phụ đã chọn, giọng, bản dịch từng điểm và tiến độ ("n/n điểm đã dịch"). |
+| 2 | | Client gọi `GET .../languages`: ngôn ngữ gốc, ngôn ngữ phụ đã chọn, giọng, bản dịch từng điểm và tiến độ ("n/n điểm đã dịch"). `getLanguageConfig()` → `LanguageController.get()` → `GetLanguageConfig.execute()` → `buildLanguageConfig()` |
 | 3 | Contributor chọn các ngôn ngữ phụ và giọng (nam / nữ, vùng miền tùy chọn), nhấn **Lưu**. | |
-| 4 | | `PUT .../languages { secondary, voice }`: Tour chuẩn hóa mã ngôn ngữ (bỏ trùng, bỏ ngôn ngữ gốc), đồng bộ `tour_languages`, xóa ngôn ngữ bị gỡ cùng bản dịch của nó. |
-| 5 | | Tour dịch theo lô: mỗi ngôn ngữ phụ một lượt gọi AI `POST /translate` (tối đa 20 đoạn mỗi request, ngữ cảnh = tên tour và thành phố), bỏ qua bản đã chỉnh tay. *E1* |
-| 6 | | Tour lưu `place_translations` cho mọi điểm × mọi ngôn ngữ (`text_source = source | machine | edited`) và trả cấu hình mới. |
+| 4 | | `PUT .../languages { secondary, voice }`: Tour chuẩn hóa mã ngôn ngữ (bỏ trùng, bỏ ngôn ngữ gốc), đồng bộ `tour_languages`, xóa ngôn ngữ bị gỡ cùng bản dịch của nó. `setTourLanguages()` → `LanguageController.set()` → `SetTourLanguages.execute()` → `PrismaTourLanguageRepository.upsertMany()`, `deleteLanguages()` |
+| 5 | | Tour dịch theo lô: mỗi ngôn ngữ phụ một lượt gọi AI `POST /translate` (tối đa 20 đoạn mỗi request, ngữ cảnh = tên tour và thành phố), bỏ qua bản đã chỉnh tay. *E1* `AiTranslator.translateMany()` → AI `translate()` |
+| 6 | | Tour lưu `place_translations` cho mọi điểm × mọi ngôn ngữ (`text_source = source | machine | edited`) và trả cấu hình mới. `PlaceholderTtsSynthesizer.synthesize()`, `PrismaPlaceTranslationRepository.upsert()` |
 | 7 | Contributor chọn tab một ngôn ngữ phụ, nhấn nghe thử một điểm. *A1* | |
 | 8 | Contributor sửa bản dịch sai tên riêng / thuật ngữ và lưu dòng đó. *A2* | |
 | 9 | | Use case kết thúc. |
 
 ## Alternative Path
 
-**A1. Nghe thử** → `POST .../places/:placeId/tts-preview { lang }` trả `{ url, prerendered }`. URL hiện là định danh nội bộ `tts://...` (không phải file âm thanh), nên client đọc văn bản bằng **giọng của thiết bị** (Web Speech, thẻ ngôn ngữ đầy đủ như `vi-VN`). Nhãn trên dòng: "Nghe thử bằng giọng trên thiết bị · chưa có tệp âm thanh".
+**A1. Nghe thử** → `POST .../places/:placeId/tts-preview { lang }` trả `{ url, prerendered }` (`previewTts()` → `LanguageController.preview()` → `PreviewTts.execute()`). URL hiện là định danh nội bộ `tts://...` (không phải file âm thanh), nên client đọc văn bản bằng **giọng của thiết bị** (Web Speech `SpeechSynthesisUtterance`) (`createLanguagePreview().play()`). Nhãn trên dòng: "Nghe thử bằng giọng trên thiết bị · chưa có tệp âm thanh" (`audioReadiness()`).
 
-**A2. Chỉnh bản dịch** → `PATCH .../places/:placeId/translations/:lang { text }`: bản dịch thành `edited` và được giữ ở các lần Lưu sau. Văn bản gốc chỉ sửa ở bước Điểm dừng (UC10).
+**A2. Chỉnh bản dịch** → `PATCH .../places/:placeId/translations/:lang { text }`: bản dịch thành `edited` và được giữ ở các lần Lưu sau (`updateTranslation()` → `LanguageController.updateTranslation()` → `UpdateTranslation.execute()`). Văn bản gốc chỉ sửa ở bước Điểm dừng (UC10).
 
-**A3. Gỡ một ngôn ngữ phụ** → lưu lại không có ngôn ngữ đó: Tour xóa dòng `tour_languages` và các bản dịch tương ứng.
+**A3. Gỡ một ngôn ngữ phụ** → lưu lại không có ngôn ngữ đó: Tour xóa dòng `tour_languages` và các bản dịch tương ứng (`PrismaTourLanguageRepository.deleteLanguages()`, `PrismaPlaceTranslationRepository.deleteByLanguages()`).
 
 ## Exception Path
 
-- **E1.** AI dịch lỗi (timeout, 5xx, sai số lượng bản dịch) → 503 `translation_unavailable` ("Dịch tự động thất bại, vui lòng thử lại"); lỗi tạo TTS → 503 `tts_unavailable`.
-- **E2.** Mã ngôn ngữ ngoài tập hỗ trợ → 400 "Ngôn ngữ không hỗ trợ: xx"; nghe thử / sửa bản dịch cho ngôn ngữ chưa cấu hình → 400 "Ngôn ngữ chưa được cấu hình cho tour"; sửa bản ngôn ngữ gốc → 400 "Sửa nội dung ngôn ngữ gốc ở phần quản lý điểm (UC10)".
-- **E3.** Trình duyệt không phát được → "Không phát được bản nghe thử. Nội dung bản dịch vẫn được giữ; bạn có thể thử lại."
+- **E1.** AI dịch lỗi (timeout, 5xx, sai số lượng bản dịch) → 503 `translation_unavailable` ("Dịch tự động thất bại, vui lòng thử lại"); lỗi tạo TTS → 503 `tts_unavailable`. `TranslationError`, `TtsError`
+- **E2.** Mã ngôn ngữ ngoài tập hỗ trợ → 400 "Ngôn ngữ không hỗ trợ: xx"; nghe thử / sửa bản dịch cho ngôn ngữ chưa cấu hình → 400 "Ngôn ngữ chưa được cấu hình cho tour"; sửa bản ngôn ngữ gốc → 400 "Sửa nội dung ngôn ngữ gốc ở phần quản lý điểm (UC10)". `Language`, `PreviewTts.execute()`, `UpdateTranslation.execute()`
+- **E3.** Trình duyệt không phát được → "Không phát được bản nghe thử. Nội dung bản dịch vẫn được giữ; bạn có thể thử lại." `createLanguagePreview()`
 
 ## Extension Points
 
@@ -47,7 +47,7 @@ Contributor muốn tour phục vụ khách quốc tế mà không phải tự th
 
 ## Assumptions
 
-- AI service khả dụng và có khóa Gemini. Không có khóa (hoặc `TRANSLATOR=echo`) thì Tour dùng `EchoTranslator` (chép nguyên văn), và ngôn ngữ đó chưa được coi là đã dịch.
+- AI service khả dụng và có khóa Gemini. Không có khóa (hoặc `TRANSLATOR=echo`) thì Tour dùng `EchoTranslator` (chép nguyên văn, chọn ở `selectTranslator()`), và ngôn ngữ đó chưa được coi là đã dịch.
 
 ## Preconditions
 
@@ -62,7 +62,7 @@ Contributor muốn tour phục vụ khách quốc tế mà không phải tự th
 - Ngôn ngữ hỗ trợ: `vi, en, fr, ja, ko, zh`; tối đa 20 ngôn ngữ phụ; bản dịch 1–5000 ký tự.
 - Ngôn ngữ gốc là nguồn: văn bản = mô tả điểm, không dịch.
 - Lưu lại cấu hình **giữ** bản dịch `edited`, dịch lại các bản `machine`.
-- Khách chỉ chọn được một ngôn ngữ phụ khi **mọi** điểm đã có bản dịch thật (khác văn bản gốc, hoặc đã chỉnh tay).
+- Khách chỉ chọn được một ngôn ngữ phụ khi **mọi** điểm đã có bản dịch thật (khác văn bản gốc, hoặc đã chỉnh tay) (`splitLanguagesByReadiness()`, `isRealTranslation()`).
 - Khi phát (UC04): ưu tiên audio người thật của điểm; không có thì đọc văn bản đúng ngôn ngữ bằng giọng của thiết bị.
 
 ## Hiện thực trong hệ thống
@@ -78,6 +78,25 @@ Contributor muốn tour phục vụ khách quốc tế mà không phải tự th
 - **Dữ liệu:** `tour.tour_languages` (`language_code, is_source, tts_voice_gender, tts_voice_region`); `tour.place_translations` (`language_code, text, text_source, tts_url, tts_prerendered`).
 - **Tài liệu thiết kế:** [ai-service-spec.md](../../02-design/ai-service-spec.md).
 - **Giới hạn đã biết:** chưa có TTS phía máy chủ: `PlaceholderTtsSynthesizer` chỉ sinh URL `tts://...`, `tts_prerendered` luôn `false`; client đọc bằng giọng của thiết bị nên giọng nam / nữ, vùng miền chỉ được lưu, chưa áp dụng. Gói offline (UC03) chỉ chứa văn bản, ảnh và audio người thật.
+- **Mã nguồn chính:**
+
+| Bước | Hàm / lớp | File |
+|---|---|---|
+| 1–8 | `LanguagesPage` | `client/src/features/studio/LanguagesPage.jsx` |
+| 2, 4, A1, A2 | `getLanguageConfig()`, `setTourLanguages()`, `previewTts()`, `updateTranslation()` | `client/src/lib/studio.js` |
+| A1, E3 | `createLanguagePreview()`, `audioReadiness()` | `client/src/features/studio/language-preview.js` |
+| UC04 (phát) | `makeUtterance()`, `pickVoice()` (giọng thiết bị theo ngôn ngữ, không theo nam / nữ) | `client/src/lib/speech.js` |
+| 2, 4, A1, A2 | `buildLanguageRouter()`, `LanguageController` | `services/tour/src/interfaces/http/routes/language-routes.js`, `controllers/language-controller.js` |
+| 4 | `setLanguagesSchema`, `previewTtsSchema`, `updateTranslationSchema` | `services/tour/src/application/dtos/language-schemas.js` |
+| 2 | `GetLanguageConfig.execute()`, `buildLanguageConfig()` | `services/tour/src/application/use-cases/get-language-config.js` |
+| 4–6 | `SetTourLanguages.execute()` | `services/tour/src/application/use-cases/set-tour-languages.js` |
+| A1 | `PreviewTts.execute()` | `services/tour/src/application/use-cases/preview-tts.js` |
+| A2 | `UpdateTranslation.execute()` | `services/tour/src/application/use-cases/update-translation.js` |
+| 5 | `selectTranslator()`, `AiTranslator.translateMany()`, `EchoTranslator` | `services/tour/src/container.js`, `infrastructure/i18n/ai-translator.js`, `echo-translator.js` |
+| 5 | `translate()` (`POST /translate`) | `services/ai/app/api/translation.py` |
+| 6 | `PlaceholderTtsSynthesizer.synthesize()` | `services/tour/src/infrastructure/i18n/placeholder-tts.js` |
+| 4, 6 | `PrismaTourLanguageRepository`, `PrismaPlaceTranslationRepository` | `services/tour/src/infrastructure/persistence/prisma-tour-language-repository.js`, `prisma-place-translation-repository.js` |
+| Rules | `splitLanguagesByReadiness()`, `isRealTranslation()` | `services/tour/src/domain/i18n/translation-status.js` |
 
 ## Author(s)
 

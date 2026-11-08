@@ -14,20 +14,20 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | 1 | Tourist bấm nút nổi **"Hỏi trợ lý"** trên các màn có thanh tab, hoặc mở trang `/chat`. *A1* | |
-| 2 | | Client kiểm tra chatbot đang bật (một lần mỗi lần tải trang) và tải lịch sử của phiên lưu trong `localStorage` bằng `GET /api/chat/history?session_id=`. *E1, A2* |
-| 3 | | Client hiện lời chào *"Xin chào! Bạn muốn khám phá gì hôm nay?"* và các gợi ý (ví dụ "Gợi ý tour đi bộ ở Hội An"). |
+| 2 | | Client kiểm tra chatbot đang bật (một lần mỗi lần tải trang) và tải lịch sử của phiên lưu trong `localStorage` bằng `GET /api/chat/history?session_id=`. *E1, A2* `probeChat()`, `fetchChatHistory()` → `chat_history()` → `ChatService.history()` |
+| 3 | | Client hiện lời chào *"Xin chào! Bạn muốn khám phá gì hôm nay?"* và các gợi ý (ví dụ "Gợi ý tour đi bộ ở Hội An"). `ChatView` |
 | 4 | Tourist nhập câu hỏi (1–1000 ký tự) hoặc chọn một gợi ý, rồi gửi. *E2* | |
-| 5 | | Client gọi `POST /api/chat { message, session_id? }`. Gateway áp giới hạn tần suất chat theo IP, thêm `x-internal-token` và chuyển tới AI `/chat`. *E3* |
-| 6 | | AI service chạy một lượt LangGraph: `classify` (ngôn ngữ, ý định) → `plan` → `retrieve` (tìm lai vector + đồ thị, tối đa 5 mục) → `answer` (một lần gọi LLM: Gemini, dự phòng Groq) → `cite` (giữ trích dẫn hợp lệ, bỏ id bịa). *A3, E4* |
-| 7 | | AI trả luồng SSE: `meta` (`session_id`, `lang`), nhiều `token`, `citations`, `done`. Client hiện câu trả lời dần dần, biến các dấu `[tour:ID]` / `[place:ID]` thành liên kết đánh số và thêm danh sách **"Nguồn"**. *E5* |
-| 8 | Tourist bấm một nguồn tour. | Client mở chi tiết tour `/tour/:id` (UC02). |
+| 5 | | Client gọi `POST /api/chat { message, session_id? }`. Gateway áp giới hạn tần suất chat theo IP, thêm `x-internal-token` và chuyển tới AI `/chat`. *E3* `useChat()` → `streamChat()` → `createChatRateLimit()`, `mountChat()` |
+| 6 | | AI service chạy một lượt LangGraph: `classify` (ngôn ngữ, ý định) → `plan` → `retrieve` (tìm lai vector + đồ thị, tối đa 5 mục) → `answer` (một lần gọi LLM: Gemini, dự phòng Groq) → `cite` (giữ trích dẫn hợp lệ, bỏ id bịa). *A3, E4* `chat()` → `ChatService.turn()` → `ChatAgent.run()` → `build_graph()` (`classify`, `plan`, `retrieve`, `answer`, `cite`) → `HybridRetriever.search_tours()` / `search_places()` / `nearby_places()`; LLM qua `GuardedChatModel.ainvoke()` |
+| 7 | | AI trả luồng SSE: `meta` (`session_id`, `lang`), nhiều `token`, `citations`, `done`. Client hiện câu trả lời dần dần, biến các dấu `[tour:ID]` / `[place:ID]` thành liên kết đánh số và thêm danh sách **"Nguồn"**. *E5* `stream_turn()`, `split_tokens()` → `createSseParser()`, `splitMarkers()` |
+| 8 | Tourist bấm một nguồn tour. | Client mở chi tiết tour `/tour/:id` (UC02). `citationHref()` |
 | 9 | | Lượt hỏi đáp được lưu vào bộ nhớ phiên; use case kết thúc tại đây. |
 
 ## Alternative Path
 
 **A1. Mở toàn màn hình.** Từ bảng chat nổi, Tourist chọn "Mở toàn màn hình" → trang `/chat` với cùng phiên.
 
-**A2. Cuộc trò chuyện mới.** Tourist chọn "Cuộc trò chuyện mới" → client quên `session_id`; lượt hỏi sau tạo phiên mới (server sinh id và trả trong `meta`).
+**A2. Cuộc trò chuyện mới.** Tourist chọn "Cuộc trò chuyện mới" → client quên `session_id`; lượt hỏi sau tạo phiên mới (server sinh id và trả trong `meta`). `useChat()` `reset()` → `clearChatSession()`
 
 **A3. Câu hỏi ngoài phạm vi hoặc không có dữ liệu.**
 
@@ -37,15 +37,15 @@
 | A3.2 | | Không tìm thấy tour / địa điểm phù hợp → câu trả lời soạn sẵn, `finish_reason = no_data`, không gọi LLM. |
 | A3.3 | | Câu chào hỏi xã giao → trả lời bằng một lần gọi LLM, không truy vấn chỉ mục. |
 
-**A4. Dừng câu trả lời.** Tourist bấm "Dừng" khi đang nhận → client hủy luồng (gateway hủy luôn yêu cầu tới AI); phần đã nhận được giữ, ghi nhãn "Đã dừng".
+**A4. Dừng câu trả lời.** Tourist bấm "Dừng" khi đang nhận → client hủy luồng (gateway hủy luôn yêu cầu tới AI); phần đã nhận được giữ, ghi nhãn "Đã dừng". `useChat()` `stop()`, `mountChat()` (`proxyReq.destroy()`)
 
 ## Exception Path
 
-- **E1.** Chatbot tắt (`CHATBOT_ENABLED=false`) → `/api/chat` trả 404: nút nổi bị ẩn; trang `/chat` hiện *"Chatbot đang tắt"* và *"Trợ lý tạm thời không hoạt động. Bạn vẫn có thể tìm tour ở màn Khám phá."*. Phiên hết hạn hoặc không tồn tại (404 `unknown session`) → client xóa phiên và bắt đầu trống.
-- **E2.** Câu hỏi rỗng hoặc quá 1000 ký tự → 422, *"Câu hỏi không hợp lệ. Vui lòng nhập từ 1 đến 1000 ký tự."* (client có bộ đếm ký tự).
-- **E3.** Vượt giới hạn của gateway (5 lượt / phút, 100 lượt / ngày mỗi IP) → 429 kèm `Retry-After`: *"Bạn đã hỏi quá nhiều trong thời gian ngắn, vui lòng thử lại sau …"*.
-- **E4.** AI bận (semaphore dùng chung với kiểm duyệt không còn chỗ hoặc kiểm duyệt đang chờ; hoặc vượt giới hạn Gemini toàn hệ thống mà không có Groq) → 429 kèm `Retry-After`: *"Trợ lý đang bận, vui lòng thử lại sau …"*. Mọi nhà cung cấp LLM đều lỗi → 503: *"Trợ lý tạm thời không phản hồi, vui lòng thử lại sau."*. Nội dung bị nhà cung cấp chặn → câu từ chối lịch sự (`refused`).
-- **E5.** Lỗi giữa luồng → sự kiện `error`: *"Trợ lý gặp lỗi khi trả lời, vui lòng thử lại."*; mất kết nối giữa chừng → *"Mất kết nối, câu trả lời chưa đầy đủ."*; không có mạng → *"Không thể kết nối, vui lòng thử lại"*. Có nút "Thử lại".
+- **E1.** Chatbot tắt (`CHATBOT_ENABLED=false`) → `/api/chat` trả 404: nút nổi bị ẩn; trang `/chat` hiện *"Chatbot đang tắt"* và *"Trợ lý tạm thời không hoạt động. Bạn vẫn có thể tìm tour ở màn Khám phá."*. Phiên hết hạn hoặc không tồn tại (404 `unknown session`) → client xóa phiên và bắt đầu trống. `require_chat_enabled()`, `probeChat()`, `ChatLauncher`
+- **E2.** Câu hỏi rỗng hoặc quá 1000 ký tự → 422, *"Câu hỏi không hợp lệ. Vui lòng nhập từ 1 đến 1000 ký tự."* (client có bộ đếm ký tự). `ChatRequest._message_limits()`, `errorFromResponse()`
+- **E3.** Vượt giới hạn của gateway (5 lượt / phút, 100 lượt / ngày mỗi IP) → 429 kèm `Retry-After`: *"Bạn đã hỏi quá nhiều trong thời gian ngắn, vui lòng thử lại sau …"*. `createChatRateLimit()`, `formatWait()`
+- **E4.** AI bận (semaphore dùng chung với kiểm duyệt không còn chỗ hoặc kiểm duyệt đang chờ; hoặc vượt giới hạn Gemini toàn hệ thống mà không có Groq) → 429 kèm `Retry-After`: *"Trợ lý đang bận, vui lòng thử lại sau …"*. Mọi nhà cung cấp LLM đều lỗi → 503: *"Trợ lý tạm thời không phản hồi, vui lòng thử lại sau."*. Nội dung bị nhà cung cấp chặn → câu từ chối lịch sự (`refused`). `GuardedChatModel.ainvoke()` → `ChatBusyError`, `SlidingWindowLimiter.try_acquire()`
+- **E5.** Lỗi giữa luồng → sự kiện `error`: *"Trợ lý gặp lỗi khi trả lời, vui lòng thử lại."*; mất kết nối giữa chừng → *"Mất kết nối, câu trả lời chưa đầy đủ."*; không có mạng → *"Không thể kết nối, vui lòng thử lại"*. Có nút "Thử lại". `stream_turn()`, `streamErrorMessage()`
 
 ## Extension Points
 
@@ -99,6 +99,28 @@ Tourist muốn được gợi ý hoặc giải thích về tour, địa điểm 
   - `GET /api/chat/history?session_id=` → `{ session_id, messages: [{ role, content, citations?, at }] }`
 - **Sự kiện (RabbitMQ):** AI tiêu thụ `tour.published`, `tour.unpublished`, `tour.hidden` (do Tour phát). Đây là ngoại lệ duy nhất AI service nghe RabbitMQ.
 - **Dữ liệu:** schema `ai`: `nodes`, `edges`, `chunks` (embedding pgvector 384 chiều, model cục bộ `multilingual-e5-small`), `tour_index`, `index_meta`. Bộ nhớ phiên: `memory` (mặc định) hoặc schema `ai_chat` (`CHAT_MEMORY_BACKEND=postgres`).
+- **Mã nguồn chính:**
+
+| Bước | Hàm / lớp | File |
+|---|---|---|
+| 1, E1 | `ChatLauncher`, `ChatPage` | `client/src/features/chat/ChatLauncher.jsx`, `ChatPage.jsx` |
+| 3, 7 | `ChatView` | `client/src/features/chat/ChatView.jsx` |
+| 4–7, A2, A4 | `useChat()` | `client/src/features/chat/useChat.js` |
+| 2, 5, 7, 8 | `probeChat()`, `fetchChatHistory()`, `streamChat()`, `createSseParser()`, `splitMarkers()`, `citationHref()` | `client/src/lib/chat.js` |
+| 5, A4 | `mountChat()` | `gateway/src/chat.js` |
+| 5, E3 | `createChatRateLimit()`, `createRedisStore()` | `gateway/src/chat-rate-limit.js` |
+| 5–7, E2 | `chat()`, `chat_history()`, `stream_turn()`, `require_chat_enabled()`, `ChatRequest` | `services/ai/app/api/chat.py` |
+| 6, 9 | `ChatService.turn()`, `ChatService.history()`, `GuardedChatModel` | `services/ai/app/chatbot/service.py` |
+| 6 | `ChatAgent.run()` | `services/ai/app/chatbot/agent.py` |
+| 6 | `build_graph()` (nút `classify`, `plan`, `retrieve`, `answer`, `cite`) | `services/ai/app/chatbot/graph/builder.py` |
+| 6 | `build_tools()` (`search_tours`, `search_places`, `nearby_places`) | `services/ai/app/chatbot/tools/search.py` |
+| 6, R6 | `HybridRetriever` (`search_tours`, `search_places`, `nearby_places`) | `services/ai/app/chatbot/rag/hybrid_retriever.py` |
+| E4, R5 | `SlidingWindowLimiter`, `ChatBusyError` | `services/ai/app/chatbot/limits.py` |
+| R2 | `start_indexer()`, `IndexEventDispatcher.dispatch()`, `handle_message()` | `services/ai/app/chatbot/rag/consumer.py` |
+| R2 | `Indexer.handle_published()`, `Indexer.handle_unpublished()` | `services/ai/app/chatbot/rag/indexer.py` |
+| R2 (nguồn) | `notifyTourPublished()`, `notifyTourUnpublished()` | `services/tour/src/application/use-cases/notify-tour-catalog.js` |
+| R2 (nguồn) | `EventTourCatalogPublisher.publishTourPublished()`, `publishTourUnpublished()` | `services/tour/src/infrastructure/messaging/event-tour-catalog-publisher.js` |
+
 - **Tài liệu thiết kế:** [chatbot-architecture.md](../../02-design/chatbot-architecture.md).
 - **Giới hạn đã biết:**
   - Client không gửi vị trí người dùng (`location`), nên câu hỏi "gần tôi" không dùng được tọa độ thật.

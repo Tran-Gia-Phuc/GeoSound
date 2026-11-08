@@ -14,26 +14,26 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | 1 | Ở bước Xuất bản (`/studio/tours/:id/publish`), contributor nhấn **"Xem thử như khách"**. | |
-| 2 | | Client mở `/studio/tours/:tourId/preview?mode=gps` và gọi `GET /api/tours/mine/:tourId/preview?lang=`. *E1* |
-| 3 | | Tour kiểm quyền tác giả, dựng view giống chi tiết công khai (`buildTourDetailView`: điểm, ảnh, bản dịch, route và vùng hiệu lực) kèm `preview: true` và `status`. |
-| 4 | | Trình phát mở ở chế độ "Xem thử — đi bộ mô phỏng": vị trí mô phỏng đặt ở đầu route, không cần GPS thật. |
+| 2 | | Client mở `/studio/tours/:tourId/preview?mode=gps` và gọi `GET /api/tours/mine/:tourId/preview?lang=`. *E1* `PreviewTourRoute` → `TourPlayerPage` (`loadDetail`) → `previewTour()` |
+| 3 | | Tour kiểm quyền tác giả, dựng view giống chi tiết công khai (điểm, ảnh, bản dịch, route và vùng hiệu lực) kèm `preview: true` và `status`. `PreviewController.preview()` → `PreviewTour.execute()` → `buildTourDetailView()` → `effectiveRoute()` |
+| 4 | | Trình phát mở ở chế độ "Xem thử — đi bộ mô phỏng": vị trí mô phỏng đặt ở đầu route, không cần GPS thật. `TourPlayerPage` `startGps()` (với `allowSimulation`) |
 | 5 | Contributor bấm **đi bộ mô phỏng** (chọn tốc độ) hoặc chạm bản đồ để dời vị trí. *A1* | |
-| 6 | | Khi vị trí vào vùng kích hoạt, trình phát tự phát điểm đó như UC04 (ưu tiên vùng cao hơn khi chồng nhau; audio người thật hoặc giọng của thiết bị), hiện văn bản, ảnh, gợi ý "đi tiếp" và audio chỉ đường. |
+| 6 | | Khi vị trí vào vùng kích hoạt, trình phát tự phát điểm đó như UC04 (ưu tiên vùng cao hơn khi chồng nhau; audio người thật hoặc giọng của thiết bị), hiện văn bản, ảnh, gợi ý "đi tiếp" và audio chỉ đường. `startWalk()` (`SimBar`, `densifyPath()`), `usePlaybackEngine` → `triggersAt()`, `navAudiosAt()` |
 | 7 | Contributor kiểm tra nội dung; khi xong nhấn "Về bước Xuất bản" hoặc "Về trình chỉnh sửa". *A2* | |
 | 8 | | Use case kết thúc. |
 
 ## Alternative Path
 
-**A1. Xem thử từng điểm** → chế độ "Xem thử từng điểm" (remote): chọn điểm trong danh sách để nghe, không dùng vị trí.
+**A1. Xem thử từng điểm** → chế độ "Xem thử từng điểm" (remote): chọn điểm trong danh sách để nghe, không dùng vị trí (`startRemote()`).
 
-**A2. Phát hiện lỗi → sửa ngay** → nút sửa trên một điểm mở `/studio/tours/:id/places?edit=<placeId>` (UC10); route / vùng sửa ở UC11, bản dịch ở UC12.
+**A2. Phát hiện lỗi → sửa ngay** → nút sửa trên một điểm mở `/studio/tours/:id/places?edit=<placeId>` (UC10); route / vùng sửa ở UC11, bản dịch ở UC12 (`PreviewTourRoute`, prop `editPlaceHref`).
 
-**A3. Đổi ngôn ngữ nghe** → client gọi lại preview với `?lang=` khác.
+**A3. Đổi ngôn ngữ nghe** → client gọi lại preview với `?lang=` khác (`previewTour(tourId, lang)`).
 
 ## Exception Path
 
-- **E1.** Tour chưa có điểm nào → 422 `tour_not_previewable` ("Chưa thể xem thử: tour cần có ít nhất một điểm dừng"); client hiện nút "Thêm điểm dừng". Route và vùng chưa cấu hình **không** chặn (được tự sinh).
-- **E2.** Tour của người khác → 403 `not_tour_owner`; tour không tồn tại → 404 `tour_not_found`.
+- **E1.** Tour chưa có điểm nào → 422 `tour_not_previewable` ("Chưa thể xem thử: tour cần có ít nhất một điểm dừng"); client hiện nút "Thêm điểm dừng". Route và vùng chưa cấu hình **không** chặn (được tự sinh). `TourNotPreviewableError`, `PreviewTourRoute` (`errorActions`)
+- **E2.** Tour của người khác → 403 `not_tour_owner`; tour không tồn tại → 404 `tour_not_found`. `PreviewTour.execute()` (`NotTourOwnerError`, `TourNotFoundError`)
 - **E3.** Trình duyệt chặn âm thanh / không có giọng cho ngôn ngữ → trình phát báo và cho phát lại (như UC04).
 
 ## Extension Points
@@ -69,6 +69,24 @@ Contributor muốn kiểm tra trải nghiệm tour trước khi gửi duyệt / 
 - **API (qua gateway):** `GET /api/tours/mine/:tourId/preview?lang=`
 - **Dữ liệu:** chỉ đọc `tour.tours`, `tour.places`, `tour.route_configs`, `tour.tour_languages`, `tour.place_translations`.
 - **Tài liệu thiết kế:** (chưa có note riêng; xem `services/tour/src/application/use-cases/preview-tour.js`).
+- **Mã nguồn chính:**
+
+| Bước | Hàm / lớp | File |
+|---|---|---|
+| 1 | `PublishPanel` (nút "Xem thử như khách") | `client/src/features/studio/PublishPanel.jsx` |
+| 2, E1, A2 | `PreviewTourRoute` | `client/src/App.jsx` |
+| 2, A3 | `previewTour()` | `client/src/lib/studio.js` |
+| 4–6, A1 | `TourPlayerPage` (`startGps`, `startWalk`, `startRemote`) | `client/src/features/player/TourPlayerPage.jsx` |
+| 5 | `SimBar`, `TourMap` | `client/src/features/player/SimBar.jsx`, `TourMap.jsx` |
+| 5 | `densifyPath()` | `client/src/lib/geo.js` |
+| 6 | `usePlaybackEngine` | `client/src/hooks/usePlaybackEngine.js` |
+| 6 | `triggersAt()`, `navAudiosAt()` | `client/src/lib/zones.js` |
+| 3 | `buildPreviewRouter()`, `PreviewController.preview()` | `services/tour/src/interfaces/http/routes/preview-routes.js`, `controllers/preview-controller.js` |
+| 3 | `previewParamsSchema`, `previewQuerySchema` | `services/tour/src/application/dtos/preview-schemas.js` |
+| 3, E1 | `PreviewTour.execute()` | `services/tour/src/application/use-cases/preview-tour.js` |
+| 3 | `buildTourDetailView()` | `services/tour/src/application/use-cases/build-tour-detail.js` |
+| 3 | `effectiveRoute()` | `services/tour/src/domain/route/effective-route.js` |
+| 3 | `PrismaTourRepository.findById()`, `PrismaPlaceRepository.listByTour()`, `PrismaRouteConfigRepository.findByTour()` | `services/tour/src/infrastructure/persistence/` |
 
 ## Author(s)
 

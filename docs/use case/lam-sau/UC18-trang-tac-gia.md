@@ -13,11 +13,11 @@
 
 | # | Actor Action | System Response |
 |---|---|---|
-| 1 | Contributor mở **"Hồ sơ tác giả"** (`/account/profile`). *A1* | Client gọi `GET /api/auth/me/profile` và hiển thị tên, giới thiệu, ảnh đại diện. |
-| 2 | Contributor sửa thông tin, có thể tải ảnh đại diện lên, rồi lưu. | Ảnh được tải qua `POST /api/media/uploads?kind=image`; client gọi `PATCH /api/auth/me/profile` với `fullName`, `bio`, `avatarUrl`. Auth kiểm tra và lưu. *E3* |
-| 3 | Tourist mở trang tác giả (từ dòng tác giả ở chi tiết tour, từ danh sách "Đang theo dõi" hoặc từ menu tài khoản của chính tác giả). | Client gọi `GET /api/auth/authors/:id` và `GET /api/tours?authorId=:id&sort=recent`. *E1, E2* |
-| 4 | | Hệ thống hiển thị ảnh đại diện (chữ viết tắt khi không có ảnh), tên, giới thiệu, ngày tham gia, số người theo dõi và danh sách tour công khai mới nhất trước ("Xem thêm"). |
-| 5 | Tourist (đã đăng nhập) nhấn **"Theo dõi"**. *A2, A3* | Client gọi `PUT /api/auth/authors/:id/follow`; số người theo dõi đổi ngay và quay lại giá trị cũ nếu yêu cầu lỗi. Auth trả `{ following: true, followerCount }`. *E4* |
+| 1 | Contributor mở **"Hồ sơ tác giả"** (`/account/profile`). *A1* | Client gọi `GET /api/auth/me/profile` và hiển thị tên, giới thiệu, ảnh đại diện. `ProfileEditPage`, `getMyProfile()` → `AuthorController.myProfile()`, `GetMyProfile.execute()` |
+| 2 | Contributor sửa thông tin, có thể tải ảnh đại diện lên, rồi lưu. | Ảnh được tải qua `POST /api/media/uploads?kind=image`; client gọi `PATCH /api/auth/me/profile` với `fullName`, `bio`, `avatarUrl`. Auth kiểm tra và lưu. *E3* `uploadMedia()`, `validateProfile()`, `updateProfile()` → `AuthorController.updateProfile()`, `UpdateMyProfile.execute()`, `isValidAvatarUrl()` |
+| 3 | Tourist mở trang tác giả (từ dòng tác giả ở chi tiết tour, từ danh sách "Đang theo dõi" hoặc từ menu tài khoản của chính tác giả). | Client gọi `GET /api/auth/authors/:id` và `GET /api/tours?authorId=:id&sort=recent`. *E1, E2* `AuthorPage`, `getAuthor()`, `listAuthorTours()` → `AuthorController.profile()`, `GetAuthorProfile.execute()`; Tour: `SearchTours.execute()`, `PrismaTourRepository.publicWhere()` |
+| 4 | | Hệ thống hiển thị ảnh đại diện (chữ viết tắt khi không có ảnh), tên, giới thiệu, ngày tham gia, số người theo dõi và danh sách tour công khai mới nhất trước ("Xem thêm"). `AuthorPage`, `AuthorAvatar`, `PrismaFollowRepository.countFollowers()` |
+| 5 | Tourist (đã đăng nhập) nhấn **"Theo dõi"**. *A2, A3* | Client gọi `PUT /api/auth/authors/:id/follow`; số người theo dõi đổi ngay và quay lại giá trị cũ nếu yêu cầu lỗi. Auth trả `{ following: true, followerCount }`. *E4* `setFollowing()` → `AuthorController.follow()`, `FollowAuthor.execute()`, `PrismaFollowRepository.follow()` |
 | 6 | Tourist mở một tour từ danh sách. | Hệ thống mở chi tiết tour (UC02). |
 | 7 | | Use case kết thúc tại đây. |
 
@@ -25,20 +25,20 @@
 
 **A1. Người dùng không phải contributor sửa hồ sơ** → tourist / Admin cũng sửa được tên, giới thiệu, ảnh đại diện ở `/account/profile`, nhưng không có trang tác giả công khai.
 
-**A2. Bỏ theo dõi** → nhấn "Đang theo dõi"; client gọi `DELETE /api/auth/authors/:id/follow`, Auth trả `{ following: false, followerCount }`. Luôn được phép, kể cả khi tác giả đã mất trang.
+**A2. Bỏ theo dõi** → nhấn "Đang theo dõi"; client gọi `DELETE /api/auth/authors/:id/follow`, Auth trả `{ following: false, followerCount }`. Luôn được phép, kể cả khi tác giả đã mất trang. `setFollowing()` → `AuthorController.unfollow()`, `UnfollowAuthor.execute()`, `PrismaFollowRepository.unfollow()`
 
 **A3. Khách chưa đăng nhập nhấn "Theo dõi"** → client chuyển tới trang đăng nhập rồi quay lại trang tác giả.
 
-**A4. Xem danh sách đang theo dõi** → người đã đăng nhập mở `/account/following`; client gọi `GET /api/auth/me/following` (mới theo dõi nhất trước, 20 mỗi trang).
+**A4. Xem danh sách đang theo dõi** → người đã đăng nhập mở `/account/following`; client gọi `GET /api/auth/me/following` (mới theo dõi nhất trước, 20 mỗi trang). `FollowingPage`, `listFollowing()` → `AuthorController.following()`, `ListFollowing.execute()`, `PrismaFollowRepository.listFollowing()`
 
 **A5. Tác giả xem trang của chính mình** → nút Theo dõi bị ẩn, thay bằng liên kết tới trình sửa hồ sơ.
 
 ## Exception Path
 
 - **E1.** Tác giả chưa có tour công khai → danh sách tour trống (trang vẫn hiển thị).
-- **E2.** Id không tồn tại, không phải contributor, tài khoản bị cấm hoặc đang bị tạm khoá → 404 `author_not_found` *"Không tìm thấy tác giả"*.
-- **E3.** Dữ liệu hồ sơ không hợp lệ (tên rỗng hoặc quá 120 ký tự, giới thiệu quá 500 ký tự, URL ảnh không được phép) → 400 `validation_error` kèm thông báo tiếng Việt theo trường; tài khoản không còn tồn tại → 404 `user_not_found`.
-- **E4.** Tự theo dõi chính mình → 400 `self_follow`; chưa đăng nhập → 401.
+- **E2.** Id không tồn tại, không phải contributor, tài khoản bị cấm hoặc đang bị tạm khoá → 404 `author_not_found` *"Không tìm thấy tác giả"*. `AuthorNotFoundError`, `followableAuthorWhere()`
+- **E3.** Dữ liệu hồ sơ không hợp lệ (tên rỗng hoặc quá 120 ký tự, giới thiệu quá 500 ký tự, URL ảnh không được phép) → 400 `validation_error` kèm thông báo tiếng Việt theo trường; tài khoản không còn tồn tại → 404 `user_not_found`. `updateProfileSchema`, `isValidAvatarUrl()`, `UserNotFoundError`
+- **E4.** Tự theo dõi chính mình → 400 `self_follow`; chưa đăng nhập → 401. `SelfFollowError`
 - **E5.** Mất kết nối → *"Không thể kết nối, vui lòng thử lại"* kèm nút thử lại.
 
 ## Extension Points
@@ -95,6 +95,25 @@ Người dùng muốn xem các tour của một tác giả hoặc theo dõi tác
   - `POST /api/media/uploads?kind=image`
 - **Sự kiện (RabbitMQ):** không có.
 - **Dữ liệu (schema của Auth):** `users` (`bio`, `avatar_url`), `author_follows` (`follower_id`, `author_id`, `created_at`; duy nhất `(follower_id, author_id)`, chỉ mục `author_id`, xoá theo tài khoản).
+- **Mã nguồn chính:**
+
+| Bước | Hàm / lớp | File |
+|---|---|---|
+| 1–5, A2, A4 | `getAuthor()`, `listAuthorTours()`, `getFollowState()`, `setFollowing()`, `listFollowing()`, `getMyProfile()`, `validateProfile()`, `updateProfile()` | `client/src/lib/authors.js` |
+| 2 | `uploadMedia()` | `client/src/lib/media.js` |
+| 3–5, A5 | `AuthorPage`, `AuthorAvatar` | `client/src/features/authors/AuthorPage.jsx`, `client/src/features/authors/AuthorAvatar.jsx` |
+| 1–2 | `ProfileEditPage` | `client/src/features/authors/ProfileEditPage.jsx` |
+| A4 | `FollowingPage` | `client/src/features/authors/FollowingPage.jsx` |
+| 1–5 | routes `/authors/:id`, `/authors/:id/follow`, `/me/following`, `/me/profile` | `services/auth/src/interfaces/http/routes/auth-routes.js` |
+| 1–5 | `AuthorController` | `services/auth/src/interfaces/http/controllers/author-controller.js` |
+| 1–5, A2, A4 | `GetAuthorProfile`, `GetFollowState`, `FollowAuthor`, `UnfollowAuthor`, `ListFollowing`, `UpdateMyProfile`, `GetMyProfile` | `services/auth/src/application/use-cases/author-page.js` |
+| 2, E3 | `updateProfileSchema`, `followingQuerySchema` | `services/auth/src/application/dtos/schemas.js` |
+| 2, E3 | `isValidAvatarUrl()` | `services/auth/src/domain/value-objects/avatar-url.js` |
+| 4–5, E2 | `PrismaFollowRepository`, `followableAuthorWhere()` | `services/auth/src/infrastructure/persistence/prisma-follow-repository.js` |
+| E2, E4 | `AuthorNotFoundError`, `SelfFollowError` | `services/auth/src/domain/errors/index.js` |
+| 3 | `SearchTours` (`authorId`) | `services/tour/src/application/use-cases/search-tours.js` |
+| 3 | `PrismaTourRepository.publicWhere()` | `services/tour/src/infrastructure/persistence/prisma-tour-repository.js` |
+
 - **Tài liệu thiết kế:** [uc18-author-page.md](../../02-design/uc18-author-page.md).
 - **Giới hạn đã biết:** không có danh sách người theo dõi của một tác giả, không có trang tác giả ẩn / riêng tư, không cắt ảnh đại diện, không thông báo cho người theo dõi.
 
