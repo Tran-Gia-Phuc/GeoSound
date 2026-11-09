@@ -44,6 +44,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'auth' }));
 
 // UC01: /register /verify-otp /resend-otp /login /forgot-password /reset-password /refresh
 // UC23: GET /sessions, DELETE /sessions/:id, POST /sessions/revoke-others, POST /logout
+// #265 / #329: POST /sessions/heartbeat, POST /presence, POST /presence/leave, GET /admin/sessions (admin)
 // UC21 (admin): GET /admin/users, GET /admin/users/:id, POST /admin/users/:id/{warn,suspend,ban,restore}
 app.use('/', authRouter);
 // #258: GET /internal/users/:id/contact (x-internal-token; refused when forwarded by the gateway)
