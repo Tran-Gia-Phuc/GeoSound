@@ -7,6 +7,7 @@
 import { Language } from '../../domain/value-objects/language.js';
 import { TtsVoice } from '../../domain/value-objects/tts-voice.js';
 import { PlaceTranslation } from '../../domain/entities/place-translation.js';
+import { sourceHash } from '../../domain/i18n/source-hash.js';
 import {
   TourNotFoundError,
   NotTourOwnerError,
@@ -49,7 +50,7 @@ export class UpdateTranslation {
     const tx =
       existing ??
       new PlaceTranslation({ placeId, languageCode: code, text, textSource: 'machine' });
-    tx.applyEdit(text.trim()); // -> edited, xóa TTS cũ
+    tx.applyEdit(text.trim(), sourceHash(place.description)); // -> edited (made from today's source), xóa TTS cũ
 
     const voice = new TtsVoice({ gender: langRow.gender, region: langRow.region });
     let tts;

@@ -359,12 +359,16 @@ model ItineraryItem {
 // UC12 — Bản dịch + TTS của một điểm theo một ngôn ngữ.
 //   text_source: source (text gốc = mô tả điểm) | machine (tự dịch) | edited (chỉnh tay)
 //   tts_prerendered: đã pre-render & cache cho offline (UC03) hay chưa.
+//   source_hash: hash of the place description the text was made from (sourceHash()). A machine
+//   translation whose hash no longer matches is stale and is translated again; null = row written
+//   before the column existed (served as is, translated again on the next refresh).
 model PlaceTranslation {
   id             String   @id @default(uuid())
   placeId        String   @map("place_id")
   languageCode   String   @map("language_code")
   text           String
   textSource     String   @default("machine") @map("text_source")
+  sourceHash     String?  @map("source_hash")
   ttsUrl         String?  @map("tts_url")
   ttsPrerendered Boolean  @default(false) @map("tts_prerendered")
   createdAt      DateTime @default(now()) @map("created_at")

@@ -19,6 +19,7 @@ export class PrismaPlaceTranslationRepository {
       languageCode: row.languageCode,
       text: row.text,
       textSource: row.textSource,
+      sourceHash: row.sourceHash,
       ttsUrl: row.ttsUrl,
       ttsPrerendered: row.ttsPrerendered,
       createdAt: row.createdAt,
@@ -45,6 +46,7 @@ export class PrismaPlaceTranslationRepository {
     const data = {
       text: tx.text,
       textSource: tx.textSource,
+      sourceHash: tx.sourceHash ?? null,
       ttsUrl: tx.ttsUrl,
       ttsPrerendered: tx.ttsPrerendered,
     };

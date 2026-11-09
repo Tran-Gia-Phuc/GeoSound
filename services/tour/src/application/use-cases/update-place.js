@@ -4,6 +4,8 @@
 // UC15 (MODERATION_EVENTS_ENABLED): a name/description/images change resubmits the place
 // (place.submitted); a change of what the tour scan reads withdraws a tour in moderation.
 // #240 (CHATBOT_EVENTS_ENABLED): an edit of a public tour keeps it public -> tour.published is sent again.
+// UC12: with `translations` a changed description is translated again into the tour's languages
+// (best effort; edited translations are kept and flagged outdated).
 // =========================================================
 import { Coordinates } from '../../domain/value-objects/coordinates.js';
 import {
@@ -14,9 +16,10 @@ import {
 import { MODERATED_FIELDS, TOUR_SCAN_FIELDS } from '../../domain/entities/place.js';
 import { submitPlaceForModeration, withdrawTourFromModeration } from './submit-for-moderation.js';
 import { notifyTourPublished } from './notify-tour-catalog.js';
+import { refreshPlaceTranslations } from './ensure-translations.js';
 
 export class UpdatePlace {
-  /** @param {{ tourRepo, placeRepo, zoneChecker, moderation?, catalog?, tourLanguageRepo?, placeTranslationRepo?, logger? }} deps */
+  /** @param {{ tourRepo, placeRepo, zoneChecker, moderation?, catalog?, tourLanguageRepo?, placeTranslationRepo?, translations?, logger? }} deps */
   constructor({
     tourRepo,
     placeRepo,
@@ -25,6 +28,7 @@ export class UpdatePlace {
     catalog = null,
     tourLanguageRepo = null,
     placeTranslationRepo = null,
+    translations = null,
     logger = console,
   }) {
     this.tourRepo = tourRepo;
@@ -34,6 +38,7 @@ export class UpdatePlace {
     this.catalog = catalog;
     this.tourLanguageRepo = tourLanguageRepo;
     this.placeTranslationRepo = placeTranslationRepo;
+    this.translations = translations;
     this.logger = logger;
   }
 
@@ -61,8 +66,10 @@ export class UpdatePlace {
       keys.some((k) => fields[k] !== undefined && JSON.stringify(fields[k]) !== JSON.stringify(place[k]));
     const contentChanged = changed(MODERATED_FIELDS);
     const tourScanChanged = changed(TOUR_SCAN_FIELDS);
+    const descriptionChanged = changed(['description']);
     place.applyEdits(fields);
     const saved = await this.placeRepo.save(place);
+    if (descriptionChanged) await refreshPlaceTranslations(this, tour, saved.id);
     await notifyTourPublished(this, tour);
     if (!this.moderation) return saved.toPublic();
     if (tourScanChanged) await withdrawTourFromModeration(this, tour);

@@ -37,6 +37,8 @@
 
 **A4. Ảnh hưởng tới tour đang kiểm duyệt.** Thêm / sửa nội dung AI đọc / xóa / sắp xếp điểm khi tour ở `ai_checking`, `ai_warning`, `pending_review` → tour rút về `draft` (`withdrawTourFromModeration()`). Sửa `name`, `description`, `images` → điểm được gửi `place.submitted` lại (`MODERATED_FIELDS`). Tour `public` vẫn giữ `public`; khi bật cờ chatbot, Tour phát lại `tour.published` (`notifyTourPublished()`).
 
+**A5. Bản dịch theo điểm (UC12).** Thêm điểm mới, hoặc sửa `description`, thì Tour dịch ngay điểm đó sang mọi ngôn ngữ tác giả đã bật (một lượt gọi AI mỗi ngôn ngữ, `refreshPlaceTranslations()` → `EnsureTranslations.execute()`). Bản chỉnh tay (`edited`) được giữ nhưng hiện "Cần xem lại" ở bước Ngôn ngữ. AI lỗi thì điểm vẫn được lưu; ngôn ngữ đó chờ dịch cho tới lần làm mới sau (lưu lại cấu hình ngôn ngữ).
+
 ## Exception Path
 
 - **E1.** Không tìm thấy địa chỉ → "Không tìm thấy địa chỉ phù hợp", gợi ý thả ghim (A1); dịch vụ geocoding lỗi → 503 `geocode_unavailable`. `AddressSearch`, `createGeocoder()`
@@ -78,6 +80,7 @@ Contributor cần tạo nội dung các điểm dừng cho tour.
 - Vùng cấm (quân sự, trường học, bệnh viện, lãnh sự quán...) do **Tour** kiểm khi lưu điểm, không phải Moderation.
 - Kiểm duyệt điểm (UC15): AI quét text và ảnh bằng Gemini trong một lần gọi; `policy.py`: severity ≥ 0.8 Reject, ≥ 0.4 Warning. Warning không chặn xuất bản; `checking` / `rejected` thì chặn.
 - Không có audio người thật → trình phát đọc mô tả bằng giọng của thiết bị (UC12).
+- Bản dịch đi theo mô tả: mỗi bản dịch lưu `source_hash` của mô tả đã dùng để dịch; mô tả đổi thì bản dịch máy cũ không còn được phát và được dịch lại (UC12).
 
 ## Hiện thực trong hệ thống
 
@@ -105,6 +108,7 @@ Contributor cần tạo nội dung các điểm dừng cho tour.
 | 9, E3 | `addPlaceSchema`, `updatePlaceSchema`, `reorderPlacesSchema` | `services/tour/src/application/dtos/place-schemas.js` |
 | 9 | `AddPlace.execute()` | `services/tour/src/application/use-cases/add-place.js` |
 | A2, A3 | `UpdatePlace`, `DeletePlace`, `ReorderPlaces` | `services/tour/src/application/use-cases/update-place.js`, `delete-place.js`, `reorder-places.js` |
+| A5 | `refreshPlaceTranslations()`, `EnsureTranslations` | `services/tour/src/application/use-cases/ensure-translations.js` |
 | 8 | `PolygonZoneChecker.assertAllowed()`, `pointInPolygon()` | `services/tour/src/infrastructure/zone/polygon-zone-checker.js`, `point-in-polygon.js` |
 | 8 | `PrismaForbiddenZoneRepository.listActive()` | `services/tour/src/infrastructure/persistence/prisma-forbidden-zone-repository.js` |
 | 9 | `PrismaPlaceRepository` (`create`, `nextSequence`, `reorder`, `updateModeration`) | `services/tour/src/infrastructure/persistence/prisma-place-repository.js` |
@@ -119,7 +123,7 @@ Contributor cần tạo nội dung các điểm dừng cho tour.
 
 ## Date
 
-Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-09
 
 ## Activity Diagram
 
