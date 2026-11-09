@@ -25,7 +25,10 @@ export async function notifyTourPublished(
     const languages = tourLanguageRepo
       ? (await tourLanguageRepo.listByTour(tour.id)).map((l) => l.languageCode)
       : [];
-    const translations = placeTranslationRepo ? await placeTranslationRepo.listByTour(tour.id) : [];
+    // Automatic translations made for tourists (text_source auto) are not indexed by the chatbot.
+    const translations = placeTranslationRepo
+      ? (await placeTranslationRepo.listByTour(tour.id)).filter((t) => t.textSource !== 'auto')
+      : [];
     await catalog.publishTourPublished(tour, places, { languages, translations });
   } catch (err) {
     logger.error(`[tour] tour.published not sent (tourId=${tour.id}): ${err.message}`);
