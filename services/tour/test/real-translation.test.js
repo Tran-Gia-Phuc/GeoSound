@@ -69,7 +69,7 @@ test('splitLanguagesByReadiness: ngôn ngữ thiếu bản dịch thật ở m�
   const r = splitLanguagesByReadiness({ source: 'vi', languages: ['vi', 'en', 'fr'], places, translations });
   assert.deepEqual(r.ready, ['vi', 'en']);
   assert.deepEqual(r.pending, ['fr']);
-  assert.deepEqual(r.progress.fr, { translated: 1, total: 2 });
+  assert.deepEqual(r.progress.fr, { translated: 1, total: 2, outdated: 0 });
 });
 
 // ---------- buildTourDetailView: khách chỉ chọn được ngôn ngữ đã dịch thật ----------
@@ -129,7 +129,7 @@ test('SetTourLanguages: mỗi ngôn ngữ phụ gọi translateMany MỘT lần 
   assert.equal(d.placeTranslationRepo.rows.get('p2:fr').text, 'fr:Hai');
 });
 
-test('SetTourLanguages: bản dịch máy được dịch lại mỗi lần lưu; bản chỉnh tay được giữ', async () => {
+test('SetTourLanguages: bản dịch máy chưa có source_hash được dịch lại; bản chỉnh tay được giữ', async () => {
   const places = [
     { id: 'p1', name: 'A', description: 'Một' },
     { id: 'p2', name: 'B', description: 'Hai' },
