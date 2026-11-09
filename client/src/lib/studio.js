@@ -118,6 +118,7 @@ export const TEXT_SOURCE_LABELS = {
   source: 'Ngôn ngữ gốc',
   machine: 'Dịch tự động',
   edited: 'Đã chỉnh tay',
+  auto: 'Khách yêu cầu dịch tự động',
 };
 
 export async function getLanguageConfig(tourId) {
@@ -143,6 +144,10 @@ export async function updateTranslation(tourId, placeId, lang, text) {
     { auth: true },
   );
   return b.translation;
+}
+// UC12 A6 — cho / không cho khách yêu cầu dịch tự động. -> { autoTranslate }
+export async function setAutoTranslate(tourId, enabled) {
+  return api.put(`/api/tours/mine/${encodeURIComponent(tourId)}/languages/auto-translate`, { enabled }, { auth: true });
 }
 
 // ---- UC13: xem thử tour (tác giả) ----
