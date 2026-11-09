@@ -48,6 +48,8 @@ export function usePlaybackEngine({ tour, mode, position, selectedLanguage, visi
   activeRef.current = active;
   modeRef.current = mode;
   langRef.current = selectedLanguage;
+  const sourceLangRef = useRef(tour?.originalLanguage);
+  sourceLangRef.current = tour?.originalLanguage;
   useEffect(() => {
     statusRef.current = audio.state.status;
   }, [audio.state.status]);
@@ -88,7 +90,8 @@ export function usePlaybackEngine({ tour, mode, position, selectedLanguage, visi
       audio.playTrack({
         src: nav.audioUrl,
         text: nav.text || nav.label,
-        lang: langRef.current,
+        // Directions are not translated (UC11): read them with the source-language voice.
+        lang: sourceLangRef.current ?? langRef.current,
         title: nav.label || 'Chỉ đường',
         id: `nav:${nav.id}`,
       });
@@ -133,7 +136,8 @@ export function usePlaybackEngine({ tour, mode, position, selectedLanguage, visi
         audio.playTrack({
           src: hint.audioUrl,
           text: hint.text,
-          lang: langRef.current,
+          // "Next stop" hints are not translated either: source-language voice.
+          lang: sourceLangRef.current ?? langRef.current,
           title: `Đi tiếp — ${place?.name ?? ''}`.trim(),
           id: `hint:${meta.placeId}`,
         });
