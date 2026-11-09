@@ -3,11 +3,14 @@
 // Builds draw.io data flow diagrams (DFD, Yourdon/DeMarco notation) from JSON specs.
 //   - entity  : external entity, rectangle (a "*" in the label marks a duplicate drawn twice)
 //   - process : circle "n.m / name"; "ghost" = a process of another level shown for context (dashed)
-//   - store   : data store, open rectangle "Dn | name"
+//   - store   : data store, open rectangle "Dn | name"; "tables": ["schema.table", ...] lists the real
+//               database tables it stands for (second line, small font)
 //   - flow    : labelled straight arrow; two flows between the same pair are bowed apart
 // Spec: { "pages": [{ "name", "title", "nodes": [{ "id", "kind", "label", "x", "y", "w"?, "h"? }],
 //          "flows": [{ "from", "to", "label", "via"?: [[x, y], ...], "bow"?: px, "labelAt"?: -1..1 }] }] }
 //   "via" = waypoints for a flow that must go around other nodes (drawn as a polyline).
+// Optional top-level "tableCheck": { "snapshot": "<path from repo root>", "schemas": [...] }: on every page with
+// "checkTables": true, the stores must cover each table of those schemas exactly once.
 // The script refuses overlapping nodes and lists flows whose straight line crosses another node.
 // Usage: node scripts/diagrams/dfd-xml.mjs <spec.json> <out.xml>
 // =========================================================
@@ -29,7 +32,10 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 function nodeValue(n) {
   if (n.kind === 'store') {
     const [code, ...rest] = n.label.split('|');
-    return `<b>${code.trim()}</b>&nbsp;&nbsp;│&nbsp;&nbsp;${rest.join('|').trim()}`;
+    const head = `<b>${code.trim()}</b>&nbsp;&nbsp;│&nbsp;&nbsp;${rest.join('|').trim()}`;
+    return n.tables?.length
+      ? `${head}<br><font style="font-size: 10px; color: #555555;">${n.tables.map((t) => (n.unused?.includes(t) ? `${t} (không dùng)` : t)).join(', ')}</font>`
+      : head;
   }
   if (n.kind === 'process' || n.kind === 'ghost') {
     const [num, ...rest] = n.label.split('|');
@@ -52,8 +58,31 @@ function segmentHitsRect(p, q, r) {
   return false;
 }
 
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+
+/** Stores of a page must cover every table of the checked schemas exactly once. */
+function checkTables(spec, page) {
+  const { snapshot, schemas } = spec.tableCheck;
+  const db = JSON.parse(fs.readFileSync(path.join(ROOT, snapshot), 'utf8'));
+  const expected = new Set(schemas.flatMap((s) => Object.keys(db[s] ?? {}).map((t) => `${s}.${t}`)));
+  const seen = new Map();
+  for (const n of page.nodes.filter((x) => x.kind === 'store')) {
+    for (const t of n.tables ?? []) {
+      if (seen.has(t)) throw new Error(`${page.name}: table ${t} is in ${seen.get(t)} and ${n.id}`);
+      seen.set(t, n.id);
+    }
+  }
+  const missing = [...expected].filter((t) => !seen.has(t));
+  const unknown = [...seen.keys()].filter((t) => !expected.has(t));
+  if (missing.length || unknown.length) {
+    throw new Error(`${page.name}: stores do not match the database. Missing: ${missing.join(', ') || '-'}; unknown: ${unknown.join(', ') || '-'}`);
+  }
+  return expected.size;
+}
+
 export function buildDfdXml(spec, { warn = console.warn } = {}) {
   const diagrams = spec.pages.map((page, pi) => {
+    if (page.checkTables) checkTables(spec, page);
     const cells = [];
     let next = 2;
     const nid = () => String(next++);
