@@ -15,3 +15,14 @@ export function sessionPolicy(env = process.env) {
     heartbeatMinSeconds: num(env.AUTH_HEARTBEAT_MIN_SECONDS, 30),
   };
 }
+
+/** #329 presence of every visitor (Redis): cap of the online set and the local day for daily counts. */
+export function presencePolicy(env = process.env) {
+  const int = (v, d) => (v !== undefined && v !== '' && Number.isInteger(Number(v)) ? Number(v) : d);
+  const maxDevices = int(env.AUTH_PRESENCE_MAX_DEVICES, 10000);
+  return {
+    maxDevices: maxDevices > 0 ? maxDevices : 10000,
+    // Minutes added to UTC to get the local day of "today" (420 = Vietnam, UTC+7).
+    dayOffsetMinutes: int(env.AUTH_PRESENCE_DAY_OFFSET_MINUTES, 420),
+  };
+}

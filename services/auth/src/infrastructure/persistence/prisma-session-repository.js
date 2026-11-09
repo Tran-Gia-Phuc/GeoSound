@@ -104,6 +104,15 @@ export class PrismaSessionRepository {
     return rows.map((row) => ({ session: PrismaSessionRepository.toEntity(row), user: row.user }));
   }
 
+  // #329 — device ids of the online sessions, to tell signed-in devices from guests.
+  async listOnlineDeviceIds(now, onlineSince) {
+    const rows = await this.prisma.session.findMany({
+      where: { revokedAt: null, expiresAt: { gt: now }, lastActiveAt: { gte: onlineSince } },
+      select: { deviceId: true },
+    });
+    return rows.map((row) => row.deviceId);
+  }
+
   async deleteEndedBefore(cutoff) {
     const { count } = await this.prisma.session.deleteMany({
       where: { OR: [{ revokedAt: { lt: cutoff } }, { expiresAt: { lt: cutoff } }] },

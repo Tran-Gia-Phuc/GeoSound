@@ -6,7 +6,7 @@
 import { deviceContext, currentUser } from '../request-context.js';
 
 export class AuthController {
-  /** @param {{ registerUser, verifyRegistrationOtp, resendOtp, login, forgotPassword, resetPassword, refreshToken, listSessions?, revokeSession?, revokeOtherSessions?, logout?, changePassword?, sessionHeartbeat?, getOnlineDevices? }} useCases */
+  /** @param {{ registerUser, verifyRegistrationOtp, resendOtp, login, forgotPassword, resetPassword, refreshToken, listSessions?, revokeSession?, revokeOtherSessions?, logout?, changePassword?, sessionHeartbeat?, getOnlineDevices?, recordPresence?, leavePresence? }} useCases */
   constructor(useCases) {
     this.uc = useCases;
     // Giữ `this` khi truyền thẳng method làm route handler.
@@ -25,6 +25,8 @@ export class AuthController {
       'changePassword',
       'heartbeat',
       'onlineDevices',
+      'presence',
+      'leavePresence',
     ]) {
       this[m] = this[m].bind(this);
     }
@@ -99,6 +101,18 @@ export class AuthController {
   // #265 — heartbeat of the current device (keeps it "online" for the admin view)
   async heartbeat(req, res) {
     await this.uc.sessionHeartbeat.execute(currentUser(req));
+    res.status(204).end();
+  }
+
+  // #329 — presence beat of any visitor; with a valid token the session is touched too
+  async presence(req, res) {
+    await this.uc.recordPresence.execute({ deviceId: req.validated.deviceId, currentSid: req.user?.sid ?? null });
+    res.status(204).end();
+  }
+
+  // #329 — the page was closed (sendBeacon): the device is no longer online
+  async leavePresence(req, res) {
+    await this.uc.leavePresence.execute({ deviceId: req.validated.deviceId });
     res.status(204).end();
   }
 

@@ -4,6 +4,8 @@
 // =========================================================
 import { Router } from 'express';
 import { validateBody, validateQuery } from '../middleware/validate.js';
+import { optionalAuth } from '../middleware/optional-auth.js';
+import { beaconBody } from '../middleware/beacon-body.js';
 import {
   registerSchema,
   verifyOtpSchema,
@@ -12,6 +14,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   refreshSchema,
+  presenceSchema,
   changePasswordSchema,
   adminUsersQuerySchema,
   adminReasonSchema,
@@ -38,6 +41,12 @@ export function buildAuthRouter({ authController, adminUsersController, authorCo
   r.post('/forgot-password', validateBody(forgotPasswordSchema), wrap(authController.forgotPassword));
   r.post('/reset-password', validateBody(resetPasswordSchema), wrap(authController.resetPassword));
   r.post('/refresh', validateBody(refreshSchema), wrap(authController.refresh));
+
+  // #329 — presence of every visitor for the admin online view: no sign-in needed; a Bearer token,
+  // when sent, must be valid (the session is touched too). Leave comes from sendBeacon (text/plain).
+  const presenceAuth = requireAuth ? [optionalAuth(requireAuth)] : [];
+  r.post('/presence', ...presenceAuth, validateBody(presenceSchema), wrap(authController.presence));
+  r.post('/presence/leave', beaconBody, validateBody(presenceSchema), wrap(authController.leavePresence));
 
   // UC23 — signed-in devices (valid access token, any role).
   if (requireAuth) {

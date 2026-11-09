@@ -21,6 +21,7 @@ import { ConsoleMailer } from './infrastructure/mail/console-mailer.js';
 import { PrismaSessionRepository } from './infrastructure/persistence/prisma-session-repository.js';
 import { PrismaFollowRepository } from './infrastructure/persistence/prisma-follow-repository.js';
 import { RedisRevocationStore } from './infrastructure/cache/redis-revocation-store.js';
+import { RedisPresenceStore } from './infrastructure/cache/redis-presence-store.js';
 import { NullLocationResolver } from './infrastructure/location/null-location-resolver.js';
 import { EventPublisher } from './infrastructure/messaging/event-publisher.js';
 import { durationToSeconds } from './infrastructure/security/duration.js';
@@ -41,6 +42,7 @@ import { ChangePassword } from './application/use-cases/change-password.js';
 import { GetUserContact } from './application/use-cases/get-user-contact.js';
 import { SessionHeartbeat } from './application/use-cases/session-heartbeat.js';
 import { GetOnlineDevices } from './application/use-cases/get-online-devices.js';
+import { RecordPresence, LeavePresence } from './application/use-cases/record-presence.js';
 import { RevokeAllSessions } from './application/use-cases/revoke-all-sessions.js';
 import { PurgeEndedSessions } from './application/use-cases/purge-ended-sessions.js';
 import { SearchUsers, GetUserForAdmin } from './application/use-cases/admin-users.js';
@@ -54,7 +56,7 @@ import {
   GetMyProfile,
   UpdateMyProfile,
 } from './application/use-cases/author-page.js';
-import { sessionPolicy } from './config.js';
+import { sessionPolicy, presencePolicy } from './config.js';
 
 import { AuthController } from './interfaces/http/controllers/auth-controller.js';
 import { AdminUsersController } from './interfaces/http/controllers/admin-users-controller.js';
@@ -89,6 +91,8 @@ export function buildContainer(env = process.env, { verifyJwt = null, publish = 
   const otp = new CryptoOtpGenerator(6);
   const policy = sessionPolicy(env);
   const sessionRepo = new PrismaSessionRepository(prisma);
+  // #329 — every visitor (signed in or not) by device id, for the admin online view.
+  const presence = new RedisPresenceStore(redis, { windowSeconds: policy.onlineWindowSeconds, ...presencePolicy(env) });
   const publisher = new EventPublisher({ publish });
   const sessions = new SessionManager({
     sessionRepo,
@@ -111,6 +115,7 @@ export function buildContainer(env = process.env, { verifyJwt = null, publish = 
     : new ConsoleMailer();
 
   // --- application (use-cases) ---
+  const sessionHeartbeat = new SessionHeartbeat({ sessionRepo, policy });
   const useCases = {
     registerUser: new RegisterUser({ userRepo, hasher, challenges, otp, mailer, otpTtlSeconds }),
     verifyRegistrationOtp: new VerifyRegistrationOtp({ userRepo, challenges }),
@@ -125,9 +130,11 @@ export function buildContainer(env = process.env, { verifyJwt = null, publish = 
     revokeOtherSessions: new RevokeOtherSessions({ sessions }),
     logout: new Logout({ sessionRepo, sessions }),
     changePassword: new ChangePassword({ userRepo, hasher, sessions }),
-    // #265
-    sessionHeartbeat: new SessionHeartbeat({ sessionRepo, policy }),
-    getOnlineDevices: new GetOnlineDevices({ sessionRepo, policy }),
+    // #265, #329
+    sessionHeartbeat,
+    getOnlineDevices: new GetOnlineDevices({ sessionRepo, presence, policy }),
+    recordPresence: new RecordPresence({ presence, sessionHeartbeat }),
+    leavePresence: new LeavePresence({ presence }),
   };
   // UC21 (suspend / ban sign out every device) and the retention job use these directly.
   const revokeAllSessions = new RevokeAllSessions({ sessions });

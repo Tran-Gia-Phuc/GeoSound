@@ -1,7 +1,11 @@
 // =========================================================
 // OnlineDevicesPage (/admin/devices) — #265, UC23 R13 for admins.
-//   - Counts: devices known (kept 30 days), signed in, online now, accounts online.
-//   - Table of online devices: device, account, location, signed in at, last activity.
+//   - Counts (#329: visitors who are not signed in count too): devices online now (signed in +
+//     guests), guests online, accounts online, signed in, devices seen today / 7 / 30 days,
+//     signed-in devices known (kept 30 days). Without presence data (Redis down) "online" falls
+//     back to signed-in devices and says so.
+//   - Table of signed-in online devices: device, account, location, signed in at, last activity;
+//     guests have no row (no account), only a count under the table.
 //   - Refreshes every 30 s; non-admins see a notice (the API answers 403 anyway).
 // =========================================================
 import { useCallback, useEffect, useState } from 'react';
@@ -67,6 +71,10 @@ export default function OnlineDevicesPage() {
 
   const totals = data?.totals;
   const minutes = Math.round((data?.onlineWindowSeconds ?? 120) / 60);
+  const hasPresence = totals?.onlineDevices != null;
+  const onlineNow = hasPresence ? totals.onlineDevices : totals?.online;
+  const guests = hasPresence ? totals.onlineGuests : null;
+  const activeHint = `7 ngày: ${totals?.active7Days ?? '–'} · 30 ngày: ${totals?.active30Days ?? '–'}`;
 
   return (
     <div className="page admin-devices">
@@ -89,22 +97,37 @@ export default function OnlineDevicesPage() {
         )
       ) : (
         <>
-          <div className="admin-stats" aria-label="Tổng quan thiết bị">
-            <Stat label="Đang online" value={totals?.online} hint={`Hoạt động trong ${minutes} phút qua`} accent />
+          <div className="admin-stats admin-stats--3" aria-label="Tổng quan thiết bị">
+            <Stat
+              label="Đang online"
+              value={onlineNow}
+              hint={hasPresence ? `Hoạt động trong ${minutes} phút qua` : 'Chỉ thiết bị đã đăng nhập'}
+              accent
+            />
+            <Stat label="Khách chưa đăng nhập" value={guests} hint="Đang online" />
             <Stat label="Tài khoản đang online" value={totals?.onlineAccounts} />
             <Stat label="Đang đăng nhập" value={totals?.signedIn} hint="Phiên còn hiệu lực" />
-            <Stat label="Đã từng đăng nhập" value={totals?.devicesSeen} hint="Thiết bị trong 30 ngày" />
+            <Stat label="Thiết bị truy cập hôm nay" value={totals?.activeToday} hint={activeHint} />
+            <Stat label="Thiết bị đã đăng nhập" value={totals?.devicesSeen} hint="Trong 30 ngày" />
           </div>
+
+          {hasPresence ? null : (
+            <p className="muted small" role="status">
+              Chưa đếm được khách chưa đăng nhập (máy chủ không phản hồi), số online chỉ gồm thiết bị đã đăng nhập.
+            </p>
+          )}
 
           <p className="muted small">
             Cập nhật lúc <time dateTime={data.at}>{formatDateTime(data.at)}</time> · tự làm mới mỗi 30 giây
           </p>
 
           {data.online.length === 0 ? (
-            <p className="muted">Hiện không có thiết bị nào online.</p>
+            <p className="muted">
+              {onlineNow ? 'Không có thiết bị đã đăng nhập nào online.' : 'Hiện không có thiết bị nào online.'}
+            </p>
           ) : (
             <div className="admin-table__wrap">
-              <table className="admin-table" aria-label="Thiết bị đang online">
+              <table className="admin-table" aria-label="Thiết bị đã đăng nhập đang online">
                 <thead>
                   <tr>
                     <th scope="col">Thiết bị</th>
@@ -134,6 +157,12 @@ export default function OnlineDevicesPage() {
               </table>
             </div>
           )}
+
+          {guests ? (
+            <p className="muted small" data-testid="guest-note">
+              + {guests} khách chưa đăng nhập đang online (không có trong bảng vì không gắn với tài khoản)
+            </p>
+          ) : null}
         </>
       )}
     </div>

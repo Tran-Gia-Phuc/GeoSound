@@ -90,6 +90,7 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | phone demo through ngrok (`scripts/demo/`, `docs/04-guides/phone-demo.md`) | | `chore/phone-demo-ngrok`, `chore/phone-demo-autostart` | merged (PR #261, PR #262) |
 | place audio silent on Android Chrome, local media URLs on phones | #263 | `fix/android-place-audio` | merged (PR #264) |
 | UC23 admin view of online devices (heartbeat + `/admin/devices`) | #265 | `feature/uc23-admin-online-devices` | merged (PR #266); no schema change |
+| UC23 online view counts visitors who are not signed in (presence in Redis, leave beacon, beats while audio plays) | #329 | `fix/uc23-anonymous-online-count` | merged (PR #330); no schema change |
 
 ## 5. Notes for the next tasks
 
@@ -104,7 +105,7 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | partial PRs | A branch made with `gh issue develop` is linked to the issue, and merging its PR closes the issue even with "Part of #N". For a partial PR create the branch with `git switch -c` and write "Part of #N" |
 | #219 | Schema `ai` is defined in `services/ai/prisma/schema.prisma` (tables) plus `prisma/pre-push.sql` (vector extension, schema `ai`) and `prisma/post-push.sql` (CHECK constraints, HNSW index), pushed with the auth image (`docs/04-guides/supabase-access.md` section 4); pgvector store, e5 embedding runtime in the image, AMQP transport for the indexer. Chat memory (part D): `CHAT_MEMORY_BACKEND=postgres` uses the official `AsyncPostgresSaver` (`langgraph-checkpoint-postgres` 3.2, psycopg 3.3) over `DATABASE_URL_DIRECT_AI`, in its own schema `ai_chat` (created at startup, never in Prisma-managed `ai`), plus `ai_chat.chat_sessions` / `chat_messages` for `at`, citations and TTL; `memory` stays the default. Integration tests need `AI_TEST_DATABASE_URL` (disposable DB) |
 | follow-ups | (1) Done in #253. (2) Done in #258: Notification asks Auth `GET /internal/users/:id/contact` (header `x-internal-token`, refused through the gateway) when an event has no `contributorEmail` |
-| UC23 | Schema pushed (2026-10-31). Password change while signed in: `POST /api/auth/change-password` (#256). Admin online view: `GET /api/auth/admin/sessions` + heartbeat (#265). Not built: the UC21 ban call to `RevokeAllSessions` (planned in UC21 #274; the use case is ready in `container.js`), IP location (null resolver). Clients must not refresh in parallel: the web client serialises refreshes across tabs with a Web Lock (reuse of a rotated refresh token signs the session out) |
+| UC23 | Schema pushed (2026-10-31). Password change while signed in: `POST /api/auth/change-password` (#256). Admin online view: `GET /api/auth/admin/sessions` + heartbeat (#265); since #329 it also counts guests through `POST /api/auth/presence` (Redis `presence:*`, no table). Not built: the UC21 ban call to `RevokeAllSessions` (planned in UC21 #274; the use case is ready in `container.js`), IP location (null resolver). Clients must not refresh in parallel: the web client serialises refreshes across tabs with a Web Lock (reuse of a rotated refresh token signs the session out) |
 
 ## 6. Later use cases (`docs/use case/lam-sau`, label `uc-later`)
 

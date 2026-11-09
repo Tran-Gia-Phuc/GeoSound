@@ -59,6 +59,13 @@ export const refreshSchema = z.object({
   deviceId,
 });
 
+// #329 — presence beat / leave: the UUID made once per browser by the client (lib/device-id.js).
+export const presenceSchema = z.object({
+  deviceId: z
+    .string({ required_error: 'Thiếu mã thiết bị', invalid_type_error: 'Mã thiết bị không hợp lệ' })
+    .uuid('Mã thiết bị không hợp lệ'),
+});
+
 // ---------- UC21 — admin account actions (docs/02-design/uc21-account-actions.md) ----------
 
 const adminReason = z
