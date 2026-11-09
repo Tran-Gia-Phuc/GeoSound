@@ -3,7 +3,7 @@
 // Chưa cấu hình → chỉ có ngôn ngữ gốc, chưa có ngôn ngữ phụ/bản dịch.
 // =========================================================
 import { TourNotFoundError, NotTourOwnerError } from '../../domain/errors/index.js';
-import { splitLanguagesByReadiness, isOutdatedEdit } from '../../domain/i18n/translation-status.js';
+import { splitLanguagesByReadiness, isOutdatedEdit, autoLanguageCodes } from '../../domain/i18n/translation-status.js';
 
 /** Ráp cấu hình trả về từ các mảnh đã tải (dùng chung với SetTourLanguages). */
 export function buildLanguageConfig({ tour, langs, translations, places }) {
@@ -29,6 +29,16 @@ export function buildLanguageConfig({ tour, langs, translations, places }) {
     outdated: progress[l.languageCode]?.outdated ?? 0,
   }));
 
+  // Ngôn ngữ khách đã yêu cầu dịch tự động (tác giả chưa bật) — tác giả có thể bật để dùng lại.
+  const autoCodes = autoLanguageCodes(translations, base.map((l) => l.languageCode));
+  const auto = splitLanguagesByReadiness({ source, languages: autoCodes, places, translations });
+  const autoLanguages = autoCodes.map((code) => ({
+    languageCode: code,
+    ready: auto.ready.includes(code),
+    translated: auto.progress[code].translated,
+    total: auto.progress[code].total,
+  }));
+
   // outdated = bản chỉnh tay nhưng mô tả gốc đã đổi sau đó (UC10) → tác giả nên xem lại.
   const placeById = new Map(places.map((p) => [p.id, p]));
   const byPlace = new Map(places.map((p) => [p.id, []]));
@@ -42,6 +52,8 @@ export function buildLanguageConfig({ tour, langs, translations, places }) {
     sourceLanguage: source,
     voice,
     languages,
+    autoTranslate: tour.autoTranslate !== false,
+    autoLanguages,
     places: places.map((p) => ({
       placeId: p.id,
       name: p.name,

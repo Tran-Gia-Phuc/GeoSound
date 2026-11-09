@@ -45,6 +45,22 @@ export function needsTranslation(place, tx) {
 }
 
 /**
+ * Languages that only exist as automatic translations asked by tourists (text_source auto) and
+ * that the author did not turn on, in first-seen order.
+ * @param {Array<{ languageCode: string, textSource: string }>} translations
+ * @param {string[]} configured languages of the tour (source included)
+ */
+export function autoLanguageCodes(translations, configured) {
+  const out = [];
+  for (const t of translations) {
+    if (t.textSource === 'auto' && !configured.includes(t.languageCode) && !out.includes(t.languageCode)) {
+      out.push(t.languageCode);
+    }
+  }
+  return out;
+}
+
+/**
  * Chia ngôn ngữ đã cấu hình thành sẵn sàng / đang chờ dịch.
  * @param {{ source: string, languages: string[], places: Array<{id, description}>,
  *           translations: Array<{placeId, languageCode, text, textSource, sourceHash?}> }} input
