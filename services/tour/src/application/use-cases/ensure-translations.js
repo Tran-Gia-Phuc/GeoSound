@@ -4,8 +4,11 @@
 // or made from an older description: domain/i18n/translation-status needsTranslation), in ONE
 // translateMany call. Edited translations are never replaced. The source language is not
 // translated: its row text is the place description.
-// Used by SetTourLanguages (author saves languages) and by AddPlace / UpdatePlace (a new place or
-// a changed description refreshes the tour's languages at once, best effort).
+// Used by SetTourLanguages (author saves languages), AddPlace / UpdatePlace (a new place or a
+// changed description refreshes the tour's languages at once, best effort) and
+// TranslateTourForVisitor (a tourist asks for a language: text_source auto when the author did not
+// turn it on). Concurrent calls for the same tour, language and places share one run (single
+// flight, one Tour instance), so ten tourists asking at once cost one AI call.
 // Errors: translator -> TranslationError (E1, 503), TTS -> TtsError (E1, 503).
 // =========================================================
 import { PlaceTranslation, TEXT_SOURCE } from '../../domain/entities/place-translation.js';
@@ -51,15 +54,26 @@ export class EnsureTranslations {
     this.placeTranslationRepo = placeTranslationRepo;
     this.translator = translator;
     this.ttsSynthesizer = ttsSynthesizer;
+    this.inflight = new Map(); // key -> Promise
   }
 
   /**
    * @param {{ tour, lang: string, voice?: { gender: string, region: string|null }|null,
-   *           placeIds?: string[], withTts?: boolean }} input
+   *           placeIds?: string[], withTts?: boolean, textSource?: 'machine'|'auto' }} input
    *   withTts=false: rows are saved without TTS (the caller renders it afterwards).
+   *   textSource: label of the new rows (auto = asked by a tourist, language not turned on).
    * @returns {Promise<{ translated: number }>} number of rows written
    */
-  async execute({ tour, lang, voice = null, placeIds, withTts = true }) {
+  execute(input) {
+    const key = [input.tour.id, input.lang, input.textSource ?? 'machine', input.withTts === false ? 'notts' : 'tts', input.placeIds?.join(',') ?? '*'].join('|');
+    const running = this.inflight.get(key);
+    if (running) return running;
+    const run = this.#run(input).finally(() => this.inflight.delete(key));
+    this.inflight.set(key, run);
+    return run;
+  }
+
+  async #run({ tour, lang, voice = null, placeIds, withTts = true, textSource = TEXT_SOURCE.MACHINE }) {
     const source = tour.originalLanguage;
     let places = await this.placeRepo.listByTour(tour.id);
     if (placeIds) places = places.filter((p) => placeIds.includes(p.id));
@@ -90,7 +104,7 @@ export class EnsureTranslations {
           placeId: place.id,
           languageCode: lang,
           text: texts[i],
-          textSource: lang === source ? TEXT_SOURCE.SOURCE : TEXT_SOURCE.MACHINE,
+          textSource: lang === source ? TEXT_SOURCE.SOURCE : textSource,
           sourceHash: sourceHash(place.description),
           ttsUrl: tts?.url ?? null,
           ttsPrerendered: tts?.prerendered ?? false,
