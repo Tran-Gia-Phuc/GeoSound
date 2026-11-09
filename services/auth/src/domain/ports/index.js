@@ -53,6 +53,16 @@
  * @property {(id: string, now: Date, notAfter: Date) => Promise<boolean>} touch  // #265 heartbeat: lastActiveAt = now when active and lastActiveAt < notAfter
  * @property {(now: Date, onlineSince: Date) => Promise<{ devicesSeen: number, signedIn: number, online: number, onlineAccounts: number }>} countStats  // #265
  * @property {(now: Date, onlineSince: Date, limit: number) => Promise<Array<{ session: import('../entities/session.js').Session, user: { id: string, email: string, fullName: string, role: string } }>>} listOnline  // #265
+ * @property {(now: Date, onlineSince: Date) => Promise<Array<string|null>>} listOnlineDeviceIds  // #329: deviceId of every online session (null for old clients)
+ */
+
+/**
+ * #329 — presence of every visitor, signed in or not, by device id (Redis in production).
+ * @typedef {Object} PresenceStore
+ * @property {(deviceId: string, now: Date) => Promise<void>} touch  // seen now: online set + distinct devices of the day
+ * @property {(deviceId: string) => Promise<void>} leave  // page closed: out of the online set at once
+ * @property {(since: Date, knownDeviceIds: string[]) => Promise<{ total: number, known: number }>} countOnline  // known = how many of knownDeviceIds are online
+ * @property {(now: Date, days: number[]) => Promise<number[]>} countActive  // distinct devices over the last N days, one result per entry of days
  */
 
 /**
