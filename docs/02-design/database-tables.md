@@ -1,10 +1,21 @@
 # GeoSound database tables (for the ERD)
 
-Every table of the system as it is in the code on 2026-11-08. Source of truth: `services/<svc>/prisma/schema.prisma`,
-plus the chat memory tables created by `services/ai/app/chatbot/memory.py`.
+Every table of the database as it is on Supabase (snapshot of 2026-11-09,
+[`drawio/erd/supabase-schema.json`](drawio/erd/supabase-schema.json), made by `scripts/diagrams/db-snapshot.py`).
+The tables come from `services/<svc>/prisma/schema.prisma`, the chat memory tables of `services/ai/app/chatbot/memory.py`
+and the LangGraph checkpointer. ERD: [`drawio/erd-geosound.xml`](drawio/erd-geosound.xml).
 
-- One Postgres database (Supabase), **one schema per service**: `auth` (deployed as `app_auth`), `tour`, `notification`,
-  `moderation`, `media`, `ai`, `ai_chat`. A service only reads and writes its own schema.
+**The database has 75 tables:**
+
+- **34 GeoSound tables**, in the schemas of the services (section 1): `app_auth` 3, `tour` 16, `notification` 2,
+  `moderation` 1, `media` 1, `ai` 5, `ai_chat` 6. They are on page 1 of the ERD.
+- **41 Supabase platform tables**, made and managed by Supabase itself: `auth` 27 (Supabase Auth), `storage` 10,
+  `realtime` 3, `vault` 1. GeoSound never reads or writes them. They are on page 2 of the ERD. Do not mix up Supabase's
+  `auth.users` with GeoSound's accounts in `app_auth.users`.
+
+- One Postgres database (Supabase), **one schema per service**: `app_auth` (Prisma file comment says `auth`; the
+  deployed schema is `app_auth`), `tour`, `notification`, `moderation`, `media`, `ai`, `ai_chat`. A service only reads
+  and writes its own schema.
 - **FK** = real foreign key inside one schema. **Soft ref** = an id of another service's row (or of a row that may be
   deleted) with no foreign key. Services exchange data through RabbitMQ events and HTTP, never through joins.
 - Ids are UUID strings (`@default(uuid())`) unless stated. `created_at` / `updated_at` are timestamps.
@@ -15,9 +26,9 @@ plus the chat memory tables created by `services/ai/app/chatbot/memory.py`.
 
 | Schema | Table | Purpose | UC |
 |---|---|---|---|
-| auth | `users` | Accounts (tourist, contributor, admin), status, author profile | UC01, UC18, UC21 |
-| auth | `sessions` | One row per signed-in device | UC23 |
-| auth | `author_follows` | Who follows which author | UC18 |
+| app_auth | `users` | Accounts (tourist, contributor, admin), status, author profile | UC01, UC18, UC21 |
+| app_auth | `sessions` | One row per signed-in device | UC23 |
+| app_auth | `author_follows` | Who follows which author | UC18 |
 | tour | `tours` | Tours, lifecycle status, rating summary, moderation and passcode fields | UC09, UC14, UC15, UC19 |
 | tour | `places` | Stops of a tour | UC10, UC15 |
 | tour | `route_configs` | Route path, trigger zones, navigation audio (1-1 with a tour) | UC11 |
@@ -45,6 +56,10 @@ plus the chat memory tables created by `services/ai/app/chatbot/memory.py`.
 | ai | `chunks` | Text chunks with a 384-dim embedding (pgvector) | UC24 |
 | ai_chat | `chat_sessions` | Chat sessions | UC24 |
 | ai_chat | `chat_messages` | Message metadata (time, citations) | UC24 |
+| ai_chat | `checkpoints` | Conversation state per session (LangGraph library) | UC24 |
+| ai_chat | `checkpoint_blobs` | Large state values, including the message text (LangGraph library) | UC24 |
+| ai_chat | `checkpoint_writes` | Pending writes of a chat turn (LangGraph library) | UC24 |
+| ai_chat | `checkpoint_migrations` | Schema version of the LangGraph tables | UC24 |
 
 ## 2. ERD (Mermaid)
 
@@ -87,9 +102,12 @@ erDiagram
   nodes ||--o{ edges : "dst"
   nodes ||--o{ chunks : "has"
   chat_sessions ||--o{ chat_messages : "has"
+  chat_sessions ||..o{ checkpoints : "thread_id"
+  chat_sessions ||..o{ checkpoint_blobs : "thread_id"
+  chat_sessions ||..o{ checkpoint_writes : "thread_id"
 ```
 
-## 3. Schema `auth` (Auth service)
+## 3. Schema `app_auth` (Auth service)
 
 ### `users`
 
@@ -509,6 +527,38 @@ Index `(tour_id)`.
 | `chat_messages` | `at` | timestamptz | |
 | `chat_messages` | `citations` | jsonb | `[{ kind, id, title, tour_id? }]` |
 
-Created only when `CHAT_MEMORY_BACKEND=postgres`. The message text itself is kept by the LangGraph checkpointer in its
-own tables of the same schema (`checkpoints`, `checkpoint_blobs`, `checkpoint_writes`, `checkpoint_migrations`), managed
-by the library; leave them out of the ERD.
+Created only when `CHAT_MEMORY_BACKEND=postgres`. The message text itself is kept by the LangGraph checkpointer in the
+four tables below.
+
+### `ai_chat` LangGraph checkpointer tables (made and migrated by the library)
+
+`AsyncPostgresSaver.setup()` creates them in the same schema (`SET search_path TO ai_chat`). `thread_id` is the chat
+`session_id` (soft ref → `chat_sessions.session_id`, no FK). Never edit them by hand.
+
+| Table | Columns | Key |
+|---|---|---|
+| `checkpoints` | `thread_id` text, `checkpoint_ns` text (default `''`), `checkpoint_id` text, `parent_checkpoint_id` text?, `type` text?, `checkpoint` jsonb, `metadata` jsonb (default `{}`) | PK `(thread_id, checkpoint_ns, checkpoint_id)` |
+| `checkpoint_blobs` | `thread_id` text, `checkpoint_ns` text, `channel` text, `version` text, `type` text, `blob` bytea? | PK `(thread_id, checkpoint_ns, channel, version)` |
+| `checkpoint_writes` | `thread_id` text, `checkpoint_ns` text, `checkpoint_id` text, `task_id` text, `idx` int, `channel` text, `type` text?, `blob` bytea, `task_path` text (default `''`) | PK `(thread_id, checkpoint_ns, checkpoint_id, task_id, idx)` |
+| `checkpoint_migrations` | `v` int | PK `(v)` |
+
+## 9. Supabase platform schemas (not used by GeoSound)
+
+Made by Supabase for its own products; listed for completeness (full columns in the snapshot and on page 2 of the ERD).
+
+| Schema | Tables |
+|---|---|
+| `auth` (27) | `audit_log_entries`, `custom_oauth_providers`, `flow_state`, `identities`, `instances`, `mfa_amr_claims`, `mfa_challenges`, `mfa_factors`, `mfa_recovery_code_sets`, `mfa_recovery_codes`, `oauth_authorizations`, `oauth_client_states`, `oauth_clients`, `oauth_consents`, `one_time_tokens`, `refresh_tokens`, `saml_providers`, `saml_relay_states`, `schema_migrations`, `scim_tokens`, `scim_users`, `sessions`, `sso_domains`, `sso_providers`, `users`, `webauthn_challenges`, `webauthn_credentials` |
+| `storage` (10) | `bucket_lifecycle_states`, `buckets`, `buckets_analytics`, `buckets_vectors`, `lifecycle_abandoned_artifacts`, `migrations`, `objects`, `s3_multipart_uploads`, `s3_multipart_uploads_parts`, `vector_indexes` |
+| `realtime` (3) | `messages`, `schema_migrations`, `subscription` |
+| `vault` (1) | `secrets` |
+
+To refresh the snapshot and the ERD after a schema change:
+
+```
+docker compose exec -T ai python - < scripts/diagrams/db-snapshot.py > docs/02-design/drawio/erd/supabase-schema.json
+node scripts/diagrams/erd-xml.mjs docs/02-design/drawio/erd-geosound.xml
+```
+
+The ERD script stops with an error when the database has a schema it does not draw, or when the number of drawn tables
+differs from the snapshot.
