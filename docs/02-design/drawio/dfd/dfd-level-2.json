@@ -1,177 +1,686 @@
 {
   "pages": [
     {
-      "name": "DFD cấp 2 – 5.0 Kiểm duyệt",
-      "title": "DFD cấp 2 – Tiến trình 5.0 Kiểm duyệt tự động bằng AI (UC15)",
+      "name": "1.0 Tài khoản",
+      "title": "DFD cấp 2 – Tiến trình 1.0 Quản lý tài khoản & phiên đăng nhập (UC01, UC18, UC21, UC23)",
       "nodes": [
         {
-          "id": "P51",
+          "id": "P11",
           "kind": "process",
-          "label": "5.1 | Nhận nội dung gửi duyệt, mở ca kiểm duyệt",
-          "x": 300,
-          "y": 300
+          "label": "1.1 | Đăng ký & xác thực OTP",
+          "x": 920,
+          "y": 40
         },
         {
-          "id": "P52",
+          "id": "P12",
           "kind": "process",
-          "label": "5.2 | Kiểm tra luật vị trí G1–G6 (tour)",
-          "x": 300,
-          "y": 700
+          "label": "1.2 | Đăng nhập, cấp & làm mới token",
+          "x": 920,
+          "y": 560
         },
         {
-          "id": "P53",
+          "id": "P13",
           "kind": "process",
-          "label": "5.3 | Gọi AI kiểm duyệt, thử lại khi lỗi tạm thời",
-          "x": 800,
-          "y": 300
+          "label": "1.3 | Quên / đổi mật khẩu",
+          "x": 1440,
+          "y": 40
         },
         {
-          "id": "P54",
+          "id": "P14",
           "kind": "process",
-          "label": "5.4 | AI chấm nội dung & ảnh, áp ngưỡng Pass / Warning / Reject",
-          "x": 1300,
-          "y": 300
+          "label": "1.4 | Quản lý thiết bị đăng nhập",
+          "x": 400,
+          "y": 40
         },
         {
-          "id": "P55",
+          "id": "P15",
           "kind": "process",
-          "label": "5.5 | Gộp kết quả AI + vị trí, công bố kết quả",
-          "x": 800,
-          "y": 700
+          "label": "1.5 | Hồ sơ & theo dõi tác giả",
+          "x": 400,
+          "y": 560
         },
         {
-          "id": "P56",
+          "id": "P16",
           "kind": "process",
-          "label": "5.6 | Quét định kỳ ca lỗi (sweeper)",
-          "x": 800,
-          "y": -50
+          "label": "1.6 | Áp dụng xử lý tài khoản vi phạm",
+          "x": 1440,
+          "y": 560
         },
         {
-          "id": "G4",
+          "id": "USER",
+          "kind": "entity",
+          "label": "Người dùng (Khách / Contributor / Admin)",
+          "x": -60,
+          "y": 340
+        },
+        {
+          "id": "SMTP",
+          "kind": "entity",
+          "label": "Máy chủ email (SMTP)",
+          "x": 2080,
+          "y": 440
+        },
+        {
+          "id": "G6",
           "kind": "ghost",
-          "label": "4.0 | Quản lý nội dung tour",
-          "x": -200,
-          "y": 310
+          "label": "6.0 | Duyệt tour & xử lý vi phạm",
+          "x": 2380,
+          "y": 580
         },
         {
           "id": "G8",
           "kind": "ghost",
           "label": "8.0 | Thông báo",
-          "x": 810,
-          "y": 1050
+          "x": 2380,
+          "y": 950
         },
         {
-          "id": "D8",
+          "id": "D1",
           "kind": "store",
-          "label": "D8 | Hồ sơ kiểm duyệt",
-          "x": 300,
-          "y": 220
+          "label": "D1 | Tài khoản, phiên đăng nhập, theo dõi tác giả",
+          "x": 600,
+          "y": 380,
+          "w": 280,
+          "h": 78,
+          "tables": [
+            "app_auth.users",
+            "app_auth.sessions",
+            "app_auth.author_follows"
+          ]
         },
         {
-          "id": "D4",
+          "id": "D2",
           "kind": "store",
-          "label": "D4 | Tệp media (ảnh)",
-          "x": 1260,
-          "y": 220
-        },
-        {
-          "id": "LLM",
-          "kind": "entity",
-          "label": "Nhà cung cấp LLM (Gemini, dự phòng Groq)",
-          "x": 1285,
-          "y": 490
+          "label": "D2 | OTP & phiên bị thu hồi (Redis, không phải bảng)",
+          "x": 1120,
+          "y": -50,
+          "w": 280,
+          "h": 50
         }
       ],
       "flows": [
         {
-          "from": "G4",
-          "to": "P51",
-          "label": "Điểm / tour gửi duyệt<br>(place.submitted, tour.submitted)"
+          "from": "USER",
+          "to": "P11",
+          "label": "Họ tên, email, mật khẩu, OTP"
         },
         {
-          "from": "P51",
-          "to": "D8",
-          "label": "Ca mới (pending)"
+          "from": "P11",
+          "to": "D2",
+          "label": "OTP, đăng ký chờ xác thực"
         },
         {
-          "from": "P51",
-          "to": "P52",
-          "label": "Tọa độ, thứ tự điểm, loại tour"
+          "from": "D2",
+          "to": "P11",
+          "label": "OTP cần đối chiếu"
         },
         {
-          "from": "P51",
-          "to": "P53",
-          "label": "Nội dung cần kiểm duyệt"
+          "from": "P11",
+          "to": "SMTP",
+          "label": "Email OTP"
         },
         {
-          "from": "P53",
-          "to": "P54",
-          "label": "Yêu cầu /moderate (token nội bộ)"
+          "from": "P11",
+          "to": "D1",
+          "label": "Tài khoản mới"
         },
         {
-          "from": "D4",
-          "to": "P54",
-          "label": "Ảnh điểm dừng (≤5, ≤3 MB)"
+          "from": "USER",
+          "to": "P12",
+          "label": "Email, mật khẩu, thiết bị, refresh token"
         },
         {
-          "from": "P54",
-          "to": "LLM",
-          "label": "Một lần gọi: văn bản + ảnh"
+          "from": "D1",
+          "to": "P12",
+          "label": "Tài khoản, phiên, khóa đăng nhập"
         },
         {
-          "from": "LLM",
-          "to": "P54",
-          "label": "Phát hiện (loại, mức độ 0–1)"
+          "from": "P12",
+          "to": "D1",
+          "label": "Phiên mới, token xoay vòng"
         },
         {
-          "from": "P54",
-          "to": "P53",
-          "label": "Verdict, severity, lý do"
+          "from": "P12",
+          "to": "USER",
+          "label": "Access + refresh token"
         },
         {
-          "from": "P53",
-          "to": "D8",
-          "label": "Lỗi tạm thời → ai_failed"
-        },
-        {
-          "from": "D8",
-          "to": "P56",
-          "label": "Ca ai_failed quá hạn"
-        },
-        {
-          "from": "P56",
-          "to": "P53",
-          "label": "Gửi lại nội dung đã lưu"
-        },
-        {
-          "from": "P53",
-          "to": "P55",
-          "label": "Kết quả AI (lỗi 422 → Warning)"
-        },
-        {
-          "from": "P52",
-          "to": "P55",
-          "label": "Vi phạm vị trí (G1 Reject, còn lại Warning)"
-        },
-        {
-          "from": "P55",
-          "to": "D8",
-          "label": "Verdict cuối, lý do, thời điểm công bố"
-        },
-        {
-          "from": "P55",
-          "to": "G4",
-          "label": "ai_passed (kèm cảnh báo) / ai_rejected"
-        },
-        {
-          "from": "P55",
+          "from": "P12",
           "to": "G8",
-          "label": "Tour bị AI từ chối"
+          "label": "Đăng nhập thiết bị mới"
+        },
+        {
+          "from": "USER",
+          "to": "P13",
+          "label": "Email, OTP, mật khẩu cũ / mới"
+        },
+        {
+          "from": "P13",
+          "to": "SMTP",
+          "label": "Email OTP đặt lại"
+        },
+        {
+          "from": "P13",
+          "to": "D2",
+          "label": "OTP, phiên bị thu hồi"
+        },
+        {
+          "from": "P13",
+          "to": "D1",
+          "label": "Mật khẩu mới, thu hồi phiên"
+        },
+        {
+          "from": "USER",
+          "to": "P14",
+          "label": "Đăng xuất một / mọi thiết bị khác"
+        },
+        {
+          "from": "D1",
+          "to": "P14",
+          "label": "Danh sách phiên"
+        },
+        {
+          "from": "P14",
+          "to": "D1",
+          "label": "Phiên bị thu hồi"
+        },
+        {
+          "from": "P14",
+          "to": "D2",
+          "label": "sid bị thu hồi"
+        },
+        {
+          "from": "P14",
+          "to": "USER",
+          "label": "Thiết bị đang đăng nhập"
+        },
+        {
+          "from": "USER",
+          "to": "P15",
+          "label": "Hồ sơ, theo dõi / bỏ theo dõi"
+        },
+        {
+          "from": "P15",
+          "to": "D1",
+          "label": "Hồ sơ, lượt theo dõi"
+        },
+        {
+          "from": "D1",
+          "to": "P15",
+          "label": "Hồ sơ tác giả"
+        },
+        {
+          "from": "P15",
+          "to": "USER",
+          "label": "Trang tác giả, danh sách theo dõi"
+        },
+        {
+          "from": "G6",
+          "to": "P16",
+          "label": "Cảnh cáo / tạm khóa / cấm / khôi phục"
+        },
+        {
+          "from": "D1",
+          "to": "P16",
+          "label": "Trạng thái tài khoản"
+        },
+        {
+          "from": "P16",
+          "to": "D1",
+          "label": "Trạng thái mới, thu hồi phiên"
+        },
+        {
+          "from": "P16",
+          "to": "G8",
+          "label": "account.moderated"
+        },
+        {
+          "from": "P16",
+          "to": "G6",
+          "label": "Tài khoản, sự kiện xử lý (nhật ký)"
         }
       ]
     },
     {
-      "name": "DFD cấp 2 – 4.0 Nội dung tour",
+      "name": "2.0 Tìm & nghe tour",
+      "title": "DFD cấp 2 – Tiến trình 2.0 Tìm, xem, nghe & tải tour offline (UC02, UC03, UC04, UC14 người thử)",
+      "nodes": [
+        {
+          "id": "P21",
+          "kind": "process",
+          "label": "2.1 | Tìm kiếm & lọc tour, địa điểm",
+          "x": 400,
+          "y": 40
+        },
+        {
+          "id": "P22",
+          "kind": "process",
+          "label": "2.2 | Xem chi tiết, mở khóa tour hạn chế",
+          "x": 920,
+          "y": 40
+        },
+        {
+          "id": "P23",
+          "kind": "process",
+          "label": "2.3 | Nghe tour (GPS tại chỗ / từ xa)",
+          "x": 920,
+          "y": 560
+        },
+        {
+          "id": "P24",
+          "kind": "process",
+          "label": "2.4 | Tải & quản lý gói offline",
+          "x": 400,
+          "y": 560
+        },
+        {
+          "id": "P25",
+          "kind": "process",
+          "label": "2.5 | Ghi lượt xem / nghe / tải",
+          "x": 1440,
+          "y": 40
+        },
+        {
+          "id": "TOURIST",
+          "kind": "entity",
+          "label": "Khách du lịch",
+          "x": -60,
+          "y": 310
+        },
+        {
+          "id": "G7",
+          "kind": "ghost",
+          "label": "7.0 | Đánh giá, báo cáo & thống kê",
+          "x": 2080,
+          "y": 30
+        },
+        {
+          "id": "D3",
+          "kind": "store",
+          "label": "D3 | Tour & nội dung tour",
+          "x": 600,
+          "y": 270,
+          "w": 280,
+          "h": 106,
+          "tables": [
+            "tour.tours",
+            "tour.places",
+            "tour.route_configs",
+            "tour.tour_languages",
+            "tour.place_translations",
+            "tour.forbidden_zones",
+            "tour.tour_access_grants",
+            "tour.tour_unlock_attempts"
+          ]
+        },
+        {
+          "id": "D4",
+          "kind": "store",
+          "label": "D4 | Tệp media (ảnh, audio – lưu file)",
+          "x": 600,
+          "y": 700,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "media.audio_assets"
+          ],
+          "unused": [
+            "media.audio_assets"
+          ]
+        },
+        {
+          "id": "D12",
+          "kind": "store",
+          "label": "D12 | Gói offline trên thiết bị (IndexedDB, không phải bảng)",
+          "x": 600,
+          "y": 620,
+          "w": 280,
+          "h": 50
+        }
+      ],
+      "flows": [
+        {
+          "from": "TOURIST",
+          "to": "P21",
+          "label": "Từ khóa, bộ lọc, vị trí"
+        },
+        {
+          "from": "D3",
+          "to": "P21",
+          "label": "Tour công khai, địa điểm"
+        },
+        {
+          "from": "P21",
+          "to": "TOURIST",
+          "label": "Danh sách, bản đồ"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P22",
+          "label": "Chọn tour, ngôn ngữ, mã truy cập"
+        },
+        {
+          "from": "D3",
+          "to": "P22",
+          "label": "Chi tiết, bản dịch, quyền truy cập"
+        },
+        {
+          "from": "P22",
+          "to": "D3",
+          "label": "Lượt mở khóa, lần nhập sai"
+        },
+        {
+          "from": "P22",
+          "to": "TOURIST",
+          "label": "Chi tiết tour"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P23",
+          "label": "Vị trí GPS, thao tác phát"
+        },
+        {
+          "from": "D3",
+          "to": "P23",
+          "label": "Route, vùng kích hoạt, thuyết minh"
+        },
+        {
+          "from": "D4",
+          "to": "P23",
+          "label": "Audio, ảnh"
+        },
+        {
+          "from": "D12",
+          "to": "P23",
+          "label": "Gói đã tải (khi offline)"
+        },
+        {
+          "from": "P23",
+          "to": "TOURIST",
+          "label": "Thuyết minh, audio, gợi ý điểm tiếp"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P24",
+          "label": "Ngôn ngữ cần tải, xóa gói"
+        },
+        {
+          "from": "D3",
+          "to": "P24",
+          "label": "Gói tour (manifest)"
+        },
+        {
+          "from": "D4",
+          "to": "P24",
+          "label": "Tệp ảnh, audio"
+        },
+        {
+          "from": "P24",
+          "to": "D12",
+          "label": "Gói tour"
+        },
+        {
+          "from": "D12",
+          "to": "P24",
+          "label": "Gói đã tải, dung lượng"
+        },
+        {
+          "from": "P24",
+          "to": "TOURIST",
+          "label": "Tour đã tải, tiến trình"
+        },
+        {
+          "from": "P22",
+          "to": "P25",
+          "label": "Lượt xem"
+        },
+        {
+          "from": "P23",
+          "to": "P25",
+          "label": "Lượt nghe, hoàn thành"
+        },
+        {
+          "from": "P24",
+          "to": "P25",
+          "label": "Lượt tải"
+        },
+        {
+          "from": "P25",
+          "to": "G7",
+          "label": "view / play / complete / download"
+        }
+      ]
+    },
+    {
+      "name": "3.0 Lịch trình",
+      "title": "DFD cấp 2 – Tiến trình 3.0 Lịch trình cá nhân (UC07, UC08)",
+      "nodes": [
+        {
+          "id": "P31",
+          "kind": "process",
+          "label": "3.1 | Tạo, đổi tên, xóa lịch trình",
+          "x": 920,
+          "y": 560
+        },
+        {
+          "id": "P32",
+          "kind": "process",
+          "label": "3.2 | Thêm, sắp xếp, xóa điểm",
+          "x": 400,
+          "y": 560
+        },
+        {
+          "id": "P33",
+          "kind": "process",
+          "label": "3.3 | Chia sẻ lịch trình",
+          "x": 1440,
+          "y": 40
+        },
+        {
+          "id": "P34",
+          "kind": "process",
+          "label": "3.4 | Đi theo lịch trình",
+          "x": 400,
+          "y": 40
+        },
+        {
+          "id": "P35",
+          "kind": "process",
+          "label": "3.5 | Tải lịch trình offline",
+          "x": 920,
+          "y": 40
+        },
+        {
+          "id": "TOURIST",
+          "kind": "entity",
+          "label": "Khách du lịch",
+          "x": -60,
+          "y": 360
+        },
+        {
+          "id": "VIEWER",
+          "kind": "entity",
+          "label": "Người xem link chia sẻ",
+          "x": 2080,
+          "y": 30
+        },
+        {
+          "id": "D3",
+          "kind": "store",
+          "label": "D3 | Tour & nội dung tour",
+          "x": 600,
+          "y": 630,
+          "w": 280,
+          "h": 106,
+          "tables": [
+            "tour.tours",
+            "tour.places",
+            "tour.route_configs",
+            "tour.tour_languages",
+            "tour.place_translations",
+            "tour.forbidden_zones",
+            "tour.tour_access_grants",
+            "tour.tour_unlock_attempts"
+          ]
+        },
+        {
+          "id": "D4",
+          "kind": "store",
+          "label": "D4 | Tệp media (ảnh, audio – lưu file)",
+          "x": 600,
+          "y": 10,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "media.audio_assets"
+          ],
+          "unused": [
+            "media.audio_assets"
+          ]
+        },
+        {
+          "id": "D5",
+          "kind": "store",
+          "label": "D5 | Lịch trình",
+          "x": 600,
+          "y": 340,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "tour.itineraries",
+            "tour.itinerary_items"
+          ]
+        },
+        {
+          "id": "D12",
+          "kind": "store",
+          "label": "D12 | Gói offline trên thiết bị (IndexedDB, không phải bảng)",
+          "x": 600,
+          "y": 110,
+          "w": 280,
+          "h": 50
+        }
+      ],
+      "flows": [
+        {
+          "from": "TOURIST",
+          "to": "P31",
+          "label": "Tên lịch trình, xóa"
+        },
+        {
+          "from": "P31",
+          "to": "D5",
+          "label": "Lịch trình"
+        },
+        {
+          "from": "D5",
+          "to": "P31",
+          "label": "Danh sách lịch trình"
+        },
+        {
+          "from": "P31",
+          "to": "TOURIST",
+          "label": "Lịch trình của tôi"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P32",
+          "label": "Chọn điểm, thứ tự"
+        },
+        {
+          "from": "D3",
+          "to": "P32",
+          "label": "Điểm của tour công khai"
+        },
+        {
+          "from": "P32",
+          "to": "D5",
+          "label": "Điểm (snapshot), thứ tự"
+        },
+        {
+          "from": "P32",
+          "to": "TOURIST",
+          "label": "Quãng đường, thời gian đi bộ"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P33",
+          "label": "Bật / thu hồi chia sẻ"
+        },
+        {
+          "from": "P33",
+          "to": "D5",
+          "label": "Mã chia sẻ"
+        },
+        {
+          "from": "D5",
+          "to": "P33",
+          "label": "Lịch trình theo mã"
+        },
+        {
+          "from": "P33",
+          "to": "TOURIST",
+          "label": "Link chia sẻ"
+        },
+        {
+          "from": "VIEWER",
+          "to": "P33",
+          "label": "Mã chia sẻ"
+        },
+        {
+          "from": "P33",
+          "to": "VIEWER",
+          "label": "Lịch trình chỉ xem"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P34",
+          "label": "Vị trí GPS, thao tác phát"
+        },
+        {
+          "from": "D5",
+          "to": "P34",
+          "label": "Điểm, vùng kích hoạt"
+        },
+        {
+          "from": "D4",
+          "to": "P34",
+          "label": "Audio, ảnh"
+        },
+        {
+          "from": "D12",
+          "to": "P34",
+          "label": "Gói lịch trình (khi offline)"
+        },
+        {
+          "from": "P34",
+          "to": "TOURIST",
+          "label": "Thuyết minh, audio"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P35",
+          "label": "Yêu cầu tải"
+        },
+        {
+          "from": "D5",
+          "to": "P35",
+          "label": "Lịch trình (gói)"
+        },
+        {
+          "from": "D4",
+          "to": "P35",
+          "label": "Tệp ảnh, audio"
+        },
+        {
+          "from": "P35",
+          "to": "D12",
+          "label": "Gói lịch trình"
+        }
+      ]
+    },
+    {
+      "name": "4.0 Nội dung tour",
       "title": "DFD cấp 2 – Tiến trình 4.0 Quản lý nội dung tour (UC09–UC15)",
       "nodes": [
         {
@@ -235,7 +744,7 @@
           "kind": "entity",
           "label": "Dịch vụ địa chỉ (Nominatim)",
           "x": 0,
-          "y": -60
+          "y": 110
         },
         {
           "id": "LLM",
@@ -247,23 +756,43 @@
         {
           "id": "D3",
           "kind": "store",
-          "label": "D3 | Tour, điểm dừng, route, bản dịch, vùng cấm",
+          "label": "D3 | Tour & nội dung tour",
           "x": 850,
-          "y": 600
+          "y": 510,
+          "w": 280,
+          "h": 106,
+          "tables": [
+            "tour.tours",
+            "tour.places",
+            "tour.route_configs",
+            "tour.tour_languages",
+            "tour.place_translations",
+            "tour.forbidden_zones",
+            "tour.tour_access_grants",
+            "tour.tour_unlock_attempts"
+          ]
         },
         {
           "id": "D4",
           "kind": "store",
-          "label": "D4 | Tệp media (ảnh, audio)",
+          "label": "D4 | Tệp media (ảnh, audio – lưu file)",
           "x": 300,
-          "y": 210
+          "y": 210,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "media.audio_assets"
+          ],
+          "unused": [
+            "media.audio_assets"
+          ]
         },
         {
           "id": "G5",
           "kind": "ghost",
           "label": "5.0 | Kiểm duyệt tự động",
           "x": 1650,
-          "y": 340
+          "y": 250
         },
         {
           "id": "G9",
@@ -426,7 +955,763 @@
       ]
     },
     {
-      "name": "DFD cấp 2 – 9.0 Trợ lý AI",
+      "name": "5.0 Kiểm duyệt AI",
+      "title": "DFD cấp 2 – Tiến trình 5.0 Kiểm duyệt tự động bằng AI (UC15)",
+      "nodes": [
+        {
+          "id": "P51",
+          "kind": "process",
+          "label": "5.1 | Nhận nội dung gửi duyệt, mở ca kiểm duyệt",
+          "x": 300,
+          "y": 300
+        },
+        {
+          "id": "P52",
+          "kind": "process",
+          "label": "5.2 | Kiểm tra luật vị trí G1–G6 (tour)",
+          "x": 300,
+          "y": 700
+        },
+        {
+          "id": "P53",
+          "kind": "process",
+          "label": "5.3 | Gọi AI kiểm duyệt, thử lại khi lỗi tạm thời",
+          "x": 800,
+          "y": 300
+        },
+        {
+          "id": "P54",
+          "kind": "process",
+          "label": "5.4 | AI chấm nội dung & ảnh, áp ngưỡng Pass / Warning / Reject",
+          "x": 1300,
+          "y": 300
+        },
+        {
+          "id": "P55",
+          "kind": "process",
+          "label": "5.5 | Gộp kết quả AI + vị trí, công bố kết quả",
+          "x": 800,
+          "y": 700
+        },
+        {
+          "id": "P56",
+          "kind": "process",
+          "label": "5.6 | Quét định kỳ ca lỗi (sweeper)",
+          "x": 800,
+          "y": -50
+        },
+        {
+          "id": "G4",
+          "kind": "ghost",
+          "label": "4.0 | Quản lý nội dung tour",
+          "x": -200,
+          "y": 900
+        },
+        {
+          "id": "G8",
+          "kind": "ghost",
+          "label": "8.0 | Thông báo",
+          "x": 810,
+          "y": 890
+        },
+        {
+          "id": "D8",
+          "kind": "store",
+          "label": "D8 | Hồ sơ kiểm duyệt",
+          "x": 600,
+          "y": 510,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "moderation.moderation_cases"
+          ]
+        },
+        {
+          "id": "D4",
+          "kind": "store",
+          "label": "D4 | Tệp media (ảnh, audio – lưu file)",
+          "x": 1120,
+          "y": 550,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "media.audio_assets"
+          ],
+          "unused": [
+            "media.audio_assets"
+          ]
+        },
+        {
+          "id": "LLM",
+          "kind": "entity",
+          "label": "Nhà cung cấp LLM (Gemini, dự phòng Groq)",
+          "x": 1285,
+          "y": 190
+        }
+      ],
+      "flows": [
+        {
+          "from": "G4",
+          "to": "P51",
+          "label": "Điểm / tour gửi duyệt<br>(place.submitted, tour.submitted)"
+        },
+        {
+          "from": "P51",
+          "to": "D8",
+          "label": "Ca mới (pending)"
+        },
+        {
+          "from": "P51",
+          "to": "P52",
+          "label": "Tọa độ, thứ tự điểm, loại tour"
+        },
+        {
+          "from": "P51",
+          "to": "P53",
+          "label": "Nội dung cần kiểm duyệt"
+        },
+        {
+          "from": "P53",
+          "to": "P54",
+          "label": "Yêu cầu /moderate (token nội bộ)"
+        },
+        {
+          "from": "D4",
+          "to": "P54",
+          "label": "Ảnh điểm dừng (≤5, ≤3 MB)"
+        },
+        {
+          "from": "P54",
+          "to": "LLM",
+          "label": "Một lần gọi: văn bản + ảnh"
+        },
+        {
+          "from": "LLM",
+          "to": "P54",
+          "label": "Phát hiện (loại, mức độ 0–1)"
+        },
+        {
+          "from": "P54",
+          "to": "P53",
+          "label": "Verdict, severity, lý do"
+        },
+        {
+          "from": "P53",
+          "to": "D8",
+          "label": "Lỗi tạm thời → ai_failed"
+        },
+        {
+          "from": "D8",
+          "to": "P56",
+          "label": "Ca ai_failed quá hạn"
+        },
+        {
+          "from": "P56",
+          "to": "P53",
+          "label": "Gửi lại nội dung đã lưu"
+        },
+        {
+          "from": "P53",
+          "to": "P55",
+          "label": "Kết quả AI (lỗi 422 → Warning)"
+        },
+        {
+          "from": "P52",
+          "to": "P55",
+          "label": "Vi phạm vị trí (G1 Reject, còn lại Warning)"
+        },
+        {
+          "from": "P55",
+          "to": "D8",
+          "label": "Verdict cuối, lý do, thời điểm công bố"
+        },
+        {
+          "from": "P55",
+          "to": "G4",
+          "label": "ai_passed (kèm cảnh báo) / ai_rejected"
+        },
+        {
+          "from": "P55",
+          "to": "G8",
+          "label": "Tour bị AI từ chối"
+        }
+      ]
+    },
+    {
+      "name": "6.0 Quản trị",
+      "title": "DFD cấp 2 – Tiến trình 6.0 Duyệt tour, xử lý vi phạm & giám sát (UC19, UC20, UC21, UC22)",
+      "nodes": [
+        {
+          "id": "P61",
+          "kind": "process",
+          "label": "6.1 | Duyệt / từ chối / yêu cầu sửa tour",
+          "x": 400,
+          "y": 40
+        },
+        {
+          "id": "P62",
+          "kind": "process",
+          "label": "6.2 | Xử lý báo cáo vi phạm tour",
+          "x": 920,
+          "y": 560
+        },
+        {
+          "id": "P63",
+          "kind": "process",
+          "label": "6.3 | Xử lý tài khoản vi phạm",
+          "x": 920,
+          "y": 40
+        },
+        {
+          "id": "P64",
+          "kind": "process",
+          "label": "6.4 | Ghi nhật ký từ sự kiện tài khoản",
+          "x": 1440,
+          "y": 40
+        },
+        {
+          "id": "P65",
+          "kind": "process",
+          "label": "6.5 | Dashboard & nhật ký quản trị",
+          "x": 400,
+          "y": 560
+        },
+        {
+          "id": "ADMIN",
+          "kind": "entity",
+          "label": "Quản trị viên (Admin)",
+          "x": -60,
+          "y": -90
+        },
+        {
+          "id": "G1",
+          "kind": "ghost",
+          "label": "1.0 | Tài khoản & phiên",
+          "x": 2080,
+          "y": 270
+        },
+        {
+          "id": "G8",
+          "kind": "ghost",
+          "label": "8.0 | Thông báo",
+          "x": 2080,
+          "y": 960
+        },
+        {
+          "id": "G9",
+          "kind": "ghost",
+          "label": "9.0 | Trợ lý du lịch AI",
+          "x": 2080,
+          "y": 580
+        },
+        {
+          "id": "D3",
+          "kind": "store",
+          "label": "D3 | Tour & nội dung tour",
+          "x": 600,
+          "y": 630,
+          "w": 280,
+          "h": 106,
+          "tables": [
+            "tour.tours",
+            "tour.places",
+            "tour.route_configs",
+            "tour.tour_languages",
+            "tour.place_translations",
+            "tour.forbidden_zones",
+            "tour.tour_access_grants",
+            "tour.tour_unlock_attempts"
+          ]
+        },
+        {
+          "id": "D6",
+          "kind": "store",
+          "label": "D6 | Đánh giá, báo cáo, thống kê",
+          "x": 600,
+          "y": 870,
+          "w": 280,
+          "h": 78,
+          "tables": [
+            "tour.tour_ratings",
+            "tour.tour_reports",
+            "tour.tour_daily_stats",
+            "tour.tour_activity_marks"
+          ]
+        },
+        {
+          "id": "D7",
+          "kind": "store",
+          "label": "D7 | Nhật ký quản trị",
+          "x": 1120,
+          "y": 250,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "tour.admin_actions",
+            "tour.tour_review_actions"
+          ]
+        }
+      ],
+      "flows": [
+        {
+          "from": "ADMIN",
+          "to": "P61",
+          "label": "Quyết định, lý do"
+        },
+        {
+          "from": "D3",
+          "to": "P61",
+          "label": "Hàng chờ, hồ sơ tour, lý do AI"
+        },
+        {
+          "from": "P61",
+          "to": "D3",
+          "label": "Trạng thái, lý do"
+        },
+        {
+          "from": "P61",
+          "to": "D7",
+          "label": "Quyết định duyệt"
+        },
+        {
+          "from": "P61",
+          "to": "ADMIN",
+          "label": "Hàng chờ, hồ sơ"
+        },
+        {
+          "from": "P61",
+          "to": "G8",
+          "label": "Tour được duyệt / bị từ chối / cần sửa"
+        },
+        {
+          "from": "P61",
+          "to": "G9",
+          "label": "Tour công khai"
+        },
+        {
+          "from": "ADMIN",
+          "to": "P62",
+          "label": "Ẩn / khôi phục / bỏ qua"
+        },
+        {
+          "from": "D6",
+          "to": "P62",
+          "label": "Báo cáo đang mở"
+        },
+        {
+          "from": "P62",
+          "to": "D6",
+          "label": "Trạng thái báo cáo"
+        },
+        {
+          "from": "D3",
+          "to": "P62",
+          "label": "Tour bị báo cáo"
+        },
+        {
+          "from": "P62",
+          "to": "D3",
+          "label": "Ẩn / khôi phục tour"
+        },
+        {
+          "from": "P62",
+          "to": "D7",
+          "label": "Hành động xử lý"
+        },
+        {
+          "from": "P62",
+          "to": "G8",
+          "label": "Tour bị ẩn / được khôi phục"
+        },
+        {
+          "from": "P62",
+          "to": "G9",
+          "label": "Tour bị ẩn / công khai lại"
+        },
+        {
+          "from": "ADMIN",
+          "to": "P63",
+          "label": "Cảnh cáo / tạm khóa / cấm / khôi phục"
+        },
+        {
+          "from": "P63",
+          "to": "G1",
+          "label": "Lệnh xử lý tài khoản"
+        },
+        {
+          "from": "G1",
+          "to": "P63",
+          "label": "Tài khoản, số phiên"
+        },
+        {
+          "from": "D7",
+          "to": "P63",
+          "label": "Lịch sử vi phạm"
+        },
+        {
+          "from": "P63",
+          "to": "ADMIN",
+          "label": "Hồ sơ tài khoản"
+        },
+        {
+          "from": "G1",
+          "to": "P64",
+          "label": "account.moderated"
+        },
+        {
+          "from": "P64",
+          "to": "D7",
+          "label": "Hành động tài khoản (chống trùng)"
+        },
+        {
+          "from": "ADMIN",
+          "to": "P65",
+          "label": "Khoảng thời gian, bộ lọc"
+        },
+        {
+          "from": "D3",
+          "to": "P65",
+          "label": "Số tour theo trạng thái"
+        },
+        {
+          "from": "D6",
+          "to": "P65",
+          "label": "Báo cáo, lượt, đánh giá"
+        },
+        {
+          "from": "D7",
+          "to": "P65",
+          "label": "Nhật ký"
+        },
+        {
+          "from": "P65",
+          "to": "ADMIN",
+          "label": "Chỉ số, biểu đồ, nhật ký"
+        }
+      ]
+    },
+    {
+      "name": "7.0 Đánh giá & thống kê",
+      "title": "DFD cấp 2 – Tiến trình 7.0 Đánh giá, báo cáo & thống kê (UC05, UC06, UC17)",
+      "nodes": [
+        {
+          "id": "P71",
+          "kind": "process",
+          "label": "7.1 | Đánh giá & nhận xét tour",
+          "x": 400,
+          "y": 40
+        },
+        {
+          "id": "P72",
+          "kind": "process",
+          "label": "7.2 | Báo cáo tour vi phạm",
+          "x": 400,
+          "y": 560
+        },
+        {
+          "id": "P73",
+          "kind": "process",
+          "label": "7.3 | Ghi lượt hoạt động (chống trùng)",
+          "x": 920,
+          "y": 560
+        },
+        {
+          "id": "P74",
+          "kind": "process",
+          "label": "7.4 | Thống kê cho tác giả",
+          "x": 920,
+          "y": 40
+        },
+        {
+          "id": "TOURIST",
+          "kind": "entity",
+          "label": "Khách du lịch",
+          "x": -60,
+          "y": 440
+        },
+        {
+          "id": "CONTRIB",
+          "kind": "entity",
+          "label": "Người đăng nội dung (Contributor)",
+          "x": 1560,
+          "y": 10
+        },
+        {
+          "id": "G2",
+          "kind": "ghost",
+          "label": "2.0 | Tìm, xem, nghe & tải tour",
+          "x": 1860,
+          "y": 600
+        },
+        {
+          "id": "G8",
+          "kind": "ghost",
+          "label": "8.0 | Thông báo",
+          "x": 1860,
+          "y": 860
+        },
+        {
+          "id": "D3",
+          "kind": "store",
+          "label": "D3 | Tour & nội dung tour",
+          "x": 600,
+          "y": 510,
+          "w": 280,
+          "h": 106,
+          "tables": [
+            "tour.tours",
+            "tour.places",
+            "tour.route_configs",
+            "tour.tour_languages",
+            "tour.place_translations",
+            "tour.forbidden_zones",
+            "tour.tour_access_grants",
+            "tour.tour_unlock_attempts"
+          ]
+        },
+        {
+          "id": "D6",
+          "kind": "store",
+          "label": "D6 | Đánh giá, báo cáo, thống kê",
+          "x": 600,
+          "y": 220,
+          "w": 280,
+          "h": 78,
+          "tables": [
+            "tour.tour_ratings",
+            "tour.tour_reports",
+            "tour.tour_daily_stats",
+            "tour.tour_activity_marks"
+          ]
+        }
+      ],
+      "flows": [
+        {
+          "from": "TOURIST",
+          "to": "P71",
+          "label": "Số sao, nhận xét, sửa / xóa"
+        },
+        {
+          "from": "P71",
+          "to": "D6",
+          "label": "Đánh giá"
+        },
+        {
+          "from": "D6",
+          "to": "P71",
+          "label": "Đánh giá của tour"
+        },
+        {
+          "from": "P71",
+          "to": "D3",
+          "label": "Điểm trung bình, số đánh giá"
+        },
+        {
+          "from": "P71",
+          "to": "TOURIST",
+          "label": "Danh sách đánh giá"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P72",
+          "label": "Lý do, ghi chú"
+        },
+        {
+          "from": "P72",
+          "to": "D6",
+          "label": "Báo cáo"
+        },
+        {
+          "from": "P72",
+          "to": "D3",
+          "label": "Cờ báo cáo, số báo cáo mở"
+        },
+        {
+          "from": "P72",
+          "to": "G8",
+          "label": "Tour bị báo cáo"
+        },
+        {
+          "from": "P72",
+          "to": "TOURIST",
+          "label": "Đã gửi / đã báo cáo trước đó"
+        },
+        {
+          "from": "G2",
+          "to": "P73",
+          "label": "view / play / complete / download"
+        },
+        {
+          "from": "P73",
+          "to": "D6",
+          "label": "Bộ đếm theo ngày, dấu chống trùng"
+        },
+        {
+          "from": "CONTRIB",
+          "to": "P74",
+          "label": "Chọn tour, khoảng thời gian"
+        },
+        {
+          "from": "D6",
+          "to": "P74",
+          "label": "Bộ đếm, đánh giá"
+        },
+        {
+          "from": "P74",
+          "to": "CONTRIB",
+          "label": "Số liệu, biểu đồ, nhận xét"
+        }
+      ]
+    },
+    {
+      "name": "8.0 Thông báo",
+      "title": "DFD cấp 2 – Tiến trình 8.0 Thông báo (UC16, cảnh báo UC21, UC23)",
+      "nodes": [
+        {
+          "id": "P81",
+          "kind": "process",
+          "label": "8.1 | Nhận sự kiện, tạo thông báo trong app",
+          "x": 920,
+          "y": 40
+        },
+        {
+          "id": "P82",
+          "kind": "process",
+          "label": "8.2 | Gửi email",
+          "x": 400,
+          "y": 40
+        },
+        {
+          "id": "P83",
+          "kind": "process",
+          "label": "8.3 | Xem & đánh dấu đã đọc",
+          "x": 400,
+          "y": 560
+        },
+        {
+          "id": "USER",
+          "kind": "entity",
+          "label": "Người dùng (Khách / Contributor / Admin)",
+          "x": 1560,
+          "y": 1010
+        },
+        {
+          "id": "SMTP",
+          "kind": "entity",
+          "label": "Máy chủ email (SMTP)",
+          "x": 1560,
+          "y": 770
+        },
+        {
+          "id": "G1",
+          "kind": "ghost",
+          "label": "1.0 | Tài khoản & phiên",
+          "x": 1860,
+          "y": 710
+        },
+        {
+          "id": "G5",
+          "kind": "ghost",
+          "label": "5.0 | Kiểm duyệt tự động",
+          "x": 1860,
+          "y": -90
+        },
+        {
+          "id": "G6",
+          "kind": "ghost",
+          "label": "6.0 | Duyệt tour & xử lý vi phạm",
+          "x": 1860,
+          "y": 440
+        },
+        {
+          "id": "G7",
+          "kind": "ghost",
+          "label": "7.0 | Đánh giá, báo cáo & thống kê",
+          "x": 1860,
+          "y": 210
+        },
+        {
+          "id": "D9",
+          "kind": "store",
+          "label": "D9 | Thông báo",
+          "x": 600,
+          "y": 490,
+          "w": 280,
+          "h": 78,
+          "tables": [
+            "notification.in_app_notifications",
+            "notification.notifications"
+          ],
+          "unused": [
+            "notification.notifications"
+          ]
+        }
+      ],
+      "flows": [
+        {
+          "from": "G5",
+          "to": "P81",
+          "label": "Tour bị AI từ chối"
+        },
+        {
+          "from": "G6",
+          "to": "P81",
+          "label": "Duyệt / từ chối / cần sửa, ẩn / khôi phục"
+        },
+        {
+          "from": "G7",
+          "to": "P81",
+          "label": "Tour bị báo cáo"
+        },
+        {
+          "from": "G1",
+          "to": "P81",
+          "label": "account.moderated, đăng nhập thiết bị mới"
+        },
+        {
+          "from": "P81",
+          "to": "D9",
+          "label": "Thông báo (khóa chống trùng)"
+        },
+        {
+          "from": "P81",
+          "to": "P82",
+          "label": "Sự kiện cần gửi email"
+        },
+        {
+          "from": "G1",
+          "to": "P82",
+          "label": "Email tác giả (tra cứu)"
+        },
+        {
+          "from": "P82",
+          "to": "SMTP",
+          "label": "Email thông báo, cảnh báo"
+        },
+        {
+          "from": "USER",
+          "to": "P83",
+          "label": "Mở danh sách, đánh dấu đã đọc"
+        },
+        {
+          "from": "D9",
+          "to": "P83",
+          "label": "Thông báo, số chưa đọc"
+        },
+        {
+          "from": "P83",
+          "to": "D9",
+          "label": "Thời điểm đã đọc"
+        },
+        {
+          "from": "P83",
+          "to": "USER",
+          "label": "Danh sách, số chưa đọc"
+        }
+      ]
+    },
+    {
+      "name": "9.0 Trợ lý AI",
       "title": "DFD cấp 2 – Tiến trình 9.0 Trợ lý du lịch AI (UC24)",
       "nodes": [
         {
@@ -502,16 +1787,35 @@
         {
           "id": "D10",
           "kind": "store",
-          "label": "D10 | Chỉ mục tri thức (vector + đồ thị)",
+          "label": "D10 | Chỉ mục tri thức chatbot",
           "x": 850,
-          "y": 330
+          "y": 330,
+          "w": 280,
+          "h": 78,
+          "tables": [
+            "ai.index_meta",
+            "ai.tour_index",
+            "ai.nodes",
+            "ai.edges",
+            "ai.chunks"
+          ]
         },
         {
           "id": "D11",
           "kind": "store",
           "label": "D11 | Hội thoại chatbot",
-          "x": 850,
-          "y": 770
+          "x": 1120,
+          "y": 1110,
+          "w": 280,
+          "h": 106,
+          "tables": [
+            "ai_chat.chat_sessions",
+            "ai_chat.chat_messages",
+            "ai_chat.checkpoints",
+            "ai_chat.checkpoint_blobs",
+            "ai_chat.checkpoint_writes",
+            "ai_chat.checkpoint_migrations"
+          ]
         }
       ],
       "flows": [

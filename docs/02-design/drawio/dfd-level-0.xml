@@ -29,7 +29,7 @@
         <mxCell id="8" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Dịch vụ địa chỉ (OpenStreetMap Nominatim)" vertex="1">
           <mxGeometry x="855" y="-80" width="190" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="10" edge="1" parent="1" source="3" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Đăng ký / đăng nhập, OTP&lt;br&gt;Từ khóa, chọn tour, vị trí GPS, mã truy cập&lt;br&gt;Lịch trình, đánh giá, báo cáo vi phạm&lt;br&gt;Câu hỏi cho trợ lý AI">
+        <mxCell id="10" edge="1" parent="1" source="3" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Đăng ký / đăng nhập, OTP&lt;br&gt;Từ khóa, chọn tour, vị trí GPS, mã truy cập&lt;br&gt;Lịch trình, đánh giá, báo cáo vi phạm&lt;br&gt;Câu hỏi cho trợ lý AI&lt;br&gt;Mở, đánh dấu thông báo đã đọc">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="563" y="416" /></Array>
           </mxGeometry>
@@ -39,7 +39,7 @@
             <Array as="points"><mxPoint x="602" y="334" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="12" edge="1" parent="1" source="4" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour, điểm dừng, ảnh, audio&lt;br&gt;Route, vùng kích hoạt, ngôn ngữ, passcode&lt;br&gt;Yêu cầu gửi duyệt">
+        <mxCell id="12" edge="1" parent="1" source="4" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour, điểm dừng, ảnh, audio&lt;br&gt;Route, vùng kích hoạt, ngôn ngữ, passcode&lt;br&gt;Yêu cầu gửi duyệt&lt;br&gt;Chọn tour, kỳ thống kê; đọc thông báo">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="602" y="766" /></Array>
           </mxGeometry>
@@ -49,7 +49,7 @@
             <Array as="points"><mxPoint x="563" y="684" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="14" edge="1" parent="1" source="5" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Quyết định duyệt / từ chối / yêu cầu sửa&lt;br&gt;Xử lý báo cáo, cảnh cáo / tạm khóa / cấm tài khoản">
+        <mxCell id="14" edge="1" parent="1" source="5" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Quyết định duyệt / từ chối / yêu cầu sửa&lt;br&gt;Xử lý báo cáo, cảnh cáo / tạm khóa / cấm tài khoản&lt;br&gt;Khoảng thời gian dashboard, bộ lọc nhật ký">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="1298" y="334" /></Array>
           </mxGeometry>

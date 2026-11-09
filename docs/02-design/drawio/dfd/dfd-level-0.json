@@ -4,26 +4,114 @@
       "name": "DFD cấp 0",
       "title": "DFD cấp 0 (sơ đồ ngữ cảnh) – GeoSound",
       "nodes": [
-        { "id": "SYS", "kind": "process", "label": "0 | Hệ thống GeoSound (audio guide du lịch)", "x": 820, "y": 420, "w": 260, "h": 260 },
-        { "id": "TOURIST", "kind": "entity", "label": "Khách du lịch", "x": 120, "y": 160 },
-        { "id": "CONTRIB", "kind": "entity", "label": "Người đăng nội dung (Contributor)", "x": 120, "y": 860 },
-        { "id": "ADMIN", "kind": "entity", "label": "Quản trị viên (Admin)", "x": 1590, "y": 160 },
-        { "id": "LLM", "kind": "entity", "label": "Nhà cung cấp LLM (Gemini, dự phòng Groq)", "x": 1590, "y": 860 },
-        { "id": "SMTP", "kind": "entity", "label": "Máy chủ email (SMTP)", "x": 855, "y": 1120 },
-        { "id": "MAP", "kind": "entity", "label": "Dịch vụ địa chỉ (OpenStreetMap Nominatim)", "x": 855, "y": -80 }
+        {
+          "id": "SYS",
+          "kind": "process",
+          "label": "0 | Hệ thống GeoSound (audio guide du lịch)",
+          "x": 820,
+          "y": 420,
+          "w": 260,
+          "h": 260
+        },
+        {
+          "id": "TOURIST",
+          "kind": "entity",
+          "label": "Khách du lịch",
+          "x": 120,
+          "y": 160
+        },
+        {
+          "id": "CONTRIB",
+          "kind": "entity",
+          "label": "Người đăng nội dung (Contributor)",
+          "x": 120,
+          "y": 860
+        },
+        {
+          "id": "ADMIN",
+          "kind": "entity",
+          "label": "Quản trị viên (Admin)",
+          "x": 1590,
+          "y": 160
+        },
+        {
+          "id": "LLM",
+          "kind": "entity",
+          "label": "Nhà cung cấp LLM (Gemini, dự phòng Groq)",
+          "x": 1590,
+          "y": 860
+        },
+        {
+          "id": "SMTP",
+          "kind": "entity",
+          "label": "Máy chủ email (SMTP)",
+          "x": 855,
+          "y": 1120
+        },
+        {
+          "id": "MAP",
+          "kind": "entity",
+          "label": "Dịch vụ địa chỉ (OpenStreetMap Nominatim)",
+          "x": 855,
+          "y": -80
+        }
       ],
       "flows": [
-        { "from": "TOURIST", "to": "SYS", "label": "Đăng ký / đăng nhập, OTP<br>Từ khóa, chọn tour, vị trí GPS, mã truy cập<br>Lịch trình, đánh giá, báo cáo vi phạm<br>Câu hỏi cho trợ lý AI" },
-        { "from": "SYS", "to": "TOURIST", "label": "Danh sách, chi tiết tour, thuyết minh, audio<br>Gói tour / lịch trình offline<br>Câu trả lời AI kèm nguồn<br>Thông báo, danh sách thiết bị" },
-        { "from": "CONTRIB", "to": "SYS", "label": "Tour, điểm dừng, ảnh, audio<br>Route, vùng kích hoạt, ngôn ngữ, passcode<br>Yêu cầu gửi duyệt" },
-        { "from": "SYS", "to": "CONTRIB", "label": "Trạng thái tour, kết quả kiểm duyệt<br>Bản xem thử, thống kê, đánh giá<br>Thông báo trong app" },
-        { "from": "ADMIN", "to": "SYS", "label": "Quyết định duyệt / từ chối / yêu cầu sửa<br>Xử lý báo cáo, cảnh cáo / tạm khóa / cấm tài khoản" },
-        { "from": "SYS", "to": "ADMIN", "label": "Hàng chờ duyệt, hồ sơ báo cáo<br>Dashboard, nhật ký, thiết bị online" },
-        { "from": "SYS", "to": "LLM", "label": "Nội dung cần kiểm duyệt (văn bản, ảnh)<br>Văn bản cần dịch<br>Câu hỏi + ngữ cảnh tour" },
-        { "from": "LLM", "to": "SYS", "label": "Kết quả kiểm duyệt (loại vi phạm, mức độ)<br>Bản dịch, câu trả lời" },
-        { "from": "SYS", "to": "SMTP", "label": "Email OTP, thông báo tour,<br>cảnh báo đăng nhập, xử lý tài khoản" },
-        { "from": "SYS", "to": "MAP", "label": "Địa chỉ cần tìm" },
-        { "from": "MAP", "to": "SYS", "label": "Tọa độ địa chỉ" }
+        {
+          "from": "TOURIST",
+          "to": "SYS",
+          "label": "Đăng ký / đăng nhập, OTP<br>Từ khóa, chọn tour, vị trí GPS, mã truy cập<br>Lịch trình, đánh giá, báo cáo vi phạm<br>Câu hỏi cho trợ lý AI<br>Mở, đánh dấu thông báo đã đọc"
+        },
+        {
+          "from": "SYS",
+          "to": "TOURIST",
+          "label": "Danh sách, chi tiết tour, thuyết minh, audio<br>Gói tour / lịch trình offline<br>Câu trả lời AI kèm nguồn<br>Thông báo, danh sách thiết bị"
+        },
+        {
+          "from": "CONTRIB",
+          "to": "SYS",
+          "label": "Tour, điểm dừng, ảnh, audio<br>Route, vùng kích hoạt, ngôn ngữ, passcode<br>Yêu cầu gửi duyệt<br>Chọn tour, kỳ thống kê; đọc thông báo"
+        },
+        {
+          "from": "SYS",
+          "to": "CONTRIB",
+          "label": "Trạng thái tour, kết quả kiểm duyệt<br>Bản xem thử, thống kê, đánh giá<br>Thông báo trong app"
+        },
+        {
+          "from": "ADMIN",
+          "to": "SYS",
+          "label": "Quyết định duyệt / từ chối / yêu cầu sửa<br>Xử lý báo cáo, cảnh cáo / tạm khóa / cấm tài khoản<br>Khoảng thời gian dashboard, bộ lọc nhật ký"
+        },
+        {
+          "from": "SYS",
+          "to": "ADMIN",
+          "label": "Hàng chờ duyệt, hồ sơ báo cáo<br>Dashboard, nhật ký, thiết bị online"
+        },
+        {
+          "from": "SYS",
+          "to": "LLM",
+          "label": "Nội dung cần kiểm duyệt (văn bản, ảnh)<br>Văn bản cần dịch<br>Câu hỏi + ngữ cảnh tour"
+        },
+        {
+          "from": "LLM",
+          "to": "SYS",
+          "label": "Kết quả kiểm duyệt (loại vi phạm, mức độ)<br>Bản dịch, câu trả lời"
+        },
+        {
+          "from": "SYS",
+          "to": "SMTP",
+          "label": "Email OTP, thông báo tour,<br>cảnh báo đăng nhập, xử lý tài khoản"
+        },
+        {
+          "from": "SYS",
+          "to": "MAP",
+          "label": "Địa chỉ cần tìm"
+        },
+        {
+          "from": "MAP",
+          "to": "SYS",
+          "label": "Tọa độ địa chỉ"
+        }
       ]
     }
   ]
