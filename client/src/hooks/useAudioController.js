@@ -9,6 +9,7 @@
 // =========================================================
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { makeUtterance, pauseStopsSpeech } from '../lib/speech.js';
+import { beatPresence, setMediaPlaying } from '../lib/presence.js';
 
 const isPlayableUrl = (src) => typeof src === 'string' && /^(https?:|blob:|data:|\/)/.test(src);
 
@@ -45,6 +46,18 @@ export function useAudioController({ onEnded } = {}) {
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  // #329 — while a track plays this device stays "online" for the admin view, even with the tab
+  // hidden (screen locked); the beats themselves are throttled to one a minute.
+  const presenceKey = useRef({});
+  const isPlaying = state.status === 'playing';
+  useEffect(() => {
+    if (!isPlaying) return undefined;
+    const key = presenceKey.current;
+    setMediaPlaying(key, true);
+    beatPresence();
+    return () => setMediaPlaying(key, false);
+  }, [isPlaying]);
+
   // Tạo audio element một lần.
   if (audioRef.current === null && typeof Audio !== 'undefined') {
     audioRef.current = new Audio();
@@ -77,6 +90,7 @@ export function useAudioController({ onEnded } = {}) {
         lastPosition.current = { trackId: trackRef.current.id ?? null, time: a.currentTime };
       }
       patch({ currentTime: a.currentTime });
+      if (!a.paused) beatPresence(); // timeupdate keeps firing in a background tab while audio plays
     };
     const onMeta = () =>
       patch({ duration: Number.isFinite(a.duration) ? a.duration : 0, canSeek: a.seekable.length > 0 });
@@ -132,6 +146,7 @@ export function useAudioController({ onEnded } = {}) {
             window.speechSynthesis.resume();
           }
           patch({ currentTime: (Date.now() - ttsStart.current) / 1000 });
+          beatPresence(); // #329, throttled
         }
       }, 1000);
     },

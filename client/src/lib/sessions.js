@@ -20,15 +20,13 @@ export async function revokeOtherSessions() {
   return body?.revoked ?? 0;
 }
 
-/** #265 — POST /api/auth/sessions/heartbeat: keeps this device "online" for the admin view. */
-export function sendHeartbeat() {
-  return api.post('/api/auth/sessions/heartbeat', undefined, { auth: true });
-}
-
 /**
  * #265 — GET /api/auth/admin/sessions (admin only) ->
- * { at, onlineWindowSeconds, totals: { devicesSeen, signedIn, online, onlineAccounts },
+ * { at, onlineWindowSeconds,
+ *   totals: { devicesSeen, signedIn, online, onlineAccounts,
+ *             onlineDevices, onlineGuests, activeToday, active7Days, active30Days },  // #329, null without Redis
  *   online: [{ id, deviceName, location, createdAt, lastActiveAt, user: { id, email, fullName, role } }] }
+ * The "online" beat of this browser lives in lib/presence.js (#329).
  */
 export function getOnlineDevices(opts) {
   return api.get('/api/auth/admin/sessions', { ...opts, auth: true });
