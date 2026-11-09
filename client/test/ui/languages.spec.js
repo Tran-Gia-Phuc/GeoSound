@@ -94,3 +94,15 @@ test('out-of-order previews keep the current row busy and discard stale errors',
   await expect(first).toBeEnabled();
   await expect(rows.first().locator('textarea')).toHaveValue('Translated stop content.');
 });
+test('edited translation made from an older description is flagged for review', async ({ page }) => {
+  await fixtures(page);
+  await signIn(page);
+  const config = structuredClone(languages);
+  config.languages[1].outdated = 1;
+  config.places[0].translations[1].outdated = true;
+  await page.route('**/api/tours/mine/*/languages', (r) => json(r, { config }));
+  await page.goto('/studio/tours/' + id + '/languages');
+  await expect(page.getByText('1 bản chỉnh tay cần xem lại (mô tả gốc đã đổi)', { exact: false })).toBeVisible();
+  await expect(page.locator('.tx-row').first().locator('.chip')).toHaveText('Cần xem lại');
+  await expect(page.locator('.tx-row').nth(1).locator('.chip')).toHaveText('Đã sửa');
+});

@@ -225,6 +225,7 @@ export default function LanguagesPage() {
                     {l.ready
                       ? `Đã dịch ${l.translated}/${l.total} điểm — khách chọn được ngôn ngữ này`
                       : `Mới dịch ${l.translated}/${l.total} điểm — khách chưa thấy ngôn ngữ này. Sửa bản dịch bên dưới hoặc lưu lại để dịch tự động.`}
+                    {l.outdated ? ` · ${l.outdated} bản chỉnh tay cần xem lại (mô tả gốc đã đổi)` : ''}
                   </span>
                 </li>
               ))}
@@ -296,7 +297,8 @@ export default function LanguagesPage() {
                     const tx = p.translations.find((t) => t.languageCode === activeLang);
                     const draft = drafts[key] ?? tx?.text ?? '';
                     const real = tx && (tx.textSource === 'edited' || tx.text.trim() !== (src?.text ?? '').trim());
-                    const status = !tx || !real ? { label: 'Chưa dịch', tone: 'warn' } : tx.textSource === 'edited' ? { label: 'Đã sửa', tone: 'ok' } : { label: 'Máy dịch', tone: '' };
+                    // outdated: bản chỉnh tay nhưng mô tả gốc đã đổi sau đó (UC10) — vẫn phát cho khách, nên xem lại.
+                    const status = !tx || !real ? { label: 'Chưa dịch', tone: 'warn' } : tx.outdated ? { label: 'Cần xem lại', tone: 'warn' } : tx.textSource === 'edited' ? { label: 'Đã sửa', tone: 'ok' } : { label: 'Máy dịch', tone: '' };
                     const changed = !!tx && draft.trim() !== tx.text.trim();
                     return (
                       <li key={p.placeId} className="tx-row">
