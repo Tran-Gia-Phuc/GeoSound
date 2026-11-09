@@ -17,9 +17,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { fetchTourDetail } from '../../lib/api.js';
-import { fetchRestrictedTour, unlockPath } from '../../lib/restricted-access.js';
+import { fetchRestrictedTour, translateRestrictedTour, unlockPath } from '../../lib/restricted-access.js';
 import { langLabel, formatMinutes, voiceLabel } from '../../lib/format.js';
-import { TOUR_TYPE_LABELS } from '../../lib/tours.js';
+import { TOUR_TYPE_LABELS, translateTour } from '../../lib/tours.js';
+import { translationErrorText } from '../../lib/languages.js';
+import LanguageNotice from '../player/LanguageNotice.jsx';
 import { useBack } from '../../components/shell/AppHeader.jsx';
 import Icon from '../../components/Icon.jsx';
 import TourMap from '../player/TourMap.jsx';
@@ -51,6 +53,8 @@ export default function TourDetailPage({ restricted = false }) {
   const [langBusy, setLangBusy] = useState(false);
   const [languageError, setLanguageError] = useState(null);
   const [langRetry, setLangRetry] = useState(0);
+  const [translating, setTranslating] = useState(false); // UC12: automatic translation running
+  const [translateError, setTranslateError] = useState(null);
   const requestedLanguage = sp.get('lang') || '';
   const loadedTour = useRef(null);
   const viewedTour = useRef(null); // UC17: tour id whose 'view' was already sent
@@ -112,6 +116,23 @@ export default function TourDetailPage({ restricted = false }) {
     if (langBusy || code === tour?.selectedLanguage) return;
     stopPreview();setPreviewing(null);
     setSp((prev) => { const n=new URLSearchParams(prev);n.set('lang',code);return n; });
+  };
+
+  // UC12: a language the tour does not have yet -> automatic translation, then load it.
+  const translateLang = async (code) => {
+    if (translating || langBusy) return;
+    stopPreview();setPreviewing(null);
+    setTranslating(true);setTranslateError(null);
+    try {
+      const result = await (restricted ? translateRestrictedTour : translateTour)(tourId, code);
+      // The answer is already the detail in that language (the URL may hold ?lang=code already).
+      if (result) { loadedTour.current=result; setTour(result); }
+      setSp((prev) => { const n=new URLSearchParams(prev);n.set('lang',code);return n; });
+    } catch (e) {
+      setTranslateError(translationErrorText(e));
+    } finally {
+      setTranslating(false);
+    }
   };
 
   // ---------- Tải / lỗi ----------
@@ -208,25 +229,51 @@ export default function TourDetailPage({ restricted = false }) {
         </div>
 
         {languageError ? <div className="alert alert--warn" role="alert"><Icon name="alert-triangle" size={18} /><div><b>Chưa đổi được ngôn ngữ</b><p>{languageError.message}</p><p>Đang hiển thị {langLabel(tour.selectedLanguage)}.</p><button className="btn btn--sm" onClick={()=>setLangRetry((n)=>n+1)}>Thử lại ngôn ngữ</button><button className="btn btn--ghost btn--sm" onClick={()=>setSp((prev)=>{const n=new URLSearchParams(prev);n.set('lang',tour.selectedLanguage);return n;})}>Giữ ngôn ngữ hiện tại</button></div></div> : null}
+        {/* UC04 / UC12: why another language is playing, device language suggestion, errors */}
+        <LanguageNotice
+          tour={tour}
+          canTranslate
+          busy={translating}
+          error={translateError}
+          onSwitch={changeLang}
+          onTranslate={translateLang}
+        />
         {/* Chọn ngôn ngữ nghe (A2) — đặt gần nút hành động */}
-        {tour.availableLanguages?.length > 1 ? (
+        {tour.availableLanguages?.length > 1 || tour.translatableLanguages?.length ? (
           <div className="langpick" role="group" aria-label="Ngôn ngữ nghe">
-            {tour.availableLanguages.map((code) => {
+            {(tour.availableLanguages ?? []).map((code) => {
               const on = code === lang;
+              const auto = tour.languageKinds?.[code] === 'auto';
               return (
                 <button
                   key={code}
                   type="button"
                   className={`langchip ${on ? 'langchip--on' : ''}`}
                   aria-pressed={on}
-                  disabled={langBusy}
+                  disabled={langBusy || translating}
+                  title={auto ? 'Bản dịch tự động, tác giả chưa kiểm tra' : undefined}
                   onClick={() => changeLang(code)}
                 >
                   {langLabel(code)}
+                  {auto ? <span className="langchip__tag"> · tự động</span> : null}
                 </button>
               );
             })}
-            {langBusy ? <Icon name="loader" size={16} className="spin" /> : null}
+            {tour.translatableLanguages?.length ? (
+              <select
+                className="input langpick__more"
+                aria-label="Dịch tự động sang ngôn ngữ khác"
+                value=""
+                disabled={langBusy || translating}
+                onChange={(e) => e.target.value && translateLang(e.target.value)}
+              >
+                <option value="">Ngôn ngữ khác (dịch tự động)…</option>
+                {tour.translatableLanguages.map((code) => (
+                  <option key={code} value={code}>{langLabel(code)}</option>
+                ))}
+              </select>
+            ) : null}
+            {langBusy || translating ? <Icon name="loader" size={16} className="spin" /> : null}
           </div>
         ) : null}
 
