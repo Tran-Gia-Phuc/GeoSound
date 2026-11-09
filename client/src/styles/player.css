@@ -226,7 +226,8 @@
   padding: calc(var(--sat) + var(--sp-2)) var(--sp-3) var(--sp-2);
   background: var(--bg-elev);
   border-bottom: 1px solid var(--border);
-  z-index: 20;
+  /* Above the dock (30): the language menu (up to 10 languages) opens over it. */
+  z-index: 40;
 }
 .topbar__title {
   flex: 1;
@@ -629,6 +630,59 @@
 .langmenu__item.is-active {
   color: var(--primary);
   font-weight: 700;
+}
+.langmenu__list {
+  max-height: min(70vh, 460px);
+  overflow-y: auto;
+}
+.langmenu__group {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.langmenu__label {
+  padding: 8px var(--sp-3) 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.langmenu__tag {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+
+/* ---------- Ngôn ngữ: gợi ý / lý do phát bản gốc (UC04, UC12) ---------- */
+.langnotice {
+  align-items: flex-start;
+}
+.langnotice__body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.langnotice__error {
+  color: var(--danger);
+  font-weight: 500;
+}
+.langnotice__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+/* ---------- Sheet: bản dịch tự động + xem bản gốc ---------- */
+.sheet__lang {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 /* ---------- Giả lập GPS ---------- */
