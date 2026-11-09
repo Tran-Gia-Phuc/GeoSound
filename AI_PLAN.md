@@ -90,7 +90,7 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | phone demo through ngrok (`scripts/demo/`, `docs/04-guides/phone-demo.md`) | | `chore/phone-demo-ngrok`, `chore/phone-demo-autostart` | merged (PR #261, PR #262) |
 | place audio silent on Android Chrome, local media URLs on phones | #263 | `fix/android-place-audio` | merged (PR #264) |
 | UC23 admin view of online devices (heartbeat + `/admin/devices`) | #265 | `feature/uc23-admin-online-devices` | merged (PR #266); no schema change |
-| UC23 online view counts visitors who are not signed in (presence in Redis, leave beacon, beats while audio plays) | #329 | `fix/uc23-anonymous-online-count` | in review; no schema change |
+| UC23 online view counts visitors who are not signed in (presence in Redis, leave beacon, beats while audio plays) | #329 | `fix/uc23-anonymous-online-count` | merged (PR #330); no schema change |
 
 ## 5. Notes for the next tasks
 
