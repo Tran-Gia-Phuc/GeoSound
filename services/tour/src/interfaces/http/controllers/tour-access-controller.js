@@ -7,7 +7,7 @@ export class TourAccessController {
   /** @param {{ getTourAccess, setTourPasscode, disableTourAccess, unlockTour, getMyTourAccess, getRestrictedTour }} useCases */
   constructor(useCases) {
     this.uc = useCases;
-    for (const m of ['get', 'set', 'disable', 'unlock', 'mine', 'detail', 'package']) this[m] = this[m].bind(this);
+    for (const m of ['get', 'set', 'disable', 'unlock', 'mine', 'detail', 'package', 'translate']) this[m] = this[m].bind(this);
   }
 
   // ---- author (owner) ----
@@ -42,6 +42,16 @@ export class TourAccessController {
 
   async mine(req, res) {
     res.json(await this.uc.getMyTourAccess.execute({ tourId: req.validatedParams.id, userId: req.user.sub }));
+  }
+
+  // UC12 — automatic translation of a restricted tour for an unlocked tester.
+  async translate(req, res) {
+    const tour = await this.uc.translateTourForVisitor.restrictedTour({
+      tourId: req.validatedParams.id,
+      userId: req.user.sub,
+      lang: req.validatedParams.lang,
+    });
+    res.json({ tour });
   }
 
   async detail(req, res) {

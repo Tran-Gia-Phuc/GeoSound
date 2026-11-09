@@ -9,15 +9,18 @@
 import { Router } from 'express';
 import { validateQuery, validateParams } from '../middleware/validate.js';
 import { searchQuerySchema } from '../../../application/dtos/search-schemas.js';
-import { detailParamSchema, detailQuerySchema } from '../../../application/dtos/detail-schemas.js';
+import { detailParamSchema, detailQuerySchema, translateParamSchema } from '../../../application/dtos/detail-schemas.js';
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 // UUID v-any: 8-4-4-4-12 hex (loại trừ "mine" và các path khác).
 const UUID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
 
-/** @param {{ publicTourController }} deps */
-export function buildPublicTourRouter({ publicTourController }) {
+/**
+ * @param {{ publicTourController, translateLimiter?: import('express').RequestHandler }} deps
+ *   translateLimiter: rate limit of the automatic translation route (calls the AI service).
+ */
+export function buildPublicTourRouter({ publicTourController, translateLimiter = (_req, _res, next) => next() }) {
   const r = Router();
 
   // Bước 1–5 — tìm kiếm công khai.
@@ -37,6 +40,14 @@ export function buildPublicTourRouter({ publicTourController }) {
     validateParams(detailParamSchema),
     validateQuery(detailQuerySchema),
     wrap(publicTourController.package)
+  );
+
+  // UC04 / UC12 — a tourist asks for a language that is not available yet (automatic translation).
+  r.post(
+    `/:id(${UUID})/translations/:lang`,
+    translateLimiter,
+    validateParams(translateParamSchema),
+    wrap(publicTourController.translate)
   );
 
   return r;
