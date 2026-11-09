@@ -17,7 +17,7 @@
   "alts": [
     { "id": "A3", "steps": ["A3.1. Hệ thống tự đăng xuất: đặt lại / đổi mật khẩu, admin tạm khóa / cấm, đăng nhập lại cùng thiết bị.", "A3.2. Hoặc phiên quá 7 ngày không dùng / quá 30 ngày, token cũ bị dùng lại, vượt 100 phiên."], "to": "s8" },
     { "id": "A4", "steps": ["A4.1. Đăng nhập trên thiết bị chưa từng có phiên.", "A4.2. Notification gửi email “Đăng nhập mới trên <thiết bị>” tới email tài khoản."], "to": "end" },
-    { "id": "A5", "steps": ["A5.1. Admin mở trang thiết bị online (người không phải admin → 403).", "A5.2. Hệ thống hiện tổng số thiết bị, số đang online (120 giây), tài khoản online; tự làm mới mỗi 30 giây."], "to": "end" },
+    { "id": "A5", "steps": ["A5.1. Mọi khách, đăng nhập hay chưa, gửi tín hiệu online mỗi 60 giây khi tab hiển thị hoặc đang phát audio; đóng trang → rời ngay.", "A5.2. Admin mở trang thiết bị online (người không phải admin → 403).", "A5.3. Hệ thống hiện số thiết bị online (gồm khách), khách chưa đăng nhập, tài khoản online, truy cập hôm nay / 7 / 30 ngày; tự làm mới mỗi 30 giây."], "to": "end" },
     { "id": "A1", "steps": ["A1.1. Người dùng nhấn “Đăng xuất tất cả thiết bị khác” và xác nhận.", "A1.2. Auth thu hồi mọi phiên trừ phiên hiện tại; toast “Đã đăng xuất n thiết bị”."], "to": "s8" },
     { "id": "A2", "steps": ["A2.1. Người dùng nhấn “Đăng xuất” ở trang Tài khoản.", "A2.2. Hệ thống thu hồi phiên hiện tại và xóa token."], "to": "end" }
   ]
