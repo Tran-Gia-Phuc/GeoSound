@@ -3,7 +3,7 @@
 // Chưa cấu hình → chỉ có ngôn ngữ gốc, chưa có ngôn ngữ phụ/bản dịch.
 // =========================================================
 import { TourNotFoundError, NotTourOwnerError } from '../../domain/errors/index.js';
-import { splitLanguagesByReadiness } from '../../domain/i18n/translation-status.js';
+import { splitLanguagesByReadiness, isOutdatedEdit } from '../../domain/i18n/translation-status.js';
 
 /** Ráp cấu hình trả về từ các mảnh đã tải (dùng chung với SetTourLanguages). */
 export function buildLanguageConfig({ tour, langs, translations, places }) {
@@ -26,11 +26,15 @@ export function buildLanguageConfig({ tour, langs, translations, places }) {
     ready: ready.includes(l.languageCode),
     translated: progress[l.languageCode]?.translated ?? 0,
     total: progress[l.languageCode]?.total ?? places.length,
+    outdated: progress[l.languageCode]?.outdated ?? 0,
   }));
 
+  // outdated = bản chỉnh tay nhưng mô tả gốc đã đổi sau đó (UC10) → tác giả nên xem lại.
+  const placeById = new Map(places.map((p) => [p.id, p]));
   const byPlace = new Map(places.map((p) => [p.id, []]));
   for (const t of translations) {
-    if (byPlace.has(t.placeId)) byPlace.get(t.placeId).push(t.toPublic());
+    if (!byPlace.has(t.placeId)) continue;
+    byPlace.get(t.placeId).push({ ...t.toPublic(), outdated: isOutdatedEdit(placeById.get(t.placeId), t) });
   }
 
   return {
