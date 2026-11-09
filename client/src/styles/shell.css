@@ -371,6 +371,10 @@
   .admin-stats {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+  /* #329: six counts read better as two rows of three */
+  .admin-stats--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 .admin-stat {
   display: flex;
