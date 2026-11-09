@@ -48,6 +48,9 @@ model Tour {
   passcodeHash    String?   @map("passcode_hash")
   passcodeVersion Int       @default(0) @map("passcode_version")
   passcodeSetAt   DateTime? @map("passcode_set_at")
+  // UC12 / UC04: tourists may ask for a language the author did not turn on; the place descriptions
+  // are then translated on demand (place_translations.text_source = auto). The author can turn it off.
+  autoTranslate   Boolean   @default(true) @map("auto_translate")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -358,6 +361,7 @@ model ItineraryItem {
 
 // UC12 — Bản dịch + TTS của một điểm theo một ngôn ngữ.
 //   text_source: source (text gốc = mô tả điểm) | machine (tự dịch) | edited (chỉnh tay)
+//                | auto (dịch theo yêu cầu của khách cho ngôn ngữ tác giả chưa bật; chưa được tác giả xem)
 //   tts_prerendered: đã pre-render & cache cho offline (UC03) hay chưa.
 //   source_hash: hash of the place description the text was made from (sourceHash()). A machine
 //   translation whose hash no longer matches is stale and is translated again; null = row written

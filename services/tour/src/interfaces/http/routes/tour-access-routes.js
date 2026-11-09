@@ -9,6 +9,7 @@
 //     GET    /:id/access/mine       -> { unlocked }
 //     GET    /:id/restricted?lang=  -> { tour } (same view as the public detail)
 //     GET    /:id/restricted/package?lang= -> offline package (UC03 shape + restricted: true, L9)
+//     POST   /:id/restricted/translations/:lang -> { tour } automatic translation (UC12, rate limited)
 // Guards are injected (index.js passes shared verifyJwt), so this file never imports ../shared.
 // Mount it BEFORE the contributor routers: they apply verifyJwt(['contributor']) on '/', which would
 // answer 403 to a tourist tester.
@@ -21,16 +22,22 @@ import {
   setPasscodeSchema,
   unlockSchema,
 } from '../../../application/dtos/access-schemas.js';
-import { detailQuerySchema } from '../../../application/dtos/detail-schemas.js';
+import { detailQuerySchema, translateParamSchema } from '../../../application/dtos/detail-schemas.js';
 import { UUID } from './public-tour-routes.js';
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 /**
  * @param {{ tourAccessController, requireAuth: import('express').RequestHandler,
- *           requireContributor: import('express').RequestHandler }} deps
+ *           requireContributor: import('express').RequestHandler,
+ *           translateLimiter?: import('express').RequestHandler }} deps
  */
-export function buildTourAccessRouter({ tourAccessController: c, requireAuth, requireContributor }) {
+export function buildTourAccessRouter({
+  tourAccessController: c,
+  requireAuth,
+  requireContributor,
+  translateLimiter = (_req, _res, next) => next(),
+}) {
   if (typeof requireAuth !== 'function' || typeof requireContributor !== 'function') {
     throw new Error('buildTourAccessRouter: requireAuth and requireContributor are required');
   }
@@ -46,6 +53,13 @@ export function buildTourAccessRouter({ tourAccessController: c, requireAuth, re
   r.get(`/:id(${UUID})/access/mine`, ...tester, wrap(c.mine));
   r.get(`/:id(${UUID})/restricted`, ...tester, validateQuery(detailQuerySchema), wrap(c.detail));
   r.get(`/:id(${UUID})/restricted/package`, ...tester, validateQuery(detailQuerySchema), wrap(c.package));
+  r.post(
+    `/:id(${UUID})/restricted/translations/:lang`,
+    requireAuth,
+    translateLimiter,
+    validateParams(translateParamSchema),
+    wrap(c.translate)
+  );
 
   return r;
 }

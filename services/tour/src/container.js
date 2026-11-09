@@ -106,6 +106,9 @@ import { PreviewTour } from './application/use-cases/preview-tour.js';
 import { GetLanguageConfig } from './application/use-cases/get-language-config.js';
 import { SetTourLanguages } from './application/use-cases/set-tour-languages.js';
 import { EnsureTranslations } from './application/use-cases/ensure-translations.js';
+import { TranslateTourForVisitor } from './application/use-cases/translate-for-visitor.js';
+import { SetAutoTranslate } from './application/use-cases/set-auto-translate.js';
+import { rateLimit } from './interfaces/http/middleware/rate-limit.js';
 import { PreviewTts } from './application/use-cases/preview-tts.js';
 import { UpdateTranslation } from './application/use-cases/update-translation.js';
 
@@ -273,6 +276,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     setTourLanguages: new SetTourLanguages({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, translator, ttsSynthesizer, catalog }),
     previewTts: new PreviewTts({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, ttsSynthesizer }),
     updateTranslation: new UpdateTranslation({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, ttsSynthesizer, catalog }),
+    setAutoTranslate: new SetAutoTranslate({ tourRepo }),
   };
 
   const itineraryUseCases = {
@@ -365,8 +369,22 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   const placeRouter = buildPlaceRouter({ placeController });
   const routeConfigController = new RouteConfigController(routeConfigUseCases);
   const routeConfigRouter = buildRouteConfigRouter({ routeConfigController });
+  // UC04 / UC12 — a tourist asks for a language: automatic translation (AI), rate limited per IP.
+  const translateTourForVisitor = new TranslateTourForVisitor({
+    tourRepo,
+    tourLanguageRepo,
+    translations,
+    getPublicTour: publicUseCases.getPublicTour,
+    getRestrictedTour: accessUseCases.getRestrictedTour,
+  });
+  publicUseCases.translateTourForVisitor = translateTourForVisitor;
+  accessUseCases.translateTourForVisitor = translateTourForVisitor;
+  const translateLimiter = rateLimit({
+    max: Number(env.TRANSLATE_RATE_MAX) || 10,
+    windowMs: Number(env.TRANSLATE_RATE_WINDOW_MS) || 10 * 60 * 1000,
+  });
   const publicTourController = new PublicTourController(publicUseCases);
-  const publicTourRouter = buildPublicTourRouter({ publicTourController });
+  const publicTourRouter = buildPublicTourRouter({ publicTourController, translateLimiter });
   const languageController = new LanguageController(languageUseCases);
   const languageRouter = buildLanguageRouter({ languageController });
   const previewController = new PreviewController(previewUseCases);
@@ -425,6 +443,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
         tourAccessController: new TourAccessController(accessUseCases),
         requireAuth: verifyJwt(),
         requireContributor: verifyJwt(['contributor']),
+        translateLimiter,
       })
     : null;
 

@@ -29,6 +29,11 @@ export const updateTranslationSchema = z.object({
   text: z.string().trim().min(1, 'Bản dịch không được rỗng').max(5000, 'Bản dịch tối đa 5000 ký tự'),
 });
 
+// Automatic translation for tourists on / off (tours.auto_translate).
+export const autoTranslateSchema = z.object({
+  enabled: z.boolean({ required_error: 'Thiếu trạng thái dịch tự động', invalid_type_error: 'Trạng thái dịch tự động không hợp lệ' }),
+});
+
 // Tham số đường dẫn.
 export { placeParamsSchema };
 export const translationParamsSchema = placeParamsSchema.extend({

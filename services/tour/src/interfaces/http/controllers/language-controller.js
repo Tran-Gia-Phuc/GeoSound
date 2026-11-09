@@ -4,10 +4,20 @@
 // =========================================================
 
 export class LanguageController {
-  /** @param {{ getLanguageConfig, setTourLanguages, previewTts, updateTranslation }} useCases */
+  /** @param {{ getLanguageConfig, setTourLanguages, previewTts, updateTranslation, setAutoTranslate }} useCases */
   constructor(useCases) {
     this.uc = useCases;
-    for (const m of ['get', 'set', 'preview', 'updateTranslation']) this[m] = this[m].bind(this);
+    for (const m of ['get', 'set', 'preview', 'updateTranslation', 'setAutoTranslate']) this[m] = this[m].bind(this);
+  }
+
+  // Dịch tự động cho khách: bật / tắt
+  async setAutoTranslate(req, res) {
+    const result = await this.uc.setAutoTranslate.execute({
+      authorId: req.user.sub,
+      tourId: req.validatedParams.tourId,
+      enabled: req.validated.enabled,
+    });
+    res.json(result);
   }
 
   // Bước 1–2, 6 — lấy cấu hình ngôn ngữ & giọng

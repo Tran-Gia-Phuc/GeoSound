@@ -78,7 +78,8 @@ const mountKeep = (path, target) =>
 
 // UC23: xfwd adds x-forwarded-for so Auth sees the client IP of a sign-in (device list, R2/R12).
 mount('/api/auth', TARGETS.auth, { xfwd: true });
-mount('/api/tours', TARGETS.tour);
+// UC12: xfwd so Tour rate-limits the automatic translation route per client IP.
+mount('/api/tours', TARGETS.tour, { xfwd: true });
 // UC07 — lịch trình cá nhân + khám phá địa điểm lẻ (cùng tour service).
 mountKeep('/api/itineraries', TARGETS.tour);
 mountKeep('/api/places', TARGETS.tour);

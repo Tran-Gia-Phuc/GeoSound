@@ -11,6 +11,7 @@ import {
   setLanguagesSchema,
   previewTtsSchema,
   updateTranslationSchema,
+  autoTranslateSchema,
   placeParamsSchema,
   translationParamsSchema,
 } from '../../../application/dtos/language-schemas.js';
@@ -25,6 +26,8 @@ export function buildLanguageRouter({ languageController }) {
 
   r.get('/mine/:tourId/languages', validateParams(tourIdParamSchema), wrap(languageController.get));
   r.put('/mine/:tourId/languages', validateParams(tourIdParamSchema), validateBody(setLanguagesSchema), wrap(languageController.set));
+  // Cho phép / không cho khách yêu cầu dịch tự động ngôn ngữ chưa bật.
+  r.put('/mine/:tourId/languages/auto-translate', validateParams(tourIdParamSchema), validateBody(autoTranslateSchema), wrap(languageController.setAutoTranslate));
 
   // A1 — nghe thử TTS; A2 — chỉnh bản dịch.
   r.post('/mine/:tourId/places/:placeId/tts-preview', validateParams(placeParamsSchema), validateBody(previewTtsSchema), wrap(languageController.preview));

@@ -3,12 +3,14 @@
 //   textSource: source  = text gốc (ngôn ngữ gốc, = mô tả điểm ở UC10)
 //               machine = tự động dịch
 //               edited  = tác giả đã chỉnh tay (A2) — giữ khi lưu lại
+//               auto    = dịch theo yêu cầu của khách (ngôn ngữ tác giả chưa bật) — chưa được tác giả xem;
+//                         thành machine khi tác giả bật ngôn ngữ đó
 // ttsUrl/ttsPrerendered: bản TTS (pre-render & cache offline khi tải — UC03).
 // sourceHash: hash of the description the text was made from (domain/i18n/source-hash.js).
 // Thuần domain.
 // =========================================================
 
-export const TEXT_SOURCE = Object.freeze({ SOURCE: 'source', MACHINE: 'machine', EDITED: 'edited' });
+export const TEXT_SOURCE = Object.freeze({ SOURCE: 'source', MACHINE: 'machine', EDITED: 'edited', AUTO: 'auto' });
 
 export class PlaceTranslation {
   /**

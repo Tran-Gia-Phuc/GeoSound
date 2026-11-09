@@ -49,7 +49,7 @@
 ## Exception Path
 
 - **E1.** Không có mạng khi bắt đầu tải → *"Cần kết nối mạng (Wi-Fi hoặc dữ liệu di động) để tải tour"*. `useDownloadActions()`
-- **E2.** Manifest lỗi: `404 tour_not_found` (tour không còn công khai), `400 language_not_available` (ngôn ngữ chưa cấu hình hoặc chưa dịch đủ). `TourNotFoundError`, `LanguageNotAvailableError` (`get-tour-package.js`)
+- **E2.** Manifest lỗi: `404 tour_not_found` (tour không còn công khai), `400 language_not_available` (ngôn ngữ chưa có trong `availableLanguages`: chưa dịch đủ, hoặc chưa được dịch tự động cho khách — client gọi `POST /api/tours/:id/translations/:lang` trước, UC12 A5). `TourNotFoundError`, `LanguageNotAvailableError` (`get-tour-package.js`)
 - **E3.** Không đủ dung lượng (ước tính trước, hoặc `QuotaExceededError` khi đang ghi) → dừng tải, *"Không đủ dung lượng trên thiết bị."* kèm dung lượng cần / còn trống (nếu biết) và link *"Quản lý tour đã tải"*; gói khác không bị ảnh hưởng. `storageEstimate()`, `isQuotaError()`
 - **E4.** Mất mạng giữa chừng → *"Mất kết nối mạng. Phần đã tải được giữ lại."*; gói tạm dừng, tiếp tục khi có mạng. `PackageProgress`
 - **E5.** Một tệp lỗi (ví dụ máy chủ ảnh không gửi CORS) → tệp đó hiện **"Thử lại"**; gói không được đánh dấu `ready`. `downloadOne()`
@@ -71,7 +71,7 @@ Tourist muốn chuẩn bị tour để dùng khi không có mạng, hoặc muố
 
 ## Preconditions
 
-- Tour ở trạng thái `public` và ngôn ngữ chọn có trong `availableLanguages` của tour.
+- Tour ở trạng thái `public` và ngôn ngữ chọn có trong `availableLanguages` của tour (kể cả ngôn ngữ đã dịch tự động cho khách).
 
 ## Post Conditions
 
@@ -138,7 +138,7 @@ Tourist muốn chuẩn bị tour để dùng khi không có mạng, hoặc muố
 
 ## Date
 
-Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-09
 
 ## Activity Diagram
 

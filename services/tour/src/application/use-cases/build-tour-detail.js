@@ -7,7 +7,15 @@
 // =========================================================
 import { resolveVoiceLabel } from '../../domain/value-objects/voice.js';
 import { effectiveRoute } from '../../domain/route/effective-route.js';
-import { splitLanguagesByReadiness } from '../../domain/i18n/translation-status.js';
+import { splitLanguagesByReadiness, autoLanguageCodes } from '../../domain/i18n/translation-status.js';
+import { SUPPORTED_LANGUAGES } from '../../domain/value-objects/language.js';
+
+// Why the view is not in the language the tourist asked for (UC04: never fall back silently).
+export const FALLBACK_REASON = Object.freeze({
+  NOT_SUPPORTED: 'not_supported', // code outside SUPPORTED_LANGUAGES
+  NOT_TRANSLATED: 'not_translated', // supported, no full translation yet -> can be asked for
+  AUTO_DISABLED: 'auto_disabled', // supported, no translation and the author turned auto off
+});
 
 /**
  * @param {{
@@ -22,15 +30,37 @@ export function buildTourDetailView({ tour, places, route = null, langs = [], tr
 
   // Ngôn ngữ khả dụng = cấu hình UC12 (gốc luôn có mặt) NHƯNG chỉ những ngôn ngữ
   // mọi điểm đã có bản dịch thật; còn lại nằm ở pendingLanguages (không cho chọn).
+  // Plus the automatic translations tourists asked for (text_source auto), once complete.
   const configured = langs.map((l) => l.languageCode);
   if (!configured.includes(source)) configured.unshift(source);
-  const { ready: availableLanguages, pending: pendingLanguages } = splitLanguagesByReadiness({
+  const { ready, pending: pendingLanguages } = splitLanguagesByReadiness({
     source,
     languages: configured,
     places,
     translations,
   });
+  // Turning automatic translation off also hides the automatic translations made before.
+  const autoTranslate = tour.autoTranslate !== false;
+  const autoCodes = autoTranslate ? autoLanguageCodes(translations, configured) : [];
+  const { ready: autoReady } = splitLanguagesByReadiness({ source, languages: autoCodes, places, translations });
+  const availableLanguages = [...ready, ...autoReady];
+  const languageKinds = Object.fromEntries(
+    availableLanguages.map((c) => [c, c === source ? 'source' : autoReady.includes(c) ? 'auto' : 'author'])
+  );
+  // A supported language that is not available can be asked for (POST .../translations/:lang):
+  // any one when the author allows it, otherwise only the author's own (pending) languages.
+  const translatableLanguages = SUPPORTED_LANGUAGES.filter(
+    (c) => !availableLanguages.includes(c) && (autoTranslate || configured.includes(c))
+  );
+
+  const requestedLanguage = lang || null;
   const selectedLanguage = availableLanguages.includes(lang) ? lang : source;
+  let fallbackReason = null;
+  if (requestedLanguage && requestedLanguage !== selectedLanguage) {
+    if (!SUPPORTED_LANGUAGES.includes(requestedLanguage)) fallbackReason = FALLBACK_REASON.NOT_SUPPORTED;
+    else if (translatableLanguages.includes(requestedLanguage)) fallbackReason = FALLBACK_REASON.NOT_TRANSLATED;
+    else fallbackReason = FALLBACK_REASON.AUTO_DISABLED;
+  }
 
   const hasHumanAudioOriginal = places.some((p) => p.audioSource === 'human');
   const voiceLabel = resolveVoiceLabel({
@@ -59,8 +89,13 @@ export function buildTourDetailView({ tour, places, route = null, langs = [], tr
     ratingCount: tour.ratingCount,
     placeCount: places.length,
     selectedLanguage,
+    requestedLanguage,
+    fallbackReason,
     availableLanguages,
     pendingLanguages,
+    languageKinds,
+    translatableLanguages,
+    autoTranslate,
     voiceLabel,
     places: places.map((p) => localizePlace(p, selectedLanguage, source, txByPlace.get(p.id))),
     // Route cho bản đồ chi tiết + vùng kích hoạt cho trình phát (UC11).
@@ -72,6 +107,7 @@ export function buildTourDetailView({ tour, places, route = null, langs = [], tr
 
 // Text + audio của điểm theo ngôn ngữ chọn: ưu tiên audio người thật đúng ngôn
 // ngữ gốc; còn lại dùng TTS (UC12). Chưa có TTS → audioUrl null.
+// Not the source language: translationKind (author | auto) and originalText ("Xem bản gốc").
 function localizePlace(place, selectedLanguage, source, tx) {
   const base = {
     id: place.id,
@@ -85,6 +121,15 @@ function localizePlace(place, selectedLanguage, source, tx) {
   if (selectedLanguage === source && place.audioSource === 'human' && place.audioUrl) {
     return { ...base, text: place.description, audioUrl: place.audioUrl, audioSource: 'human' };
   }
-  const text = selectedLanguage === source ? place.description : tx?.text ?? place.description;
-  return { ...base, text, audioUrl: tx?.ttsUrl ?? null, audioSource: 'tts' };
+  if (selectedLanguage === source) {
+    return { ...base, text: place.description, audioUrl: tx?.ttsUrl ?? null, audioSource: 'tts' };
+  }
+  return {
+    ...base,
+    text: tx?.text ?? place.description,
+    audioUrl: tx?.ttsUrl ?? null,
+    audioSource: 'tts',
+    translationKind: tx?.textSource === 'auto' ? 'auto' : 'author',
+    originalText: place.description,
+  };
 }

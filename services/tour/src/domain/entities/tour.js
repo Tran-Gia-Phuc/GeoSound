@@ -101,6 +101,8 @@ export class Tour {
     // UC14 (#269) — passcode bookkeeping (the hash itself never enters the entity).
     this.passcodeVersion = props.passcodeVersion ?? 0;
     this.passcodeSetAt = props.passcodeSetAt ?? null;
+    // UC12: tourists may ask for an automatic translation into a language the author did not turn on.
+    this.autoTranslate = props.autoTranslate ?? true;
     this.createdAt = props.createdAt ?? null;
     this.updatedAt = props.updatedAt ?? null;
   }
@@ -196,6 +198,7 @@ export class Tour {
       ratingCount: this.ratingCount,
       moderationReasons: this.moderationReasons,
       reviewReason: this.reviewReason,
+      autoTranslate: this.autoTranslate,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

@@ -11,6 +11,7 @@
  * @property {(authorId: string) => Promise<import('../entities/tour.js').Tour[]>} listByAuthor
  * @property {(tour: import('../entities/tour.js').Tour) => Promise<import('../entities/tour.js').Tour>} save  // cập nhật nội dung/trạng thái
  * @property {(id: string) => Promise<void>} delete
+ * @property {(tour: import('../entities/tour.js').Tour, enabled: boolean) => Promise<import('../entities/tour.js').Tour>} setAutoTranslate  // UC12: only auto_translate, updatedAt kept
  * // --- UC02 đọc công khai (chỉ status=public) ---
  * @property {(filters: object) => Promise<number>} countPublic
  * @property {(filters: object, page: { skip: number, take: number, sort: string }) => Promise<import('../entities/tour.js').Tour[]>} searchPublicPage

@@ -5,6 +5,7 @@
 //   - render TTS cho mọi ngôn ngữ (gốc + phụ) theo giọng đã chọn (E1 nếu lỗi)
 //   - GIỮ bản dịch tác giả đã chỉnh tay (textSource='edited') khi lưu lại
 //   - chỉ dịch điểm chưa có bản dịch hoặc bản dịch đã cũ (source_hash, EnsureTranslations)
+//   - bật một ngôn ngữ khách đã yêu cầu dịch tự động → dùng lại bản 'auto' (thành 'machine')
 //   - bỏ ngôn ngữ phụ → xóa ngôn ngữ đó và bản dịch của nó
 // Ngôn ngữ gốc là nguồn; text gốc = mô tả điểm (UC10) — không dịch, chỉ TTS.
 // #240 (CHATBOT_EVENTS_ENABLED): a public tour stays public -> tour.published is sent again (translations).
@@ -98,7 +99,8 @@ export class SetTourLanguages {
             placeId: place.id,
             languageCode: code,
             text,
-            textSource: isSource ? TEXT_SOURCE.SOURCE : prev.textSource,
+            // A language the tourists already had as automatic translation is now the author's.
+            textSource: isSource ? TEXT_SOURCE.SOURCE : prev.textSource === TEXT_SOURCE.AUTO ? TEXT_SOURCE.MACHINE : prev.textSource,
             sourceHash: isSource ? sourceHash(place.description) : prev.sourceHash,
             ttsUrl: tts.url,
             ttsPrerendered: tts.prerendered,

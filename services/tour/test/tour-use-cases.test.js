@@ -59,7 +59,7 @@ test('CreateTour: thiếu/không hỗ trợ ngôn ngữ gốc → lỗi (E2)', a
   const uc = new CreateTour({ tourRepo: makeRepo() });
   await assert.rejects(() => uc.execute({ authorId: 'u1', title: 'X', originalLanguage: '' }), /ngôn ngữ gốc/i);
   await assert.rejects(
-    () => uc.execute({ authorId: 'u1', title: 'X', originalLanguage: 'de' }),
+    () => uc.execute({ authorId: 'u1', title: 'X', originalLanguage: 'pt' }),
     /không hỗ trợ/i
   );
 });

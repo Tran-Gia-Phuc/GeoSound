@@ -126,6 +126,13 @@ export class TranslationError extends AppError {
   }
 }
 
+// UC12 / UC04 — the author turned automatic translation off for this tour.
+export class AutoTranslateDisabledError extends AppError {
+  constructor(message = 'Tác giả chưa cho phép dịch tự động tour này') {
+    super(message, { status: 403, code: 'auto_translate_disabled' });
+  }
+}
+
 // UC12 / E1 — dịch vụ TTS không phản hồi (cho thử lại).
 export class TtsError extends AppError {
   constructor(message = 'Tạo giọng đọc TTS thất bại, vui lòng thử lại') {
