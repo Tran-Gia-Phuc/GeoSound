@@ -32,7 +32,7 @@
 
 **A2. Xem dạng bản đồ.** Tourist chuyển sang *Bản đồ* (`?view=map`): tour được ghim tại điểm xuất phát (`anchor`), địa điểm ghim tại chỗ. Chạm ghim để mở chi tiết. `DiscoverMap`
 
-**A3. Đổi ngôn ngữ nghe.** Chỉ ngôn ngữ mà **mọi điểm** đã có bản dịch mới được chọn (`availableLanguages`); ngôn ngữ chưa dịch xong nằm ở `pendingLanguages`. Quay về bước 9. `splitLanguagesByReadiness()`
+**A3. Đổi ngôn ngữ nghe.** Chỉ ngôn ngữ mà **mọi điểm** đã có bản dịch mới được chọn (`availableLanguages`: ngôn ngữ tác giả bật và ngôn ngữ đã dịch tự động cho khách, phân biệt bằng `languageKinds` = `source | author | auto`); ngôn ngữ tác giả bật nhưng chưa dịch xong nằm ở `pendingLanguages`. Ngôn ngữ hỗ trợ còn lại nằm ở `translatableLanguages`: khách yêu cầu dịch tự động (`POST /api/tours/:id/translations/:lang`, UC04 / UC12 A5). Hỏi `?lang=` một ngôn ngữ chưa có thì chi tiết trả ngôn ngữ gốc kèm `requestedLanguage` và `fallbackReason` (`not_supported`, `not_translated`, `auto_disabled`), không âm thầm đổi. Quay về bước 9. `splitLanguagesByReadiness()`, `buildTourDetailView()`
 
 **A4. Tab Địa điểm.** Tourist chuyển sang tab *Địa điểm*: client gọi `GET /api/places?q=&city=&type=&lat=&lng=`; chạm thẻ mở sheet chi tiết (mô tả, ảnh, nghe thử), nút "＋" thêm điểm vào lịch trình (UC07, cần đăng nhập). `explorePlaces()` → `ExploreController.places()` → `ExplorePlaces.execute()`, `PrismaPlaceRepository.searchPublicPlaces()`; `PlaceDetailSheet`, `addItem()`
 
@@ -79,6 +79,7 @@ Tourist muốn tìm tour hoặc địa điểm tại nơi mình đến.
 | Sắp xếp `popular` | Số lượt đánh giá, rồi điểm trung bình, rồi mới nhất |
 | Phân trang | `limit` tối đa 50 (client dùng 12) |
 | Nhãn giọng | `human` khi ngôn ngữ chọn = ngôn ngữ gốc và có audio người thật; còn lại `tts` (máy đọc bằng giọng của thiết bị) |
+| Ngôn ngữ chi tiết | `selectedLanguage` = `?lang=` nếu có trong `availableLanguages`, ngược lại ngôn ngữ gốc kèm `fallbackReason`; điểm ở ngôn ngữ khác gốc có `translationKind` (`author` / `auto`) và `originalText` |
 | Route chưa cấu hình | Tour tự sinh route và vùng kích hoạt tròn 50 m cho mỗi điểm |
 
 ## Hiện thực trong hệ thống
@@ -91,6 +92,7 @@ Tourist muốn tìm tour hoặc địa điểm tại nơi mình đến.
 - **API (qua gateway):**
   - `GET /api/tours?q=&city=&language=&type=&authorId=&sort=&lat=&lng=&page=&limit=`
   - `GET /api/tours/:id?lang=`
+  - `POST /api/tours/:id/translations/:lang` (dịch tự động theo yêu cầu, UC12 A5)
   - `GET /api/places?q=&city=&type=&lat=&lng=&page=&pageSize=`
   - `POST /api/tours/:id/activity` (beacon `view`, UC17)
 - **Dữ liệu:** `tours` (`status`, `city`, `type`, `original_language`, `duration`, `average_rating`, `rating_count`), `places` (`images`, `audio_url`, `audio_source`), `route_configs`, `tour_languages`, `place_translations`.
@@ -126,7 +128,7 @@ Tourist muốn tìm tour hoặc địa điểm tại nơi mình đến.
 
 ## Date
 
-Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-09
 
 ## Activity Diagram
 

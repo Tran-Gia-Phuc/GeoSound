@@ -33,6 +33,10 @@
 
 **A3. Gỡ một ngôn ngữ phụ** → lưu lại không có ngôn ngữ đó: Tour xóa dòng `tour_languages` và các bản dịch tương ứng (`PrismaTourLanguageRepository.deleteLanguages()`, `PrismaPlaceTranslationRepository.deleteByLanguages()`).
 
+**A5. Ngôn ngữ khách yêu cầu dịch tự động (UC04).** Khách có thể yêu cầu một ngôn ngữ hỗ trợ mà tác giả chưa bật; Tour dịch một lần và lưu với `text_source = auto` (`TranslateTourForVisitor`). Bước Ngôn ngữ liệt kê các ngôn ngữ này ("Khách đã yêu cầu dịch tự động: Deutsch (2/2)"). Tác giả bật một ngôn ngữ trong số đó → Tour dùng lại các bản `auto` (đổi thành `machine`, không gọi AI lại). `GetLanguageConfig` (`autoLanguages`), `SetTourLanguages`
+
+**A6. Tắt / bật dịch tự động cho khách** → công tắc "Cho khách yêu cầu dịch tự động": `PUT .../languages/auto-translate { enabled }` ghi `tours.auto_translate` (không đổi trạng thái tour, không đổi `updated_at`). Tắt: khách không yêu cầu được ngôn ngữ ngoài danh sách tác giả bật, và các bản `auto` đã có bị ẩn với khách. `SetAutoTranslate.execute()`, `PrismaTourRepository.setAutoTranslate()`
+
 ## Exception Path
 
 - **E1.** AI dịch lỗi (timeout, 5xx, sai số lượng bản dịch) → 503 `translation_unavailable` ("Dịch tự động thất bại, vui lòng thử lại"); lỗi tạo TTS → 503 `tts_unavailable`. `TranslationError`, `TtsError`
@@ -61,7 +65,9 @@ Contributor muốn tour phục vụ khách quốc tế mà không phải tự th
 
 ## Reference: Business Rules
 
-- Ngôn ngữ hỗ trợ: `vi, en, fr, ja, ko, zh`; tối đa 20 ngôn ngữ phụ; bản dịch 1–5000 ký tự.
+- Ngôn ngữ hỗ trợ: `vi, en, fr, ja, ko, zh, es, de, th, ru` (cùng danh sách với AI service và client); tối đa 20 ngôn ngữ phụ; bản dịch 1–5000 ký tự.
+- Ba tầng bản dịch: `source` (bản gốc), `machine` / `edited` (ngôn ngữ tác giả bật), `auto` (khách yêu cầu, tác giả chưa xem). Bản `auto` luôn có nhãn "Bản dịch tự động" và nút "Xem bản gốc" ở trình phát (UC04); không được gửi trong `tour.published` (chatbot không index).
+- `tours.auto_translate` (mặc định bật) cho phép khách yêu cầu ngôn ngữ ngoài danh sách tác giả bật.
 - Ngôn ngữ gốc là nguồn: văn bản = mô tả điểm, không dịch.
 - Lưu lại cấu hình **giữ** bản dịch `edited` và bản `machine` còn đúng; chỉ dịch điểm thiếu bản dịch, bản trùng văn bản gốc (Echo) hoặc bản làm từ mô tả cũ.
 - Mỗi bản dịch lưu `source_hash` (sha1 của mô tả đã chuẩn hóa khoảng trắng, 16 ký tự). Bản `machine` có hash khác mô tả hiện tại là bản cũ: không được phát, được dịch lại. Bản cũ hơn cột này (`source_hash` rỗng) vẫn được phát và được dịch lại ở lần làm mới sau. Bản `edited` có hash khác là `outdated` (vẫn phát, cần tác giả xem lại).
@@ -76,9 +82,11 @@ Contributor muốn tour phục vụ khách quốc tế mà không phải tự th
   - `GET|PUT /api/tours/mine/:tourId/languages`
   - `POST /api/tours/mine/:tourId/places/:placeId/tts-preview`
   - `PATCH /api/tours/mine/:tourId/places/:placeId/translations/:lang`
+  - `PUT /api/tours/mine/:tourId/languages/auto-translate { enabled }` (A6)
+  - Khách (UC04, A5): `POST /api/tours/:id/translations/:lang` (công khai), `POST /api/tours/:id/restricted/translations/:lang` (tour hạn chế, người đã mở khoá); giới hạn theo IP (`TRANSLATE_RATE_MAX`, `TRANSLATE_RATE_WINDOW_MS`, mặc định 10 lần / 10 phút).
   - Tour → AI (nội bộ, không qua gateway): `POST /translate` (snake_case: `source_lang`, `target_lang`, `texts`, `context`).
 - **Sự kiện (RabbitMQ):** `tour.published` khi tour công khai đổi bản dịch (cờ `CHATBOT_EVENTS_ENABLED`).
-- **Dữ liệu:** `tour.tour_languages` (`language_code, is_source, tts_voice_gender, tts_voice_region`); `tour.place_translations` (`language_code, text, text_source, source_hash, tts_url, tts_prerendered`).
+- **Dữ liệu:** `tour.tour_languages` (`language_code, is_source, tts_voice_gender, tts_voice_region`); `tour.place_translations` (`language_code, text, text_source = source | machine | edited | auto, source_hash, tts_url, tts_prerendered`); `tour.tours.auto_translate`.
 - **Tài liệu thiết kế:** [ai-service-spec.md](../../02-design/ai-service-spec.md).
 - **Giới hạn đã biết:** chưa có TTS phía máy chủ: `PlaceholderTtsSynthesizer` chỉ sinh URL `tts://...`, `tts_prerendered` luôn `false`; client đọc bằng giọng của thiết bị nên giọng nam / nữ, vùng miền chỉ được lưu, chưa áp dụng. Gói offline (UC03) chỉ chứa văn bản, ảnh và audio người thật.
 - **Mã nguồn chính:**
@@ -94,6 +102,8 @@ Contributor muốn tour phục vụ khách quốc tế mà không phải tự th
 | 2 | `GetLanguageConfig.execute()`, `buildLanguageConfig()` | `services/tour/src/application/use-cases/get-language-config.js` |
 | 4–6 | `SetTourLanguages.execute()` | `services/tour/src/application/use-cases/set-tour-languages.js` |
 | 5, A4 | `EnsureTranslations.execute()`, `refreshPlaceTranslations()` | `services/tour/src/application/use-cases/ensure-translations.js` |
+| A5 | `TranslateTourForVisitor` (`publicTour()`, `restrictedTour()`), `rateLimit()` | `services/tour/src/application/use-cases/translate-for-visitor.js`, `interfaces/http/middleware/rate-limit.js` |
+| A6 | `SetAutoTranslate.execute()` | `services/tour/src/application/use-cases/set-auto-translate.js` |
 | A1 | `PreviewTts.execute()` | `services/tour/src/application/use-cases/preview-tts.js` |
 | A2 | `UpdateTranslation.execute()` | `services/tour/src/application/use-cases/update-translation.js` |
 | 5 | `selectTranslator()`, `AiTranslator.translateMany()`, `EchoTranslator` | `services/tour/src/container.js`, `infrastructure/i18n/ai-translator.js`, `echo-translator.js` |
