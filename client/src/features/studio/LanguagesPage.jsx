@@ -5,6 +5,8 @@
 //   - Bản dịch chia TAB theo ngôn ngữ phụ ("4/4 điểm đã dịch"); mỗi điểm một dòng:
 //     bản gốc (thu gọn) ↔ bản dịch, trạng thái Máy dịch / Đã sửa / Chưa dịch,
 //     nghe thử (A1), lưu khi có sửa (A2; text gốc sửa ở bước Điểm dừng).
+//   - A5 / A6: ngôn ngữ khách đã yêu cầu dịch tự động (bật để dùng lại bản dịch) và công tắc
+//     "Cho khách yêu cầu dịch tự động" (tours.auto_translate).
 // =========================================================
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createLanguagePreview, audioReadiness } from './language-preview.js';
@@ -14,7 +16,7 @@ import { langLabel } from '../../lib/format.js';
 import { LANGUAGE_OPTIONS } from '../../lib/tours.js';
 import {
   TTS_GENDER_OPTIONS,
-  getLanguageConfig, setTourLanguages, previewTts, updateTranslation,
+  getLanguageConfig, setTourLanguages, previewTts, updateTranslation, setAutoTranslate,
 } from '../../lib/studio.js';
 
 export default function LanguagesPage() {
@@ -36,6 +38,8 @@ export default function LanguagesPage() {
   const [rowBusy, setRowBusy] = useState({}); // `${placeId}:${lang}` -> 'save' | 'preview'
   const [rowError, setRowError] = useState({});
   const [txTab, setTxTab] = useState(null); // ngôn ngữ đang xem bản dịch
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [autoError, setAutoError] = useState('');
 
   const hydrate = useCallback((cfg) => {
     setConfig(cfg);
@@ -80,6 +84,20 @@ export default function LanguagesPage() {
       setSaveError(e.message || 'Lưu cấu hình ngôn ngữ thất bại');
     } finally {
       setSaving(false);
+    }
+  }
+
+  // A6 — cho / không cho khách yêu cầu dịch tự động.
+  async function onToggleAuto(enabled) {
+    setAutoBusy(true);
+    setAutoError('');
+    try {
+      const r = await setAutoTranslate(id, enabled);
+      setConfig((c) => ({ ...c, autoTranslate: r.autoTranslate }));
+    } catch (e) {
+      setAutoError(e.message || 'Không đổi được cài đặt dịch tự động');
+    } finally {
+      setAutoBusy(false);
     }
   }
 
@@ -230,6 +248,44 @@ export default function LanguagesPage() {
                 </li>
               ))}
             </ul>
+          ) : null}
+
+          {config.autoLanguages?.length ? (
+            <div className="field">
+              <span className="field__label">Khách đã yêu cầu dịch tự động</span>
+              <ul className="lang-status" aria-label="Ngôn ngữ khách đã yêu cầu dịch tự động">
+                {config.autoLanguages.map((l) => (
+                  <li key={l.languageCode} className="lang-status__item">
+                    <Icon name="languages" size={16} />
+                    <b>{langLabel(l.languageCode)}</b>
+                    <span className="muted small">{l.translated}/{l.total} điểm · bản dịch máy, bạn chưa kiểm tra</span>
+                    {secondary.includes(l.languageCode) ? (
+                      <span className="chip chip--ok">Sẽ bật khi lưu</span>
+                    ) : (
+                      <button type="button" className="btn btn--sm" onClick={() => toggleLang(l.languageCode)}>
+                        Bật ngôn ngữ này
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <label className="lang-auto">
+            <input
+              type="checkbox"
+              checked={config.autoTranslate !== false}
+              disabled={autoBusy}
+              onChange={(e) => onToggleAuto(e.target.checked)}
+            />
+            <span>
+              <b>Cho khách yêu cầu dịch tự động</b>
+              <span className="muted small"> — khách nghe được cả ngôn ngữ bạn chưa bật (bản dịch máy, có nhãn "Bản dịch tự động"). Tắt thì các bản đó bị ẩn với khách.</span>
+            </span>
+          </label>
+          {autoError ? (
+            <div className="alert alert--warn" role="alert"><Icon name="alert-triangle" size={18} className="alert__icon" /><div>{autoError}</div></div>
           ) : null}
 
           <p className="muted small">Lưu sẽ dịch các điểm mới hoặc vừa sửa mô tả. Bản bạn đã chỉnh tay được giữ nguyên. Tệp âm thanh được xác nhận riêng theo từng bản dịch.</p>

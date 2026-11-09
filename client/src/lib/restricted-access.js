@@ -57,6 +57,16 @@ export async function fetchRestrictedTour(tourId, lang, opts) {
   return body?.tour;
 }
 
+/** UC12 — automatic translation of a restricted tour (unlocked tester or owner). */
+export async function translateRestrictedTour(tourId, lang) {
+  const body = await api.post(
+    `/api/tours/${encodeURIComponent(tourId)}/restricted/translations/${encodeURIComponent(lang)}`,
+    undefined,
+    { auth: true },
+  );
+  return body?.tour;
+}
+
 /** Link the owner shares with testers. */
 export const unlockPath = (tourId) => `/tour/${encodeURIComponent(tourId)}/unlock`;
 export const restrictedPath = (tourId) => `/tour/${encodeURIComponent(tourId)}/restricted`;

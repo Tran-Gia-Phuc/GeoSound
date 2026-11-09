@@ -379,6 +379,17 @@ select.input {
 .langchip:hover {
   background: var(--surface-2);
 }
+.langchip__tag {
+  font-weight: 500;
+  font-size: 12px;
+  opacity: 0.8;
+}
+.langpick__more {
+  width: auto;
+  max-width: 100%;
+  min-height: 36px;
+  padding-block: 4px;
+}
 .langchip:disabled {
   opacity: 0.6;
   cursor: not-allowed;

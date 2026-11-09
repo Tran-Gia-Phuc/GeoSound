@@ -15,7 +15,7 @@ export const TOUR_TYPE_OPTIONS = [
 ];
 export const TOUR_TYPE_LABELS = Object.fromEntries(TOUR_TYPE_OPTIONS.map((o) => [o.value, o.label]));
 
-// Ngôn ngữ gốc phổ biến để lọc (khớp nhãn ở lib/format.js).
+// Ngôn ngữ hỗ trợ (khớp nhãn ở lib/format.js và danh sách của Tour / AI service).
 export const LANGUAGE_OPTIONS = [
   { value: 'vi', label: 'Tiếng Việt' },
   { value: 'en', label: 'English' },
@@ -23,6 +23,10 @@ export const LANGUAGE_OPTIONS = [
   { value: 'ja', label: '日本語' },
   { value: 'ko', label: '한국어' },
   { value: 'zh', label: '中文' },
+  { value: 'es', label: 'Español' },
+  { value: 'de', label: 'Deutsch' },
+  { value: 'th', label: 'ไทย' },
+  { value: 'ru', label: 'Русский' },
 ];
 
 // Tiêu chí sắp xếp (A1). "nearby" cần toạ độ người dùng.
@@ -45,4 +49,14 @@ export async function searchTours(params = {}, opts) {
   }
   const s = qs.toString();
   return requireDiscoveryPage(await api.get(`/api/tours${s ? `?${s}` : ''}`, opts), 'tours');
+}
+
+/**
+ * UC04 / UC12 — ask for an automatic translation of a public tour into `lang`.
+ * POST /api/tours/:id/translations/:lang -> { tour } (detail in that language).
+ * Errors: 400 unsupported, 403 auto_translate_disabled, 429 rate_limited, 503 translation_unavailable.
+ */
+export async function translateTour(tourId, lang) {
+  const body = await api.post(`/api/tours/${encodeURIComponent(tourId)}/translations/${encodeURIComponent(lang)}`);
+  return body?.tour;
 }

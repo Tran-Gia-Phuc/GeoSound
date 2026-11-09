@@ -13,7 +13,7 @@
 
 | # | Actor Action | System Response |
 |---|---|---|
-| 1 | Tourist ở chi tiết tour (UC02), mục **"Tải về để nghe offline"**, chọn một hoặc nhiều ngôn ngữ và nhấn **"Tải xuống (n ngôn ngữ)"**. | |
+| 1 | Tourist ở chi tiết tour (UC02), mục **"Tải về để nghe offline"**, chọn một hoặc nhiều ngôn ngữ và nhấn **"Tải xuống (n ngôn ngữ)"**. Ngôn ngữ tour chưa có thì Tourist yêu cầu dịch tự động trước ở chi tiết (UC04 A7); ngôn ngữ đó vào danh sách tải được. | |
 | 2 | | Client kiểm tra mạng. *E1* `useDownloadActions()` |
 | 3 | | Client gọi `GET /api/tours/:id/package?lang=` cho từng ngôn ngữ; Tour trả manifest: `revision`, `detail` (dữ liệu trình phát cần) và `assets[]` (ảnh bìa, ảnh điểm, audio điểm, audio chỉ đường). *E2* `startDownload()`, `fetchTourPackage()` → `PublicTourController.package()` → `GetTourPackage.execute()`, `buildPackageAssets()` |
 | 4 | | Client gửi `HEAD` cho từng tệp còn thiếu để cộng `Content-Length`, so với dung lượng trống của trình duyệt. *E3* `probeSizes()`, `storageEstimate()` |

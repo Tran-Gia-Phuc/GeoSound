@@ -17,6 +17,9 @@ import { langLabel, formatDistance, formatMinutes, voiceLabel } from '../../lib/
 import { useGeolocation } from '../../hooks/useGeolocation.js';
 import { useTourProgress } from '../../hooks/useTourProgress.js';
 import { usePlaybackEngine } from '../../hooks/usePlaybackEngine.js';
+import { useVoiceMissing } from '../../hooks/useVoiceMissing.js';
+import { translationErrorText } from '../../lib/languages.js';
+import LanguageNotice from './LanguageNotice.jsx';
 
 import Icon from '../../components/Icon.jsx';
 import Modal from '../../components/Modal.jsx';
@@ -65,6 +68,7 @@ function rememberRecent(id, title) {
  *   rateHref?: string,       // UC05: link "Đánh giá tour" on the end screen (public tours only)
  *   recordStats?: boolean,   // UC17: send play / complete beacons (public tours only)
  *   reportable?: boolean,    // UC06: "Báo cáo tour" button in the topbar (public tours only)
+ *   translate?: (lang: string) => Promise<object>, // UC12: automatic translation on request (public / restricted tours)
  * }} [props]
  */
 export default function TourPlayerPage({
@@ -82,6 +86,7 @@ export default function TourPlayerPage({
   rateHref,
   reportable = false,
   recordStats = false,
+  translate,
 } = {}) {
   const { tourId } = useParams();
   const [sp, setSp] = useSearchParams();
@@ -106,6 +111,7 @@ export default function TourPlayerPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null); // { message, offline, notFound, status }
   const [langBusy, setLangBusy] = useState(false);
+  const [langError, setLangError] = useState(null); // automatic translation failed (message)
 
   const [mode, setMode] = useState(null); // null(intro) | 'gps' | 'remote'
   const [listOpen, setListOpen] = useState(false);
@@ -315,28 +321,52 @@ export default function TourPlayerPage({
   }, [engine, geo, stopWalk, back]);
 
   // ---- Đổi ngôn ngữ (UC12): tải lại nội dung đã bản địa hóa ----
+  const applyTour = useCallback(
+    (t) => {
+      setTour(t);
+      setLangState(t.selectedLanguage);
+      setLang(t.selectedLanguage);
+      setSp((prev) => {
+        const n = new URLSearchParams(prev);
+        n.set('lang', t.selectedLanguage);
+        return n;
+      });
+    },
+    [setLang, setSp],
+  );
   const changeLang = useCallback(
     async (code) => {
       setLangBusy(true);
+      setLangError(null);
       engine.audio.stop();
       try {
-        const t = await load(code);
-        setTour(t);
-        setLangState(t.selectedLanguage);
-        setLang(t.selectedLanguage);
-        setSp((prev) => {
-          const n = new URLSearchParams(prev);
-          n.set('lang', t.selectedLanguage);
-          return n;
-        });
+        applyTour(await load(code));
       } catch (e) {
         /* giữ nội dung cũ nếu lỗi */
       } finally {
         setLangBusy(false);
       }
     },
-    [load, setLang, setSp, engine.audio],
+    [load, applyTour, engine.audio],
   );
+  // UC12: the tourist asks for a language the tour does not have yet (automatic translation).
+  const translateLang = useCallback(
+    async (code) => {
+      if (!translate) return;
+      setLangBusy(true);
+      setLangError(null);
+      engine.audio.stop();
+      try {
+        applyTour(await translate(code));
+      } catch (e) {
+        setLangError(translationErrorText(e)); // keep the current language and content
+      } finally {
+        setLangBusy(false);
+      }
+    },
+    [translate, applyTour, engine.audio],
+  );
+  const voiceMissing = useVoiceMissing(tour?.selectedLanguage);
 
   const onSelectFromList = useCallback(
     (placeId) => {
@@ -424,6 +454,15 @@ export default function TourPlayerPage({
           </div>
           {tour.description ? <p className="intro__desc">{tour.description}</p> : null}
 
+          <LanguageNotice
+            tour={tour}
+            canTranslate={!!translate}
+            busy={langBusy}
+            error={langError}
+            onSwitch={changeLang}
+            onTranslate={translateLang}
+          />
+
           {resume ? (
             <div className="alert" role="status">
               <Icon name="info" size={18} />
@@ -478,9 +517,12 @@ export default function TourPlayerPage({
         <div className="topbar__actions">
           <LanguageMenu
             languages={tour.availableLanguages}
+            kinds={tour.languageKinds}
+            translatable={tour.translatableLanguages}
             selected={tour.selectedLanguage}
             voiceLabel={voiceLabel(tour.voiceLabel)}
             onChange={changeLang}
+            onTranslate={translate ? translateLang : undefined}
             busy={langBusy}
           />
           <button className="iconbtn" onClick={() => setListOpen(true)} aria-label="Danh sách điểm">
@@ -505,6 +547,26 @@ export default function TourPlayerPage({
 
         {/* Băng cảnh báo GPS (E1/E2) */}
         <div className="banners">
+          {langBusy || langError ? (
+            <LanguageNotice
+              tour={{ ...tour, fallbackReason: null }}
+              canTranslate={false}
+              busy={langBusy}
+              error={langError || (langBusy ? 'Đang chuẩn bị ngôn ngữ mới…' : null)}
+              onSwitch={changeLang}
+              onTranslate={translateLang}
+              className="banner"
+              suggestDevice={false}
+            />
+          ) : null}
+          {voiceMissing ? (
+            <div className="alert banner" role="status">
+              <Icon name="volume" size={18} />
+              <div className="banner__text">
+                Máy chưa có giọng đọc {langLabel(tour.selectedLanguage)}: điểm không có tệp âm thanh chỉ hiện dạng chữ. Bạn có thể cài giọng đọc trong cài đặt ngôn ngữ của máy.
+              </div>
+            </div>
+          ) : null}
           {showGpsDenied ? (
             <div className="alert alert--warn banner" role="alert">
               <Icon name="alert-triangle" size={18} className="alert__icon" />

@@ -657,6 +657,20 @@
 .lang-status__item.is-pending > svg {
   color: var(--warning);
 }
+/* UC12 A6 — công tắc dịch tự động cho khách */
+.lang-auto {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0;
+  cursor: pointer;
+}
+.lang-auto input {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
 
 /* ---- Tải ảnh / audio (FileDrop, ImageListField) ---- */
 .filedrop__zone {

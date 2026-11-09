@@ -92,7 +92,8 @@ import OfflineLibraryPage from './features/offline/OfflineLibraryPage.jsx';
 import ChatPage from './features/chat/ChatPage.jsx';
 import { loadOfflineDetail } from './lib/offline-store.js';
 import { previewTour } from './lib/studio.js';
-import { fetchRestrictedTour } from './lib/restricted-access.js';
+import { fetchRestrictedTour, translateRestrictedTour } from './lib/restricted-access.js';
+import { translateTour } from './lib/tours.js';
 
 // /tours và /explore cũ → màn Khám phá (giữ tham số; /explore mở tab Địa điểm).
 function RedirectToDiscover({ tab }) {
@@ -106,7 +107,16 @@ function RedirectToDiscover({ tab }) {
 // UC04 mở từ chi tiết tour (UC02) — thoát thì quay về chi tiết tour.
 function PlayTourRoute() {
   const { tourId } = useParams();
-  return <TourPlayerPage backTo={`/tour/${tourId}`} backLabel="Chi tiết tour" rateHref={`/tour/${tourId}#ratings`} reportable recordStats />;
+  return (
+    <TourPlayerPage
+      backTo={`/tour/${tourId}`}
+      backLabel="Chi tiết tour"
+      rateHref={`/tour/${tourId}#ratings`}
+      reportable
+      recordStats
+      translate={(lang) => translateTour(tourId, lang)}
+    />
+  );
 }
 
 // UC14 — trình nghe bản truy cập hạn chế (chủ tour hoặc người thử đã mở khoá).
@@ -115,6 +125,7 @@ function PlayRestrictedRoute() {
   return (
     <TourPlayerPage
       loadDetail={(lang, opts) => fetchRestrictedTour(tourId, lang, opts)}
+      translate={(lang) => translateRestrictedTour(tourId, lang)}
       progressKey={`restricted:${tourId}`}
       backTo={`/tour/${tourId}/restricted`}
       backLabel="Chi tiết tour"
