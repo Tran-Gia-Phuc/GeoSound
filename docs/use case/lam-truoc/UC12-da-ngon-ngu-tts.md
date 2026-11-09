@@ -153,4 +153,4 @@ sequenceDiagram
 
 ## Boundary
 
-Bước Ngôn ngữ (`/studio/tours/:id/languages`): bộ chọn ngôn ngữ phụ, bộ chọn giọng (Giọng nữ / Giọng nam, vùng miền), tab bản dịch theo ngôn ngữ (bản gốc ↔ bản dịch, trạng thái Máy dịch / Đã sửa / Cần xem lại / Chưa dịch), nút nghe thử và lưu từng dòng.
+Bước Ngôn ngữ (`/studio/tours/:id/languages`): bộ chọn ngôn ngữ phụ, bộ chọn giọng (Giọng nữ / Giọng nam, vùng miền), danh sách "Khách đã yêu cầu dịch tự động" (nút "Bật ngôn ngữ này"), công tắc "Cho khách yêu cầu dịch tự động", tab bản dịch theo ngôn ngữ (bản gốc ↔ bản dịch, trạng thái Máy dịch / Đã sửa / Cần xem lại / Chưa dịch), nút nghe thử và lưu từng dòng.

@@ -50,11 +50,24 @@
 
 **A6. Báo cáo tour** → nút "Báo cáo tour" trên thanh trên của trình phát (UC06, chỉ tour công khai). `ReportTour`
 
+**A7. Nghe bằng ngôn ngữ tour chưa có (dịch tự động, UC12 A5).**
+
+| # | Actor Action | System Response |
+|---|---|---|
+| A7.1 | | Mở chi tiết hoặc trình phát: nếu ngôn ngữ hỏi (`?lang=`) không được phát, client nói lý do (`fallbackReason`: *"Tour chưa có bản Deutsch…"*, *"GeoSound chưa hỗ trợ ngôn ngữ…"*, *"Tác giả chưa cho phép dịch tự động…"*). Nếu không hỏi gì mà ngôn ngữ của máy (`navigator.languages`) khác ngôn ngữ đang phát, client gợi ý *"Tour có bản English. Nghe bằng English"* hoặc *"Tour chưa có bản Deutsch… Dịch sang Deutsch"*; **Để sau** ẩn gợi ý cho tour đó trên máy. `LanguageNotice`, `deviceLanguage()`, `fallbackText()` |
+| A7.2 | Tourist nhấn **Dịch sang …** (hoặc chọn trong nhóm **Dịch tự động** của menu ngôn ngữ / ô *"Ngôn ngữ khác (dịch tự động)…"* ở chi tiết). | |
+| A7.3 | | Client gọi `POST /api/tours/:id/translations/:lang` (tour hạn chế: `.../restricted/translations/:lang`); Tour dịch các điểm còn thiếu một lần và trả chi tiết theo ngôn ngữ đó. Client đổi ngôn ngữ, ghi `?lang=` và tiến độ. Không gọi AI khi Tourist chưa nhấn. *E5* `translateTour()`, `translateRestrictedTour()`, `translateLang()` |
+| A7.4 | | Điểm có bản dịch tự động hiện chip **"Bản dịch tự động"**; mọi bản dịch có nút **Xem bản gốc / Xem bản dịch**. Menu ghi "Tự động" cạnh ngôn ngữ đó. `PlaceSheet`, `LanguageMenu` |
+
+Trình phát xem thử (UC13), bản offline (UC03) và lịch trình (UC08) không có nhóm "Dịch tự động".
+
 ## Exception Path
 
 - **E1.** Chưa có / bị từ chối quyền vị trí → *"Chưa có quyền vị trí. Hãy cấp quyền vị trí, hoặc chuyển sang nghe thử từ xa."* kèm nút **Nghe thử** (A5). Thiết bị không có GPS → *"Thiết bị không hỗ trợ GPS"*. `useGeolocation()` `permission`, `switchToRemote()`
 - **E2.** GPS yếu (sai số > 50 m) → *"GPS yếu (±x m). Bạn có thể chọn điểm thủ công."*; vị trí không cập nhật quá 12 giây → *"Tín hiệu vị trí chưa cập nhật. Đang chờ GPS…"*. `LOW_ACCURACY_M` (`useGeolocation.js`), `STALE_MS` (`TourPlayerPage.jsx`)
 - **E3.** Tệp audio thiếu hoặc lỗi → client chuyển sang giọng thiết bị đọc text; vẫn lỗi → mở sheet điểm, hiện text kèm thông báo lỗi. `useAudioController.playTrack()` (`onerror`) → `speak()`; `retry()`
+- **E5.** Dịch tự động lỗi → giữ ngôn ngữ và nội dung đang có, báo: `429` *"Bạn yêu cầu dịch quá nhiều lần…"*, `503` *"Dịch tự động đang bận…"*, `403` *"Tác giả chưa cho phép dịch tự động tour này."*, mất mạng. `translationErrorText()`
+- **E6.** Máy không có giọng đọc cho ngôn ngữ đang chọn (danh sách giọng có, nhưng không giọng nào khớp) → băng *"Máy chưa có giọng đọc English: điểm không có tệp âm thanh chỉ hiện dạng chữ…"*. `useVoiceMissing()`
 - **E4.** Không tải được tour: mất mạng → *"Mất kết nối mạng"*, *"Tour chưa tải về sẽ cần có mạng..."* + **Thử lại**; tour không công khai → `404` *"Tour không tồn tại hoặc chưa công khai."*. Tour đã tải thì mở bản offline `/offline/:tourId/play` (UC03 A3). `TourPlayerPage` (màn lỗi), `loadOfflineDetail()`
 
 ## Extension Points
@@ -86,8 +99,9 @@ Tourist bắt đầu đi tour tại hiện trường, hoặc muốn nghe thử t
 | Vùng kích hoạt mặc định | Tròn bán kính 50 m (`DEFAULT_ZONE_RADIUS_METERS`) quanh mỗi điểm, `priority` 0, khi tác giả chưa cấu hình |
 | Giới hạn cấu hình (UC11) | Bán kính > 0 và ≤ 100 km; `priority` số nguyên 0 đến 1000 |
 | Chồng vùng | Ưu tiên cao nhất thắng; ưu tiên cao hơn chen ngang, bằng / thấp hơn thì chờ |
-| Audio chỉ đường | Chỉ phát khi không đang phát nội dung khác |
-| Gợi ý "đi tiếp" | Chỉ ở chế độ GPS và khi điểm được kích hoạt tự động |
+| Audio chỉ đường | Chỉ phát khi không đang phát nội dung khác; văn bản chỉ đường không được dịch nên đọc bằng giọng **ngôn ngữ gốc** |
+| Gợi ý "đi tiếp" | Chỉ ở chế độ GPS và khi điểm được kích hoạt tự động; đọc bằng giọng ngôn ngữ gốc (không dịch) |
+| Ngôn ngữ nghe | Không bao giờ âm thầm quay về bản gốc: chi tiết trả `fallbackReason`, client nói lý do. Dịch tự động chỉ khi Tourist nhấn (quota AI dùng chung) |
 | GPS yếu | Sai số > 50 m; vị trí cũ hơn 12 giây = chưa cập nhật |
 | Beacon thống kê | `play`, `complete` mỗi loại một lần mỗi lượt mở; server lọc trùng theo ngày; không gửi ở bản offline, xem thử, hạn chế |
 
@@ -100,6 +114,7 @@ Tourist bắt đầu đi tour tại hiện trường, hoặc muốn nghe thử t
 - **Màn hình (client):** `/tour/:tourId/play` (`features/player/TourPlayerPage.jsx`, `TourMap.jsx`, `PlayerBar.jsx`, `PlaceSheet.jsx`, `PlaceList.jsx`, `LanguageMenu.jsx`, `CompletionDialog.jsx`), `/offline/:tourId/play`.
 - **API (qua gateway):**
   - `GET /api/tours/:id?lang=`
+  - `POST /api/tours/:id/translations/:lang`, `POST /api/tours/:id/restricted/translations/:lang` (A7)
   - `GET /api/media/files/...` (audio, ảnh)
   - `POST /api/tours/:id/activity` (`play`, `complete`, UC17)
 - **Dữ liệu:** `places` (`audio_url`, `audio_source`, `images`), `place_translations` (text theo ngôn ngữ), `route_configs` (`path`, `triggers`, `nav_audios`); phía client `localStorage` tiến độ.
@@ -109,6 +124,10 @@ Tourist bắt đầu đi tour tại hiện trường, hoặc muốn nghe thử t
 |---|---|---|
 | 2, E4 | `PlayTourRoute`, `PlayOfflineRoute` | `client/src/App.jsx` |
 | 2, 12, E1 | `TourPlayerPage`, `changeLang()`, `switchToRemote()`, `sendStat()` | `client/src/features/player/TourPlayerPage.jsx` |
+| A7, E5 | `translateLang()`, `LanguageNotice`, `LanguageMenu` (nhóm "Dịch tự động"), `PlaceSheet` (Xem bản gốc) | `client/src/features/player/TourPlayerPage.jsx`, `LanguageNotice.jsx`, `LanguageMenu.jsx`, `PlaceSheet.jsx` |
+| A7, E5 | `deviceLanguage()`, `fallbackText()`, `translationErrorText()`; `translateTour()`, `translateRestrictedTour()` | `client/src/lib/languages.js`, `lib/tours.js`, `lib/restricted-access.js` |
+| E6 | `useVoiceMissing()` | `client/src/hooks/useVoiceMissing.js` |
+| A7 | `TranslateTourForVisitor` | `services/tour/src/application/use-cases/translate-for-visitor.js` |
 | 2 | `fetchTourDetail()` | `client/src/lib/api.js` |
 | 3, E1, E2 | `useGeolocation()` `start()`, `stop()`, `LOW_ACCURACY_M` | `client/src/hooks/useGeolocation.js` |
 | 5–11, A1–A3 | `usePlaybackEngine()` `evaluate()`, `playPlace()`, `playNav()`, `afterContentDone()`, `selectPlace()`, `step()` | `client/src/hooks/usePlaybackEngine.js` |
@@ -134,7 +153,7 @@ Tourist bắt đầu đi tour tại hiện trường, hoặc muốn nghe thử t
 
 ## Date
 
-Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-09
 
 ## Activity Diagram
 
