@@ -127,6 +127,8 @@ export async function fixtures(page) {
       path = u.pathname;
     // UC17: statistics beacons are fire and forget (204).
     if (method === 'POST' && path.endsWith('/activity')) return route.fulfill({ status: 204 });
+    // #329: presence beats of every page (signed in or not) are fire and forget too.
+    if (method === 'POST' && path.startsWith('/api/auth/presence')) return route.fulfill({ status: 204 });
     // Chatbot off by default (gateway 404): the floating button stays hidden.
     if (path.startsWith('/api/chat')) return json(route, { error: 'Not found' }, 404);
     if (path === '/api/tours') return json(route, { tours: [tour], total: 1, page: 1, limit: 12 });
