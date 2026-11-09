@@ -39,6 +39,7 @@ export class PrismaTourRepository {
       reviewReason: row.reviewReason ?? null,
       passcodeVersion: row.passcodeVersion ?? 0,
       passcodeSetAt: row.passcodeSetAt ?? null,
+      autoTranslate: row.autoTranslate ?? true,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
@@ -93,6 +94,18 @@ export class PrismaTourRepository {
 
   async delete(id) {
     await this.prisma.tour.delete({ where: { id } });
+  }
+
+  /**
+   * UC12 — turns automatic translation for tourists on / off. Writes only that column and keeps
+   * updated_at (the moderation and catalog revision) as it was.
+   */
+  async setAutoTranslate(tour, enabled) {
+    const row = await this.prisma.tour.update({
+      where: { id: tour.id },
+      data: { autoTranslate: enabled, updatedAt: tour.updatedAt },
+    });
+    return PrismaTourRepository.toEntity(row);
   }
 
   /**
