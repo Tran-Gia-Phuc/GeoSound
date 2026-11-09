@@ -4,6 +4,7 @@
 //     THEO LÔ: mỗi ngôn ngữ một lần gọi (translateMany) nếu adapter hỗ trợ.
 //   - render TTS cho mọi ngôn ngữ (gốc + phụ) theo giọng đã chọn (E1 nếu lỗi)
 //   - GIỮ bản dịch tác giả đã chỉnh tay (textSource='edited') khi lưu lại
+//   - chỉ dịch điểm chưa có bản dịch hoặc bản dịch đã cũ (source_hash, EnsureTranslations)
 //   - bỏ ngôn ngữ phụ → xóa ngôn ngữ đó và bản dịch của nó
 // Ngôn ngữ gốc là nguồn; text gốc = mô tả điểm (UC10) — không dịch, chỉ TTS.
 // #240 (CHATBOT_EVENTS_ENABLED): a public tour stays public -> tour.published is sent again (translations).
@@ -12,15 +13,11 @@ import { Language } from '../../domain/value-objects/language.js';
 import { TtsVoice } from '../../domain/value-objects/tts-voice.js';
 import { TourLanguage } from '../../domain/entities/tour-language.js';
 import { PlaceTranslation, TEXT_SOURCE } from '../../domain/entities/place-translation.js';
-import {
-  TourNotFoundError,
-  NotTourOwnerError,
-  TranslationError,
-  TtsError,
-} from '../../domain/errors/index.js';
+import { TourNotFoundError, NotTourOwnerError } from '../../domain/errors/index.js';
+import { sourceHash } from '../../domain/i18n/source-hash.js';
 import { buildLanguageConfig } from './get-language-config.js';
 import { notifyTourPublished } from './notify-tour-catalog.js';
-
+import { EnsureTranslations, synthesizeTts } from './ensure-translations.js';
 
 export class SetTourLanguages {
   /** @param {{ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo, translator, ttsSynthesizer, catalog?, logger? }} deps */
@@ -42,6 +39,7 @@ export class SetTourLanguages {
     this.placeTranslationRepo = placeTranslationRepo;
     this.translator = translator;
     this.ttsSynthesizer = ttsSynthesizer;
+    this.ensure = new EnsureTranslations({ placeRepo, placeTranslationRepo, translator, ttsSynthesizer });
   }
 
   /** @param {{ authorId, tourId, secondary: string[], voice: { gender, region? } }} input */
@@ -78,37 +76,30 @@ export class SetTourLanguages {
       await this.placeTranslationRepo.deleteByLanguages(tourId, removed);
     }
 
-    // 2) Dịch + render TTS từng điểm × từng ngôn ngữ.
-    const places = await this.placeRepo.listByTour(tourId);
-    const prior = await this.placeTranslationRepo.listByTour(tourId);
-    const priorIndex = new Map(prior.map((t) => [`${t.placeId}:${t.languageCode}`, t]));
-
-    // 2a) Dịch theo lô: mỗi ngôn ngữ phụ một lần, chỉ các điểm cần dịch.
-    const context = [tour.title, tour.city].filter(Boolean).join(' — ');
-    const machine = new Map(); // placeId:code -> text dịch mới
+    // 2) Dịch theo lô: mỗi ngôn ngữ phụ một lần gọi, CHỈ các điểm chưa có bản dịch hoặc bản dịch
+    //    đã cũ (mô tả đổi sau lần dịch trước) — bản còn đúng và bản chỉnh tay được giữ (E1 nếu lỗi).
     for (const code of secCodes) {
-      const need = places.filter((p) => {
-        const prev = priorIndex.get(`${p.id}:${code}`);
-        return prev?.textSource !== TEXT_SOURCE.EDITED;
-      });
-      const texts = await this.#translateMany(need.map((p) => p.description), source, code, context);
-      need.forEach((p, i) => machine.set(`${p.id}:${code}`, texts[i]));
+      await this.ensure.execute({ tour, lang: code, withTts: false });
     }
 
-    // 2b) Lưu bản dịch + render TTS từng điểm × từng ngôn ngữ.
+    // 2b) Render TTS từng điểm × từng ngôn ngữ theo giọng đã chọn (giọng có thể vừa đổi).
+    const places = await this.placeRepo.listByTour(tourId);
+    const rows = await this.placeTranslationRepo.listByTour(tourId);
+    const index = new Map(rows.map((t) => [`${t.placeId}:${t.languageCode}`, t]));
     for (const place of places) {
       for (const code of allCodes) {
-        const prev = priorIndex.get(`${place.id}:${code}`);
-        const { text, textSource } = this.#resolveText(place, code, source, prev, machine);
-        const tts = await this.#synthesize(text, code, ttsVoice);
-
+        const prev = index.get(`${place.id}:${code}`);
+        const isSource = code === source;
+        const text = isSource ? place.description : prev.text;
+        const tts = await synthesizeTts(this.ttsSynthesizer, text, code, ttsVoice.toPublic());
         await this.placeTranslationRepo.upsert(
           new PlaceTranslation({
             id: prev?.id,
             placeId: place.id,
             languageCode: code,
             text,
-            textSource,
+            textSource: isSource ? TEXT_SOURCE.SOURCE : prev.textSource,
+            sourceHash: isSource ? sourceHash(place.description) : prev.sourceHash,
             ttsUrl: tts.url,
             ttsPrerendered: tts.prerendered,
           })
@@ -123,41 +114,5 @@ export class SetTourLanguages {
     ]);
     await notifyTourPublished(this, tour);
     return buildLanguageConfig({ tour, langs, translations, places });
-  }
-
-  // Ngôn ngữ gốc → text gốc (mô tả điểm); đã chỉnh tay → giữ; còn lại → bản vừa
-  // dịch ở bước 2a.
-  #resolveText(place, code, source, prev, machine) {
-    if (code === source) return { text: place.description, textSource: TEXT_SOURCE.SOURCE };
-    if (prev?.textSource === TEXT_SOURCE.EDITED) {
-      return { text: prev.text, textSource: TEXT_SOURCE.EDITED };
-    }
-    return { text: machine.get(`${place.id}:${code}`), textSource: TEXT_SOURCE.MACHINE };
-  }
-
-  // Dịch nhiều đoạn sang MỘT ngôn ngữ. Adapter có translateMany (AI service) thì
-  // gọi một lần; không thì dịch lần lượt. Lỗi → E1.
-  async #translateMany(texts, from, to, context) {
-    if (!texts.length) return [];
-    try {
-      if (typeof this.translator.translateMany === 'function') {
-        const out = await this.translator.translateMany({ texts, from, to, context });
-        if (!Array.isArray(out) || out.length !== texts.length) throw new Error('Số bản dịch không khớp');
-        return out;
-      }
-      const out = [];
-      for (const text of texts) out.push(await this.translator.translate({ text, from, to, context }));
-      return out;
-    } catch {
-      throw new TranslationError(); // E1
-    }
-  }
-
-  async #synthesize(text, code, ttsVoice) {
-    try {
-      return await this.ttsSynthesizer.synthesize({ text, language: code, voice: ttsVoice.toPublic() });
-    } catch {
-      throw new TtsError(); // E1
-    }
   }
 }

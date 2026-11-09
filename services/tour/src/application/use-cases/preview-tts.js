@@ -5,6 +5,7 @@
 import { Language } from '../../domain/value-objects/language.js';
 import { TtsVoice } from '../../domain/value-objects/tts-voice.js';
 import { PlaceTranslation, TEXT_SOURCE } from '../../domain/entities/place-translation.js';
+import { sourceHash } from '../../domain/i18n/source-hash.js';
 import {
   TourNotFoundError,
   NotTourOwnerError,
@@ -52,13 +53,16 @@ export class PreviewTts {
       throw new TtsError(); // E1
     }
 
+    const isSource = code === tour.originalLanguage;
     const saved = await this.placeTranslationRepo.upsert(
       new PlaceTranslation({
         id: existing?.id,
         placeId,
         languageCode: code,
         text,
-        textSource: existing?.textSource ?? (code === tour.originalLanguage ? TEXT_SOURCE.SOURCE : TEXT_SOURCE.MACHINE),
+        textSource: existing?.textSource ?? (isSource ? TEXT_SOURCE.SOURCE : TEXT_SOURCE.MACHINE),
+        // A new non-source row only holds the source text: no hash, so the next refresh translates it.
+        sourceHash: existing ? existing.sourceHash : isSource ? sourceHash(place.description) : null,
         ttsUrl: tts.url,
         ttsPrerendered: tts.prerendered,
       })
