@@ -4,8 +4,8 @@
 |---|---|
 | [`../erd-geosound.xml`](../erd-geosound.xml) | ERD with **every table of the database (75)**, built from a structure snapshot of Supabase ([`../erd/supabase-schema.json`](../erd/supabase-schema.json)). Page 1: the 34 GeoSound tables, one dashed frame per schema (app_auth, tour, notification, moderation, media, ai, ai_chat). Page 2: the 41 tables of the Supabase platform schemas (auth, storage, realtime, vault), not used by GeoSound. Solid crow's-foot lines are foreign keys; dashed grey lines are soft references between services. Details in [`../../database-tables.md`](../../database-tables.md). |
 | [`../dfd-level-0.xml`](../dfd-level-0.xml) | DFD level 0 (context diagram): the system as one process with its six external entities. |
-| [`../dfd-level-1.xml`](../dfd-level-1.xml) | DFD level 1: processes 1.0 to 9.0 with data stores D1 to D12. Entities marked `*` are drawn twice to avoid long crossing lines. |
-| [`../dfd-level-2.xml`](../dfd-level-2.xml) | DFD level 2, three pages (tabs at the bottom in draw.io): 5.0 automatic AI moderation, 4.0 tour content management, 9.0 AI travel assistant. Dashed grey circles are level-1 processes shown for context. |
+| [`../dfd-level-1.xml`](../dfd-level-1.xml) | DFD level 1: processes 1.0 to 9.0 with data stores D1 to D12. Each store lists the real tables it stands for; the script checks that the stores cover the 34 GeoSound tables of the database exactly once (Supabase platform tables are not part of the system). Entities marked `*` are drawn twice to avoid long crossing lines. |
+| [`../dfd-level-2.xml`](../dfd-level-2.xml) | DFD level 2, **nine pages, one per level-1 process** (tabs at the bottom in draw.io): 1.0 accounts, 2.0 find and listen, 3.0 itineraries, 4.0 tour content, 5.0 AI moderation, 6.0 admin, 7.0 ratings and statistics, 8.0 notifications, 9.0 AI assistant. Dashed grey circles are level-1 processes shown for context. |
 
 Notation (Yourdon/DeMarco): rectangle = external entity, circle = process, open rectangle = data store,
 arrow = data flow. Two opposite flows between the same pair are bowed apart, each label near its source.

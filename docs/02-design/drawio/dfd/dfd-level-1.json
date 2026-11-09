@@ -70,121 +70,205 @@
         {
           "id": "D1",
           "kind": "store",
-          "label": "D1 | Tài khoản, phiên, theo dõi tác giả",
+          "label": "D1 | Tài khoản, phiên đăng nhập, theo dõi tác giả",
           "x": 300,
-          "y": 1140
+          "y": 1010,
+          "w": 280,
+          "h": 78,
+          "tables": [
+            "app_auth.users",
+            "app_auth.sessions",
+            "app_auth.author_follows"
+          ]
         },
         {
           "id": "D2",
           "kind": "store",
-          "label": "D2 | OTP & phiên bị thu hồi (Redis)",
-          "x": 300,
-          "y": 960
+          "label": "D2 | OTP & phiên bị thu hồi (Redis, không phải bảng)",
+          "x": 1010,
+          "y": 1010,
+          "w": 280,
+          "h": 50
         },
         {
           "id": "D12",
           "kind": "store",
-          "label": "D12 | Gói offline trên thiết bị",
+          "label": "D12 | Gói offline trên thiết bị (IndexedDB, không phải bảng)",
           "x": 300,
-          "y": 220
+          "y": 240,
+          "w": 280,
+          "h": 50
         },
         {
           "id": "D3",
           "kind": "store",
-          "label": "D3 | Tour, điểm dừng, route, bản dịch, vùng cấm",
-          "x": 1030,
-          "y": 440
+          "label": "D3 | Tour & nội dung tour",
+          "x": 1010,
+          "y": 430,
+          "w": 280,
+          "h": 106,
+          "tables": [
+            "tour.tours",
+            "tour.places",
+            "tour.route_configs",
+            "tour.tour_languages",
+            "tour.place_translations",
+            "tour.forbidden_zones",
+            "tour.tour_access_grants",
+            "tour.tour_unlock_attempts"
+          ]
         },
         {
           "id": "D4",
           "kind": "store",
-          "label": "D4 | Tệp media (ảnh, audio)",
-          "x": 1030,
-          "y": 180
+          "label": "D4 | Tệp media (ảnh, audio – lưu file)",
+          "x": 1010,
+          "y": 250,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "media.audio_assets"
+          ],
+          "unused": [
+            "media.audio_assets"
+          ]
         },
         {
           "id": "D5",
           "kind": "store",
           "label": "D5 | Lịch trình",
-          "x": 1030,
-          "y": 50
+          "x": 300,
+          "y": 50,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "tour.itineraries",
+            "tour.itinerary_items"
+          ]
         },
         {
           "id": "D6",
           "kind": "store",
           "label": "D6 | Đánh giá, báo cáo, thống kê",
-          "x": 1030,
-          "y": 790
+          "x": 300,
+          "y": 720,
+          "w": 280,
+          "h": 78,
+          "tables": [
+            "tour.tour_ratings",
+            "tour.tour_reports",
+            "tour.tour_daily_stats",
+            "tour.tour_activity_marks"
+          ]
         },
         {
           "id": "D7",
           "kind": "store",
           "label": "D7 | Nhật ký quản trị",
-          "x": 1030,
-          "y": 1130
+          "x": 1010,
+          "y": 1130,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "tour.admin_actions",
+            "tour.tour_review_actions"
+          ]
         },
         {
           "id": "D8",
           "kind": "store",
           "label": "D8 | Hồ sơ kiểm duyệt",
           "x": 1720,
-          "y": 390
+          "y": 550,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "moderation.moderation_cases"
+          ]
         },
         {
           "id": "D9",
           "kind": "store",
-          "label": "D9 | Thông báo trong app",
+          "label": "D9 | Thông báo",
           "x": 1720,
-          "y": 730
+          "y": 680,
+          "w": 280,
+          "h": 78,
+          "tables": [
+            "notification.in_app_notifications",
+            "notification.notifications"
+          ],
+          "unused": [
+            "notification.notifications"
+          ]
         },
         {
           "id": "D10",
           "kind": "store",
-          "label": "D10 | Chỉ mục tri thức (vector + đồ thị)",
-          "x": 1030,
-          "y": 1310
+          "label": "D10 | Chỉ mục tri thức chatbot",
+          "x": 1010,
+          "y": 1320,
+          "w": 280,
+          "h": 78,
+          "tables": [
+            "ai.index_meta",
+            "ai.tour_index",
+            "ai.nodes",
+            "ai.edges",
+            "ai.chunks"
+          ]
         },
         {
           "id": "D11",
           "kind": "store",
           "label": "D11 | Hội thoại chatbot",
-          "x": 1030,
-          "y": 1440
+          "x": 1720,
+          "y": 1390,
+          "w": 280,
+          "h": 106,
+          "tables": [
+            "ai_chat.chat_sessions",
+            "ai_chat.chat_messages",
+            "ai_chat.checkpoints",
+            "ai_chat.checkpoint_blobs",
+            "ai_chat.checkpoint_writes",
+            "ai_chat.checkpoint_migrations"
+          ]
         },
         {
           "id": "USER",
           "kind": "entity",
           "label": "Người dùng (Khách / Contributor / Admin)",
           "x": -60,
-          "y": 1090
+          "y": 1100
         },
         {
           "id": "TOURIST",
           "kind": "entity",
           "label": "Khách du lịch",
           "x": -60,
-          "y": 230
+          "y": 280
         },
         {
           "id": "CONTRIB",
           "kind": "entity",
           "label": "Người đăng nội dung (Contributor)",
           "x": 2120,
-          "y": 250
+          "y": -40
         },
         {
           "id": "ADMIN",
           "kind": "entity",
           "label": "Quản trị viên (Admin)",
           "x": 2120,
-          "y": 1160
+          "y": 1280
         },
         {
           "id": "LLM",
           "kind": "entity",
           "label": "Nhà cung cấp LLM (Gemini / Groq)",
           "x": 2120,
-          "y": 500
+          "y": 520
         },
         {
           "id": "MAP",
@@ -198,7 +282,7 @@
           "kind": "entity",
           "label": "Máy chủ email (SMTP)",
           "x": 2120,
-          "y": 900
+          "y": 780
         },
         {
           "id": "SMTP2",
@@ -219,7 +303,14 @@
           "kind": "entity",
           "label": "Contributor *",
           "x": -60,
-          "y": 730
+          "y": 610
+        },
+        {
+          "id": "USER2",
+          "kind": "entity",
+          "label": "Người dùng (nhận thông báo) *",
+          "x": 2120,
+          "y": 890
         }
       ],
       "flows": [
@@ -530,11 +621,6 @@
         },
         {
           "from": "P8",
-          "to": "CONTRIB",
-          "label": "Thông báo trong app"
-        },
-        {
-          "from": "P8",
           "to": "SMTP",
           "label": "Email thông báo, cảnh báo"
         },
@@ -577,8 +663,36 @@
           "from": "LLM",
           "to": "P9",
           "label": "Câu trả lời"
+        },
+        {
+          "from": "P8",
+          "to": "USER2",
+          "label": "Thông báo trong app, số chưa đọc"
+        },
+        {
+          "from": "USER2",
+          "to": "P8",
+          "label": "Mở, đánh dấu đã đọc"
+        },
+        {
+          "from": "CONTRIB2",
+          "to": "P7",
+          "label": "Chọn tour, khoảng thời gian"
         }
-      ]
+      ],
+      "checkTables": true
     }
-  ]
+  ],
+  "tableCheck": {
+    "snapshot": "docs/02-design/drawio/erd/supabase-schema.json",
+    "schemas": [
+      "app_auth",
+      "tour",
+      "notification",
+      "moderation",
+      "media",
+      "ai",
+      "ai_chat"
+    ]
+  }
 }
