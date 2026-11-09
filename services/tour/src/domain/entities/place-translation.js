@@ -4,6 +4,7 @@
 //               machine = tự động dịch
 //               edited  = tác giả đã chỉnh tay (A2) — giữ khi lưu lại
 // ttsUrl/ttsPrerendered: bản TTS (pre-render & cache offline khi tải — UC03).
+// sourceHash: hash of the description the text was made from (domain/i18n/source-hash.js).
 // Thuần domain.
 // =========================================================
 
@@ -12,7 +13,7 @@ export const TEXT_SOURCE = Object.freeze({ SOURCE: 'source', MACHINE: 'machine',
 export class PlaceTranslation {
   /**
    * @param {{ id?: string, placeId: string, languageCode: string, text: string,
-   *           textSource?: string, ttsUrl?: string|null, ttsPrerendered?: boolean,
+   *           textSource?: string, sourceHash?: string|null, ttsUrl?: string|null, ttsPrerendered?: boolean,
    *           createdAt?: Date, updatedAt?: Date }} props
    */
   constructor(props) {
@@ -21,16 +22,21 @@ export class PlaceTranslation {
     this.languageCode = props.languageCode;
     this.text = props.text;
     this.textSource = props.textSource ?? TEXT_SOURCE.MACHINE;
+    this.sourceHash = props.sourceHash ?? null;
     this.ttsUrl = props.ttsUrl ?? null;
     this.ttsPrerendered = props.ttsPrerendered ?? false;
     this.createdAt = props.createdAt ?? null;
     this.updatedAt = props.updatedAt ?? null;
   }
 
-  /** A2 — tác giả chỉnh bản dịch; TTS cũ không còn đúng → phải render lại. */
-  applyEdit(text) {
+  /**
+   * A2 — tác giả chỉnh bản dịch; TTS cũ không còn đúng → phải render lại.
+   * @param {string} text @param {string|null} [hash] hash of the description the author read
+   */
+  applyEdit(text, hash = null) {
     this.text = text;
     this.textSource = TEXT_SOURCE.EDITED;
+    this.sourceHash = hash;
     this.ttsUrl = null;
     this.ttsPrerendered = false;
   }
