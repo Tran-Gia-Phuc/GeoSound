@@ -5,8 +5,9 @@
 // =========================================================
 import { ValidationError } from '../errors/index.js';
 
-// Tập ngôn ngữ hỗ trợ (mở rộng cùng UC12 — đa ngôn ngữ & TTS).
-export const SUPPORTED_LANGUAGES = Object.freeze(['vi', 'en', 'fr', 'ja', 'ko', 'zh']);
+// Tập ngôn ngữ hỗ trợ (UC12) — same list as the AI service (translation LANGUAGE_NAMES) and the
+// client (lib/speech.js LANG_TAGS, lib/format.js LANG_LABELS).
+export const SUPPORTED_LANGUAGES = Object.freeze(['vi', 'en', 'fr', 'ja', 'ko', 'zh', 'es', 'de', 'th', 'ru']);
 
 export class Language {
   /** @param {string} value */
