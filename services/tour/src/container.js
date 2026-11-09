@@ -105,6 +105,7 @@ import { PreviewTour } from './application/use-cases/preview-tour.js';
 
 import { GetLanguageConfig } from './application/use-cases/get-language-config.js';
 import { SetTourLanguages } from './application/use-cases/set-tour-languages.js';
+import { EnsureTranslations } from './application/use-cases/ensure-translations.js';
 import { PreviewTts } from './application/use-cases/preview-tts.js';
 import { UpdateTranslation } from './application/use-cases/update-translation.js';
 
@@ -183,6 +184,8 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   const placeTranslationRepo = new PrismaPlaceTranslationRepository(prisma);
   const translator = selectTranslator(env);
   const ttsSynthesizer = new PlaceholderTtsSynthesizer();
+  // A new place / changed description is translated into the tour's languages at once (UC10 + UC12).
+  const translations = new EnsureTranslations({ placeRepo, placeTranslationRepo, translator, ttsSynthesizer });
   // Lịch trình cá nhân (UC07).
   const itineraryRepo = new PrismaItineraryRepository(prisma);
   const generateShareToken = () => crypto.randomBytes(12).toString('base64url');
@@ -224,9 +227,9 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   };
   const placeUseCases = {
     // UC10 — quản lý điểm dừng
-    addPlace: new AddPlace({ tourRepo, placeRepo, zoneChecker, moderation, catalog, ...i18nRepos }),
+    addPlace: new AddPlace({ tourRepo, placeRepo, zoneChecker, moderation, catalog, translations, ...i18nRepos }),
     listPlaces: new ListPlaces({ tourRepo, placeRepo }),
-    updatePlace: new UpdatePlace({ tourRepo, placeRepo, zoneChecker, moderation, catalog, ...i18nRepos }),
+    updatePlace: new UpdatePlace({ tourRepo, placeRepo, zoneChecker, moderation, catalog, translations, ...i18nRepos }),
     deletePlace: new DeletePlace({ tourRepo, placeRepo, moderation, catalog, ...i18nRepos }),
     reorderPlaces: new ReorderPlaces({ tourRepo, placeRepo, moderation, catalog, ...i18nRepos }),
   };
