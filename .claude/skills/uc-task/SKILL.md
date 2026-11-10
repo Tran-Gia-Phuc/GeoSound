@@ -86,7 +86,7 @@ docker run -d --rm --name uccheck-db --network uccheck -e POSTGRES_PASSWORD=pw p
 MSYS_NO_PATHCONV=1 docker run --rm --network uccheck \
   -e DATABASE_URL='postgresql://postgres:pw@uccheck-db:5432/postgres?schema=<schema>' \
   -v "<root>/services/<svc>/src:/app/src:ro" -v "<root>/services/<svc>/prisma:/app/prisma:ro" -v "<scratch>/check.mjs:/app/check.mjs:ro" \
-  -w /app --entrypoint sh cnpm-main-<svc> -c "npx prisma db push --skip-generate && npx prisma generate >/dev/null && node check.mjs"
+  -w /app --user root --entrypoint sh cnpm-main-<svc> -c "npx prisma db push --skip-generate && npx prisma generate >/dev/null && node check.mjs"
 docker rm -f uccheck-db; docker network rm uccheck
 ```
 
