@@ -6,7 +6,10 @@
 
 services:
   client: # React PWA (Vite dev server) — Tourist / Contributor / Admin
-    build: ./client
+    # Dev image (Vite dev server). The production image is client/Dockerfile (nginx).
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
     ports:
       - "${CLIENT_PORT:-5173}:5173"
     environment:
