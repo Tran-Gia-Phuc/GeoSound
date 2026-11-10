@@ -1,0 +1,13 @@
+# React PWA (Vite) dev image: dev server with HMR, source mounted by docker-compose.yml.
+# Production image: client/Dockerfile (static build served by nginx).
+FROM node:20-alpine
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 5173
+# Vite dev server (host:true trong vite.config.js -> 0.0.0.0).
+CMD ["npm", "run", "dev"]

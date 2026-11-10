@@ -4,3 +4,9 @@ dev-dist
 .vite
 Dockerfile
 .dockerignore
+Dockerfile.dev
+test
+test-results
+playwright-report
+.playwright-cli
+*.png
