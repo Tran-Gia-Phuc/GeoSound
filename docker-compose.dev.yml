@@ -11,18 +11,24 @@ services:
       - /app/node_modules
 
   gateway:
+    build:
+      target: dev # the default target `prod` has no nodemon
     command: npm run dev
     volumes:
       - ./gateway/src:/app/src
       - ./shared:/app/shared
 
   auth:
+    build:
+      target: dev # the default target `prod` has no nodemon
     command: npm run dev
     volumes:
       - ./services/auth/src:/app/src
       - ./shared:/app/shared
 
   tour:
+    build:
+      target: dev # the default target `prod` has no nodemon
     command: npm run dev
     volumes:
       - ./services/tour/src:/app/src
@@ -30,6 +36,8 @@ services:
       - /app/shared/node_modules # giữ deps của shared (jsonwebtoken…) đã cài trong image
 
   moderation:
+    build:
+      target: dev # the default target `prod` has no nodemon
     command: npm run dev
     volumes:
       - ./services/moderation/src:/app/src
@@ -37,16 +45,22 @@ services:
       - /app/shared/node_modules # giữ deps của shared (jsonwebtoken…) đã cài trong image
 
   media:
+    build:
+      target: dev # the default target `prod` has no nodemon
     command: npm run dev
     volumes:
       - ./services/media/src:/app/src
       - ./shared:/app/shared
+      - /app/shared/node_modules # keep the shared deps installed in the image
 
   notification:
+    build:
+      target: dev # the default target `prod` has no nodemon
     command: npm run dev
     volumes:
       - ./services/notification/src:/app/src
       - ./shared:/app/shared
+      - /app/shared/node_modules # keep the shared deps installed in the image
 
   ai:
     command: uvicorn app.main:app --host 0.0.0.0 --port 3004 --reload
