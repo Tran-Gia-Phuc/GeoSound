@@ -28,7 +28,21 @@ app.use((req, _res, next) => {
   next();
 });
 
-app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'gateway' }));
+// Deployment plan task 0.4 (#345). The gateway image has no shared/, so the routes are inline
+// (same shape as shared/health). /healthz = liveness; /health is its alias. /readyz never
+// answers 503: Redis is fail-open here (rate limit, chat limit), so it is only reported.
+const liveness = (_req, res) => res.json({ status: 'ok', service: 'gateway' });
+app.get('/healthz', liveness);
+app.get('/health', liveness);
+app.get('/readyz', async (_req, res) => {
+  const redis = getRedis();
+  let up = false;
+  if (redis?.status === 'ready') {
+    const timeout = new Promise((resolve) => setTimeout(resolve, 2000, 'timeout').unref());
+    up = (await Promise.race([redis.ping().catch(() => 'error'), timeout])) === 'PONG';
+  }
+  res.json({ status: 'ready', service: 'gateway', checks: { redis: up ? 'ok' : 'down' } });
+});
 
 app.use(rateLimit);
 

@@ -13,8 +13,9 @@ import {
   setSessionRevocationCheck,
   createRedisRevocationCheck,
 } from '../shared/middleware/index.js';
-import { connect, consume, publish } from '../shared/rabbitmq/index.js';
+import { connect, consume, publish, isReady as rabbitReady } from '../shared/rabbitmq/index.js';
 import { EVENTS } from '../shared/events/index.js';
+import { registerHealthRoutes, redisCheck } from '../shared/health/index.js';
 import { buildContainer } from './container.js';
 
 // UC23 — reject access tokens of signed-out sessions (key revoked:sid:<sid>, written by Auth).
@@ -37,7 +38,16 @@ const { mediaRouter, localDir, storageName } = buildContainer(process.env);
 
 const app = express();
 app.use(logger);
-app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'media', storage: storageName }));
+// /healthz, /health (liveness) and /readyz (#345): the worker needs RabbitMQ; Redis (revocation
+// check, fail open) is only reported.
+registerHealthRoutes(app, {
+  service: 'media',
+  extra: { storage: storageName },
+  checks: {
+    rabbitmq: { check: rabbitReady },
+    redis: { check: redisCheck(revocationRedis), required: false },
+  },
+});
 app.use('/', mediaRouter);
 if (localDir) {
   // File tải lên khi dev (LocalDiskStorage) — tên file là UUID, không đổi nội dung.

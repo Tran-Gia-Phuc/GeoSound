@@ -14,7 +14,9 @@ import {
   setSessionRevocationCheck,
   createRedisRevocationCheck,
 } from '../shared/middleware/index.js';
+import { registerHealthRoutes, prismaCheck, redisCheck } from '../shared/health/index.js';
 import { buildContainer } from './container.js';
+import { prisma } from './infrastructure/persistence/prisma-client.js';
 import { isModerationEnabled, isChatbotEventsEnabled } from './config.js';
 import {
   MODERATION_RESULT_QUEUE,
@@ -73,7 +75,17 @@ const {
 app.use(express.json());
 app.use(logger);
 
-app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'tour' }));
+// /healthz, /health (liveness) and /readyz (#345): the database is required; RabbitMQ too when a
+// broker flag is on (moderation results, chatbot events); Redis (revocation check, fail open) is
+// only reported.
+registerHealthRoutes(app, {
+  service: 'tour',
+  checks: {
+    db: { check: prismaCheck(prisma) },
+    ...(brokerEnabled ? { rabbitmq: { check: rabbit.isReady } } : {}),
+    redis: { check: redisCheck(revocationRedis), required: false },
+  },
+});
 
 // UC02: tìm kiếm (GET /) + chi tiết (GET /:id) công khai — MOUNT TRƯỚC router
 // contributor để GET công khai không bị chặn bởi verifyJwt; :id ràng buộc UUID
@@ -146,7 +158,9 @@ app.listen(PORT, () => console.log(`[tour] listening on :${PORT}`));
 if (brokerEnabled) {
   (async () => {
     try {
-      await rabbit.connect();
+      // Waits for the broker (no retry limit); after a loss the helper reconnects and re-registers
+      // the consumers (#345).
+      await rabbit.connect(undefined, { retries: Infinity, delayMs: 10000 });
       if (moderationResultHandler) {
         await rabbit.consume(MODERATION_RESULT_QUEUE, MODERATION_RESULT_BINDINGS, moderationResultHandler);
       }

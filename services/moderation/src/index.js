@@ -1,23 +1,36 @@
 // =========================================================
-// Moderation service entry point: starts HTTP (/health), the RabbitMQ consumers (tasks #AI-36, #AI-37) and the
-// retry sweeper (task #AI-38).
+// Moderation service entry point: starts HTTP (/healthz, /health, /readyz), the RabbitMQ consumers
+// (tasks #AI-36, #AI-37) and the retry sweeper (task #AI-38).
 // Wiring lives in container.js; this file only starts things. It is the only module that imports shared/
 // (it runs in the Docker image, where shared/ sits next to src/); everything else gets it injected.
 // =========================================================
 import express from 'express';
 import { logger, errorHandler } from '../shared/middleware/index.js';
-import { connect, consume, publish } from '../shared/rabbitmq/index.js';
+import { connect, consume, publish, isReady as rabbitReady } from '../shared/rabbitmq/index.js';
 import { EVENTS, validateEvent } from '../shared/events/index.js';
+import { registerHealthRoutes, prismaCheck } from '../shared/health/index.js';
 import { loadConfig } from './config.js';
 import { buildContainer } from './container.js';
 import { startRetrySweeper } from './interfaces/jobs/retry-sweeper.js';
+
+// Dynamic import: the Prisma client is only loaded by the running service, never by tests
+// (they import the modules below this file, not this file).
+const { prisma } = await import('./infrastructure/persistence/prisma-client.js');
 
 const config = loadConfig();
 const app = express();
 
 app.use(express.json());
 app.use(logger);
-app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'moderation' }));
+// /healthz, /health (liveness) and /readyz (#345): cases live in the database and arrive through
+// RabbitMQ, so both are required.
+registerHealthRoutes(app, {
+  service: 'moderation',
+  checks: {
+    db: { check: prismaCheck(prisma) },
+    rabbitmq: { check: rabbitReady },
+  },
+});
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
 
@@ -25,9 +38,9 @@ app.listen(config.port, () => console.log(`[moderation] listening on :${config.p
 
 (async () => {
   try {
-    await connect();
-    // Lazy import: the Prisma client is only loaded by the running service, never by tests.
-    const { prisma } = await import('./infrastructure/persistence/prisma-client.js');
+    // Waits for the broker (no retry limit); after a loss the helper reconnects and
+    // re-registers both consumers (#345).
+    await connect(undefined, { retries: Infinity, delayMs: 10000 });
     const container = buildContainer({ prisma, publish, validateEvent, config });
 
     // place.submitted -> place review (prefetch limits concurrent AI calls, D13).

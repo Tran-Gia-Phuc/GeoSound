@@ -6,6 +6,7 @@
   "main": "index.js",
   "exports": {
     "./events": "./events/index.js",
+    "./health": "./health/index.js",
     "./middleware": "./middleware/index.js",
     "./rabbitmq": "./rabbitmq/index.js"
   },
