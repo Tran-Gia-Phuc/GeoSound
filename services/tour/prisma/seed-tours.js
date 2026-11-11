@@ -1,17 +1,21 @@
 // =========================================================
-// #341 — dev seed: more public demo tours (places, route, source language). NOT for production.
+// #341, #349 — dev seed: more public demo tours (places, route, source language). NOT for production.
 // Fixed ids + upsert, so running it again updates the same rows instead of adding copies.
 // Author = SEED_AUTHOR_ID, else the author of the oldest public tour (an existing contributor).
 // Run: node prisma/seed-tours.js  (or: npm run seed:tours), then refresh the chatbot index:
 // docs/04-guides/seed-data.md. Rows are written directly, so no tour.published is sent here.
 // =========================================================
 import { PrismaClient } from '@prisma/client';
+import { PLACE_TYPES } from '../src/domain/entities/place.js';
+import { TOUR_TYPES } from '../src/domain/entities/tour.js';
+import { catalogTours } from './seed-catalog.js';
 
 const prisma = new PrismaClient();
 
 const picsum = (seed, size) => `https://picsum.photos/seed/${encodeURIComponent(seed)}/${size}`;
 
-// Place = [name, type, lat, lng, description]. Ids: tour 5eed00TT-..., place 5eed00TT-...-0000000000PP.
+// Place = [name, type, lat, lng, description]. Ids: tour 5eedTTTT-..., place 5eedTTTT-...-0000000000PP
+// (TTTT = n on 4 digits, so the first 7 keep their old 5eed00NN ids). n >= 101: seed-catalog.js (#349).
 const TOURS = [
   {
     n: 1, title: 'Văn Miếu và Hoàng thành Thăng Long', city: 'Hà Nội', type: 'walking', duration: 120,
@@ -84,8 +88,21 @@ const TOURS = [
 ];
 
 const pad = (num, len) => String(num).padStart(len, '0');
-const tourId = (t) => `5eed00${pad(t.n, 2)}-0000-4000-8000-000000000000`;
-const placeId = (t, i) => `5eed00${pad(t.n, 2)}-0000-4000-8000-0000000000${pad(i + 1, 2)}`;
+const tourId = (t) => `5eed${pad(t.n, 4)}-0000-4000-8000-000000000000`;
+const placeId = (t, i) => `5eed${pad(t.n, 4)}-0000-4000-8000-0000000000${pad(i + 1, 2)}`;
+const ALL_TOURS = [...TOURS, ...catalogTours(101)];
+
+// Self-check before any write: unique ids and titles per city, valid types, 3 to 99 places.
+function checkTours(tours) {
+  const ids = new Set(tours.map(tourId));
+  const titles = new Set(tours.map((t) => `${t.city}|${t.title}`));
+  if (ids.size !== tours.length || titles.size !== tours.length) throw new Error('duplicate seed tour id or title');
+  for (const t of tours) {
+    const bad = !TOUR_TYPES.includes(t.type) || t.places.length < 3 || t.places.length > 99
+      || t.places.some(([, type, lat, lng]) => !PLACE_TYPES.includes(type) || Math.abs(lat) > 90 || Math.abs(lng) > 180);
+    if (bad) throw new Error(`invalid seed tour ${t.n} ${t.title}`);
+  }
+}
 
 async function seedAuthorId() {
   if (process.env.SEED_AUTHOR_ID) return process.env.SEED_AUTHOR_ID;
@@ -126,9 +143,11 @@ async function seedTour(t, authorId) {
 }
 
 async function main() {
+  checkTours(ALL_TOURS);
   const authorId = await seedAuthorId();
-  for (const t of TOURS) await seedTour(t, authorId);
-  console.log(`[seed] ${TOURS.length} tours; now refresh the chatbot index (docs/04-guides/seed-data.md)`);
+  for (const t of ALL_TOURS) await seedTour(t, authorId);
+  const places = ALL_TOURS.reduce((sum, t) => sum + t.places.length, 0);
+  console.log(`[seed] ${ALL_TOURS.length} tours, ${places} places; now refresh the chatbot index (docs/04-guides/seed-data.md)`);
 }
 
 main()
