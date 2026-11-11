@@ -25,7 +25,7 @@ Tests never call a real LLM or the network (`FakeLLM`, fake image fetcher, fake 
 
 ```bash
 MSYS_NO_PATHCONV=1 docker run --rm -v "E:/CNPM/git/CNPM-main/services/ai:/src:ro" -w /src -e PYTHONDONTWRITEBYTECODE=1 \
-  --entrypoint sh cnpm-main-ai:latest -c "pip install -q pytest; python -m pytest tests -q -p no:cacheprovider"
+  --user root --entrypoint sh cnpm-main-ai:latest -c "pip install -q pytest; python -m pytest tests -q -p no:cacheprovider"
 ```
 
 ## Environment variables
