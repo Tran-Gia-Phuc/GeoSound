@@ -70,10 +70,10 @@ async function main() {
   const publicTours = await prisma.tour.findMany({ where: { status: 'public' }, select: { id: true, title: true } });
   for (const t of publicTours) {
     const rows = ratingsFor(t.id);
-    for (const row of rows) {
-      const { tourId, userId, ...data } = row;
-      await prisma.tourRating.upsert({ where: { tourId_userId: { tourId, userId } }, create: row, update: data });
-    }
+    // One tour at a time, its rows in parallel: distinct (tour_id, user_id) keys, so no conflict.
+    await Promise.all(rows.map(({ tourId, userId, ...data }) => prisma.tourRating.upsert({
+      where: { tourId_userId: { tourId, userId } }, create: { tourId, userId, ...data }, update: data,
+    })));
     console.log(`[seed] ${rows.length} ratings: ${t.title}`);
   }
 
