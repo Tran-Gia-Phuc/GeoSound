@@ -281,10 +281,26 @@ def test_connection_failure_does_not_start_and_hides_the_url(monkeypatch, caplog
         raise ConnectionError(url)  # the URL must not leak through the log
 
     monkeypatch.setattr(PgVectorIndexStore, "aclose", lambda self: asyncio.sleep(0))
-    with caplog.at_level(logging.ERROR):
+    with caplog.at_level(logging.WARNING):
         assert run(start_indexer(settings(rabbitmq_url="amqp://u:amqp-secret@mq:5672"),
-                                 connect=connect)) is None
+                                 connect=connect, connect_attempts=2, connect_delay=0)) is None
     assert "amqp-secret" not in caplog.text
+    assert "retry 1/1" in caplog.text and "not started" in caplog.text
+
+
+def test_connection_is_retried_while_rabbitmq_boots(monkeypatch):
+    conn, calls = FakeConnection(), []
+
+    async def connect(url):
+        calls.append(url)
+        if len(calls) < 3:
+            raise ConnectionError("refused")
+        return conn
+
+    monkeypatch.setattr(PgVectorIndexStore, "aclose", lambda self: asyncio.sleep(0))
+    handle_ = run(start_indexer(settings(), connect=connect, connect_attempts=3, connect_delay=0))
+    assert handle_ is not None and len(calls) == 3
+    run(handle_.aclose())
 
 
 # --- chat retriever wiring ---
