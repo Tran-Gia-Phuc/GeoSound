@@ -1,4 +1,5 @@
-// Tests for shared/rabbitmq reconnect and isReady() with a fake amqplib (issue #345).
+// Tests for shared/rabbitmq reconnect and isReady() (issue #345) and stopConsuming() (issue #348)
+// with a fake amqplib.
 // No broker: the fake records every call and lets the test drop the connection.
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -14,13 +15,23 @@ class FakeChannel extends EventEmitter {
     this.published = [];
     this.acked = [];
     this.nacked = [];
+    this.cancelled = [];
     this.closed = false;
   }
   async assertExchange(name, type) { this.calls.push(['assertExchange', name, type]); }
   async prefetch(n) { this.calls.push(['prefetch', n]); }
   async assertQueue(name) { this.calls.push(['assertQueue', name]); return { queue: name }; }
   async bindQueue(q, ex, key) { this.calls.push(['bindQueue', q, key]); }
-  async consume(q, fn) { this.calls.push(['consume', q]); this.consumers.push({ q, fn }); }
+  async consume(q, fn) {
+    this.calls.push(['consume', q]);
+    const consumerTag = `ctag-${this.consumers.length + this.cancelled.length + 1}`;
+    this.consumers.push({ q, fn, consumerTag });
+    return { consumerTag };
+  }
+  async cancel(tag) {
+    this.cancelled.push(tag);
+    this.consumers = this.consumers.filter((c) => c.consumerTag !== tag);
+  }
   publish(ex, key, body) { this.published.push({ key, body: JSON.parse(body.toString()) }); return true; }
   ack(msg) {
     if (this.closed) throw new Error('Channel closed');
@@ -264,4 +275,77 @@ test('close() on a healthy connection does not reconnect', async () => {
   await new Promise((r) => setTimeout(r, 30));
   assert.equal(amqp.connections.length, 1);
   assert.equal(rabbit.isReady(), false);
+});
+
+// stopConsuming() is one-way (no connect or consume afterwards): each test gets its own module.
+let instance = 0;
+const freshRabbit = () => import(`../rabbitmq/index.js?drain=${(instance += 1)}`);
+const unpublished = { tourId: 't1', reason: 'hidden', at: '2026-11-12T00:00:00.000Z' };
+
+test('stopConsuming(): cancels every consumer and waits for the handlers in flight', async () => {
+  const r = await freshRabbit();
+  const amqp = fakeAmqp();
+  await r.connect('amqp://x', opts(amqp));
+  let release;
+  await r.consume('a', ['x'], () => new Promise((res) => { release = res; }));
+  await r.consume('b', ['y'], () => {});
+  const ch = amqp.channel;
+  const delivered = ch.deliver('a', 'x', {});
+
+  let stopped = false;
+  const stop = r.stopConsuming({ timeoutMs: 1000 }).then((v) => { stopped = true; return v; });
+  await new Promise((res) => setTimeout(res, 20));
+  assert.equal(stopped, false, 'waits for the handler');
+  assert.deepEqual(ch.cancelled, ['ctag-1', 'ctag-2']);
+  assert.equal(r.isReady(), false, 'readiness goes down at once');
+
+  // The handler in flight can still publish its result on the open channel.
+  await r.publish('tour.unpublished', unpublished);
+  assert.equal(ch.published.length, 1);
+  release();
+  assert.deepEqual(await stop, { pending: 0 });
+  await delivered;
+  assert.equal(ch.acked.length, 1);
+  await r.close();
+});
+
+test('stopConsuming(): returns at once when nothing is in flight', async () => {
+  const r = await freshRabbit();
+  const amqp = fakeAmqp();
+  await r.connect('amqp://x', opts(amqp));
+  await r.consume('a', ['x'], () => {});
+  await amqp.channel.deliver('a', 'x', {});
+  const t0 = Date.now();
+  assert.deepEqual(await r.stopConsuming({ timeoutMs: 1000 }), { pending: 0 });
+  assert.ok(Date.now() - t0 < 100);
+  await r.close();
+});
+
+test('stopConsuming(): gives up after timeoutMs; the unacked message is left to the broker', async () => {
+  const r = await freshRabbit();
+  const amqp = fakeAmqp();
+  await r.connect('amqp://x', opts(amqp));
+  await r.consume('a', ['x'], () => new Promise(() => {})); // never ends
+  const ch = amqp.channel;
+  ch.deliver('a', 'x', {});
+  assert.deepEqual(await r.stopConsuming({ timeoutMs: 20 }), { pending: 1 });
+  await r.close();
+  assert.equal(ch.closed, true);
+  assert.equal(ch.acked.length + ch.nacked.length, 0);
+});
+
+test('after stopConsuming(): no reconnect, connect() and consume() refuse', async () => {
+  const r = await freshRabbit();
+  const amqp = fakeAmqp();
+  await r.connect('amqp://x', opts(amqp));
+  await r.consume('a', ['x'], () => {});
+  await r.stopConsuming({ timeoutMs: 20 });
+  amqp.conn.drop();
+  await new Promise((res) => setTimeout(res, 40));
+  assert.equal(amqp.connections.length, 1);
+  assert.equal(r.isReady(), false);
+  await assert.rejects(r.consume('b', ['y'], () => {}), /shutting down/);
+  await assert.rejects(r.connect('amqp://x', opts(amqp)), /shutting down/);
+  assert.equal(amqp.connections.length, 1);
+  await r.close();
 });
