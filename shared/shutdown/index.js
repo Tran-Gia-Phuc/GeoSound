@@ -7,6 +7,9 @@
 // exits at once.
 //
 // While it runs, isShuttingDown() is true: /readyz answers 503 so no new traffic is routed here.
+// `delayMs` (env SHUTDOWN_DELAY_MS, default 0) waits before the first step, so a load balancer that
+// polls /readyz stops sending traffic before the HTTP server closes (set it in Kubernetes; compose
+// has no load balancer and keeps 0).
 
 export const DEFAULT_SHUTDOWN_TIMEOUT_MS = 28000; // under the 30 s default grace period of k8s
 
@@ -28,13 +31,14 @@ async function within(promise, timeoutMs) {
 }
 
 /**
- * @param {{ service: string, timeoutMs?: number, signals?: string[],
+ * @param {{ service: string, timeoutMs?: number, delayMs?: number, signals?: string[],
  *           log?: Pick<Console, 'log' | 'warn' | 'error'>, exit?: (code: number) => void,
  *           proc?: { on: Function } }} options
  */
 export function createShutdown({
   service,
   timeoutMs = DEFAULT_SHUTDOWN_TIMEOUT_MS,
+  delayMs = Number(process.env.SHUTDOWN_DELAY_MS) || 0,
   signals = ['SIGTERM', 'SIGINT'],
   log = console,
   exit = (code) => process.exit(code),
@@ -71,6 +75,7 @@ export function createShutdown({
         const t0 = Date.now();
         log.log(`[${service}] ${reason}: shutting down`);
         const all = (async () => {
+          if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
           for (const step of steps) await runStep(step);
         })();
         const inTime = await within(all, timeoutMs);

@@ -40,6 +40,18 @@ test('run(): steps run once, in order, then exit 0', async () => {
   assert.deepEqual(exits, [0]);
 });
 
+test('run(): delayMs waits before the first step, while isShuttingDown() is already true', async () => {
+  const { sd, exits } = harness({ delayMs: 40 });
+  let ranAt = null;
+  sd.add('a', () => { ranAt = Date.now(); });
+  const t0 = Date.now();
+  const p = sd.run();
+  assert.equal(sd.isShuttingDown(), true);
+  await p;
+  assert.ok(ranAt - t0 >= 35, `ran after ${ranAt - t0} ms`);
+  assert.deepEqual(exits, [0]);
+});
+
 test('run(): a failing step is logged and the next one still runs', async () => {
   const { sd, exits, log } = harness();
   const order = [];

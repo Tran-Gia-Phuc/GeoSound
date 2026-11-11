@@ -221,6 +221,8 @@ export async function stopConsuming({ timeoutMs = 20000 } = {}) {
     ]);
     clearTimeout(timer);
   }
+  if (inFlight > 0) console.warn(`[rabbitmq] ${inFlight} handler(s) still running: their messages go back to the queue`);
+  else console.log('[rabbitmq] consumers stopped, nothing in flight');
   return { pending: inFlight };
 }
 
