@@ -18,8 +18,9 @@ import {
   setSessionRevocationCheck,
   createRedisRevocationCheck,
 } from '../shared/middleware/index.js';
-import { connect, consume } from '../shared/rabbitmq/index.js';
+import { connect, consume, isReady as rabbitReady } from '../shared/rabbitmq/index.js';
 import { EVENTS } from '../shared/events/index.js';
+import { registerHealthRoutes, prismaCheck, redisCheck } from '../shared/health/index.js';
 import { createMailer } from './services/mailer.js';
 import { handleEvent } from './notify.js';
 import { contributorLookupFromEnv } from './services/contributor-lookup.js';
@@ -45,7 +46,16 @@ const { notificationRouter, storeInApp } = buildContainer({ prisma, requireAuth:
 
 const app = express();
 app.use(logger);
-app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'notification' }));
+// /healthz, /health (liveness) and /readyz (#345): the in-app list needs the database, the worker
+// needs RabbitMQ; Redis (revocation check, fail open) is only reported.
+registerHealthRoutes(app, {
+  service: 'notification',
+  checks: {
+    db: { check: prismaCheck(prisma) },
+    rabbitmq: { check: rabbitReady },
+    redis: { check: redisCheck(revocationRedis), required: false },
+  },
+});
 app.use('/', notificationRouter);
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
