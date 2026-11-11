@@ -23,6 +23,19 @@ MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps -v ./services/tour/prisma:/
   tour node prisma/seed-tours.js
 ```
 
+## 1b. Add ratings (optional)
+
+`services/tour/prisma/seed-ratings.js` writes 8 to 30 `tour_ratings` rows (UC05) for every public
+tour, from 30 fixed fake reviewers (`5eedfa11-...`), then recomputes `tours.rating_count` and
+`average_rating` from the rows (raw SQL, `updated_at` does not move). It ends with a self-check
+that every count equals its rows. Never write `rating_count` / `average_rating` by hand: the star
+bars count the rows, so a count without rows shows "87 ratings" with every bar at 0.
+
+```bash
+MSYS_NO_PATHCONV=1 docker compose run --rm --no-deps -T -v ./services/tour/prisma:/app/prisma \
+  tour node prisma/seed-ratings.js
+```
+
 ## 2. Bring the chatbot index in line with Tour
 
 ```bash
