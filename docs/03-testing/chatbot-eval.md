@@ -22,7 +22,7 @@ Run from Git Bash. The mount is read-only, so results go to `/tmp` in the contai
 ```bash
 # fake model and fake embedder (default): deterministic, no key, no network after pip install
 MSYS_NO_PATHCONV=1 docker run --rm -v "E:/CNPM/git/CNPM-main/services/ai:/src:ro" -w /src -e PYTHONDONTWRITEBYTECODE=1 \
-  --entrypoint sh cnpm-main-ai:latest -c "pip install -q -r requirements.txt; python -m eval.run_eval --model fake --out /tmp/eval.json"
+  --user root --entrypoint sh cnpm-main-ai:latest -c "pip install -q -r requirements.txt; python -m eval.run_eval --model fake --out /tmp/eval.json"
 ```
 
 Options:

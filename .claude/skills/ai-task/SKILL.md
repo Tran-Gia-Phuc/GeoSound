@@ -60,7 +60,7 @@ AI service:
 
 ```bash
 MSYS_NO_PATHCONV=1 docker run --rm -v "<root>/services/ai:/src:ro" -w /src -e PYTHONDONTWRITEBYTECODE=1 \
-  --entrypoint sh cnpm-main-ai:latest -c "pip install -q pytest; python -m pytest tests -q -p no:cacheprovider -rs"
+  --user root --entrypoint sh cnpm-main-ai:latest -c "pip install -q pytest; python -m pytest tests -q -p no:cacheprovider -rs"
 ```
 
 `<root>` is `E:/CNPM/git/CNPM-main` or the worktree `E:/CNPM/git/wt-<N>`. Run each suite once (twice only for timing-sensitive tests). Fail: send the failure back to the same dev agent (SendMessage), at most 2 rounds, then mark the task blocked. An agent stopped by a usage limit is resumed with SendMessage, never restarted.
