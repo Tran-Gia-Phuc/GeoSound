@@ -15,6 +15,7 @@ import {
   createRedisRevocationCheck,
 } from '../shared/middleware/index.js';
 import { registerHealthRoutes, prismaCheck, redisCheck } from '../shared/health/index.js';
+import { createShutdown, closeServer } from '../shared/shutdown/index.js';
 import { buildContainer } from './container.js';
 import { prisma } from './infrastructure/persistence/prisma-client.js';
 import { isModerationEnabled, isChatbotEventsEnabled } from './config.js';
@@ -26,6 +27,8 @@ import { ADMIN_LOG_QUEUE, ADMIN_LOG_BINDINGS } from './interfaces/events/account
 
 const app = express();
 const PORT = process.env.PORT || 3002;
+// Graceful shutdown (#348): SIGTERM / SIGINT run the steps registered below the listen() call.
+const shutdown = createShutdown({ service: 'tour' });
 
 // UC23 / design 5.3 — reject access tokens of signed-out sessions (key revoked:sid:<sid>, written by
 // Auth). No offline queue: while Redis is down the check fails at once and verifyJwt lets the
@@ -80,6 +83,7 @@ app.use(logger);
 // only reported.
 registerHealthRoutes(app, {
   service: 'tour',
+  isDraining: shutdown.isShuttingDown,
   checks: {
     db: { check: prismaCheck(prisma) },
     ...(brokerEnabled ? { rabbitmq: { check: rabbit.isReady } } : {}),
@@ -150,7 +154,17 @@ const purgeMarks = () =>
 setTimeout(purgeMarks, 60_000).unref();
 setInterval(purgeMarks, 60 * 60 * 1000).unref();
 
-app.listen(PORT, () => console.log(`[tour] listening on :${PORT}`));
+const server = app.listen(PORT, () => console.log(`[tour] listening on :${PORT}`));
+
+// Requests in flight and the AI result handlers finish (both may still publish: the channel stays
+// open until the 'rabbitmq' step), then the broker, the database and Redis close.
+shutdown
+  .add('stop intake', () => Promise.all([closeServer(server), rabbit?.stopConsuming({ timeoutMs: 20000 })]), {
+    timeoutMs: 22000,
+  })
+  .add('rabbitmq', () => rabbit?.close(), { timeoutMs: 2000 })
+  .add('database', () => prisma.$disconnect(), { timeoutMs: 2000 })
+  .add('redis', () => revocationRedis.quit(), { timeoutMs: 2000 });
 
 // UC15 / #240 — connect to the broker in the background; consume AI results only with the moderation
 // flag. A failure never stops HTTP; until connected, publishing fails -> logged only
