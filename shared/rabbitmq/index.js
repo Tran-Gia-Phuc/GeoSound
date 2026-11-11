@@ -92,7 +92,8 @@ async function reconnect() {
 
 /**
  * Connects to RabbitMQ, retrying until the broker is up. After a successful connect, a lost
- * connection is re-opened in the background.
+ * connection is re-opened in the background. `retries: Infinity` waits for the broker forever
+ * (a service that must not stay without consumers when the broker starts late).
  * Options (tests): `amqp` replaces amqplib, `reconnectDelayMs` / `maxReconnectDelayMs` the backoff.
  */
 export async function connect(
@@ -110,7 +111,8 @@ export async function connect(
       console.log('[rabbitmq] connected');
       return channel;
     } catch (err) {
-      console.warn(`[rabbitmq] connect fail (${i}/${retries}): ${err.message}`);
+      const total = Number.isFinite(retries) ? `/${retries}` : '';
+      console.warn(`[rabbitmq] connect fail (${i}${total}): ${err.message}`);
       if (i === retries) throw err;
       await sleep(delayMs);
     }
