@@ -9,6 +9,8 @@
     "dev": "nodemon src/index.js",
     "test": "node --test",
     "seed:zones": "node prisma/seed-forbidden-zones.js",
+    "seed:tours": "node prisma/seed-tours.js",
+    "sync:chatbot": "node prisma/sync-chatbot-index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },
