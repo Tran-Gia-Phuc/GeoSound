@@ -9,6 +9,7 @@ import { rateLimit, getRedis } from './rate-limit.js';
 import { createGeocoder } from './geocode.js';
 import { mountChat } from './chat.js';
 import { createChatRateLimit, createRedisStore } from './chat-rate-limit.js';
+import { createRequestLogger } from './request-log.js';
 
 const app = express();
 const PORT = process.env.GATEWAY_PORT || 8080;
@@ -24,10 +25,8 @@ const TARGETS = {
 const CHATBOT_ENABLED = process.env.CHATBOT_ENABLED === 'true';
 let shuttingDown = false; // graceful shutdown (#348): /readyz answers 503 'draining'
 
-app.use((req, _res, next) => {
-  console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
-  next();
-});
+// Task 0.9 (#355): JSON request log + a new x-request-id forwarded to the services.
+app.use(createRequestLogger());
 
 // Deployment plan task 0.4 (#345). The gateway image has no shared/, so the routes are inline
 // (same shape as shared/health). /healthz = liveness; /health is its alias. /readyz never

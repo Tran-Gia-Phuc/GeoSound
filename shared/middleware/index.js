@@ -2,12 +2,21 @@
 // Middleware dùng chung: verifyJwt, errorHandler, logger.
 // =========================================================
 import jwt from 'jsonwebtoken';
+import { createRequestLogger, logJson } from './request-log.js';
 
-/** Log gọn mỗi request. */
-export function logger(req, _res, next) {
-  console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
-  next();
-}
+export {
+  createRequestLogger,
+  logJson,
+  requestIdFrom,
+  serviceName,
+  REQUEST_ID_HEADER,
+} from './request-log.js';
+
+/**
+ * One JSON line per request (deployment plan 0.9): time, level, service, msg, reqId, method,
+ * path, status, durationMs. Reuses the gateway's x-request-id (see request-log.js).
+ */
+export const logger = createRequestLogger();
 
 // UC23 / design 5.3 — optional check "is this session signed out?", set once per service in
 // src/index.js. Null = no check (tokens are verified by signature and role only, as before).
@@ -101,9 +110,16 @@ export function verifyJwt(roles = [], options = {}) {
  * trả message — không lộ code nội bộ (vd ECONNREFUSED).
  */
 // eslint-disable-next-line no-unused-vars
-export function errorHandler(err, _req, res, _next) {
-  console.error('[error]', err);
+export function errorHandler(err, req, res, _next) {
   const status = err.status || 500;
+  // JSON line with the request id (0.9); the stack only for 5xx (4xx are expected business errors).
+  logJson(status >= 500 ? 'error' : 'warn', err.message || 'error', {
+    reqId: req?.id,
+    method: req?.method,
+    path: String(req?.originalUrl || req?.url || '').split('?')[0],
+    status,
+    ...(status >= 500 ? { err: { name: err.name, code: err.code, stack: err.stack } } : { code: err.code }),
+  });
   const body = { error: err.message || 'Internal Server Error' };
   if (status < 500) {
     if (err.code) body.code = err.code;
