@@ -6,9 +6,17 @@
 // =========================================================
 import express from 'express';
 import { logger, errorHandler } from '../shared/middleware/index.js';
-import { connect, consume, publish, isReady as rabbitReady } from '../shared/rabbitmq/index.js';
+import {
+  connect,
+  consume,
+  publish,
+  stopConsuming,
+  close as closeRabbit,
+  isReady as rabbitReady,
+} from '../shared/rabbitmq/index.js';
 import { EVENTS, validateEvent } from '../shared/events/index.js';
 import { registerHealthRoutes, prismaCheck } from '../shared/health/index.js';
+import { createShutdown, closeServer } from '../shared/shutdown/index.js';
 import { loadConfig } from './config.js';
 import { buildContainer } from './container.js';
 import { startRetrySweeper } from './interfaces/jobs/retry-sweeper.js';
@@ -18,6 +26,9 @@ import { startRetrySweeper } from './interfaces/jobs/retry-sweeper.js';
 const { prisma } = await import('./infrastructure/persistence/prisma-client.js');
 
 const config = loadConfig();
+// Graceful shutdown (#348): SIGTERM / SIGINT run the steps registered below the listen() call.
+const shutdown = createShutdown({ service: 'moderation' });
+let sweeper = null;
 const app = express();
 
 app.use(express.json());
@@ -26,6 +37,7 @@ app.use(logger);
 // RabbitMQ, so both are required.
 registerHealthRoutes(app, {
   service: 'moderation',
+  isDraining: shutdown.isShuttingDown,
   checks: {
     db: { check: prismaCheck(prisma) },
     rabbitmq: { check: rabbitReady },
@@ -34,7 +46,17 @@ registerHealthRoutes(app, {
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
 
-app.listen(config.port, () => console.log(`[moderation] listening on :${config.port}`));
+const server = app.listen(config.port, () => console.log(`[moderation] listening on :${config.port}`));
+
+// Stop taking work, let the reviews in flight publish their result (the channel stays open), then
+// close. A review still running after 20 s is left: its message goes back to the queue and the case
+// (left in 'reviewing') is picked up again by the sweeper of the next instance.
+shutdown
+  .add('stop intake', () => Promise.all([closeServer(server), stopConsuming({ timeoutMs: 20000 }), sweeper?.stop()]), {
+    timeoutMs: 22000,
+  })
+  .add('rabbitmq', closeRabbit, { timeoutMs: 2000 })
+  .add('database', () => prisma.$disconnect(), { timeoutMs: 2000 });
 
 (async () => {
   try {
@@ -52,7 +74,7 @@ app.listen(config.port, () => console.log(`[moderation] listening on :${config.p
       { prefetch: config.prefetch });
 
     // Sweeper: retries ai_failed / stale cases, re-publishes unpublished results (#AI-38, D11).
-    startRetrySweeper({ retryFailedCases: container.retryFailedCases, intervalMs: config.sweep.intervalMs });
+    sweeper = startRetrySweeper({ retryFailedCases: container.retryFailedCases, intervalMs: config.sweep.intervalMs });
   } catch (err) {
     console.error('[moderation] rabbitmq init failed:', err.message);
   }

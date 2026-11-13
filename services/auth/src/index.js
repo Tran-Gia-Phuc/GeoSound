@@ -12,13 +12,16 @@ import {
   setSessionRevocationCheck,
   createRedisRevocationCheck,
 } from '../shared/middleware/index.js';
-import { connect, publish, isReady as rabbitReady } from '../shared/rabbitmq/index.js';
+import { connect, publish, close as closeRabbit, isReady as rabbitReady } from '../shared/rabbitmq/index.js';
 import { registerHealthRoutes, prismaCheck, redisCheck } from '../shared/health/index.js';
+import { createShutdown, closeServer } from '../shared/shutdown/index.js';
 import { buildContainer } from './container.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const HOUR_MS = 60 * 60 * 1000;
+// Graceful shutdown (#348): SIGTERM / SIGINT run the steps registered below the listen() call.
+const shutdown = createShutdown({ service: 'auth' });
 
 const { authRouter, internalRouter, prisma, redis, purgeEndedSessions } = buildContainer(process.env, {
   verifyJwt,
@@ -51,6 +54,7 @@ app.use(logger);
 // revocation); RabbitMQ only carries the alerts, so it is reported, not required.
 registerHealthRoutes(app, {
   service: 'auth',
+  isDraining: shutdown.isShuttingDown,
   checks: {
     db: { check: prismaCheck(prisma) },
     redis: { check: redisCheck(redis) },
@@ -69,4 +73,12 @@ app.use('/internal', internalRouter);
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
 
-app.listen(PORT, () => console.log(`[auth] listening on :${PORT}`));
+const server = app.listen(PORT, () => console.log(`[auth] listening on :${PORT}`));
+
+// Requests in flight finish (their new-device alerts are still published), then the broker, the
+// database and Redis close.
+shutdown
+  .add('http', () => closeServer(server), { timeoutMs: 12000 })
+  .add('rabbitmq', closeRabbit, { timeoutMs: 2000 })
+  .add('database', () => prisma.$disconnect(), { timeoutMs: 2000 })
+  .add('redis', () => redis.quit(), { timeoutMs: 2000 });

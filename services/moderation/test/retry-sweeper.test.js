@@ -80,3 +80,26 @@ test('default timers: the real interval is unref-ed and stop clears it', () => {
   const sweeper = startRetrySweeper({ retryFailedCases: { execute: async () => ({}) }, intervalMs: 3_600_000, logger: new FakeLogger() });
   sweeper.stop(); // the test process would hang here if the interval were still active
 });
+
+test('stop() waits for the sweep in progress (graceful shutdown)', async () => {
+  const timers = fakeTimers();
+  const d = deferred();
+  const sweeper = startRetrySweeper({ retryFailedCases: { execute: () => d.promise }, intervalMs: 10, logger: new FakeLogger(), ...timers });
+  const tick = timers.fn();
+  let stopped = false;
+  const stopping = sweeper.stop().then(() => { stopped = true; });
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(stopped, false);
+  d.resolve({});
+  await stopping;
+  await tick;
+  assert.equal(stopped, true);
+  assert.deepEqual(timers.cleared, [timers.handle]);
+});
+
+test('stop() resolves at once when no sweep is running, even after a failed one', async () => {
+  const timers = fakeTimers();
+  const sweeper = startRetrySweeper({ retryFailedCases: { execute: async () => { throw new Error('x'); } }, intervalMs: 10, logger: new FakeLogger(), ...timers });
+  await timers.fn();
+  await assert.doesNotReject(sweeper.stop());
+});
