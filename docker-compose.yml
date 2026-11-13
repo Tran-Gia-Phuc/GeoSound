@@ -127,6 +127,29 @@ services:
     restart: unless-stopped
     stop_grace_period: 30s # graceful shutdown (#348): the app stops in at most 28 s
 
+  # One-shot schema migrations (deployment plan task 0.6, #352). Not started by `up`:
+  #   docker compose --profile migrate run --rm migrate [deploy|status|check|baseline] [service...]
+  # No service changes its schema on start. Uses DATABASE_URL_DIRECT_<SVC>, else DATABASE_URL_<SVC>.
+  # The tour image has the Prisma CLI; every service's prisma folder is mounted read-only.
+  migrate:
+    profiles: [migrate]
+    build:
+      context: .
+      dockerfile: services/tour/Dockerfile
+    env_file: [.env]
+    entrypoint: ["sh", "/migrate.sh"]
+    command: ["deploy"]
+    volumes:
+      - ./scripts/db/migrate.sh:/migrate.sh:ro
+      - ./services/auth/prisma:/migrations/auth:ro
+      - ./services/tour/prisma:/migrations/tour:ro
+      - ./services/moderation/prisma:/migrations/moderation:ro
+      - ./services/notification/prisma:/migrations/notification:ro
+      - ./services/media/prisma:/migrations/media:ro
+      - ./services/ai/prisma:/migrations/ai:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+
   rabbitmq:
     image: rabbitmq:3-management
     ports:
