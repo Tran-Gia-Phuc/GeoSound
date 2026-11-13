@@ -54,26 +54,90 @@ If a connection string or password was shared in a public place (chat, issue, co
 2. The owner sends the new strings privately to the team.
 3. Everybody updates their `.env` and restarts: `docker compose up -d`.
 
-## 4. One-time setup for the AI chatbot schema
+## 4. Schema changes: Prisma migrations
 
-Needed once per Supabase project, and again after any change in `services/ai/prisma/`. From the repository root,
-after `DATABASE_URL_AI` and `DATABASE_URL_DIRECT_AI` are in `.env` (same as the other services, `schema=ai`):
+Since deployment plan task 0.6 (issue #352) every schema is managed by **Prisma migrations**
+(`services/<svc>/prisma/migrations/`). Rules for the whole team:
+
+- **Never run `prisma db push` against Supabase again.** It changes the schema without a record, can drop
+  columns, and does not match what the migrations build.
+- No container changes the schema when it starts (`auth` and `moderation` used to run `db push`).
+- A change in `schema.prisma` always comes with a new migration folder in the same PR. CI fails otherwise
+  (`scripts/db/check-migrations.sh`, step "Prisma migrations match schema.prisma").
+- Never edit a migration that was already applied: Prisma stores its checksum. Fix it with a new one.
+
+### 4.1 Apply migrations
+
+From the repository root, with the `DATABASE_URL_DIRECT_<SVC>` keys in `.env` (session pooler 5432; DDL and
+Prisma's advisory lock do not work through pgbouncer 6543):
 
 ```bash
-MSYS_NO_PATHCONV=1 docker run --rm --env-file .env -v "$PWD/services/ai/prisma:/p:ro" -w /app cnpm-main-auth \
-  sh -c 'export DATABASE_URL="$DATABASE_URL_DIRECT_AI"; \
-  npx prisma db execute --file /p/pre-push.sql --schema /p/schema.prisma \
-  && npx prisma db push --skip-generate --schema /p/schema.prisma \
-  && npx prisma db execute --file /p/post-push.sql --schema /p/schema.prisma'
+docker compose --profile migrate run --rm migrate                  # deploy, every service
+docker compose --profile migrate run --rm migrate deploy tour      # one service
+docker compose --profile migrate run --rm migrate status           # applied / pending (read-only)
+docker compose --profile migrate run --rm migrate check            # live schema vs schema.prisma (read-only)
 ```
 
-- `pre-push.sql` enables the `vector` extension (schema `extensions`) and creates schema `ai`. If it fails with a
-  permission error, a dashboard Owner or Administrator enables `vector` in **Database -> Extensions** (schema
-  `extensions`; if `vector` is already installed in `public`, move it to `extensions` first) and you run the command again.
-- `post-push.sql` adds the CHECK constraints and the vector index.
-- The command passes `.env` to the container and never prints it.
-- The chat memory (`CHAT_MEMORY_BACKEND=postgres`) uses a separate schema `ai_chat`, created by the AI service
-  itself at startup through `DATABASE_URL_DIRECT_AI`. It is not part of `schema.prisma`, so `db push` never
-  touches it.
+The `migrate` service (`docker-compose.yml`, profile `migrate`, never started by `up`) runs
+`scripts/db/migrate.sh` in the tour image, with every `prisma` folder mounted read-only. A service without
+`DATABASE_URL_DIRECT_<SVC>` falls back to `DATABASE_URL_<SVC>`, and is skipped when both are empty (`ai` in
+local dev). Prisma prints the database host and name (never the password): do not paste that output in public
+places. `check` exits with 2 when it finds a drift and prints the SQL that would remove it.
 
-The other services push their own schema when they start (`prisma db push` in their Dockerfile).
+### 4.2 One-time baseline of an existing database
+
+A schema made earlier by `db push` (Supabase, or an old local database) already has its tables, so
+`migrate deploy` stops with `P3005` (schema not empty). Baseline it once per service:
+
+```bash
+docker compose --profile migrate run --rm migrate check tour       # must say "no drift"
+docker compose --profile migrate run --rm migrate baseline tour    # marks 0_init as applied
+docker compose --profile migrate run --rm migrate deploy tour      # "No pending migrations to apply"
+```
+
+`baseline` runs `prisma migrate resolve --applied 0_init`: it creates `<schema>._prisma_migrations` with one
+row and changes no table. If `check` shows a drift, do not baseline: fix the drift first (or ask in the team
+channel which side is right). On Supabase this is done once by the project owner, not by every teammate.
+
+### 4.3 Add a migration after changing `schema.prisma`
+
+Generate the SQL offline from the schema on `develop` to your new schema (no database needed; Git Bash on
+Windows, use `$PWD` instead of `$(pwd -W)` on Linux and macOS):
+
+```bash
+export MSYS_NO_PATHCONV=1
+svc=tour; dir=services/$svc/prisma/migrations/$(date -u +%Y%m%d%H%M%S)_add_place_rating
+mkdir -p "$dir"
+git show origin/develop:services/$svc/prisma/schema.prisma > services/$svc/prisma/old.prisma
+docker run --rm --network none -v "$(pwd -W)/services/$svc/prisma:/p:ro" --entrypoint sh geosound-tour \
+  -c "npx prisma migrate diff --from-schema-datamodel /p/old.prisma --to-schema-datamodel /p/schema.prisma --script" \
+  > "$dir/migration.sql"
+rm services/$svc/prisma/old.prisma
+```
+
+Then read `migration.sql` before you commit it:
+
+- A renamed column or table shows up as a drop plus an add, which loses data: rewrite it as `ALTER ... RENAME`.
+- A new required column on a table with rows needs a default, or two migrations (add nullable, fill, then
+  set `NOT NULL`).
+- Old and new pods run side by side during a rollout: keep each change backward compatible (expand now,
+  contract in a later release; deployment plan section 8.5).
+
+Apply it locally with `migrate deploy <svc>`, run `sh scripts/db/check-migrations.sh` (needs a disposable
+Postgres with pgvector in `SHADOW_DATABASE_URL`, never Supabase) or let CI run it, and commit the folder with
+the `schema.prisma` change. After the merge, the owner applies it on Supabase with `migrate deploy <svc>`;
+later the Kubernetes migrate Job does it before each rollout.
+
+### 4.4 The AI schema (`ai`, pgvector)
+
+- `ai/prisma/migrations/0_init` also holds what `pre-push.sql` and `post-push.sql` did: it enables `vector`
+  in schema `extensions`, then adds the CHECK constraints, the partial index `nodes_place_geo_idx` and the
+  HNSW index `chunks_embedding_hnsw_idx`. The two old files stay for the pgvector integration test
+  (`services/ai/tests/test_pgvector_store.py`) and as a record; do not use them on Supabase any more.
+- If enabling `vector` fails with a permission error, a dashboard Owner or Administrator enables it in
+  **Database -> Extensions** (schema `extensions`; if `vector` is installed in `public`, move it first).
+- Prisma 5 cannot express an HNSW index, so a diff against `schema.prisma` always proposes
+  `DROP INDEX "chunks_embedding_hnsw_idx"`. Both scripts ignore that one line; never apply it. Remove it by hand
+  if it shows up in a new AI migration.
+- The chat memory (`CHAT_MEMORY_BACKEND=postgres`) uses its own schema `ai_chat`, created by the AI service at
+  startup through `DATABASE_URL_DIRECT_AI`. It is not in `schema.prisma` and no migration touches it.
