@@ -16,6 +16,7 @@ import {
 } from '../shared/middleware/index.js';
 import { registerHealthRoutes, prismaCheck, redisCheck } from '../shared/health/index.js';
 import { createShutdown, closeServer } from '../shared/shutdown/index.js';
+import { createJobLock } from '../shared/lock/index.js';
 import { buildContainer } from './container.js';
 import { prisma } from './infrastructure/persistence/prisma-client.js';
 import { isModerationEnabled, isChatbotEventsEnabled } from './config.js';
@@ -146,10 +147,17 @@ app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
 
 // UC17 (#271) — delete statistics dedup marks older than 40 days (one minute after start, then hourly).
+// Deployment plan task 0.8 (#354): one replica purges per hour (Redis lock kept 48 min after the
+// start). The delete is idempotent, so it still runs without the lock while Redis is down.
+const jobLock = createJobLock(revocationRedis, { service: 'tour' });
 const purgeMarks = () =>
-  purgeActivityMarks
-    .execute()
-    .then(({ deleted }) => deleted && console.log(`[tour] purged ${deleted} old activity marks`))
+  jobLock
+    .runOnce('tour:purge-activity-marks', () => purgeActivityMarks.execute(), {
+      ttlMs: 5 * 60 * 1000,
+      holdMs: 0.8 * 60 * 60 * 1000,
+      onRedisError: 'run',
+    })
+    .then((run) => run.ran && run.result.deleted && console.log(`[tour] purged ${run.result.deleted} old activity marks`))
     .catch((err) => console.error(`[tour] activity mark purge failed: ${err.message}`));
 setTimeout(purgeMarks, 60_000).unref();
 setInterval(purgeMarks, 60 * 60 * 1000).unref();
