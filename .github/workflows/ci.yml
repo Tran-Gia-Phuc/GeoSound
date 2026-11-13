@@ -15,10 +15,12 @@ on:
   pull_request:
     branches: ['develop', 'staging', 'main']
 
-# Huỷ run cũ khi có commit mới trên cùng nhánh/PR.
+# Cancel the older run when a new commit lands on the same feature branch or PR.
+# Integration branches (develop, staging, main) never cancel: every merge commit
+# gets its own result, so a red build points at the PR that broke it.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ !contains(fromJSON('["refs/heads/develop","refs/heads/staging","refs/heads/main"]'), github.ref) }}
 
 jobs:
   backend:
