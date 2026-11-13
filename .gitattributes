@@ -1,0 +1,6 @@
+# Keep LF in these files on every checkout (core.autocrlf=true on Windows would turn them into CRLF).
+# Prisma stores a checksum of each applied migration.sql: the same file must have the same bytes
+# on every machine (task 0.6, issue #352). Shell scripts run in Linux containers.
+services/*/prisma/migrations/**/*.sql text eol=lf
+services/*/prisma/migrations/migration_lock.toml text eol=lf
+*.sh text eol=lf

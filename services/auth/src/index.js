@@ -15,6 +15,7 @@ import {
 import { connect, publish, close as closeRabbit, isReady as rabbitReady } from '../shared/rabbitmq/index.js';
 import { registerHealthRoutes, prismaCheck, redisCheck } from '../shared/health/index.js';
 import { createShutdown, closeServer } from '../shared/shutdown/index.js';
+import { createJobLock } from '../shared/lock/index.js';
 import { buildContainer } from './container.js';
 
 const app = express();
@@ -39,10 +40,17 @@ connect(undefined, { retries: Infinity, delayMs: 10000 }).catch((err) =>
 );
 
 // UC23 / R12 — delete sessions that ended more than 30 days ago (at start, then hourly).
+// Deployment plan task 0.8 (#354): one replica purges per hour (Redis lock kept 48 min after the
+// start). The delete is idempotent, so it still runs without the lock while Redis is down.
+const jobLock = createJobLock(redis, { service: 'auth' });
 const purge = () =>
-  purgeEndedSessions
-    .execute()
-    .then(({ deleted }) => deleted && console.log(`[auth] purged ${deleted} ended sessions`))
+  jobLock
+    .runOnce('auth:purge-ended-sessions', () => purgeEndedSessions.execute(), {
+      ttlMs: 5 * 60 * 1000,
+      holdMs: 0.8 * HOUR_MS,
+      onRedisError: 'run',
+    })
+    .then((run) => run.ran && run.result.deleted && console.log(`[auth] purged ${run.result.deleted} ended sessions`))
     .catch((err) => console.error(`[auth] session purge failed: ${err.message}`));
 setTimeout(purge, 60_000).unref();
 setInterval(purge, HOUR_MS).unref();

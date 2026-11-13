@@ -76,7 +76,8 @@ gh issue develop <N> --base develop --name feature/uc<NN>-<topic> --checkout
 
 ## 5. Schema (Supabase is shared: never push it yourself)
 
-1. Edit `prisma/schema.prisma`: additive only (new tables, nullable or defaulted columns).
+1. Edit `prisma/schema.prisma`: additive only (new tables, nullable or defaulted columns). Add the matching
+   migration folder (`docs/04-guides/supabase-access.md` section 4.3) and commit both together.
 2. Validate: `MSYS_NO_PATHCONV=1 docker run --rm --network none -e DATABASE_URL="postgresql://ci:ci@localhost:5432/ci?schema=<schema>" -v "<root>/services/<svc>/prisma:/p:ro" -w /app cnpm-main-<svc> npx prisma validate --schema /p/schema.prisma`
 3. Test the real queries on a throwaway Postgres, then delete it:
 
@@ -86,16 +87,14 @@ docker run -d --rm --name uccheck-db --network uccheck -e POSTGRES_PASSWORD=pw p
 MSYS_NO_PATHCONV=1 docker run --rm --network uccheck \
   -e DATABASE_URL='postgresql://postgres:pw@uccheck-db:5432/postgres?schema=<schema>' \
   -v "<root>/services/<svc>/src:/app/src:ro" -v "<root>/services/<svc>/prisma:/app/prisma:ro" -v "<scratch>/check.mjs:/app/check.mjs:ro" \
-  -w /app --user root --entrypoint sh cnpm-main-<svc> -c "npx prisma db push --skip-generate && npx prisma generate >/dev/null && node check.mjs"
+  -w /app --user root --entrypoint sh cnpm-main-<svc> -c "npx prisma migrate deploy && npx prisma generate >/dev/null && node check.mjs"
 docker rm -f uccheck-db; docker network rm uccheck
 ```
 
    `check.mjs` (in the scratchpad, never committed) seeds rows and calls the repository methods.
-4. Give the user the push command for the merge, never run it:
-   - Tour / Notification (no push on start):
-     `docker compose run --rm --no-deps <svc> sh -c 'export DATABASE_URL="${DATABASE_URL_DIRECT_<SVC>:-$DATABASE_URL}"; npx prisma db push --skip-generate'`
-   - **Auth and Moderation push their schema on every start** (Dockerfile `CMD`): rebuilding them after
-     a schema change pushes to Supabase. Ask the user before `docker compose up --build auth`.
+4. Give the user the migrate command for the merge, never run it:
+   `docker compose --profile migrate run --rm migrate deploy <svc>` (no service changes its schema on start;
+   never `prisma db push` on Supabase).
 
 ## 6. Client
 
@@ -142,4 +141,4 @@ MSYS_NO_PATHCONV=1 docker run --rm -v "<root>/client:/src:ro" -w /work mcr.micro
 ## 10. Report
 
 Table: UC | issue | branch | commits | tests (backend / UI) | PR | status. Then the user actions:
-schema push command (5.4), env keys, anything to test on the phone, and the next UC from section 6.
+schema migrate command (5.4), env keys, anything to test on the phone, and the next UC from section 6.

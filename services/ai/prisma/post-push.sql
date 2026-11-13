@@ -1,3 +1,5 @@
+-- Kept for the pgvector integration test (tests/test_pgvector_store.py) on a disposable Postgres.
+-- Supabase uses migrations/0_init, which contains this (task 0.6, #352).
 -- Run after `prisma db push` of schema.prisma (idempotent). Adds what Prisma cannot express.
 -- All names are schema-qualified (ai.*, extensions.*); pgvector lives in schema "extensions".
 

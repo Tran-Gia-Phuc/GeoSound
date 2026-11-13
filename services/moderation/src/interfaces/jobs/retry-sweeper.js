@@ -4,15 +4,18 @@
 // - Timer functions are injectable so tests use fake timers.
 // - stop() resolves once the sweep in progress is over (graceful shutdown, issue #348): the cases it
 //   is reviewing get their result published before the RabbitMQ channel closes.
+// - Optional `lock` (deployment plan task 0.8, issue #354): wraps each sweep so that, with several
+//   replicas, only one of them sweeps per interval (index.js passes a Redis lock from shared/lock).
 
 /**
  * @param {{ retryFailedCases: { execute: () => Promise<object> }, intervalMs: number,
  *           logger?: Pick<Console, 'info' | 'error'>,
+ *           lock?: (fn: () => Promise<object>) => Promise<unknown>,
  *           setIntervalImpl?: typeof setInterval, clearIntervalImpl?: typeof clearInterval }} deps
  * @returns {{ stop: () => Promise<void>, tick: () => Promise<void> }}
  */
 export function startRetrySweeper({
-  retryFailedCases, intervalMs, logger = console,
+  retryFailedCases, intervalMs, logger = console, lock = (fn) => fn(),
   setIntervalImpl = setInterval, clearIntervalImpl = clearInterval,
 }) {
   let running = null; // promise of the sweep in progress
@@ -20,7 +23,7 @@ export function startRetrySweeper({
 
   async function sweep() {
     try {
-      await retryFailedCases.execute();
+      await lock(() => retryFailedCases.execute());
     } catch (err) {
       try { logger.error(`[moderation] sweeper run failed: ${err?.message ?? err}`); } catch { /* never throw */ }
     } finally {

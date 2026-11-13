@@ -1,14 +1,14 @@
 // AI service, schema "ai": chatbot index (task #AI-44 / #AI-49, issues #185 and #219).
-// Tables only. CHECK constraints, partial and HNSW indexes are in post-push.sql (Prisma cannot express them).
-// Needs the pgvector extension in schema "extensions" (pre-push.sql enables it).
-// The AI service is Python: this schema is only pushed, no client is generated.
-// Push: docs/04-guides/supabase-access.md section 4.
+// Tables only. CHECK constraints, partial and HNSW indexes (Prisma cannot express them) and the pgvector
+// extension in schema "extensions" are added by migrations/0_init (was pre-push.sql / post-push.sql).
+// The AI service is Python: this schema is only migrated, no client is generated.
+// Migrations: docs/04-guides/supabase-access.md section 4 (never `prisma db push` on Supabase).
 // Only public tour and place content is stored: no contributor id, email or user field.
 // The dimension (384) matches intfloat/multilingual-e5-small; a model change means a full re-embed.
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL") // ...?schema=ai (DATABASE_URL_DIRECT_AI when pushing)
+  url      = env("DATABASE_URL") // ...?schema=ai (DATABASE_URL_DIRECT_AI when migrating)
 }
 
 // Embedding model of the whole index (one row, id = 1).

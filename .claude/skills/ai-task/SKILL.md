@@ -105,4 +105,4 @@ Run the service tests on `develop` (step 3). If `develop` is broken: branch `fix
 
 ## 8. Report
 
-Table: task | branch | commits | tests | reviewer | PR | issue | status. Then the remaining tasks and any owner action (env keys, `prisma db push`, PRs waiting for another teammate).
+Table: task | branch | commits | tests | reviewer | PR | issue | status. Then the remaining tasks and any owner action (env keys, `migrate deploy` of a new migration, PRs waiting for another teammate).
