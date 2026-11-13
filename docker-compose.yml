@@ -37,6 +37,7 @@ services:
       media: { condition: service_started }
       notification: { condition: service_started }
     restart: unless-stopped
+    stop_grace_period: 30s # graceful shutdown (#348): the app stops in at most 28 s
 
   auth:
     build:
@@ -51,6 +52,7 @@ services:
       rabbitmq: { condition: service_healthy }
       postgres: { condition: service_healthy }
     restart: unless-stopped
+    stop_grace_period: 30s # graceful shutdown (#348): the app stops in at most 28 s
 
   tour:
     build:
@@ -65,6 +67,7 @@ services:
       rabbitmq: { condition: service_healthy }
       postgres: { condition: service_healthy }
     restart: unless-stopped
+    stop_grace_period: 30s # graceful shutdown (#348): the app stops in at most 28 s
 
   moderation:
     build:
@@ -79,6 +82,7 @@ services:
       postgres: { condition: service_healthy }
       ai: { condition: service_started }
     restart: unless-stopped
+    stop_grace_period: 30s # graceful shutdown (#348): the app stops in at most 28 s
 
   media: # HTTP :3005 (chỉ trong mạng compose, qua gateway /api/media) + worker
     build:
@@ -94,6 +98,7 @@ services:
     depends_on:
       rabbitmq: { condition: service_healthy }
     restart: unless-stopped
+    stop_grace_period: 30s # graceful shutdown (#348): the app stops in at most 28 s
 
   notification: # HTTP :3006 (only inside the compose network, gateway /api/notifications) + worker
     build:
@@ -107,6 +112,7 @@ services:
       redis: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
     restart: unless-stopped
+    stop_grace_period: 30s # graceful shutdown (#348): the app stops in at most 28 s
 
   ai:
     build:
@@ -119,6 +125,7 @@ services:
       rabbitmq: { condition: service_healthy }
       postgres: { condition: service_healthy }
     restart: unless-stopped
+    stop_grace_period: 30s # graceful shutdown (#348): the app stops in at most 28 s
 
   # One-shot schema migrations (deployment plan task 0.6, #352). Not started by `up`:
   #   docker compose --profile migrate run --rm migrate [deploy|status|check|baseline] [service...]

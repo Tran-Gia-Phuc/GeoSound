@@ -22,6 +22,7 @@ const TARGETS = {
   notification: process.env.NOTIFICATION_SERVICE_URL || 'http://notification:3006',
 };
 const CHATBOT_ENABLED = process.env.CHATBOT_ENABLED === 'true';
+let shuttingDown = false; // graceful shutdown (#348): /readyz answers 503 'draining'
 
 app.use((req, _res, next) => {
   console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
@@ -30,11 +31,13 @@ app.use((req, _res, next) => {
 
 // Deployment plan task 0.4 (#345). The gateway image has no shared/, so the routes are inline
 // (same shape as shared/health). /healthz = liveness; /health is its alias. /readyz never
-// answers 503: Redis is fail-open here (rate limit, chat limit), so it is only reported.
+// answers 503 for Redis: it is fail-open here (rate limit, chat limit), so it is only reported.
+// It answers 503 'draining' once a shutdown has started (#348).
 const liveness = (_req, res) => res.json({ status: 'ok', service: 'gateway' });
 app.get('/healthz', liveness);
 app.get('/health', liveness);
 app.get('/readyz', async (_req, res) => {
+  if (shuttingDown) return res.status(503).json({ status: 'draining', service: 'gateway' });
   const redis = getRedis();
   let up = false;
   if (redis?.status === 'ready') {
@@ -105,8 +108,43 @@ mount('/api/notifications', TARGETS.notification);
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`[gateway] listening on :${PORT}`);
   console.log('[gateway] routes: /api/auth /api/tours /api/itineraries /api/places /api/moderation /api/media /api/notifications');
   if (CHATBOT_ENABLED) console.log('[gateway] chatbot: /api/chat /api/chat/history');
 });
+
+// Graceful shutdown (#348), inline like the health routes (same behaviour as shared/shutdown):
+// SIGTERM / SIGINT -> /readyz 503, wait SHUTDOWN_DELAY_MS (default 0, set it behind a load
+// balancer), stop accepting, let requests in flight finish (chat streams get 10 s, then their
+// sockets are closed), close Redis, exit 0. A second signal, or more than 28 s, exits 1.
+const SHUTDOWN_DELAY_MS = Number(process.env.SHUTDOWN_DELAY_MS) || 0;
+function shutdown(signal) {
+  if (shuttingDown) {
+    console.warn(`[gateway] ${signal} again: exiting now`);
+    process.exit(1);
+  }
+  shuttingDown = true;
+  const t0 = Date.now();
+  console.log(`[gateway] ${signal}: shutting down`);
+  setTimeout(() => {
+    console.error('[gateway] shutdown took more than 28000 ms, exiting now');
+    process.exit(1);
+  }, 28000).unref();
+  setTimeout(() => {
+    const force = setTimeout(() => server.closeAllConnections(), 10000);
+    server.close(async () => {
+      clearTimeout(force);
+      const redis = getRedis();
+      if (redis) {
+        const timeout = new Promise((resolve) => setTimeout(resolve, 2000).unref());
+        await Promise.race([redis.quit().catch(() => {}), timeout]);
+      }
+      console.log(`[gateway] shutdown complete (${Date.now() - t0} ms)`);
+      process.exit(0);
+    });
+    server.closeIdleConnections();
+  }, SHUTDOWN_DELAY_MS);
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

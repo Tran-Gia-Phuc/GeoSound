@@ -60,4 +60,6 @@ COPY services/ai/app ./app
 USER app
 EXPOSE 3004
 # `exec` so uvicorn replaces the shell and receives SIGTERM.
-CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-3004}"]
+# SIGTERM (#348): uvicorn stops accepting, gives requests in flight (chat streams) 20 s, then the
+# lifespan closes the chatbot indexer and the chat service.
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-3004} --timeout-graceful-shutdown 20"]

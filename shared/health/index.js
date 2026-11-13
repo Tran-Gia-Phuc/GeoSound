@@ -7,6 +7,7 @@
 //                 reported, so a fail-open dependency (Redis for the revocation check) does not
 //                 take every pod out of the load balancer.
 //
+// `isDraining()` (graceful shutdown, task 0.5) makes /readyz answer 503 'draining'.
 // The body never carries error text; the first failure of a check after a success is logged.
 // No express import: the routes are registered on the app the service passes in.
 
@@ -56,7 +57,10 @@ export async function evaluateReadiness(checks = {}, { timeoutMs = DEFAULT_CHECK
  * `extra` (object or function returning one) is merged into the liveness body,
  * for example `{ storage: 'LocalDiskStorage' }` in media.
  */
-export function registerHealthRoutes(app, { service, checks = {}, extra, timeoutMs, log = console } = {}) {
+export function registerHealthRoutes(
+  app,
+  { service, checks = {}, extra, timeoutMs, isDraining, log = console } = {},
+) {
   if (!service) throw new Error('registerHealthRoutes: service is required');
   const liveness = (_req, res) => {
     const more = typeof extra === 'function' ? extra() : extra;
@@ -68,6 +72,8 @@ export function registerHealthRoutes(app, { service, checks = {}, extra, timeout
   // Log a check when it goes down and when it comes back, not on every probe.
   const down = new Set();
   app.get('/readyz', async (_req, res) => {
+    // Graceful shutdown (#348): out of the load balancer at once, without running the checks.
+    if (isDraining?.()) return res.status(503).json({ status: 'draining', service });
     const result = await evaluateReadiness(checks, { timeoutMs });
     for (const name of Object.keys(result.checks)) {
       const isDown = result.checks[name] === 'down';

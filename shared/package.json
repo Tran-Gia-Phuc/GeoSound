@@ -8,7 +8,8 @@
     "./events": "./events/index.js",
     "./health": "./health/index.js",
     "./middleware": "./middleware/index.js",
-    "./rabbitmq": "./rabbitmq/index.js"
+    "./rabbitmq": "./rabbitmq/index.js",
+    "./shutdown": "./shutdown/index.js"
   },
   "scripts": {
     "test": "node --test"

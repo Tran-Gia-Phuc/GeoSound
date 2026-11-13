@@ -160,6 +160,25 @@ test('registerHealthRoutes: the body never carries error text', async () => {
   assert.ok(!JSON.stringify(res.body).includes('secret'));
 });
 
+test('registerHealthRoutes: /readyz is 503 draining during shutdown, without running checks', async () => {
+  const app = fakeApp();
+  let draining = false;
+  let calls = 0;
+  registerHealthRoutes(app, {
+    service: 'tour',
+    checks: { db: { check: () => { calls += 1; return true; } } },
+    isDraining: () => draining,
+    log: silentLog(),
+  });
+  assert.equal((await app.call('/readyz')).status, 200);
+  draining = true;
+  const res = await app.call('/readyz');
+  assert.equal(res.status, 503);
+  assert.deepEqual(res.body, { status: 'draining', service: 'tour' });
+  assert.equal(calls, 1);
+  assert.equal((await app.call('/healthz')).status, 200); // liveness stays up while draining
+});
+
 test('registerHealthRoutes: service is required', () => {
   assert.throws(() => registerHealthRoutes(fakeApp(), {}), /service is required/);
 });

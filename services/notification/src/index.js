@@ -18,9 +18,16 @@ import {
   setSessionRevocationCheck,
   createRedisRevocationCheck,
 } from '../shared/middleware/index.js';
-import { connect, consume, isReady as rabbitReady } from '../shared/rabbitmq/index.js';
+import {
+  connect,
+  consume,
+  stopConsuming,
+  close as closeRabbit,
+  isReady as rabbitReady,
+} from '../shared/rabbitmq/index.js';
 import { EVENTS } from '../shared/events/index.js';
 import { registerHealthRoutes, prismaCheck, redisCheck } from '../shared/health/index.js';
+import { createShutdown, closeServer } from '../shared/shutdown/index.js';
 import { createMailer } from './services/mailer.js';
 import { handleEvent } from './notify.js';
 import { contributorLookupFromEnv } from './services/contributor-lookup.js';
@@ -41,6 +48,8 @@ revocationRedis.on('error', (err) => {
 setSessionRevocationCheck(createRedisRevocationCheck(revocationRedis));
 
 const PORT = process.env.PORT || 3006;
+// Graceful shutdown (#348): SIGTERM / SIGINT run the steps registered below the listen() call.
+const shutdown = createShutdown({ service: 'notification' });
 const prisma = new PrismaClient();
 const { notificationRouter, storeInApp } = buildContainer({ prisma, requireAuth: verifyJwt([]) });
 
@@ -50,6 +59,7 @@ app.use(logger);
 // needs RabbitMQ; Redis (revocation check, fail open) is only reported.
 registerHealthRoutes(app, {
   service: 'notification',
+  isDraining: shutdown.isShuttingDown,
   checks: {
     db: { check: prismaCheck(prisma) },
     rabbitmq: { check: rabbitReady },
@@ -59,7 +69,16 @@ registerHealthRoutes(app, {
 app.use('/', notificationRouter);
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
-app.listen(PORT, () => console.log(`[notification] http :${PORT}`));
+const server = app.listen(PORT, () => console.log(`[notification] http :${PORT}`));
+
+// Requests in flight and the emails being sent finish, then the broker, the database and Redis close.
+shutdown
+  .add('stop intake', () => Promise.all([closeServer(server), stopConsuming({ timeoutMs: 20000 })]), {
+    timeoutMs: 22000,
+  })
+  .add('rabbitmq', closeRabbit, { timeoutMs: 2000 })
+  .add('database', () => prisma.$disconnect(), { timeoutMs: 2000 })
+  .add('redis', () => revocationRedis.quit(), { timeoutMs: 2000 });
 
 async function startWorker() {
   await connect();
@@ -89,6 +108,7 @@ async function startWorker() {
 
 function startWorkerWithRetry(delayMs = 10000) {
   startWorker().catch((err) => {
+    if (shutdown.isShuttingDown()) return; // stopping: no retry
     console.error(`[notification] worker: ${err.message} — retry in ${delayMs / 1000}s`);
     setTimeout(() => startWorkerWithRetry(delayMs), delayMs);
   });

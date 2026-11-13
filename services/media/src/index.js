@@ -13,9 +13,17 @@ import {
   setSessionRevocationCheck,
   createRedisRevocationCheck,
 } from '../shared/middleware/index.js';
-import { connect, consume, publish, isReady as rabbitReady } from '../shared/rabbitmq/index.js';
+import {
+  connect,
+  consume,
+  publish,
+  stopConsuming,
+  close as closeRabbit,
+  isReady as rabbitReady,
+} from '../shared/rabbitmq/index.js';
 import { EVENTS } from '../shared/events/index.js';
 import { registerHealthRoutes, redisCheck } from '../shared/health/index.js';
+import { createShutdown, closeServer } from '../shared/shutdown/index.js';
 import { buildContainer } from './container.js';
 
 // UC23 — reject access tokens of signed-out sessions (key revoked:sid:<sid>, written by Auth).
@@ -34,6 +42,8 @@ revocationRedis.on('error', (err) => {
 setSessionRevocationCheck(createRedisRevocationCheck(revocationRedis));
 
 const PORT = process.env.PORT || 3005;
+// Graceful shutdown (#348): SIGTERM / SIGINT run the steps registered below the listen() call.
+const shutdown = createShutdown({ service: 'media' });
 const { mediaRouter, localDir, storageName } = buildContainer(process.env);
 
 const app = express();
@@ -42,6 +52,7 @@ app.use(logger);
 // check, fail open) is only reported.
 registerHealthRoutes(app, {
   service: 'media',
+  isDraining: shutdown.isShuttingDown,
   extra: { storage: storageName },
   checks: {
     rabbitmq: { check: rabbitReady },
@@ -68,7 +79,16 @@ if (localDir) {
 }
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
-app.listen(PORT, () => console.log(`[media] http :${PORT} (storage: ${storageName})`));
+const server = app.listen(PORT, () => console.log(`[media] http :${PORT} (storage: ${storageName})`));
+
+// Uploads in flight and the TTS renders in progress finish (a render still publishes its result),
+// then the broker and Redis close.
+shutdown
+  .add('stop intake', () => Promise.all([closeServer(server), stopConsuming({ timeoutMs: 20000 })]), {
+    timeoutMs: 22000,
+  })
+  .add('rabbitmq', closeRabbit, { timeoutMs: 2000 })
+  .add('redis', () => revocationRedis.quit(), { timeoutMs: 2000 });
 
 async function startWorker() {
   await connect();
@@ -87,6 +107,7 @@ async function startWorker() {
 
 function startWorkerWithRetry(delayMs = 10000) {
   startWorker().catch((err) => {
+    if (shutdown.isShuttingDown()) return; // stopping: no retry
     console.error(`[media] worker: ${err.message} — thử lại sau ${delayMs / 1000}s`);
     setTimeout(() => startWorkerWithRetry(delayMs), delayMs);
   });
