@@ -22,12 +22,14 @@ FROM deps AS dev
 COPY services/moderation/src ./src
 COPY shared ./shared
 EXPOSE 3003
-CMD ["sh", "-c", "DATABASE_URL=\"${DATABASE_URL_DIRECT_MODERATION:-$DATABASE_URL}\" npx prisma db push --skip-generate || echo 'db push skipped'; npm start"]
+# No schema change on start (task 0.6, #352): docker compose --profile migrate run --rm migrate.
+CMD ["npm", "start"]
 
 # Runtime dependencies. npm also installs the prisma CLI as a peer of @prisma/client: it stays,
-# because the team runs `npx prisma db push | validate | generate` in these containers and the
-# migrate Job (task 0.6) will too. Prisma Studio's web assets are not needed. The stub client
-# from the install is dropped: the prod stage copies the generated one from `deps`.
+# because the team runs `npx prisma validate | generate | migrate` in these containers and the
+# migrate Job (task 0.6) runs `prisma migrate deploy` from this image. Prisma Studio's web
+# assets are not needed. The stub client from the install is dropped: the prod stage copies the
+# generated one from `deps`.
 FROM base AS prod-deps
 RUN npm install --omit=dev --no-audit --no-fund --loglevel=error \
  && test -x node_modules/.bin/prisma \
@@ -45,13 +47,11 @@ COPY services/moderation/prisma ./prisma
 COPY services/moderation/src ./src
 COPY shared ./shared
 # Files stay owned by root (read-only for the app); the process runs as `node`.
-# `prisma db push | validate` work as `node`; `prisma generate` needs `--user root`
+# `prisma migrate deploy | validate` work as `node`; `prisma generate` needs `--user root`
 # and network access (it downloads the query engine).
 USER node
 EXPOSE 3003
-# Sync the schema (db push) then start. DDL goes through the session pooler 5432
-# (DATABASE_URL_DIRECT_MODERATION), not pgbouncer 6543; the runtime keeps DATABASE_URL from compose.
-# A failed push (for example an existing schema) does not stop the start.
-# `exec` so node replaces the shell and receives SIGTERM. Task 0.6 replaces db push
-# with `prisma migrate deploy` in a migrate Job.
-CMD ["sh", "-c", "DATABASE_URL=\"${DATABASE_URL_DIRECT_MODERATION:-$DATABASE_URL}\" npx prisma db push --skip-generate || echo 'db push skipped'; exec node src/index.js"]
+# The start never changes the schema (task 0.6, #352): migrations run once, before the rollout,
+# with `prisma migrate deploy` over DATABASE_URL_DIRECT_MODERATION (session pooler 5432): the compose
+# `migrate` service, or the migrate Job in Kubernetes. Node is PID 1 and receives SIGTERM.
+CMD ["node", "src/index.js"]
