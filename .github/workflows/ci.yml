@@ -24,6 +24,18 @@ jobs:
   backend:
     name: Backend — syntax, prisma, tests
     runs-on: ubuntu-latest
+    # Disposable Postgres with pgvector: shadow database of the migrations check (task 0.6, #352).
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: shadow
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ci -d shadow"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -52,6 +64,13 @@ jobs:
             echo "prisma validate -> $schema"
             npx prisma validate --schema "$schema"
           done
+
+      - name: Prisma migrations match schema.prisma
+        # Replays prisma/migrations of every service on the shadow Postgres above and diffs the
+        # result with schema.prisma: a schema change without a migration fails here (task 0.6).
+        env:
+          SHADOW_DATABASE_URL: postgresql://ci:ci@localhost:5432/shadow
+        run: sh scripts/db/check-migrations.sh
 
       - name: Run workspace tests
         run: npm test --workspaces --if-present
