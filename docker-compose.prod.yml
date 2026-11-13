@@ -1,0 +1,216 @@
+# =========================================================
+# GeoSound — production stack on one VM (deployment plan task 0.10, issue #361).
+# Guide: docs/04-guides/vm-deploy.md
+#
+#   docker compose -f docker-compose.prod.yml pull            # images from GHCR (phase 1), or
+#   docker compose -f docker-compose.prod.yml build           # build them on the VM
+#   docker compose -f docker-compose.prod.yml --profile migrate run --rm migrate   # schema first
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Differences from docker-compose.yml (dev): production images (no source mounts, no nodemon,
+# nginx client), no local Postgres (every DATABASE_URL_* points to Supabase), one public entry
+# (Caddy on 80/443; gateway, services, RabbitMQ and Redis publish no port), Supabase Storage for
+# media, healthchecks on /readyz, log rotation, data volumes for RabbitMQ and Redis.
+# `.env` next to this file holds the production values (never committed).
+# =========================================================
+
+x-app: &app
+  env_file: [.env]
+  restart: unless-stopped
+  stop_grace_period: 30s # graceful shutdown (task 0.5): the app stops in at most 28 s
+  logging: &logging # JSON request lines (task 0.9): keep at most 3 × 10 MB per container
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+x-health: &health
+  interval: 30s
+  timeout: 5s
+  retries: 3
+  start_period: 30s
+
+x-depends-infra: &depends-infra
+  redis: { condition: service_healthy }
+  rabbitmq: { condition: service_healthy }
+
+services:
+  proxy: # the only public entry: /api/* -> gateway, the rest -> client
+    image: caddy:2.8-alpine
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp" # HTTP/3
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80} # a domain = automatic HTTPS
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data # certificates
+      - caddyconfig:/config
+    depends_on:
+      client: { condition: service_started }
+      gateway: { condition: service_started }
+    restart: unless-stopped
+    logging: *logging
+
+  client: # nginx serving the built PWA (task 0.1); the API is on the same origin (/api)
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-client:${IMAGE_TAG:-latest}
+    build:
+      context: ./client
+      args: { VITE_API_BASE_URL: "" }
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      <<: *health
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+
+  gateway:
+    <<: *app
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-gateway:${IMAGE_TAG:-latest}
+    build: ./gateway
+    environment:
+      NODE_ENV: production
+      GATEWAY_PORT: 8080
+      TRUST_PROXY: 1 # behind Caddy: rate limits per client IP, not per proxy IP
+    depends_on:
+      redis: { condition: service_healthy }
+    healthcheck:
+      <<: *health
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/readyz"]
+
+  auth:
+    <<: *app
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-auth:${IMAGE_TAG:-latest}
+    build: { context: ., dockerfile: services/auth/Dockerfile }
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: ${DATABASE_URL_AUTH:?set DATABASE_URL_AUTH in .env}
+    depends_on: *depends-infra
+    healthcheck:
+      <<: *health
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3001/readyz"]
+
+  tour:
+    <<: *app
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-tour:${IMAGE_TAG:-latest}
+    build: { context: ., dockerfile: services/tour/Dockerfile }
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_URL: ${DATABASE_URL_TOUR:?set DATABASE_URL_TOUR in .env}
+    depends_on: *depends-infra
+    healthcheck:
+      <<: *health
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3002/readyz"]
+
+  moderation:
+    <<: *app
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-moderation:${IMAGE_TAG:-latest}
+    build: { context: ., dockerfile: services/moderation/Dockerfile }
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DATABASE_URL: ${DATABASE_URL_MODERATION:?set DATABASE_URL_MODERATION in .env}
+    depends_on:
+      <<: *depends-infra # Redis: retry sweeper lock (task 0.8)
+      ai: { condition: service_started }
+    healthcheck:
+      <<: *health
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3003/readyz"]
+
+  media:
+    <<: *app
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-media:${IMAGE_TAG:-latest}
+    build: { context: ., dockerfile: services/media/Dockerfile }
+    environment:
+      NODE_ENV: production
+      PORT: 3005
+      DATABASE_URL: ${DATABASE_URL_MEDIA:?set DATABASE_URL_MEDIA in .env}
+      # Task 0.7: uploads go to Supabase Storage; the service stops at start without
+      # SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, so it never writes to the container disk.
+      MEDIA_STORAGE: supabase
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    healthcheck:
+      <<: *health
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3005/readyz"]
+
+  notification:
+    <<: *app
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-notification:${IMAGE_TAG:-latest}
+    build: { context: ., dockerfile: services/notification/Dockerfile }
+    environment:
+      NODE_ENV: production
+      PORT: 3006
+      DATABASE_URL: ${DATABASE_URL_NOTIFICATION:?set DATABASE_URL_NOTIFICATION in .env}
+    depends_on: *depends-infra
+    healthcheck:
+      <<: *health
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3006/readyz"]
+
+  ai: # moderation, chatbot, translation; the embedding model is inside the image (task 0.3)
+    <<: *app
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-ai:${IMAGE_TAG:-latest}
+    build: { context: ., dockerfile: services/ai/Dockerfile }
+    environment:
+      PORT: 3004
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    healthcheck:
+      <<: *health
+      start_period: 60s
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3004/readyz', timeout=4)"]
+
+  # One-shot schema migrations (task 0.6). Not started by `up`; run it before `up` on each release:
+  #   docker compose -f docker-compose.prod.yml --profile migrate run --rm migrate [deploy|status|check]
+  # Uses the tour image (it has the Prisma CLI) and the prisma folders of this checkout (read-only).
+  migrate:
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-tour:${IMAGE_TAG:-latest}
+    profiles: [migrate]
+    env_file: [.env]
+    entrypoint: ["sh", "/migrate.sh"]
+    command: ["deploy"]
+    volumes:
+      - ./scripts/db/migrate.sh:/migrate.sh:ro
+      - ./services/auth/prisma:/migrations/auth:ro
+      - ./services/tour/prisma:/migrations/tour:ro
+      - ./services/moderation/prisma:/migrations/moderation:ro
+      - ./services/notification/prisma:/migrations/notification:ro
+      - ./services/media/prisma:/migrations/media:ro
+      - ./services/ai/prisma:/migrations/ai:ro
+    logging: *logging
+
+  rabbitmq:
+    image: rabbitmq:3-alpine # no management UI in production
+    hostname: rabbitmq # the data directory is named after the node: keep it stable
+    environment:
+      # RABBITMQ_URL in .env must use the same user and password.
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?set RABBITMQ_DEFAULT_USER in .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS in .env}
+    volumes:
+      - rabbitdata:/var/lib/rabbitmq # durable queues survive a restart
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    logging: *logging
+
+  redis: # rate limits, session revocations, presence, job locks (task 0.8)
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  caddydata:
+  caddyconfig:
+  rabbitdata:
+  redisdata:
