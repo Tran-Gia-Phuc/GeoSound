@@ -103,3 +103,34 @@ test('stop() resolves at once when no sweep is running, even after a failed one'
   await timers.fn();
   await assert.doesNotReject(sweeper.stop());
 });
+
+// Task 0.8 (issue #354): with a lock, a replica that does not get it skips the sweep.
+test('lock: each sweep runs inside the lock; a held lock skips execute', async () => {
+  const timers = fakeTimers();
+  let runs = 0;
+  let free = true;
+  const lockCalls = [];
+  const lock = async (fn) => {
+    lockCalls.push(free);
+    return free ? { ran: true, result: await fn() } : { ran: false, reason: 'held' };
+  };
+  startRetrySweeper({ retryFailedCases: { execute: async () => { runs += 1; return {}; } }, intervalMs: 10, logger: new FakeLogger(), lock, ...timers });
+  await timers.fn();
+  free = false;
+  await timers.fn();
+  assert.deepEqual(lockCalls, [true, false]);
+  assert.equal(runs, 1);
+});
+
+test('lock: a lock error is logged like a sweep error and the next tick tries again', async () => {
+  const timers = fakeTimers();
+  const logger = new FakeLogger();
+  let calls = 0;
+  const lock = async (fn) => { calls += 1; if (calls === 1) throw new Error('lock broken'); return fn(); };
+  let runs = 0;
+  startRetrySweeper({ retryFailedCases: { execute: async () => { runs += 1; } }, intervalMs: 10, logger, lock, ...timers });
+  await assert.doesNotReject(timers.fn());
+  assert.ok(logger.lines.some(([level, m]) => level === 'error' && /lock broken/.test(m)));
+  await timers.fn();
+  assert.equal(runs, 1);
+});

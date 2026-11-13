@@ -78,6 +78,7 @@ services:
       PORT: 3003
       DATABASE_URL: ${DATABASE_URL_MODERATION}
     depends_on:
+      redis: { condition: service_healthy } # retry sweeper lock (deployment plan task 0.8)
       rabbitmq: { condition: service_healthy }
       postgres: { condition: service_healthy }
       ai: { condition: service_started }
