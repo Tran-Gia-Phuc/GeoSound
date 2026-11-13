@@ -10,9 +10,13 @@ import { createGeocoder } from './geocode.js';
 import { mountChat } from './chat.js';
 import { createChatRateLimit, createRedisStore } from './chat-rate-limit.js';
 import { createRequestLogger } from './request-log.js';
+import { parseTrustProxy } from './trust-proxy.js';
 
 const app = express();
 const PORT = process.env.GATEWAY_PORT || 8080;
+// Behind a reverse proxy (docker-compose.prod.yml sets TRUST_PROXY=1): req.ip = client IP (#361).
+const trustProxy = parseTrustProxy(process.env.TRUST_PROXY);
+if (trustProxy !== undefined) app.set('trust proxy', trustProxy);
 
 const TARGETS = {
   auth: process.env.AUTH_SERVICE_URL || 'http://auth:3001',
