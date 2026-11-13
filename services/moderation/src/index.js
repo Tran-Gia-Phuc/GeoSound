@@ -1,10 +1,12 @@
 // =========================================================
 // Moderation service entry point: starts HTTP (/healthz, /health, /readyz), the RabbitMQ consumers
-// (tasks #AI-36, #AI-37) and the retry sweeper (task #AI-38).
+// (tasks #AI-36, #AI-37) and the retry sweeper (task #AI-38), which takes a Redis lock per run so
+// several replicas sweep once per interval (deployment plan task 0.8, issue #354).
 // Wiring lives in container.js; this file only starts things. It is the only module that imports shared/
 // (it runs in the Docker image, where shared/ sits next to src/); everything else gets it injected.
 // =========================================================
 import express from 'express';
+import Redis from 'ioredis';
 import { logger, errorHandler } from '../shared/middleware/index.js';
 import {
   connect,
@@ -15,7 +17,8 @@ import {
   isReady as rabbitReady,
 } from '../shared/rabbitmq/index.js';
 import { EVENTS, validateEvent } from '../shared/events/index.js';
-import { registerHealthRoutes, prismaCheck } from '../shared/health/index.js';
+import { registerHealthRoutes, prismaCheck, redisCheck } from '../shared/health/index.js';
+import { createJobLock } from '../shared/lock/index.js';
 import { createShutdown, closeServer } from '../shared/shutdown/index.js';
 import { loadConfig } from './config.js';
 import { buildContainer } from './container.js';
@@ -31,16 +34,39 @@ const shutdown = createShutdown({ service: 'moderation' });
 let sweeper = null;
 const app = express();
 
+// Only the sweeper lock uses Redis. No offline queue: while Redis is down a command fails at once and
+// the sweep of that tick is skipped (two replicas retrying the same case would call the AI twice).
+const redis = new Redis(process.env.REDIS_URL || 'redis://redis:6379', {
+  enableOfflineQueue: false,
+  maxRetriesPerRequest: 1,
+});
+let redisErrorLogged = false;
+redis.on('error', (err) => {
+  if (redisErrorLogged) return;
+  redisErrorLogged = true;
+  console.warn(`[moderation] Redis unavailable for the sweeper lock: ${err.message}`);
+});
+redis.on('ready', () => { redisErrorLogged = false; });
+const jobLock = createJobLock(redis, { service: 'moderation' });
+// Renewed while a sweep runs; kept until 80 % of the interval after the start, so the next tick of
+// any replica (whatever its timer phase) gets it and there is one sweep per interval.
+const sweepLock = (fn) => jobLock.runOnce('moderation:retry-sweep', fn, {
+  ttlMs: 30000,
+  holdMs: Math.floor(config.sweep.intervalMs * 0.8),
+  onRedisError: 'skip',
+});
+
 app.use(express.json());
 app.use(logger);
 // /healthz, /health (liveness) and /readyz (#345): cases live in the database and arrive through
-// RabbitMQ, so both are required.
+// RabbitMQ, so both are required. Redis (sweeper lock only) is reported.
 registerHealthRoutes(app, {
   service: 'moderation',
   isDraining: shutdown.isShuttingDown,
   checks: {
     db: { check: prismaCheck(prisma) },
     rabbitmq: { check: rabbitReady },
+    redis: { check: redisCheck(redis), required: false },
   },
 });
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
@@ -56,7 +82,8 @@ shutdown
     timeoutMs: 22000,
   })
   .add('rabbitmq', closeRabbit, { timeoutMs: 2000 })
-  .add('database', () => prisma.$disconnect(), { timeoutMs: 2000 });
+  .add('database', () => prisma.$disconnect(), { timeoutMs: 2000 })
+  .add('redis', () => redis.quit(), { timeoutMs: 2000 });
 
 (async () => {
   try {
@@ -74,7 +101,11 @@ shutdown
       { prefetch: config.prefetch });
 
     // Sweeper: retries ai_failed / stale cases, re-publishes unpublished results (#AI-38, D11).
-    sweeper = startRetrySweeper({ retryFailedCases: container.retryFailedCases, intervalMs: config.sweep.intervalMs });
+    sweeper = startRetrySweeper({
+      retryFailedCases: container.retryFailedCases,
+      intervalMs: config.sweep.intervalMs,
+      lock: sweepLock,
+    });
   } catch (err) {
     console.error('[moderation] rabbitmq init failed:', err.message);
   }
