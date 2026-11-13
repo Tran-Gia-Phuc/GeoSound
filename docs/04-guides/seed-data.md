@@ -12,9 +12,14 @@ mounted from the working tree, so no image rebuild is needed for them.
 
 ## 1. Add the demo tours (optional)
 
-`services/tour/prisma/seed-tours.js` adds 7 public tours (Hà Nội, Hồ Chí Minh, Ninh Bình, Cần Thơ,
-Hạ Long, Hội An; types walking, cycling, driving, indoor) with places, route triggers and the
-source language `vi`. Ids are fixed (`5eed00NN-...`) and written with upsert: running it again
+`services/tour/prisma/seed-tours.js` adds 112 public tours (423 places) with places, route
+triggers and the source language `vi`: 7 written by hand (`n` 1 to 7) and 105 built by
+`seed-catalog.js` (#349, `n` from 101) from about 150 real points of interest in the 13 cities the
+chatbot knows (`CITY_ALIASES` in `services/ai/app/chatbot/graph/rules.py`), one tour per theme
+(history, food, nature, culture, night, shopping, mixed) and variant. Only append to a city list
+in `CATALOG`: inserting in the middle changes the places of the tours after it. A self-check stops
+the script before any write on a duplicate id or title, an unknown type or fewer than 3 places.
+Ids are fixed (`5eedTTTT-...`, `TTTT` = `n` on 4 digits) and written with upsert: running it again
 updates the same rows. The author is `SEED_AUTHOR_ID`, else the author of the oldest public tour.
 It writes to the database of `DATABASE_URL_TOUR` (Supabase in the normal setup).
 
