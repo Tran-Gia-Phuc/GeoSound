@@ -13,6 +13,10 @@
 # An image whose paths did not change since the commit it was built from is retagged in the
 # registry instead of rebuilt (scripts/ci/image-reuse.sh), so every tag exists for all 8 apps
 # and one IMAGE_TAG deploys the whole stack.
+#
+# Every built image is scanned with Trivy before the push (task 1.2, #364): a CRITICAL finding
+# with a fix fails the job (accepted ones: .trivyignore), HIGH is reported, and the CycloneDX
+# SBOM is kept as the artifact sbom-<svc>.
 # =========================================================
 name: Images
 
@@ -115,7 +119,7 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           platforms: linux/amd64
-          load: true # pushed by the next step, after the checks of task 1.2
+          load: true # scanned first, pushed only when the scan passes
           push: false
           provenance: false # one plain manifest per tag, no "unknown/unknown" entries in GHCR
           tags: geosound-${{ matrix.service }}:ci
@@ -126,6 +130,40 @@ jobs:
           # Registry cache: the GitHub Actions cache holds 10 GB per repo, the AI image alone is 1.3 GB.
           cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
           cache-to: ${{ inputs.push && format('type=registry,ref={0}:buildcache,mode=max,ignore-error=true', env.IMAGE) || '' }}
+
+      # Task 1.2 (#364): scan the loaded image before the push, so a failing image never reaches
+      # GHCR. Trivy runs from its image pinned by digest, not through trivy-action: a digest
+      # cannot be moved to other code, an action tag can.
+      - name: Scan (Trivy) and write the SBOM
+        if: steps.reuse.outputs.source == ''
+        env:
+          TRIVY_IMAGE: aquasec/trivy:0.76.1@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c
+          SERVICE: ${{ matrix.service }}
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/trivy-cache" sbom
+          trivy() {
+            docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v "$RUNNER_TEMP/trivy-cache:/root/.cache/trivy" \
+              -v "$PWD:/work" -w /work \
+              "$TRIVY_IMAGE" image --quiet --ignorefile .trivyignore "$@" "geosound-$SERVICE:ci"
+          }
+          echo "::group::Report: HIGH and CRITICAL findings (not blocking)"
+          trivy --severity HIGH,CRITICAL --format table
+          echo "::endgroup::"
+          trivy --skip-db-update --format cyclonedx --output "sbom/sbom-$SERVICE.cdx.json"
+          # Gate: a CRITICAL finding that has a fix fails the job. Accepted ones go in .trivyignore.
+          trivy --skip-db-update --severity CRITICAL --ignore-unfixed --exit-code 1 --format table
+
+      - name: Upload the SBOM
+        if: always() && steps.reuse.outputs.source == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.service }}
+          path: sbom/
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Push
         if: steps.reuse.outputs.source == '' && inputs.push
