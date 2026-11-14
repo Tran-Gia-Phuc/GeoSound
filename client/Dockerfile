@@ -15,7 +15,7 @@ ARG VITE_API_BASE_URL=
 RUN VITE_API_BASE_URL="$VITE_API_BASE_URL" npm run build
 
 # alpine-slim: about 20 MB; the modules it leaves out (njs, image filter, ...) are not used here.
-FROM nginxinc/nginx-unprivileged:1.28-alpine-slim
+FROM nginxinc/nginx-unprivileged:1.30-alpine-slim
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 8080
