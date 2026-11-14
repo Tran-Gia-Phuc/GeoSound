@@ -33,15 +33,21 @@ Differences from the dev `docker-compose.yml`: no source mounts, no Vite dev ser
    - New random values for `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `INTERNAL_SERVICE_TOKEN`, `STATS_ACTOR_SALT`.
    - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` (media stops at start without them).
    - `SITE_ADDRESS=<your domain>` for HTTPS. Without it Caddy serves plain HTTP on port 80.
-   - `IMAGE_TAG` (default `latest`) and, if the images are not in the team's GHCR, `IMAGE_PREFIX`.
+   - `IMAGE_TAG` (required, no default): the image tag to run, the same for all 8 apps. CI (phase 1, `.github/workflows/images.yml`) publishes `sha-<7 chars of the commit>` and the branch name for every push to `develop`, `staging` and `main`, and `vX.Y.Z` plus `sha-<7>` for a release tag. It never publishes `latest`. Prefer `vX.Y.Z` or `sha-<7>`: a branch tag moves with every merge, so it does not tell which code runs and it cannot be rolled back to. `IMAGE_PREFIX` only if the images are not in the team's GHCR (`ghcr.io/tran-gia-phuc/geosound`).
    - `NODE_ENV` and `VITE_API_BASE_URL` from `.env` are not used: the file forces `production`, and the client calls the API on its own origin.
-3. Get the images. Once phase 1 publishes them to GHCR:
+3. Get the images from GHCR (`ghcr.io/tran-gia-phuc/geosound-<app>`, published by CI):
 
    ```sh
    docker compose -f docker-compose.prod.yml pull
    ```
 
-   Until then, build them on the VM (the same Dockerfiles; the AI image takes the longest):
+   The pull needs no login when the 8 packages are public (the repository owner sets this once per package: GitHub, Packages, package settings, Change visibility). For private packages, log in once on the VM with a personal access token (classic) that has only the `read:packages` scope:
+
+   ```sh
+   echo "<token>" | docker login ghcr.io -u <github user> --password-stdin
+   ```
+
+   Without CI images (for example a tag that was never published), build them on the VM instead. `IMAGE_TAG` is still required and becomes the local tag (the same Dockerfiles; the AI image takes the longest):
 
    ```sh
    docker compose -f docker-compose.prod.yml build
@@ -69,7 +75,7 @@ Differences from the dev `docker-compose.yml`: no source mounts, no Vite dev ser
 
 ```sh
 git pull                                              # compose file, Caddyfile, migrations
-# set IMAGE_TAG in .env to the new tag (or rebuild)
+# set IMAGE_TAG in .env to the new tag (vX.Y.Z or sha-<7>), or rebuild
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml --profile migrate run --rm migrate
 docker compose -f docker-compose.prod.yml up -d       # recreates only the changed services

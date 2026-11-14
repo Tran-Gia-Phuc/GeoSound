@@ -7,6 +7,9 @@
 #   docker compose -f docker-compose.prod.yml --profile migrate run --rm migrate   # schema first
 #   docker compose -f docker-compose.prod.yml up -d
 #
+# IMAGE_TAG is required (task 1.3, #365): CI publishes sha-<7>, develop, staging, main and vX.Y.Z,
+# never `latest`, so a missing tag stops here instead of pulling an image that does not exist.
+#
 # Differences from docker-compose.yml (dev): production images (no source mounts, no nodemon,
 # nginx client), no local Postgres (every DATABASE_URL_* points to Supabase), one public entry
 # (Caddy on 80/443; gateway, services, RabbitMQ and Redis publish no port), Supabase Storage for
@@ -52,7 +55,7 @@ services:
     logging: *logging
 
   client: # nginx serving the built PWA (task 0.1); the API is on the same origin (/api)
-    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-client:${IMAGE_TAG:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-client:${IMAGE_TAG:?set IMAGE_TAG in .env, see docs/04-guides/vm-deploy.md}
     build:
       context: ./client
       args: { VITE_API_BASE_URL: "" }
@@ -64,7 +67,7 @@ services:
 
   gateway:
     <<: *app
-    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-gateway:${IMAGE_TAG:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-gateway:${IMAGE_TAG:?set IMAGE_TAG in .env, see docs/04-guides/vm-deploy.md}
     build: ./gateway
     environment:
       NODE_ENV: production
@@ -78,7 +81,7 @@ services:
 
   auth:
     <<: *app
-    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-auth:${IMAGE_TAG:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-auth:${IMAGE_TAG:?set IMAGE_TAG in .env, see docs/04-guides/vm-deploy.md}
     build: { context: ., dockerfile: services/auth/Dockerfile }
     environment:
       NODE_ENV: production
@@ -91,7 +94,7 @@ services:
 
   tour:
     <<: *app
-    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-tour:${IMAGE_TAG:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-tour:${IMAGE_TAG:?set IMAGE_TAG in .env, see docs/04-guides/vm-deploy.md}
     build: { context: ., dockerfile: services/tour/Dockerfile }
     environment:
       NODE_ENV: production
@@ -104,7 +107,7 @@ services:
 
   moderation:
     <<: *app
-    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-moderation:${IMAGE_TAG:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-moderation:${IMAGE_TAG:?set IMAGE_TAG in .env, see docs/04-guides/vm-deploy.md}
     build: { context: ., dockerfile: services/moderation/Dockerfile }
     environment:
       NODE_ENV: production
@@ -119,7 +122,7 @@ services:
 
   media:
     <<: *app
-    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-media:${IMAGE_TAG:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-media:${IMAGE_TAG:?set IMAGE_TAG in .env, see docs/04-guides/vm-deploy.md}
     build: { context: ., dockerfile: services/media/Dockerfile }
     environment:
       NODE_ENV: production
@@ -136,7 +139,7 @@ services:
 
   notification:
     <<: *app
-    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-notification:${IMAGE_TAG:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-notification:${IMAGE_TAG:?set IMAGE_TAG in .env, see docs/04-guides/vm-deploy.md}
     build: { context: ., dockerfile: services/notification/Dockerfile }
     environment:
       NODE_ENV: production
@@ -149,7 +152,7 @@ services:
 
   ai: # moderation, chatbot, translation; the embedding model is inside the image (task 0.3)
     <<: *app
-    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-ai:${IMAGE_TAG:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-ai:${IMAGE_TAG:?set IMAGE_TAG in .env, see docs/04-guides/vm-deploy.md}
     build: { context: ., dockerfile: services/ai/Dockerfile }
     environment:
       PORT: 3004
@@ -164,7 +167,7 @@ services:
   #   docker compose -f docker-compose.prod.yml --profile migrate run --rm migrate [deploy|status|check]
   # Uses the tour image (it has the Prisma CLI) and the prisma folders of this checkout (read-only).
   migrate:
-    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-tour:${IMAGE_TAG:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/tran-gia-phuc/geosound}-tour:${IMAGE_TAG:?set IMAGE_TAG in .env, see docs/04-guides/vm-deploy.md}
     profiles: [migrate]
     env_file: [.env]
     entrypoint: ["sh", "/migrate.sh"]
