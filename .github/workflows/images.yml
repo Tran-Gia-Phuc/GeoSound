@@ -1,0 +1,149 @@
+# =========================================================
+# Images: build the production image of each app and publish it to GHCR
+# (deployment plan phase 1, task 1.1, #363; docs/02-design/deployment-plan.md section 7).
+#
+# Reusable workflow: ci.yml calls it after the test jobs pass, so no image is built for a red
+# commit and the images belong to the same run as the tests.
+#
+#   pull request          -> build the changed images, push nothing
+#   push develop/staging/main -> ghcr.io/<owner>/geosound-<svc>:sha-<7> and :<branch>
+#   tag vX.Y.Z            -> :vX.Y.Z and :sha-<7>
+#   never :latest
+#
+# An image whose paths did not change since the commit it was built from is retagged in the
+# registry instead of rebuilt (scripts/ci/image-reuse.sh), so every tag exists for all 8 apps
+# and one IMAGE_TAG deploys the whole stack.
+# =========================================================
+name: Images
+
+on:
+  workflow_call:
+    inputs:
+      push:
+        description: Push the images (false on pull requests, which only build).
+        type: boolean
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    name: Image — ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # paths = what the image is built from: a change there means a new build.
+          - { service: client, context: client, dockerfile: client/Dockerfile, paths: "client" }
+          - { service: gateway, context: gateway, dockerfile: gateway/Dockerfile, paths: "gateway" }
+          - { service: auth, context: ".", dockerfile: services/auth/Dockerfile, paths: "services/auth shared" }
+          - { service: tour, context: ".", dockerfile: services/tour/Dockerfile, paths: "services/tour shared" }
+          - { service: moderation, context: ".", dockerfile: services/moderation/Dockerfile, paths: "services/moderation shared" }
+          - { service: media, context: ".", dockerfile: services/media/Dockerfile, paths: "services/media shared" }
+          - { service: notification, context: ".", dockerfile: services/notification/Dockerfile, paths: "services/notification shared" }
+          - { service: ai, context: ".", dockerfile: services/ai/Dockerfile, paths: "services/ai" }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # image-reuse.sh diffs against the commit an image was built from
+
+      - name: Image name, tags and reuse candidates
+        id: plan
+        env:
+          SERVICE: ${{ matrix.service }}
+          EVENT: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -eu
+          owner=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]') # GHCR needs lowercase
+          short=$(git rev-parse --short=7 HEAD)
+          if [ "$EVENT" = "pull_request" ]; then
+            tags=""
+            candidates="$BASE_REF"
+          elif [ "$REF_TYPE" = "tag" ]; then
+            tags="$REF_NAME sha-$short"
+            candidates="sha-$short main staging develop" # a release promotes the image built on main
+          else
+            tags="sha-$short $REF_NAME"
+            candidates="$REF_NAME develop staging main"
+          fi
+          {
+            echo "IMAGE=ghcr.io/$owner/geosound-$SERVICE"
+            echo "TAGS=$tags"
+          } >> "$GITHUB_ENV"
+          echo "candidates=$candidates" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Reuse an existing image?
+        id: reuse
+        env:
+          PATHS: ${{ matrix.paths }}
+          CANDIDATES: ${{ steps.plan.outputs.candidates }}
+        run: |
+          # shellcheck disable=SC2086 # CANDIDATES is a space-separated list on purpose
+          source=$(sh scripts/ci/image-reuse.sh "$IMAGE" "$PATHS" $CANDIDATES)
+          echo "source=$source" >> "$GITHUB_OUTPUT"
+
+      - name: Retag the existing image
+        if: steps.reuse.outputs.source != '' && inputs.push
+        env:
+          SOURCE: ${{ steps.reuse.outputs.source }}
+        run: |
+          set -eu
+          args=""
+          for t in $TAGS; do args="$args -t $IMAGE:$t"; done
+          # shellcheck disable=SC2086
+          docker buildx imagetools create $args "$IMAGE:$SOURCE"
+
+      - name: Build
+        if: steps.reuse.outputs.source == ''
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          load: true # pushed by the next step, after the checks of task 1.2
+          push: false
+          provenance: false # one plain manifest per tag, no "unknown/unknown" entries in GHCR
+          tags: geosound-${{ matrix.service }}:ci
+          labels: |
+            org.opencontainers.image.title=geosound-${{ matrix.service }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          # Registry cache: the GitHub Actions cache holds 10 GB per repo, the AI image alone is 1.3 GB.
+          cache-from: type=registry,ref=${{ env.IMAGE }}:buildcache
+          cache-to: ${{ inputs.push && format('type=registry,ref={0}:buildcache,mode=max,ignore-error=true', env.IMAGE) || '' }}
+
+      - name: Push
+        if: steps.reuse.outputs.source == '' && inputs.push
+        run: |
+          set -eu
+          for t in $TAGS; do
+            docker tag "geosound-${{ matrix.service }}:ci" "$IMAGE:$t"
+            docker push -q "$IMAGE:$t"
+          done
+
+      - name: Summary
+        if: always()
+        env:
+          SERVICE: ${{ matrix.service }}
+          PATHS: ${{ matrix.paths }}
+          SOURCE: ${{ steps.reuse.outputs.source }}
+          PUSH: ${{ inputs.push }}
+        run: |
+          if [ -n "$SOURCE" ]; then action="reused \`$SOURCE\` (no change in \`$PATHS\`)"; else action="built"; fi
+          if [ "$PUSH" = "true" ]; then pushed="tags \`${TAGS:-}\`"; else pushed="nothing pushed (pull request)"; fi
+          echo "- \`$SERVICE\`: $action, $pushed, status ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
