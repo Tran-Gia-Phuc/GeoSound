@@ -115,3 +115,26 @@ services:
       # Measured: about 30 s to the first /healthz at 1 CPU (model load). 180 s (6x) leaves room
       # for a throttled CPU on a busy node; a healthy pod passes as soon as it answers.
       startup: { periodSeconds: 5, failureThreshold: 36 }
+
+# Message broker and cache inside the release (task 2.3). Switch one off to use an external
+# broker or Redis: then point RABBITMQ_URL / REDIS_URL in geosound-infra at it.
+# Secret geosound-broker: RABBITMQ_DEFAULT_USER, RABBITMQ_DEFAULT_PASS, REDIS_PASSWORD (optional).
+rabbitmq:
+  enabled: true
+  image: rabbitmq:3.13-alpine # management and prometheus plugins turned on by the chart
+  secret: geosound-broker
+  storage: 5Gi
+  storageClass: "" # cluster default (k3s: local-path)
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: "1", memory: 512Mi }
+
+redis:
+  enabled: true
+  image: redis:7.4-alpine
+  secret: geosound-broker
+  storage: 1Gi
+  storageClass: ""
+  resources:
+    requests: { cpu: 25m, memory: 32Mi }
+    limits: { cpu: 250m, memory: 128Mi }
