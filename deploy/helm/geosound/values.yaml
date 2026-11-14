@@ -27,6 +27,15 @@ config:
   CHATBOT_INDEXER_ENABLED: "true"
   CHAT_MEMORY_BACKEND: memory
   LANGSMITH_TRACING: "false"
+  # Service URLs (the Kubernetes Services are named after the apps). Most have a default in the
+  # code, but notification's contributor email lookup (#258) has none and stays off without
+  # AUTH_SERVICE_URL. Listed here like the .env of docker compose.
+  AUTH_SERVICE_URL: http://auth:3001
+  TOUR_SERVICE_URL: http://tour:3002
+  MODERATION_SERVICE_URL: http://moderation:3003
+  AI_SERVICE_URL: http://ai:3004
+  MEDIA_SERVICE_URL: http://media:3005
+  NOTIFICATION_SERVICE_URL: http://notification:3006
 
 # Settings used when an app does not set its own.
 defaults:
