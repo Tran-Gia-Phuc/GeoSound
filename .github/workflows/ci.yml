@@ -109,6 +109,27 @@ jobs:
       - name: Run browser tests
         run: npm run test:ui --workspace client
 
+  # Deployment plan task 2.1 (#369): the Helm chart renders for every environment and every
+  # object matches the Kubernetes API schema (kubeconform, strict).
+  chart:
+    name: Deploy — Helm chart
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+      - name: Install kubeconform
+        env:
+          KUBECONFORM_VERSION: v0.6.7
+        run: |
+          set -eu
+          curl -sSfL -o /tmp/kubeconform.tgz \
+            "https://github.com/yannh/kubeconform/releases/download/$KUBECONFORM_VERSION/kubeconform-linux-amd64.tar.gz"
+          tar -xzf /tmp/kubeconform.tgz -C /usr/local/bin kubeconform
+      - name: Lint, render and validate
+        run: sh scripts/deploy/check-chart.sh
+
   # Deployment plan phase 1 (#363): production images, only after every test job passed.
   # Pull requests build the changed images without pushing; develop, staging, main and v* tags
   # publish them to GHCR. Feature branch pushes skip it (their pull request builds them).
