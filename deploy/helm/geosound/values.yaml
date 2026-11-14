@@ -65,6 +65,7 @@ databaseSecret: geosound-db
 services:
   client: # nginx serving the built PWA (task 0.1); /api goes to the gateway (Ingress, task 2.2)
     port: 8080
+    public: true # reached through the Ingress (task 2.2)
     runAsUser: 101 # nginx-unprivileged
     probes: { readinessPath: /healthz }
     # nginx has no SHUTDOWN_DELAY_MS: sleep before SIGTERM so the endpoints drop the pod first.
@@ -75,6 +76,7 @@ services:
 
   gateway:
     port: 8080
+    public: true
     env:
       GATEWAY_PORT: "8080"
       TRUST_PROXY: "1" # behind Traefik: rate limits per client IP (task 0.10)
@@ -82,22 +84,27 @@ services:
 
   auth:
     port: 3001
+    # Callers allowed by the NetworkPolicy (task 2.2): notification looks up contributor emails.
+    allowFrom: [gateway, notification]
     database: { key: DATABASE_URL_AUTH }
     secrets: [geosound-jwt, geosound-infra, geosound-smtp]
 
   tour:
     port: 3002
+    allowFrom: [gateway]
     database: { key: DATABASE_URL_TOUR }
     # geosound-ai: GEMINI_API_KEY of the translator (TRANSLATOR=gemini).
     secrets: [geosound-jwt, geosound-infra, geosound-ai]
 
   moderation: # never calls an LLM itself: no geosound-ai
     port: 3003
+    allowFrom: [gateway]
     database: { key: DATABASE_URL_MODERATION }
     secrets: [geosound-infra]
 
   media:
     port: 3005
+    allowFrom: [gateway]
     database: { key: DATABASE_URL_MEDIA }
     env:
       # Task 0.7: uploads go to Supabase Storage; the app stops at start without its keys.
@@ -106,11 +113,13 @@ services:
 
   notification:
     port: 3006
+    allowFrom: [gateway]
     database: { key: DATABASE_URL_NOTIFICATION }
     secrets: [geosound-jwt, geosound-infra, geosound-smtp]
 
   ai: # moderation, chatbot, translation; the embedding model is inside the image (task 0.3)
     port: 3004
+    allowFrom: [gateway, moderation, tour] # chat; moderation reviews; tour translation
     runAsUser: 10001
     # The AI settings read DATABASE_URL_AI (index) and DATABASE_URL_DIRECT_AI (chat memory).
     databaseEnv:
@@ -168,3 +177,11 @@ ingress:
   # cert-manager ClusterIssuer (cluster runbook); empty = plain HTTP, no certificate.
   clusterIssuer: ""
   tlsSecret: geosound-tls
+
+# Network policies (task 2.2): deny incoming traffic, then allow per app (public, allowFrom).
+networkPolicy:
+  enabled: true
+  ingressController: # who may reach the public apps
+    namespace: kube-system # k3s runs Traefik there
+    podLabels: { app.kubernetes.io/name: traefik }
+  monitoringNamespace: monitoring # Prometheus (phase 4); empty = no scraping rule
