@@ -12,7 +12,8 @@
 #
 # An image whose paths did not change since the commit it was built from is retagged in the
 # registry instead of rebuilt (scripts/ci/image-reuse.sh), so every tag exists for all 8 apps
-# and one IMAGE_TAG deploys the whole stack.
+# and the migrate image (task 2.4, the Helm Job run before every release), and one IMAGE_TAG
+# deploys the whole stack.
 #
 # Every built image is scanned with Trivy before the push (task 1.2, #364): a CRITICAL finding
 # with a fix fails the job (accepted ones: .trivyignore), HIGH is reported, and the CycloneDX
@@ -50,6 +51,8 @@ jobs:
           - { service: media, context: ".", dockerfile: services/media/Dockerfile, paths: "services/media shared" }
           - { service: notification, context: ".", dockerfile: services/notification/Dockerfile, paths: "services/notification shared" }
           - { service: ai, context: ".", dockerfile: services/ai/Dockerfile, paths: "services/ai" }
+          # Prisma CLI + the schema of every service (task 2.4, #372): rebuilt when a migration changes.
+          - { service: migrate, context: ".", dockerfile: deploy/migrate/Dockerfile, paths: "deploy/migrate scripts/db/migrate.sh services/auth/prisma services/tour/prisma services/moderation/prisma services/notification/prisma services/media/prisma services/ai/prisma" }
     steps:
       - uses: actions/checkout@v4
         with:
