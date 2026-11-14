@@ -1,0 +1,117 @@
+# Defaults for every GeoSound app (deployment plan section 8.3).
+# Environment files override them: deploy/envs/<env>/values.yaml.
+# One release per namespace: the Kubernetes Services are named after the apps (auth, tour, ...),
+# so the default service URLs of the gateway and the services (http://auth:3001, ...) work as is.
+
+global:
+  image:
+    # Image = <registry>/geosound-<app>:<tag>. CI publishes every tag for all 8 apps (task 1.1),
+    # so one tag deploys the whole stack. No default: a release without a tag fails to render.
+    registry: ghcr.io/tran-gia-phuc
+    tag: ""
+    pullPolicy: IfNotPresent
+  # Only for private GHCR packages: names of docker-registry secrets in the namespace.
+  imagePullSecrets: []
+
+# Non-secret settings shared by every app: ConfigMap geosound-config, loaded with envFrom.
+# A change restarts the pods (checksum annotation). Secrets never go here (section 8.4).
+config:
+  NODE_ENV: production
+  RABBITMQ_EXCHANGE: geosound.events
+  # Graceful shutdown (task 0.5): /readyz answers 503 at once, the HTTP server closes after this
+  # delay, so Traefik and the Service endpoints drop the pod before connections are refused.
+  SHUTDOWN_DELAY_MS: "5000"
+  MODERATION_EVENTS_ENABLED: "true"
+  CHATBOT_EVENTS_ENABLED: "true"
+  CHATBOT_ENABLED: "true"
+  CHATBOT_INDEXER_ENABLED: "true"
+  CHAT_MEMORY_BACKEND: memory
+  LANGSMITH_TRACING: "false"
+
+# Settings used when an app does not set its own.
+defaults:
+  replicas: 1
+  # Node images: `USER node` is a name, so runAsNonRoot needs the numeric id to verify it.
+  runAsUser: 1000
+  readOnlyRootFilesystem: true
+  resources:
+    requests: { cpu: 50m, memory: 192Mi }
+    limits: { cpu: 500m, memory: 384Mi }
+  probes:
+    readinessPath: /readyz
+    livenessPath: /healthz
+    # startup: up to failureThreshold × periodSeconds before liveness takes over.
+    startup: { periodSeconds: 5, failureThreshold: 24 }
+  # Secrets loaded whole with envFrom (section 8.4). Missing ones block the pod unless listed in
+  # optionalSecrets. The database URL is not here: each app gets only its own key (database).
+  secrets: []
+
+# Secrets an app may start without. Empty in production: without geosound-smtp, auth falls back
+# to its console mailer, which writes the OTP codes to the log.
+optionalSecrets: []
+
+# Secret that holds DATABASE_URL_<SVC> (section 8.4).
+databaseSecret: geosound-db
+
+services:
+  client: # nginx serving the built PWA (task 0.1); /api goes to the gateway (Ingress, task 2.2)
+    port: 8080
+    runAsUser: 101 # nginx-unprivileged
+    probes: { readinessPath: /healthz }
+    # nginx has no SHUTDOWN_DELAY_MS: sleep before SIGTERM so the endpoints drop the pod first.
+    preStopSleepSeconds: 5
+    resources:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { cpu: 200m, memory: 64Mi }
+
+  gateway:
+    port: 8080
+    env:
+      GATEWAY_PORT: "8080"
+      TRUST_PROXY: "1" # behind Traefik: rate limits per client IP (task 0.10)
+    secrets: [geosound-infra]
+
+  auth:
+    port: 3001
+    database: { key: DATABASE_URL_AUTH }
+    secrets: [geosound-jwt, geosound-infra, geosound-smtp]
+
+  tour:
+    port: 3002
+    database: { key: DATABASE_URL_TOUR }
+    # geosound-ai: GEMINI_API_KEY of the translator (TRANSLATOR=gemini).
+    secrets: [geosound-jwt, geosound-infra, geosound-ai]
+
+  moderation: # never calls an LLM itself: no geosound-ai
+    port: 3003
+    database: { key: DATABASE_URL_MODERATION }
+    secrets: [geosound-infra]
+
+  media:
+    port: 3005
+    database: { key: DATABASE_URL_MEDIA }
+    env:
+      # Task 0.7: uploads go to Supabase Storage; the app stops at start without its keys.
+      MEDIA_STORAGE: supabase
+    secrets: [geosound-jwt, geosound-infra, geosound-storage]
+
+  notification:
+    port: 3006
+    database: { key: DATABASE_URL_NOTIFICATION }
+    secrets: [geosound-jwt, geosound-infra, geosound-smtp]
+
+  ai: # moderation, chatbot, translation; the embedding model is inside the image (task 0.3)
+    port: 3004
+    runAsUser: 10001
+    # The AI settings read DATABASE_URL_AI (index) and DATABASE_URL_DIRECT_AI (chat memory).
+    databaseEnv:
+      DATABASE_URL_AI: DATABASE_URL_AI
+      DATABASE_URL_DIRECT_AI: DATABASE_URL_DIRECT_AI
+    secrets: [geosound-jwt, geosound-infra, geosound-ai]
+    resources:
+      requests: { cpu: 200m, memory: 512Mi }
+      limits: { cpu: "1", memory: 1Gi }
+    probes:
+      # Measured: about 30 s to the first /healthz at 1 CPU (model load). 180 s (6x) leaves room
+      # for a throttled CPU on a busy node; a healthy pod passes as soon as it answers.
+      startup: { periodSeconds: 5, failureThreshold: 36 }
