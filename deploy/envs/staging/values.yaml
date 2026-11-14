@@ -1,0 +1,22 @@
+# Staging (namespace geosound-staging): one replica each, smaller limits, so staging, production
+# and monitoring fit on one 8 GB VM (deployment plan section 5).
+#   helm upgrade --install geosound deploy/helm/geosound -n geosound-staging \
+#     -f deploy/envs/staging/values.yaml
+
+global:
+  image:
+    # Set by the promote job on every merge to staging (phase 3); by hand until then.
+    tag: sha-ba8649d
+
+# Staging may run without a mail server: OTP codes then go to the pod log (test accounts only).
+optionalSecrets:
+  - geosound-smtp
+
+services:
+  media:
+    env:
+      MEDIA_PUBLIC_BASE_URL: https://staging.geosound.example.com/api/media/files
+  ai:
+    resources:
+      requests: { cpu: 100m, memory: 512Mi }
+      limits: { cpu: "1", memory: 1Gi }

@@ -1,0 +1,23 @@
+# Production (namespace geosound-prod). Never auto-synced (deployment plan section 4).
+#   helm upgrade --install geosound deploy/helm/geosound -n geosound-prod \
+#     -f deploy/envs/prod/values.yaml
+
+global:
+  image:
+    # A release tag vX.Y.Z, changed through a reviewed pull request (phase 3).
+    tag: sha-ba8649d
+
+services:
+  gateway:
+    replicas: 2
+    resources:
+      requests: { cpu: 100m, memory: 192Mi }
+      limits: { cpu: 500m, memory: 384Mi }
+  tour:
+    replicas: 2
+    resources:
+      requests: { cpu: 100m, memory: 192Mi }
+      limits: { cpu: 500m, memory: 384Mi }
+  media:
+    env:
+      MEDIA_PUBLIC_BASE_URL: https://geosound.example.com/api/media/files
