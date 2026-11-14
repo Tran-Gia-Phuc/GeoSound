@@ -1,0 +1,44 @@
+{{- /*
+Public entry (deployment plan task 2.2, issue #370): one host per environment through the
+cluster's ingress controller (k3s: Traefik). /api goes to the gateway, everything else to the
+client; no other app is reachable from outside. The gateway keeps TRUST_PROXY=1, so its rate
+limits key on the client IP that Traefik forwards. TLS: cert-manager issues the certificate into
+.tlsSecret when .clusterIssuer is set (a ClusterIssuer of the cluster runbook, task 2.6).
+*/ -}}
+{{- with .Values.ingress }}
+{{- if .enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: geosound
+  labels:
+    {{- include "geosound.labels" $ | nindent 4 }}
+  {{- if .clusterIssuer }}
+  annotations:
+    cert-manager.io/cluster-issuer: {{ .clusterIssuer }}
+  {{- end }}
+spec:
+  {{- with .className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .clusterIssuer }}
+  tls:
+    - hosts: [{{ required "ingress.host is required for TLS" .host | quote }}]
+      secretName: {{ .tlsSecret }}
+  {{- end }}
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service: { name: gateway, port: { name: http } }
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: client, port: { name: http } }
+      {{- with .host }}
+      host: {{ . | quote }}
+      {{- end }}
+{{- end }}
+{{- end }}

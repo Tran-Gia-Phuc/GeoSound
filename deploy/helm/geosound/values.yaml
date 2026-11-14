@@ -159,3 +159,12 @@ migrate:
   resources:
     requests: { cpu: 100m, memory: 128Mi }
     limits: { cpu: 500m, memory: 512Mi }
+
+# Public entry (task 2.2): /api -> gateway, / -> client. Empty host = any host (local tests only).
+ingress:
+  enabled: true
+  className: traefik # the k3s ingress controller
+  host: ""
+  # cert-manager ClusterIssuer (cluster runbook); empty = plain HTTP, no certificate.
+  clusterIssuer: ""
+  tlsSecret: geosound-tls
