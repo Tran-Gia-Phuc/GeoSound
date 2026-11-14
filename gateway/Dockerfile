@@ -18,6 +18,13 @@ RUN npm install --omit=dev --no-audit --no-fund --loglevel=error
 
 FROM node:20-alpine AS prod
 WORKDIR /app
+# npm 11 instead of the npm 10.8 bundled with Node 20 (task 1.2, #364): its dependencies (tar,
+# glob, sigstore, ...) were the CRITICAL and most HIGH findings of the image scan. npm stays, the
+# team runs `npx prisma ...` in these containers. apk upgrade: Node 20 is end of life, its images
+# are no longer rebuilt.
+RUN npm install -g npm@11.21.2 --no-audit --no-fund --loglevel=error \
+ && npm cache clean --force && rm -rf /root/.npm /tmp/* \
+ && apk upgrade --no-cache
 ENV NODE_ENV=production
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY package.json ./
