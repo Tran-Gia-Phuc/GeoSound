@@ -9,12 +9,13 @@ global:
 
 services:
   gateway:
-    replicas: 2
+    # 2 to 4 pods at 70 % of the CPU request (task 2.2); also gets a disruption budget.
+    hpa: { min: 2, max: 4, cpu: 70 }
     resources:
       requests: { cpu: 100m, memory: 192Mi }
       limits: { cpu: 500m, memory: 384Mi }
   tour:
-    replicas: 2
+    hpa: { min: 2, max: 4, cpu: 70 }
     resources:
       requests: { cpu: 100m, memory: 192Mi }
       limits: { cpu: 500m, memory: 384Mi }
