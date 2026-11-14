@@ -1,0 +1,79 @@
+{{- /*
+Schema migrations before every install and upgrade (deployment plan task 2.4, issue #372).
+Image geosound-migrate (deploy/migrate/Dockerfile): the Prisma CLI, scripts/db/migrate.sh and the
+prisma folder of every service. It runs `migrate.sh deploy <services>` with the same image tag
+as the apps, so a release always ships the migrations its code expects.
+Hooks: Argo CD runs it at PreSync, plain `helm upgrade --install` at pre-install / pre-upgrade.
+Either way the Deployments are applied only after the Job succeeded; a failed Job stops the sync
+and the running pods stay on the old version. `prisma migrate deploy` is idempotent and takes an
+advisory lock, so a second run applies nothing and two runs never race.
+Each service reads DATABASE_URL_DIRECT_<SVC> (Supabase session pooler: DDL and advisory locks
+do not work through pgbouncer), else DATABASE_URL_<SVC>, from .Values.databaseSecret.
+*/ -}}
+{{- with .Values.migrate }}
+{{- if .enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: geosound-migrate
+  labels:
+    {{- include "geosound.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: migrate
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    # Kept after the run for `kubectl logs job/geosound-migrate`; replaced by the next one.
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: {{ .backoffLimit }}
+  activeDeadlineSeconds: {{ .activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "geosound.labels" $ | nindent 8 }}
+        app.kubernetes.io/name: migrate
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      {{- with $.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range . }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000 # node
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: migrate
+          image: {{ include "geosound.image" (dict "root" $ "name" "migrate") }}
+          imagePullPolicy: {{ $.Values.global.image.pullPolicy }}
+          args: [deploy, {{ join ", " .services }}]
+          env:
+            {{- range .services }}
+            {{- $upper := upper . }}
+            - name: DATABASE_URL_{{ $upper }}
+              valueFrom:
+                secretKeyRef: { name: {{ $.Values.databaseSecret }}, key: DATABASE_URL_{{ $upper }} }
+            - name: DATABASE_URL_DIRECT_{{ $upper }}
+              valueFrom:
+                secretKeyRef: { name: {{ $.Values.databaseSecret }}, key: DATABASE_URL_DIRECT_{{ $upper }}, optional: true }
+            {{- end }}
+          resources:
+            {{- toYaml .resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp } # npm cache and logs
+      volumes:
+        - name: tmp
+          emptyDir: { sizeLimit: 128Mi }
+{{- end }}
+{{- end }}
