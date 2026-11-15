@@ -80,6 +80,92 @@ It plays a new contributor through the Ingress: client page, public tours, regis
 
 On the laptop cluster, Argo CD installs Prometheus, Alertmanager, Grafana, Loki and Alloy into the namespace `monitoring` (phase 4, task 4.1): `kubectl apply -f deploy/argocd/apps/monitoring.yaml`. The charts are pinned in that file and their values live in `deploy/monitoring/values/`, so a change is deployed by merging into `staging`; never `helm upgrade` or `helm uninstall` these releases. Dashboards (`deploy/monitoring/dashboards/`) and alert rules (`deploy/monitoring/alerts/`) are a kustomize directory synced by the Application `monitoring-config`. The Grafana admin Secret, the port-forwards, the log labels and the resource budget are in the runbook, section [B6](../docs/04-guides/k3s-cluster.md#b6-monitoring). `sh scripts/deploy/check-chart.sh` also validates these files.
 
+## Alerts
+
+The rules are in `deploy/monitoring/alerts/geosound-rules.yaml` (deployment plan section 10.4, task 4.7). Each alert links to its section below through `runbook_url`. Check a rule change with `promtool check rules` (image `prom/prometheus`, pinned) on the `spec` of that file.
+
+**Route.** Alertmanager sends every alert with `team="geosound"` (all the rules below) and every `critical` alert of the chart's default rules to the Discord channel `#geosound-alerts`, plus a "resolved" message when it ends; everything else, `Watchdog` and `InfoInhibitor` go nowhere. Alerts are grouped by `alertname` and `namespace` and repeated every 4 h while they fire. The webhook URL is the Secret `alertmanager-discord` (key `url`) in the namespace `monitoring`, made by hand and never in Git; Alertmanager does not start without it. Replace it from a file, never on the command line:
+
+```sh
+kubectl -n monitoring create secret generic alertmanager-discord --from-file=url=<file> \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+**Silence** an alert (planned work, a noisy night on staging): `kubectl -n monitoring port-forward svc/kube-prometheus-stack-alertmanager 4470:9093 --address 127.0.0.1`, open `http://127.0.0.1:4470`, "New Silence" with the matchers `alertname="<name>"` and `namespace="<ns>"`, a duration and a comment. Status shows the loaded config and receivers. The PromQL below runs in Prometheus (`127.0.0.1:4469`), the LogQL in Grafana, Explore, Loki (`127.0.0.1:4468`).
+
+### PodCrashLooping
+
+A container of a GeoSound pod restarted more than 3 times in 15 minutes (critical).
+
+- `kubectl -n <ns> get pods`, `kubectl -n <ns> describe pod <pod>` (last state, exit code, `OOMKilled`, failing probe).
+- `kubectl -n <ns> logs <pod> -c <container> --previous`, or `{namespace="<ns>", pod="<pod>"} |= "error"` in Loki.
+- Fixes: a missing Secret key (the app exits at start), a database or RabbitMQ that is not reachable, `OOMKilled` (raise `resources.limits.memory` of the app in the env values), a bad image tag (section "Roll back").
+
+### HighErrorRate
+
+More than 5% of the HTTP requests of one service answered 5xx for 5 minutes, with at least 5 errors in the window (critical).
+
+- Which routes: `sum by (route, status) (rate(http_requests_total{namespace="<ns>", service="<svc>", status=~"5.."}[5m]))`.
+- Logs: `{namespace="<ns>", service="<svc>", level="error"}`; follow one request with `| reqId="<id>"`.
+- A gateway alert alone usually means an app behind it is down (`502`, `504`): see TargetDown and that app's own error rate.
+- Fixes: database or Supabase pooler down, a caller blocked by the network policy (`allowFrom`), a bad release (roll back).
+
+### HighLatency
+
+The p95 of the HTTP request duration of one service is above 1 s for 10 minutes (warning). The `ai` service and the chat stream (`/api/chat` on the gateway) are left out: they are slow by design.
+
+- Slow routes: `histogram_quantile(0.95, sum by (route, le) (rate(http_request_duration_seconds_bucket{namespace="<ns>", service="<svc>"}[5m])))`.
+- CPU throttling or memory pressure: `kubectl -n <ns> top pods`, and the Grafana dashboard of the service.
+- Fixes: a slow database query, a CPU limit too low, more replicas (`hpa` of the app). Large uploads under `/api/media` can be slow on a bad network.
+
+### QueueBacklog
+
+More than 100 RabbitMQ messages have been ready, not taken by a consumer, for 10 minutes (warning). The metric is the sum over all queues.
+
+- Which queue: `kubectl -n <ns> exec rabbitmq-0 -- rabbitmqctl list_queues name messages_ready consumers`.
+- A queue with `0` consumers: the consuming app is down or lost its connection; check its pod and `{namespace="<ns>", service="<svc>"} |= "rabbit"`.
+- Fixes: restart the consumer (`kubectl -n <ns> rollout restart deploy/<svc>`) once it no longer crashes; a consumer that rejects every message shows in `events_consumed_total{result="nack"}`.
+
+### ModerationStuck
+
+More than 20 moderation cases have been in `ai_failed` for 15 minutes (warning): calls to the AI service keep failing, the retry sweeper cannot clear them, and places and tours wait for review.
+
+- Why: `sum by (reason) (rate(moderation_ai_failed_total{namespace="<ns>"}[15m]))` (`timeout`, `503`, `401`, `other`).
+- `401`: `INTERNAL_SERVICE_TOKEN` of `geosound-infra` does not match between moderation and ai. `503` or `timeout`: see LLMProviderDown and `{namespace="<ns>", service="ai", level="error"}`.
+- Fixes: fix the token or the provider key and restart the apps that load it; the sweeper retries the cases by itself, nothing to replay by hand.
+
+### LLMProviderDown
+
+More than half of the AI service's calls to one LLM provider (`gemini` or `groq`) failed with 429, 5xx, timeout or error over 10 minutes (warning). Content blocked by the provider is not counted.
+
+- Outcomes: `sum by (provider, outcome) (rate(llm_requests_total{namespace="<ns>"}[10m]))`; fallbacks: `rate(llm_fallback_total[10m])`.
+- `429`: the Gemini free tier (5 requests per minute) is used up; it recovers by itself. `5xx` or `timeout`: provider outage, check its status page.
+- `error`: often a bad or expired API key (Secret `geosound-ai`); logs `{namespace="<ns>", service="ai", level="error"}`.
+
+### TargetDown
+
+Prometheus has had no successful scrape of a GeoSound job for 4 minutes (critical): all its pods are gone, not ready, or `/metrics` fails. It also fires when a Deployment is scaled to 0.
+
+- `kubectl -n <ns> get deploy/<job> endpoints/<job>`, `kubectl -n <ns> get pods -l app.kubernetes.io/name=<job>`, `up{namespace="<ns>", job="<job>"}`, Prometheus Status, Targets.
+- `0/0` replicas: someone scaled it down, and Argo CD auto-sync is paused or self-heal is off (`kubectl -n argocd get app geosound-staging -o jsonpath='{.spec.syncPolicy.automated}'`).
+- Pods not ready: see PodCrashLooping. Pods ready but the scrape fails: the network policy must let the namespace `monitoring` reach the port (`networkPolicy.monitoringNamespace`).
+- An app removed on purpose keeps firing for up to 1 h (the rule looks back one hour): silence it.
+
+### NodeMemoryHigh
+
+A node has used more than 85% of its memory for 10 minutes (warning).
+
+- `kubectl top nodes`, `kubectl top pods -A --sort-by=memory`.
+- Fixes: lower limits or replicas on staging, stop what is not needed on the laptop, or give the VM more memory (laptop sizing: decision P4-3).
+
+### DiskAlmostFull
+
+A node disk has had less than 15% free space for 10 minutes (critical).
+
+- Which mount: `node_filesystem_avail_bytes{job="node-exporter", instance="<node>"} / node_filesystem_size_bytes{job="node-exporter", instance="<node>"}`.
+- Big users: unused images (`k3s crictl rmi --prune` on the node), volumes (`kubectl get pvc -A`; Prometheus keeps 2 days, at most 2 GB), container logs.
+- Fixes: prune images, shorten retention, or grow the disk.
+
 ## Add a service
 
 1. `deploy/helm/geosound/values.yaml`, under `services`: an entry named after the app with `port`, `allowFrom` (the apps that call it over HTTP; without it the default deny blocks every caller), `database: { key: DATABASE_URL_<SVC> }` if it has a schema, and `secrets` (only the ones its code reads). Add `public: true` only if Traefik must reach it.
