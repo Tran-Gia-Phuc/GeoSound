@@ -63,14 +63,79 @@ prometheus:
     ruleSelectorNilUsesHelmValues: true
     ruleNamespaceSelector: {}
 
+defaultRules:
+  # Our own TargetDown (deploy/monitoring/alerts/geosound-rules.yaml, task 4.7) has the same name:
+  # without this, Discord would get two TargetDown alerts for the same outage. The other default
+  # alerts have different names and stay on.
+  disabled:
+    TargetDown: true
+
 alertmanager:
   alertmanagerSpec:
     replicas: 1
     resources:
       requests: { cpu: 10m, memory: 32Mi }
       limits: { cpu: 100m, memory: 64Mi }
-  # The chart's default config stays for now: every alert goes to the receiver "null".
-  # Task 4.7 adds the Discord receiver here (alertmanager.config, secret alertmanager-discord).
+    # The Discord webhook URL (task 4.7, decision P4-2): the Secret alertmanager-discord, key url, made
+    # by hand in the namespace monitoring (runbook B6), never in Git. Mounted at
+    # /etc/alertmanager/secrets/alertmanager-discord/. Alertmanager v0.35.0 (chart 93.3.0) reads the
+    # file on every notification and trims spaces and the trailing newline (strings.TrimSpace).
+    # The pod does not start while the Secret is missing.
+    secrets:
+      - alertmanager-discord
+  # Replaces the chart's default config (same global and inhibit rules). Alerts of
+  # deploy/monitoring/alerts/ (team: geosound) and every critical alert go to #geosound-alerts;
+  # everything else, Watchdog and InfoInhibitor go to "null". Deployment plan section 10.4.
+  config:
+    global:
+      resolve_timeout: 5m
+    inhibit_rules:
+      - source_matchers:
+          - 'severity = critical'
+        target_matchers:
+          - 'severity =~ warning|info'
+        equal:
+          - 'namespace'
+          - 'alertname'
+      - source_matchers:
+          - 'severity = warning'
+        target_matchers:
+          - 'severity = info'
+        equal:
+          - 'namespace'
+          - 'alertname'
+      - source_matchers:
+          - 'alertname = InfoInhibitor'
+        target_matchers:
+          - 'severity = info'
+        equal:
+          - 'namespace'
+      - target_matchers:
+          - 'alertname = InfoInhibitor'
+    route:
+      receiver: 'null'
+      group_by: [alertname, namespace]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      routes:
+        - receiver: 'null'
+          matchers:
+            - alertname =~ "Watchdog|InfoInhibitor"
+        - receiver: discord
+          matchers:
+            - team = "geosound"
+        - receiver: discord
+          matchers:
+            - severity = "critical"
+    receivers:
+      - name: 'null'
+      - name: discord
+        discord_configs:
+          - webhook_url_file: /etc/alertmanager/secrets/alertmanager-discord/url
+            send_resolved: true
+    templates:
+      - '/etc/alertmanager/config/*.tmpl'
 
 grafana:
   # Login with the Secret made by hand in the namespace monitoring (runbook B6), never in Git.
