@@ -59,6 +59,7 @@ import {
 
 import {
   ListTourRatings,
+  ListMyTourRatings,
   GetMyTourRating,
   SaveMyTourRating,
   DeleteMyTourRating,
@@ -311,6 +312,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   const ratingUseCases = {
     // UC05 — rate a public tour
     listTourRatings: new ListTourRatings({ tourRepo, ratingRepo }),
+    listMyTourRatings: new ListMyTourRatings({ ratingRepo }),
     getMyTourRating: new GetMyTourRating({ tourRepo, ratingRepo }),
     saveMyTourRating: new SaveMyTourRating({ tourRepo, ratingRepo }),
     deleteMyTourRating: new DeleteMyTourRating({ tourRepo, ratingRepo }),

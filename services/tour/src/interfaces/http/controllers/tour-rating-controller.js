@@ -4,14 +4,18 @@
 // =========================================================
 
 export class TourRatingController {
-  /** @param {{ listTourRatings, getMyTourRating, saveMyTourRating, deleteMyTourRating }} useCases */
+  /** @param {{ listTourRatings, listMyTourRatings, getMyTourRating, saveMyTourRating, deleteMyTourRating }} useCases */
   constructor(useCases) {
     this.uc = useCases;
-    for (const m of ['list', 'mine', 'save', 'remove']) this[m] = this[m].bind(this);
+    for (const m of ['list', 'listMine', 'mine', 'save', 'remove']) this[m] = this[m].bind(this);
   }
 
   async list(req, res) {
     res.json(await this.uc.listTourRatings.execute({ tourId: req.validatedParams.id, ...req.validatedQuery }));
+  }
+
+  async listMine(req, res) {
+    res.json(await this.uc.listMyTourRatings.execute({ userId: req.user.sub, ...req.validatedQuery }));
   }
 
   async mine(req, res) {

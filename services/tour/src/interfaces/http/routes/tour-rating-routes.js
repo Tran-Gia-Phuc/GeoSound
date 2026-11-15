@@ -25,6 +25,7 @@ export function buildTourRatingRouter({ tourRatingController: c, requireAuth }) 
   const r = Router();
   const params = validateParams(ratingTourParamSchema);
 
+  r.get('/ratings/mine', requireAuth, validateQuery(ratingListQuerySchema), wrap(c.listMine));
   r.get(`/:id(${UUID})/ratings`, params, validateQuery(ratingListQuerySchema), wrap(c.list));
   r.get(`/:id(${UUID})/ratings/mine`, requireAuth, params, wrap(c.mine));
   r.put(`/:id(${UUID})/ratings/mine`, requireAuth, params, validateBody(saveRatingSchema), wrap(c.save));
