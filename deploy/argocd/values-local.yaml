@@ -20,9 +20,80 @@ dex:
 applicationSet:
   replicas: 0 # one hand-written Application, no generators (the chart has no enabled flag here)
 
+# Sync results to a Discord channel (task 3.4). The Application subscribes with annotations
+# (deploy/argocd/apps/geosound-staging.yaml). Each message names the app, the image tag (taken from
+# the gateway image, else the short revision), the revision and a link to the app in the UI.
 notifications:
-  enabled: true # triggers and the Discord service come with task 3.4
+  enabled: true
   argocdUrl: http://127.0.0.1:4467
+  # The webhook URL is a secret: the Secret argocd-notifications-secret (key discord-webhook-url) is
+  # made by hand (runbook k3s-cluster.md B5), never by the chart, never in Git (decision P3-3).
+  secret:
+    create: false
+  notifiers:
+    service.webhook.discord: |
+      url: $discord-webhook-url
+      headers:
+        - name: Content-Type
+          value: application/json
+  # Go templates with the sprig functions. toJson escapes the text for the JSON body;
+  # allowed_mentions stops a commit text from pinging anyone.
+  templates:
+    template.app-sync-succeeded: |
+      webhook:
+        discord:
+          method: POST
+          body: |
+            {{- $rev := printf "%.7s" .app.status.sync.revision -}}
+            {{- $tag := $rev -}}
+            {{- range .app.status.summary.images -}}
+              {{- if contains "/geosound-gateway:" . -}}{{- $tag = last (splitList ":" .) -}}{{- end -}}
+            {{- end -}}
+            {{- $text := printf "✅ **%s** synced and the smoke test passed: image `%s`, revision `%s`.\n%s/applications/argocd/%s" .app.metadata.name $tag $rev .context.argocdUrl .app.metadata.name -}}
+            {"content": {{ toJson $text }}, "allowed_mentions": {"parse": []}}
+    template.app-sync-failed: |
+      webhook:
+        discord:
+          method: POST
+          body: |
+            {{- $rev := printf "%.7s" .app.status.sync.revision -}}
+            {{- $tag := $rev -}}
+            {{- range .app.status.summary.images -}}
+              {{- if contains "/geosound-gateway:" . -}}{{- $tag = last (splitList ":" .) -}}{{- end -}}
+            {{- end -}}
+            {{- $why := .app.status.operationState.message -}}
+            {{- with .app.status.operationState.syncResult -}}
+              {{- range .resources -}}
+                {{- if or (eq .hookPhase "Failed" "Error") (eq .status "SyncFailed") -}}
+                  {{- $why = printf "%s\n%s/%s: %s" $why .kind .name .message -}}
+                {{- end -}}
+              {{- end -}}
+            {{- end -}}
+            {{- $text := printf "❌ **%s** sync failed: image `%s`, revision `%s`.\n%.900s\n%s/applications/argocd/%s" .app.metadata.name $tag $rev $why .context.argocdUrl .app.metadata.name -}}
+            {"content": {{ toJson $text }}, "allowed_mentions": {"parse": []}}
+    template.app-health-degraded: |
+      webhook:
+        discord:
+          method: POST
+          body: |
+            {{- $text := printf "⚠️ **%s** is Degraded (revision `%.7s`): a pod or a rollout is failing.\n%s/applications/argocd/%s" .app.metadata.name .app.status.sync.revision .context.argocdUrl .app.metadata.name -}}
+            {"content": {{ toJson $text }}, "allowed_mentions": {"parse": []}}
+  # oncePer: one message per sync operation, even when two syncs in a row end the same way.
+  triggers:
+    trigger.on-sync-succeeded: |
+      - description: A sync finished and every hook passed (smoke test included)
+        oncePer: app.status.operationState?.startedAt
+        send: [app-sync-succeeded]
+        when: app.status.operationState != nil and app.status.operationState.phase in ['Succeeded']
+    trigger.on-sync-failed: |
+      - description: A sync or one of its hooks failed
+        oncePer: app.status.operationState?.startedAt
+        send: [app-sync-failed]
+        when: app.status.operationState != nil and app.status.operationState.phase in ['Error', 'Failed']
+    trigger.on-health-degraded: |
+      - description: The application became Degraded
+        send: [app-health-degraded]
+        when: app.status.health.status == 'Degraded'
   resources:
     requests: { cpu: 10m, memory: 32Mi }
     limits: { cpu: 100m, memory: 128Mi }
