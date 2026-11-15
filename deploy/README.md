@@ -36,7 +36,7 @@ What happens:
 
 Before a change to the chart, run `sh scripts/deploy/check-chart.sh` (needs `helm` and `kubeconform`; CI runs the same script in the job `chart`).
 
-Phase 3 replaces the manual command with Argo CD, which applies the same chart and values from Git. On the laptop cluster this is done (runbook section B5, `deploy/argocd/`): `geosound-staging` follows branch `staging`, so deploying there means merging into `staging`, and `helm upgrade` / `helm uninstall geosound` must never run on that namespace again.
+Phase 3 replaces the manual command with Argo CD, which applies the same chart and values from Git. On the laptop cluster this is done (runbook section B5, `deploy/argocd/`): `geosound-staging` follows branch `staging`, so deploying there means merging into `staging`, and `helm upgrade` / `helm uninstall geosound` must never run on that namespace again. CI job `promote` writes the tag of every `staging` build into `envs/staging/values.yaml` on that branch (task 3.2), and the read-only PostSync Job `geosound-smoke` checks each sync (task 3.3, `smoke.enabled`, on in staging).
 
 ## Roll back
 

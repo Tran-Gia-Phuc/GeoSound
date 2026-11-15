@@ -169,6 +169,19 @@ migrate:
     requests: { cpu: 100m, memory: 128Mi }
     limits: { cpu: 500m, memory: 512Mi }
 
+# Smoke test after every sync (phase 3, task 3.3): Job geosound-smoke, Argo CD PostSync hook.
+# Read only: the readiness path of every enabled app, then the public tour list. No login, no write.
+smoke:
+  enabled: false # on in staging
+  image: curlimages/curl:8.23.0@sha256:3fb7e13e5d179a845c97d78204f3f1064d1907037f26a3ebf91710571151fd93
+  toursUrl: http://gateway:8080/api/tours?limit=1 # the route the Ingress forwards /api/tours to
+  checkTimeoutSeconds: 120 # retries per check before the Job fails
+  backoffLimit: 1
+  activeDeadlineSeconds: 300
+  resources:
+    requests: { cpu: 10m, memory: 16Mi }
+    limits: { cpu: 100m, memory: 64Mi }
+
 # Public entry (task 2.2): /api -> gateway, / -> client. Empty host = any host (local tests only).
 ingress:
   enabled: true

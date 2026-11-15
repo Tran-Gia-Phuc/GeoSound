@@ -4,7 +4,8 @@ denies incoming traffic, then each app accepts its port from
   - the ingress controller, when `public: true` (client, gateway);
   - the apps in its `allowFrom` (the HTTP call graph: gateway to the services, moderation and tour
     to ai, notification to auth);
-  - the monitoring namespace (Prometheus scraping, phase 4).
+  - the monitoring namespace (Prometheus scraping, phase 4);
+  - the smoke test Job of this release, when smoke.enabled (task 3.3: it calls every readiness path).
 RabbitMQ and Redis accept the apps that load geosound-infra (where RABBITMQ_URL and REDIS_URL
 live). Egress stays open: Supabase, Gemini, Groq and SMTP are outside the cluster. A rule never
 has an empty `from` (that would allow every source). k3s enforces these policies.
@@ -29,7 +30,7 @@ spec:
 {{- if has "geosound-infra" ($app.secrets | default list) }}
 {{- $brokerClients = append $brokerClients $name }}
 {{- end }}
-{{- if or $app.public $app.allowFrom $np.monitoringNamespace }}
+{{- if or $app.public $app.allowFrom $np.monitoringNamespace $root.Values.smoke.enabled }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -62,6 +63,11 @@ spec:
         {{- with $np.monitoringNamespace }}
         - namespaceSelector:
             matchLabels: { kubernetes.io/metadata.name: {{ . }} }
+        {{- end }}
+        {{- if $root.Values.smoke.enabled }}
+        - podSelector:
+            matchLabels:
+              {{- include "geosound.selector" (dict "root" $root "name" "smoke") | nindent 14 }}
         {{- end }}
 {{- end }}
 {{- end }}
