@@ -1,0 +1,16 @@
+# Laptop k3s only, on top of deploy/envs/staging/values.yaml (docs/04-guides/k3s-cluster.md):
+#   helm upgrade --install geosound deploy/helm/geosound -n geosound-staging \
+#     -f deploy/envs/staging/values.yaml -f deploy/local/values.yaml --wait --timeout 10m
+
+# Any host, plain HTTP: there is no public DNS name and no certificate on a laptop.
+ingress:
+  host: ""
+  clusterIssuer: ""
+
+services:
+  moderation:
+    env:
+      AI_SERVICE_URL: http://ai-stub:3004 # deploy/local/ai-stub.yaml, no LLM key needed
+  media:
+    env:
+      MEDIA_PUBLIC_BASE_URL: http://localhost/api/media/files
