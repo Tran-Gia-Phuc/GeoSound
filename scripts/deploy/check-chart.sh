@@ -11,7 +11,7 @@ set -eu
 
 CHART=deploy/helm/geosound
 K8S_VERSION=${1:-1.31.0}
-# Kubernetes schemas, then the community catalog for CRDs (Traefik Middleware; ServiceMonitor later).
+# Kubernetes schemas, then the community catalog for CRDs (Traefik Middleware, ServiceMonitor).
 CRD_SCHEMAS='https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
 OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
@@ -73,6 +73,25 @@ echo "[chart] one-pod apps get no PodDisruptionBudget (it would block node drain
 n=$(helm template geosound "$CHART" -f deploy/envs/staging/values.yaml | grep -c "^kind: PodDisruptionBudget" || true)
 if [ "$n" != "0" ]; then
   echo "[chart] FAIL: $n PodDisruptionBudget(s) in staging, where every app runs one pod"
+  fail=1
+fi
+
+echo "[chart] scraping (task 4.5): off by default; on, one ServiceMonitor per backend app + RabbitMQ + Redis"
+n=$(helm template geosound "$CHART" -f deploy/envs/staging/values.yaml | grep -c "^kind: ServiceMonitor" || true)
+if [ "$n" != "0" ]; then
+  echo "[chart] FAIL: $n ServiceMonitor(s) rendered with metrics.serviceMonitor.enabled off"
+  fail=1
+fi
+helm template geosound "$CHART" -n geosound-staging -f deploy/envs/staging/values.yaml \
+  -f deploy/local/values.yaml > "$OUT/metrics.yaml" || fail=1
+kubeconform -strict -summary -kubernetes-version "$K8S_VERSION" \
+  -schema-location default -schema-location "$CRD_SCHEMAS" "$OUT/metrics.yaml" || fail=1
+# Backend apps = every Deployment but the client (nginx serves no /metrics).
+backend=$(grep -A3 "^kind: Deployment" "$OUT/metrics.yaml" | grep -c "^  name: [a-z]*$" || true)
+grep -A3 "^kind: Deployment" "$OUT/metrics.yaml" | grep -q "^  name: client$" && backend=$((backend - 1))
+monitors=$(grep -c "^kind: ServiceMonitor" "$OUT/metrics.yaml" || true)
+if [ "$monitors" != "$((backend + 2))" ]; then
+  echo "[chart] FAIL: $monitors ServiceMonitor(s), expected $((backend + 2)) ($backend backend apps + RabbitMQ + Redis)"
   fail=1
 fi
 

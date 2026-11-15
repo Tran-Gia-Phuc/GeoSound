@@ -6,6 +6,7 @@ from fastapi import FastAPI
 
 from app.api import chat, health, moderation, translation
 from app.config import get_settings
+from app.metrics import setup_metrics
 
 settings = get_settings()
 
@@ -86,3 +87,5 @@ app.include_router(translation.router)
 # Chat (#AI-47): 404 unless CHATBOT_ENABLED=true; the agent is built on the first request
 # (at startup with CHAT_MEMORY_BACKEND=postgres).
 app.include_router(chat.router)
+# GET /metrics (deployment task 4.3): no internal token, not in the OpenAPI schema.
+setup_metrics(app)

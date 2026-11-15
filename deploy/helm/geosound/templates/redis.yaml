@@ -18,6 +18,9 @@ spec:
     {{- include "geosound.selector" (dict "root" $ "name" "redis") | nindent 4 }}
   ports:
     - { name: redis, port: 6379, targetPort: redis }
+    {{- if .exporter.enabled }}
+    - { name: metrics, port: 9121, targetPort: metrics }
+    {{- end }}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -82,6 +85,28 @@ spec:
             capabilities: { drop: [ALL] }
           volumeMounts:
             - { name: data, mountPath: /data }
+        {{- with .exporter }}
+        {{- if .enabled }}
+        # Prometheus exporter (phase 4, task 4.5): reads INFO from the redis container next to it.
+        - name: exporter
+          image: {{ .image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: metrics, containerPort: 9121 }
+          env:
+            - name: REDIS_ADDR
+              value: redis://localhost:6379
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: {{ $.Values.redis.secret }}, key: REDIS_PASSWORD, optional: true }
+          resources:
+            {{- toYaml .resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+        {{- end }}
+        {{- end }}
   volumeClaimTemplates:
     - metadata:
         name: data

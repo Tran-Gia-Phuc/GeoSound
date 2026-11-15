@@ -12,8 +12,15 @@ import {
   setSessionRevocationCheck,
   createRedisRevocationCheck,
 } from '../shared/middleware/index.js';
-import { connect, publish, close as closeRabbit, isReady as rabbitReady } from '../shared/rabbitmq/index.js';
+import {
+  connect,
+  publish,
+  close as closeRabbit,
+  isReady as rabbitReady,
+  useMetrics as useRabbitMetrics,
+} from '../shared/rabbitmq/index.js';
 import { registerHealthRoutes, prismaCheck, redisCheck } from '../shared/health/index.js';
+import { createMetrics } from '../shared/metrics/index.js';
 import { createShutdown, closeServer } from '../shared/shutdown/index.js';
 import { createJobLock } from '../shared/lock/index.js';
 import { buildContainer } from './container.js';
@@ -23,6 +30,9 @@ const PORT = process.env.PORT || 3001;
 const HOUR_MS = 60 * 60 * 1000;
 // Graceful shutdown (#348): SIGTERM / SIGINT run the steps registered below the listen() call.
 const shutdown = createShutdown({ service: 'auth' });
+// Prometheus metrics (task 4.2, #399): HTTP requests and published events, GET /metrics.
+const metrics = createMetrics({ service: 'auth' });
+useRabbitMetrics(metrics);
 
 const { authRouter, internalRouter, prisma, redis, purgeEndedSessions } = buildContainer(process.env, {
   verifyJwt,
@@ -56,6 +66,7 @@ setTimeout(purge, 60_000).unref();
 setInterval(purge, HOUR_MS).unref();
 
 app.use(express.json());
+app.use(metrics.httpMiddleware());
 app.use(logger);
 
 // /healthz, /health (liveness) and /readyz (#345): sign-in needs the database and Redis (OTP,
@@ -69,6 +80,9 @@ registerHealthRoutes(app, {
     rabbitmq: { check: rabbitReady, required: false },
   },
 });
+// GET /metrics, no auth: internal only. Traefik routes only /api to the gateway, and the gateway
+// refuses /api/*/metrics, so only the in-cluster scrape reaches it.
+metrics.registerMetricsRoute(app);
 
 // UC01: /register /verify-otp /resend-otp /login /forgot-password /reset-password /refresh
 // UC23: GET /sessions, DELETE /sessions/:id, POST /sessions/revoke-others, POST /logout

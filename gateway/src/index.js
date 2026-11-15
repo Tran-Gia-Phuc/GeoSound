@@ -11,6 +11,7 @@ import { mountChat } from './chat.js';
 import { createChatRateLimit, createRedisStore } from './chat-rate-limit.js';
 import { createRequestLogger } from './request-log.js';
 import { parseTrustProxy } from './trust-proxy.js';
+import { createMetrics, refuseServiceMetrics } from './metrics.js';
 
 const app = express();
 const PORT = process.env.GATEWAY_PORT || 8080;
@@ -29,8 +30,26 @@ const TARGETS = {
 const CHATBOT_ENABLED = process.env.CHATBOT_ENABLED === 'true';
 let shuttingDown = false; // graceful shutdown (#348): /readyz answers 503 'draining'
 
+// Task 4.2 (#399): Prometheus metrics. The `route` label is one of these prefixes (the mounts
+// below), else 'unmatched'. Keep the list in step with the mounts.
+const metrics = createMetrics({
+  prefixes: [
+    '/api/auth',
+    '/api/tours',
+    '/api/itineraries',
+    '/api/places',
+    '/api/moderation',
+    '/api/media',
+    '/api/notifications',
+    '/api/geocode',
+    ...(CHATBOT_ENABLED ? ['/api/chat'] : []),
+  ],
+});
+
 // Task 0.9 (#355): JSON request log + a new x-request-id forwarded to the services.
 app.use(createRequestLogger());
+// Before the rate limit and the proxies, so 429s and proxied answers are counted too.
+app.use(metrics.httpMiddleware());
 
 // Deployment plan task 0.4 (#345). The gateway image has no shared/, so the routes are inline
 // (same shape as shared/health). /healthz = liveness; /health is its alias. /readyz never
@@ -49,6 +68,11 @@ app.get('/readyz', async (_req, res) => {
   }
   res.json({ status: 'ready', service: 'gateway', checks: { redis: up ? 'ok' : 'down' } });
 });
+// GET /metrics, no auth. Internal: Traefik routes only /api to the gateway.
+metrics.registerMetricsRoute(app);
+// The proxies strip the mount prefix, so /api/tours/metrics would reach Tour's /metrics (no auth):
+// any /api/.../metrics is a 404 here, before the rate limit and every proxy.
+app.use(refuseServiceMetrics);
 
 app.use(rateLimit);
 

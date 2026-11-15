@@ -81,6 +81,7 @@ services:
       GATEWAY_PORT: "8080"
       TRUST_PROXY: "1" # behind Traefik: rate limits per client IP (task 0.10)
     secrets: [geosound-infra]
+    metrics: true # serves GET /metrics on port http: a ServiceMonitor when metrics.serviceMonitor.enabled
 
   auth:
     port: 3001
@@ -88,6 +89,7 @@ services:
     allowFrom: [gateway, notification]
     database: { key: DATABASE_URL_AUTH }
     secrets: [geosound-jwt, geosound-infra, geosound-smtp]
+    metrics: true
 
   tour:
     port: 3002
@@ -95,12 +97,14 @@ services:
     database: { key: DATABASE_URL_TOUR }
     # geosound-ai: GEMINI_API_KEY of the translator (TRANSLATOR=gemini).
     secrets: [geosound-jwt, geosound-infra, geosound-ai]
+    metrics: true
 
   moderation: # never calls an LLM itself: no geosound-ai
     port: 3003
     allowFrom: [gateway]
     database: { key: DATABASE_URL_MODERATION }
     secrets: [geosound-infra]
+    metrics: true
 
   media:
     port: 3005
@@ -110,12 +114,14 @@ services:
       # Task 0.7: uploads go to Supabase Storage; the app stops at start without its keys.
       MEDIA_STORAGE: supabase
     secrets: [geosound-jwt, geosound-infra, geosound-storage]
+    metrics: true
 
   notification:
     port: 3006
     allowFrom: [gateway]
     database: { key: DATABASE_URL_NOTIFICATION }
     secrets: [geosound-jwt, geosound-infra, geosound-smtp]
+    metrics: true
 
   ai: # moderation, chatbot, translation; the embedding model is inside the image (task 0.3)
     port: 3004
@@ -126,6 +132,7 @@ services:
       DATABASE_URL_AI: DATABASE_URL_AI
       DATABASE_URL_DIRECT_AI: DATABASE_URL_DIRECT_AI
     secrets: [geosound-jwt, geosound-infra, geosound-ai]
+    metrics: true
     resources:
       requests: { cpu: 200m, memory: 512Mi }
       limits: { cpu: "1", memory: 1Gi }
@@ -156,6 +163,13 @@ redis:
   resources:
     requests: { cpu: 25m, memory: 32Mi }
     limits: { cpu: 250m, memory: 128Mi }
+  # Prometheus exporter sidecar (phase 4, task 4.5): port metrics 9121 on the redis Service.
+  exporter:
+    enabled: false
+    image: oliver006/redis_exporter:v1.97.0@sha256:f5f903fbe77571d455ede0453b084d6840bc62fc105efac001034421cab83b99
+    resources:
+      requests: { cpu: 10m, memory: 16Mi }
+      limits: { cpu: 100m, memory: 64Mi }
 
 # Migrations before every install and upgrade (task 2.4): Job geosound-migrate, image
 # geosound-migrate with the release tag. Turn it off only to migrate by hand (scripts/db/migrate.sh).
@@ -202,3 +216,12 @@ networkPolicy:
     namespace: kube-system # k3s runs Traefik there
     podLabels: { app.kubernetes.io/name: traefik }
   monitoringNamespace: monitoring # Prometheus (phase 4); empty = no scraping rule
+
+# Prometheus scraping (phase 4, task 4.5). Needs the ServiceMonitor CRD (kube-prometheus-stack,
+# task 4.1): one ServiceMonitor per app with `metrics: true`, RabbitMQ, and Redis with its exporter.
+metrics:
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    # The Prometheus of task 4.1 selects ServiceMonitors by this label: keep it exactly.
+    labels: { release: kube-prometheus-stack }
