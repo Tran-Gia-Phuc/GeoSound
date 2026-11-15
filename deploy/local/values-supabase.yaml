@@ -1,0 +1,17 @@
+# Laptop k3s on the team's real Supabase, layered on the staging and local values
+# (docs/04-guides/k3s-cluster.md, section B5; deployment-phase3-implementation.md, decision P3-1).
+# Argo CD applies it as the third values file of deploy/argocd/apps/geosound-staging.yaml.
+# The secrets (geosound-db, ...) hold the Supabase URLs and are applied by hand, never from Git.
+
+migrate:
+  enabled: false # P3-1: the cluster never migrates Supabase; migrations go through compose
+
+services:
+  moderation:
+    env:
+      AI_SERVICE_URL: http://ai:3004 # the real AI service, not the stub
+  media:
+    env:
+      MEDIA_STORAGE: local # no Supabase Storage key: files in the pod's /tmp, lost on restart
+      MEDIA_DIR: /tmp/media
+      MEDIA_PUBLIC_BASE_URL: http://localhost:18080/api/media/files
