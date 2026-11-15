@@ -13,7 +13,10 @@ deploy/
   cluster/              one-time cluster objects: namespaces, Let's Encrypt ClusterIssuers
   local/                laptop values and stand-ins (Postgres, AI stub): never on a real cluster;
                         values-supabase.yaml = laptop stack on the team Supabase (phase 3)
-  argocd/               Argo CD on the laptop cluster: chart values and the Application (phase 3)
+  argocd/               Argo CD on the laptop cluster: chart values and the Applications (phase 3);
+                        apps/monitoring.yaml = the monitoring stack (phase 4)
+  monitoring/           monitoring stack (phase 4): values/ for the kube-prometheus-stack, Loki and
+                        Alloy charts; dashboards/ and alerts/ (kustomize, Application monitoring-config)
   migrate/              the geosound-migrate image (Prisma CLI and every schema)
 ```
 
@@ -72,6 +75,10 @@ sh scripts/deploy/smoke-staging.sh https://staging.geosound.example.com geosound
 ```
 
 It plays a new contributor through the Ingress: client page, public tours, register, OTP (read from the auth log, so only where `geosound-smtp` is not set), login, a new tour and a place, then waits until moderation approves the place. It leaves one test account and one draft tour behind. `SMOKE_REJECT=1` also checks a rejection, with the AI stub of `deploy/local/` only.
+
+## Monitoring
+
+On the laptop cluster, Argo CD installs Prometheus, Alertmanager, Grafana, Loki and Alloy into the namespace `monitoring` (phase 4, task 4.1): `kubectl apply -f deploy/argocd/apps/monitoring.yaml`. The charts are pinned in that file and their values live in `deploy/monitoring/values/`, so a change is deployed by merging into `staging`; never `helm upgrade` or `helm uninstall` these releases. Dashboards (`deploy/monitoring/dashboards/`) and alert rules (`deploy/monitoring/alerts/`) are a kustomize directory synced by the Application `monitoring-config`. The Grafana admin Secret, the port-forwards, the log labels and the resource budget are in the runbook, section [B6](../docs/04-guides/k3s-cluster.md#b6-monitoring). `sh scripts/deploy/check-chart.sh` also validates these files.
 
 ## Add a service
 

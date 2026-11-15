@@ -1,16 +1,17 @@
 #!/bin/sh
 # Static check of the Helm chart (deployment plan task 2.1, issue #369). Used by CI (job `chart`)
-# and locally. Needs `helm` and `kubeconform` on PATH.
+# and locally. Needs `helm`, `kubeconform` and `kubectl` (or `kustomize`) on PATH.
 #
 #   sh scripts/deploy/check-chart.sh [kubernetes version, default 1.31.0]
 #
 # For every environment under deploy/envs/: helm lint, helm template, kubeconform -strict.
-# Also checks that a release without global.image.tag fails to render.
+# Also checks that a release without global.image.tag fails to render, and the monitoring files
+# (Argo CD Applications, chart values, the kustomize directory deploy/monitoring).
 set -eu
 
 CHART=deploy/helm/geosound
 K8S_VERSION=${1:-1.31.0}
-# Kubernetes schemas, then the community catalog for CRDs (Traefik Middleware; ServiceMonitor later).
+# Kubernetes schemas, then the community catalog for CRDs (Traefik Middleware, ServiceMonitor).
 CRD_SCHEMAS='https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
 OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
@@ -73,6 +74,56 @@ n=$(helm template geosound "$CHART" -f deploy/envs/staging/values.yaml | grep -c
 if [ "$n" != "0" ]; then
   echo "[chart] FAIL: $n PodDisruptionBudget(s) in staging, where every app runs one pod"
   fail=1
+fi
+
+echo "[chart] scraping (task 4.5): off by default; on, one ServiceMonitor per backend app + RabbitMQ + Redis"
+n=$(helm template geosound "$CHART" -f deploy/envs/staging/values.yaml | grep -c "^kind: ServiceMonitor" || true)
+if [ "$n" != "0" ]; then
+  echo "[chart] FAIL: $n ServiceMonitor(s) rendered with metrics.serviceMonitor.enabled off"
+  fail=1
+fi
+helm template geosound "$CHART" -n geosound-staging -f deploy/envs/staging/values.yaml \
+  -f deploy/local/values.yaml > "$OUT/metrics.yaml" || fail=1
+kubeconform -strict -summary -kubernetes-version "$K8S_VERSION" \
+  -schema-location default -schema-location "$CRD_SCHEMAS" "$OUT/metrics.yaml" || fail=1
+# Backend apps = every Deployment but the client (nginx serves no /metrics).
+backend=$(grep -A3 "^kind: Deployment" "$OUT/metrics.yaml" | grep -c "^  name: [a-z]*$" || true)
+grep -A3 "^kind: Deployment" "$OUT/metrics.yaml" | grep -q "^  name: client$" && backend=$((backend - 1))
+monitors=$(grep -c "^kind: ServiceMonitor" "$OUT/metrics.yaml" || true)
+if [ "$monitors" != "$((backend + 2))" ]; then
+  echo "[chart] FAIL: $monitors ServiceMonitor(s), expected $((backend + 2)) ($backend backend apps + RabbitMQ + Redis)"
+  fail=1
+fi
+
+# Monitoring stack (phase 4, task 4.1). The charts themselves are rendered by Argo CD from their Helm
+# repositories; CI only checks what lives in this repository.
+echo "[monitoring] Argo CD Applications match the Application schema"
+kubeconform -strict -summary -schema-location "$CRD_SCHEMAS" deploy/argocd/apps/*.yaml || fail=1
+
+echo "[monitoring] chart values files are valid YAML"
+# A chart with no templates: helm only parses the values file (catches YAML syntax errors).
+mkdir -p "$OUT/probe"
+printf 'apiVersion: v2\nname: probe\nversion: 0.0.0\n' > "$OUT/probe/Chart.yaml"
+for values in deploy/monitoring/values/*.yaml; do
+  helm template probe "$OUT/probe" -f "$values" > /dev/null || {
+    echo "[monitoring] FAIL: $values does not parse"
+    fail=1
+  }
+done
+
+echo "[monitoring] deploy/monitoring builds with kustomize + kubeconform (Kubernetes $K8S_VERSION)"
+# kubectl is preinstalled on the GitHub ubuntu runners; a standalone kustomize works too.
+if command -v kubectl > /dev/null 2>&1; then
+  kubectl kustomize deploy/monitoring > "$OUT/monitoring.yaml" || fail=1
+elif command -v kustomize > /dev/null 2>&1; then
+  kustomize build deploy/monitoring > "$OUT/monitoring.yaml" || fail=1
+else
+  echo "[monitoring] FAIL: needs kubectl or kustomize on PATH"
+  fail=1
+fi
+if [ -f "$OUT/monitoring.yaml" ]; then
+  kubeconform -strict -summary -kubernetes-version "$K8S_VERSION" \
+    -schema-location default -schema-location "$CRD_SCHEMAS" "$OUT/monitoring.yaml" || fail=1
 fi
 
 exit "$fail"

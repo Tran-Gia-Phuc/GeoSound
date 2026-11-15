@@ -39,6 +39,7 @@
  * @property {(id: string, patch: Partial<ModerationCaseRow>) => Promise<ModerationCaseRow>} update
  * @property {(opts: {failedBefore: Date, staleBefore: Date, limit?: number}) => Promise<ModerationCaseRow[]>} listRetryable
  * @property {(id: string, opts: {fromStatus: string, fromUpdatedAt: Date, toStatus?: string, patch?: Partial<ModerationCaseRow>, now?: Date}) => Promise<ModerationCaseRow|null>} claim
+ * @property {(status: string) => Promise<number>} countByStatus  number of cases with this status (metrics, task 4.4)
  */
 
 /**
@@ -54,4 +55,23 @@
 
 /** @typedef {{ now: () => Date }} Clock */
 
-export {};
+/**
+ * Moderation business metrics (deployment task 4.4). Labels are closed sets, never ids.
+ * caseFinished : a case got its final verdict (done or failed_permanent) and its result was sent to publish.
+ *                kind 'place' | 'tour', verdict 'Pass' | 'Warning' | 'Reject', source 'ai' | 'geo' (the signal
+ *                that set the verdict, 'ai' on a tie), seconds from the event `at` (else case createdAt).
+ * aiFailed     : a temporary AI failure after retries left the case ai_failed. reason 'timeout' | '503' | '401' | 'other'.
+ * setPending   : number of ai_failed cases waiting for the sweeper.
+ * Implementations must never throw.
+ * @typedef {Object} ModerationMetrics
+ * @property {(e: {kind: string, verdict: string, source: string, seconds: number}) => void} caseFinished
+ * @property {(e: {kind: string, reason: string}) => void} aiFailed
+ * @property {(n: number) => void} setPending
+ */
+
+/** No-op default: callers built without metrics (tests, older wiring) keep working unchanged. */
+export const NOOP_MODERATION_METRICS = Object.freeze({
+  caseFinished() {},
+  aiFailed() {},
+  setPending() {},
+});

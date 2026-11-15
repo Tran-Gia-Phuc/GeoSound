@@ -31,6 +31,7 @@ Expected later:
 - [OTP email templates and SMTP verification](notification-otp-design.md)
 - [Database tables of every service (for the ERD)](database-tables.md)
 - [Deployment plan: CI/CD, Kubernetes, Prometheus and Grafana (proposal)](deployment-plan.md)
+- [Deployment phase 4: implementation plan (observability on the laptop k3s)](deployment-phase4-implementation.md)
 - [Activity diagrams of the use cases (draw.io XML)](drawio/activity/README.md)
 - [ERD and DFD level 0, 1, 2 (draw.io XML)](drawio/dfd/README.md)
 - [General ERD — supplied reference (draw.io)](drawio/erd-general.drawio)

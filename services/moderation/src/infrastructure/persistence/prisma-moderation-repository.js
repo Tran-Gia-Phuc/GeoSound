@@ -93,6 +93,11 @@ export class PrismaModerationRepository {
     return rows.map(PrismaModerationRepository.toPlain);
   }
 
+  // Number of cases with this status (moderation_pending_cases gauge, task 4.4).
+  async countByStatus(status) {
+    return this.prisma.moderationCase.count({ where: { status } });
+  }
+
   // Compare-and-set: writes only if the row still has fromStatus and fromUpdatedAt (nobody touched it since it
   // was read). updatedAt becomes `now`, so every other holder of the old snapshot loses. Returns the row or null.
   async claim(id, { fromStatus, fromUpdatedAt, toStatus = fromStatus, patch = {}, now = new Date() }) {

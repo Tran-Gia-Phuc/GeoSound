@@ -349,3 +349,81 @@ test('after stopConsuming(): no reconnect, connect() and consume() refuse', asyn
   assert.equal(amqp.connections.length, 1);
   await r.close();
 });
+
+// useMetrics() (task 4.2, issue #399): a fake counter factory records every increment.
+function fakeMetrics() {
+  const counts = {};
+  return {
+    counts,
+    counter({ name, labelNames }) {
+      return {
+        inc(labels, n = 1) {
+          assert.deepEqual(Object.keys(labels).sort(), [...labelNames].sort(), `labels of ${name}`);
+          const key = `${name}${JSON.stringify(labels)}`;
+          counts[key] = (counts[key] ?? 0) + n;
+        },
+      };
+    },
+  };
+}
+
+test('without useMetrics(): publish and consume count nothing (old behavior)', async () => {
+  const r = await freshRabbit();
+  const amqp = fakeAmqp();
+  await r.connect('amqp://x', opts(amqp));
+  await r.consume('q', ['tour.*'], () => {});
+  await r.publish('tour.unpublished', unpublished);
+  await amqp.channel.deliver('q', 'tour.published', {});
+  assert.equal(amqp.channel.acked.length, 1);
+  await r.close();
+});
+
+test('useMetrics(): counts publish, ack, nack and skip by event name', async () => {
+  const r = await freshRabbit();
+  const metrics = fakeMetrics();
+  r.useMetrics(metrics);
+  const amqp = fakeAmqp();
+  await r.connect('amqp://x', opts(amqp));
+  let release;
+  await r.consume('q', ['tour.*'], (_name, payload) => {
+    if (payload.fail) throw new Error('nope');
+    if (payload.wait) return new Promise((res) => { release = res; });
+  });
+
+  await r.publish('tour.unpublished', unpublished);
+  await assert.rejects(r.publish('tour.unpublished', { nope: true })); // invalid: not published, not counted
+  const ch = amqp.channel;
+  await ch.deliver('q', 'tour.published', {});
+  await ch.deliver('q', 'tour.published', {});
+  await ch.deliver('q', 'tour.unpublished', { fail: true });
+
+  // A handler that ends after its channel closed: neither ack nor nack reaches the broker.
+  const pending = ch.deliver('q', 'tour.published', { wait: true });
+  amqp.conn.drop();
+  await waitFor(() => r.isReady());
+  release();
+  await pending;
+
+  assert.deepEqual(metrics.counts, {
+    'events_published_total{"event":"tour.unpublished"}': 1,
+    'events_consumed_total{"event":"tour.published","result":"ack"}': 2,
+    'events_consumed_total{"event":"tour.unpublished","result":"nack"}': 1,
+    'events_consumed_total{"event":"tour.published","result":"skip"}': 1,
+  });
+  assert.equal(ch.acked.length, 2);
+  assert.equal(ch.nacked.length, 1);
+  await r.close();
+});
+
+test('useMetrics(): a body that is not JSON is a nack', async () => {
+  const r = await freshRabbit();
+  const metrics = fakeMetrics();
+  r.useMetrics(metrics);
+  const amqp = fakeAmqp();
+  await r.connect('amqp://x', opts(amqp));
+  await r.consume('q', ['x'], () => {});
+  const c = amqp.channel.consumers[0];
+  await c.fn({ fields: { routingKey: 'tour.published' }, content: Buffer.from('not json') });
+  assert.deepEqual(metrics.counts, { 'events_consumed_total{"event":"tour.published","result":"nack"}': 1 });
+  await r.close();
+});

@@ -1,7 +1,9 @@
 // =========================================================
-// Moderation service entry point: starts HTTP (/healthz, /health, /readyz), the RabbitMQ consumers
+// Moderation service entry point: starts HTTP (/healthz, /health, /readyz, /metrics), the RabbitMQ consumers
 // (tasks #AI-36, #AI-37) and the retry sweeper (task #AI-38), which takes a Redis lock per run so
 // several replicas sweep once per interval (deployment plan task 0.8, issue #354).
+// Prometheus metrics (deployment task 4.4): HTTP and RabbitMQ metrics from shared/metrics, plus the
+// moderation_* business metrics built in container.js from the factories passed below.
 // Wiring lives in container.js; this file only starts things. It is the only module that imports shared/
 // (it runs in the Docker image, where shared/ sits next to src/); everything else gets it injected.
 // =========================================================
@@ -13,9 +15,11 @@ import {
   consume,
   publish,
   stopConsuming,
+  useMetrics as useRabbitMetrics,
   close as closeRabbit,
   isReady as rabbitReady,
 } from '../shared/rabbitmq/index.js';
+import { createMetrics } from '../shared/metrics/index.js';
 import { EVENTS, validateEvent } from '../shared/events/index.js';
 import { registerHealthRoutes, prismaCheck, redisCheck } from '../shared/health/index.js';
 import { createJobLock } from '../shared/lock/index.js';
@@ -29,6 +33,7 @@ import { startRetrySweeper } from './interfaces/jobs/retry-sweeper.js';
 const { prisma } = await import('./infrastructure/persistence/prisma-client.js');
 
 const config = loadConfig();
+const metrics = createMetrics({ service: 'moderation' });
 // Graceful shutdown (#348): SIGTERM / SIGINT run the steps registered below the listen() call.
 const shutdown = createShutdown({ service: 'moderation' });
 let sweeper = null;
@@ -57,6 +62,7 @@ const sweepLock = (fn) => jobLock.runOnce('moderation:retry-sweep', fn, {
 });
 
 app.use(express.json());
+app.use(metrics.httpMiddleware());
 app.use(logger);
 // /healthz, /health (liveness) and /readyz (#345): cases live in the database and arrive through
 // RabbitMQ, so both are required. Redis (sweeper lock only) is reported.
@@ -69,6 +75,7 @@ registerHealthRoutes(app, {
     redis: { check: redisCheck(redis), required: false },
   },
 });
+metrics.registerMetricsRoute(app); // GET /metrics (Prometheus text format)
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
 
@@ -90,7 +97,11 @@ shutdown
     // Waits for the broker (no retry limit); after a loss the helper reconnects and
     // re-registers both consumers (#345).
     await connect(undefined, { retries: Infinity, delayMs: 10000 });
-    const container = buildContainer({ prisma, publish, validateEvent, config });
+    useRabbitMetrics(metrics); // events_published_total / events_consumed_total
+    const { counter, histogram, gauge } = metrics;
+    const container = buildContainer({
+      prisma, publish, validateEvent, config, metricFactories: { counter, histogram, gauge },
+    });
 
     // place.submitted -> place review (prefetch limits concurrent AI calls, D13).
     await consume('moderation.place-submitted', [EVENTS.PLACE_SUBMITTED], container.handlers.placeSubmitted,
@@ -105,6 +116,7 @@ shutdown
       retryFailedCases: container.retryFailedCases,
       intervalMs: config.sweep.intervalMs,
       lock: sweepLock,
+      metrics: container.moderationMetrics, // moderation_pending_cases on every tick
     });
   } catch (err) {
     console.error('[moderation] rabbitmq init failed:', err.message);

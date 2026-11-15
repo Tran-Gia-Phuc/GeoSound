@@ -95,7 +95,9 @@ spec:
             matchLabels: { app.kubernetes.io/instance: {{ $root.Release.Name }} }
             matchExpressions:
               - { key: app.kubernetes.io/name, operator: In, values: [{{ join ", " $brokerClients }}] }
-    {{- if and (eq $broker "rabbitmq") $np.monitoringNamespace }}
+    {{- /* Scraping: the rabbitmq_prometheus plugin, and the Redis exporter sidecar when it runs. */}}
+    {{- $scraped := or (eq $broker "rabbitmq") (and (eq $broker "redis") $root.Values.redis.exporter.enabled) }}
+    {{- if and $scraped $np.monitoringNamespace }}
     - ports:
         - { port: metrics, protocol: TCP }
       from:

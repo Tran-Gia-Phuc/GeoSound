@@ -1,0 +1,8 @@
+# Objects of the monitoring stack that are not in a chart, applied by the Argo CD Application
+# monitoring-config (deploy/argocd/apps/monitoring.yaml) into the namespace monitoring.
+# values/ holds the chart values of the other three Applications and is not a kustomize resource.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - dashboards
+  - alerts

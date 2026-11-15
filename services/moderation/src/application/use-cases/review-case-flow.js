@@ -9,17 +9,25 @@
 //   subjectType, label                 'place' | 'tour'
 //   caseKey(payload)                   { subjectId, tourId, revision }
 //   tagOf(row) / tagOfPayload(p)       short log tag with ids only, never content
-//   check(payload)                     -> { verdict, severity, reasons, model, imagesChecked? }; throws AiPermanentError /
-//                                         AiTemporaryError from the AI
-//   permanentResult(payload, err)      -> { verdict, severity, reasons } published for human review on a 422
+//   check(payload)                     -> { verdict, severity, reasons, model, imagesChecked?, verdictSource? };
+//                                         throws AiPermanentError / AiTemporaryError from the AI
+//   permanentResult(payload, err)      -> { verdict, severity, reasons, verdictSource? } published for human
+//                                         review on a 422
 //   buildResultEvent(case, at)         -> { eventName, payload }
 //
 // Error policy (D11): AiPermanentError -> failed_permanent + publish permanentResult; AiTemporaryError after
 // retries (including 401 config) -> ai_failed, nothing published, the sweeper retries; anything else ->
 // ai_failed. No public method ever throws: the shared consume() would drop the message.
+//
+// Metrics (deployment task 4.4, ModerationMetrics port, no-op by default):
+// - caseFinished once per review that stores a final verdict (done, or failed_permanent on a 422: that Warning
+//   for human review is a finished case, not an AI failure), after its publish attempt. A re-publish of a
+//   stored result (duplicate event, sweeper) is not counted again.
+// - aiFailed when a temporary AI error leaves the case ai_failed. Other unexpected errors are not AI failures.
 import { CASE_STATUS } from '../../domain/entities/moderation-case.js';
 import { AiPermanentError, AiTemporaryError } from '../../domain/errors/index.js';
 import { transition, canTransition } from '../../domain/moderation/case-state-machine.js';
+import { NOOP_MODERATION_METRICS } from '../../domain/ports/index.js';
 import { truncate } from '../dtos/ai-mapping.js';
 
 // Event contract limits (shared/events reasonSchema and *.ai_rejected.reason).
@@ -55,6 +63,25 @@ export function joinReasons(reasons = []) {
 
 export const errorText = (err) => truncate(`${err?.name ?? 'Error'}${err?.kind ? `(${err.kind})` : ''}: ${err?.message ?? ''}`, MAX_LAST_ERROR);
 
+/** Metric reason of a temporary AI error: 'timeout' | '503' | '401' | 'other' (task 4.4). */
+export function aiFailureReason(err) {
+  if (err?.kind === 'timeout') return 'timeout';
+  if (err?.kind === 'config' || err?.status === 401) return '401';
+  if (err?.status === 503) return '503';
+  return 'other';
+}
+
+/**
+ * Seconds from the event `at` (else the case createdAt) to `now`; null when neither is a valid date.
+ * Never negative (clock skew between services).
+ */
+export function caseSeconds(payload, row, now) {
+  const fromAt = Date.parse(payload?.at ?? '');
+  const start = Number.isFinite(fromAt) ? fromAt : new Date(row?.createdAt ?? NaN).getTime();
+  if (!Number.isFinite(start)) return null;
+  return Math.max(0, (now.getTime() - start) / 1000);
+}
+
 /**
  * Compare-and-set transition: checks the move with the state machine, then claims the row only if it still has
  * the status and updatedAt we read. Returns the claimed row, or null when another worker changed it first.
@@ -76,10 +103,11 @@ export class ReviewCaseFlow {
    *           aiReviewer: import('../../domain/ports/index.js').AiReviewer,
    *           publisher: import('../../domain/ports/index.js').EventPublisher,
    *           clock: import('../../domain/ports/index.js').Clock,
-   *           logger?: Pick<Console, 'info' | 'warn' | 'error'> }} deps
+   *           logger?: Pick<Console, 'info' | 'warn' | 'error'>,
+   *           metrics?: import('../../domain/ports/index.js').ModerationMetrics }} deps
    */
-  constructor({ repo, aiReviewer, publisher, clock, logger = console }) {
-    Object.assign(this, { repo, aiReviewer, publisher, clock, logger });
+  constructor({ repo, aiReviewer, publisher, clock, logger = console, metrics = NOOP_MODERATION_METRICS }) {
+    Object.assign(this, { repo, aiReviewer, publisher, clock, logger, metrics });
   }
 
   /** @param {object} payload a valid *.submitted payload */
@@ -186,7 +214,11 @@ export class ReviewCaseFlow {
         checkedAt: this.clock.now(),
       }));
       this.logger.info(`[moderation] ${this.label} ${tag} verdict=${result.verdict} severity=${result.severity} model=${current.model}`);
-      await this.#publishResult(current, tag);
+      try {
+        await this.#publishResult(current, tag);
+      } finally {
+        this.#recordFinished(current, payload, result.verdictSource);
+      }
       return CASE_STATUS.DONE;
     } catch (err) {
       this.logger.error(`[moderation] ${this.label} review failed ${tag}: ${errorText(err)}`);
@@ -206,13 +238,36 @@ export class ReviewCaseFlow {
         lastError: errorText(err),
         checkedAt: this.clock.now(),
       }));
-      await this.#publishResult(failed, tag);
+      try {
+        await this.#publishResult(failed, tag);
+      } finally {
+        this.#recordFinished(failed, payload, result.verdictSource);
+      }
       return CASE_STATUS.FAILED_PERMANENT;
     }
     if (!(err instanceof AiTemporaryError)) throw err; // unexpected: handled by #review()
     this.logger.warn(`[moderation] ${this.label} ${tag} AI unavailable, ai_failed (sweeper retries): ${errorText(err)}`);
     await this.#save(transition(current, CASE_STATUS.AI_FAILED, { lastError: errorText(err) }));
+    this.#record(() => this.metrics.aiFailed({ kind: this.subjectType, reason: aiFailureReason(err) }));
     return CASE_STATUS.AI_FAILED;
+  }
+
+  #recordFinished(moderationCase, payload, verdictSource) {
+    this.#record(() => this.metrics.caseFinished({
+      kind: this.subjectType,
+      verdict: moderationCase?.verdict,
+      source: verdictSource ?? 'ai',
+      seconds: caseSeconds(payload, moderationCase, this.clock.now()),
+    }));
+  }
+
+  // Metrics never break the case flow.
+  #record(fn) {
+    try {
+      fn();
+    } catch (err) {
+      this.logger.warn(`[moderation] metrics update failed: ${errorText(err)}`);
+    }
   }
 
   // Publish failure is logged, not thrown: the case keeps publishedAt = null so it can be re-published.

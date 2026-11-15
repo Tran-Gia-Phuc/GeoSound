@@ -23,7 +23,14 @@ class FakePrisma {
       async update(args) { self.calls.push(['update', args]); return self.update(args); },
       async findMany(args) { self.calls.push(['findMany', args]); return self.findMany(args); },
       async updateMany(args) { self.calls.push(['updateMany', args]); return self.updateMany(args); },
+      async count(args) { self.calls.push(['count', args]); return self.count(args); },
     };
+  }
+
+  // Only the shape countByStatus sends: where { status } (exact match).
+  count({ where }) {
+    assert.deepEqual(Object.keys(where), ['status']);
+    return this.rows.filter((r) => r.status === where.status).length;
   }
 
   findUnique({ where }) {
@@ -298,6 +305,18 @@ for (const [name, make] of Object.entries(impls)) {
       assert.equal(leased.status, 'done');
       assert.equal(leased.verdict, 'Pass');
       assert.ok(leased.updatedAt > done.updatedAt);
+    });
+
+    test('countByStatus counts the cases with that status (task 4.4)', async () => {
+      const { repo } = make(new FakeClock());
+      assert.equal(await repo.countByStatus('ai_failed'), 0);
+      const a = await repo.createPending(place('p1'));
+      const b = await repo.createPending(place('p2'));
+      await repo.createPending(place('p3'));
+      await repo.update(a.id, { status: 'ai_failed' });
+      await repo.update(b.id, { status: 'ai_failed' });
+      assert.equal(await repo.countByStatus('ai_failed'), 2);
+      assert.equal(await repo.countByStatus('pending'), 1);
     });
   });
 }

@@ -21,14 +21,18 @@ import asyncio
 import json
 import logging
 import re
+import time
 import uuid
 from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.routing import APIRoute
 from pydantic import BaseModel, Field, field_validator
 
+from app import metrics
 from app.api.moderation import describe_failure
 from app.chatbot.limits import ChatBusyError
 from app.config import get_settings
@@ -51,8 +55,30 @@ async def require_chat_enabled() -> None:
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
 
 
+class ChatMetricsRoute(APIRoute):
+    """Counts a POST /chat refused by validation (422) as chatbot_requests_total{outcome="invalid"}.
+
+    FastAPI validates the body before the handler runs, so the handler cannot see it.
+    """
+
+    def get_route_handler(self):
+        handler = super().get_route_handler()
+        if self.path != "/chat":
+            return handler
+
+        async def counted(request):
+            try:
+                return await handler(request)
+            except RequestValidationError:
+                metrics.record_chat_request("invalid")
+                raise
+
+        return counted
+
+
 # Order matters: a disabled chatbot looks absent (404) even without a token.
-router = APIRouter(dependencies=[Depends(require_chat_enabled), Depends(require_internal_token)])
+router = APIRouter(dependencies=[Depends(require_chat_enabled), Depends(require_internal_token)],
+                   route_class=ChatMetricsRoute)
 
 
 class ChatLocation(BaseModel):
@@ -114,21 +140,33 @@ def sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
-async def stream_turn(result: dict[str, Any]):
+async def stream_turn(result: dict[str, Any], started_at: float | None = None):
+    """SSE events of one finished turn. `started_at` (time.perf_counter() at the start of the
+    request) times the first token for chatbot_first_token_seconds."""
+    if started_at is None:
+        started_at = time.perf_counter()
     try:
         yield sse("meta", {"session_id": result["session_id"], "lang": result["lang"]})
+        first = True
         for chunk in split_tokens(result["answer"]):
+            if first:
+                first = False
+                metrics.observe_first_token(time.perf_counter() - started_at)
             yield sse("token", {"text": chunk})
         yield sse("citations", {"items": result.get("citations", [])})
         yield sse("done", {"finish_reason": result["finish_reason"],
                            "llm_calls": result["llm_calls"]})
     except Exception as exc:
         logger.error("chat stream failed: %s", type(exc).__name__)
+        metrics.record_chat_request("error")
         yield sse("error", {"code": "internal", "message": UNAVAILABLE_DETAIL})
+        return
+    metrics.record_chat_request("ok")
 
 
 @router.post("/chat")
 async def chat(request: ChatRequest, service=Depends(get_chat_service)):
+    started_at = time.perf_counter()
     session_id = str(request.session_id or uuid.uuid4())
     location = request.location.model_dump() if request.location else None
     try:
@@ -136,13 +174,16 @@ async def chat(request: ChatRequest, service=Depends(get_chat_service)):
                                     location=location, language=request.language)
     except ChatBusyError as exc:
         logger.warning("chat turn refused: %s", exc.reason)
+        metrics.record_chat_request("rate_limited")
         return JSONResponse(status_code=429, content={"detail": BUSY_DETAIL},
                             headers={"Retry-After": str(exc.retry_after)})
     except Exception as exc:
         # Class names only: provider messages may echo the user text.
         logger.error("chat turn unavailable: %s", describe_failure(exc))
+        metrics.record_chat_request("unavailable")
         raise HTTPException(status_code=503, detail=UNAVAILABLE_DETAIL) from exc
-    return StreamingResponse(stream_turn(result), media_type="text/event-stream",
+    # ok / error are counted when the stream ends (stream_turn).
+    return StreamingResponse(stream_turn(result, started_at), media_type="text/event-stream",
                              headers=SSE_HEADERS)
 
 

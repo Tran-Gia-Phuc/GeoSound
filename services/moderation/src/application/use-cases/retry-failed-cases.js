@@ -71,6 +71,15 @@ export class RetryFailedCases {
     return counts;
   }
 
+  /**
+   * Number of ai_failed cases waiting for the sweeper (moderation_pending_cases gauge, task 4.4).
+   * May throw (database down); the sweeper timer catches it.
+   * @returns {Promise<number>}
+   */
+  async countPending() {
+    return this.repo.countByStatus(CASE_STATUS.AI_FAILED);
+  }
+
   async #process(row) {
     const reviewer = Object.hasOwn(this.reviewers, row.subjectType) ? this.reviewers[row.subjectType] : undefined;
     if (!reviewer) {
