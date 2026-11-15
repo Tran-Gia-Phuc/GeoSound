@@ -1,0 +1,21 @@
+{
+  "uc": "UC08",
+  "steps": [
+    { "id": "s1", "text": "1. Tourist mở lịch trình của mình và chọn “Đi theo lịch trình”.", "alts": ["A2"] },
+    { "id": "s2", "decision": true, "text": "2. Hệ thống mở trình phát: điểm theo thứ tự, route nối các điểm, mỗi điểm một vùng tròn (mặc định 50 m); tải được? E3, E5.", "exceptions": [
+      { "id": "E3", "text": "E3/E4. Lịch trình không tồn tại, không phải chủ sở hữu, liên kết chia sẻ bị thu hồi (404 / 403) → báo lỗi; chưa đăng nhập → trang đăng nhập.", "back": "end" },
+      { "id": "E5", "text": "E5. Mất mạng → không tải được; nếu đã tải gói offline (UC07 A3), mở từ “Tour đã tải”.", "back": "end" } ] },
+    { "id": "s3", "decision": true, "text": "3. Tourist chọn chế độ “Đi theo lịch trình” (GPS)? A1.", "alts": ["A1"] },
+    { "id": "s4", "decision": true, "text": "4. Hệ thống xin quyền vị trí, hiện bản đồ, vị trí hiện tại và điểm tiếp theo kèm khoảng cách; GPS dùng được? E1, E2.", "exceptions": [
+      { "id": "E1", "text": "E1. Chưa có quyền vị trí / thiết bị không hỗ trợ GPS → “Hãy cấp quyền vị trí, hoặc chuyển sang nghe thử từ xa.”", "back": "s3" },
+      { "id": "E2", "text": "E2. GPS yếu → “GPS yếu (±… m). Bạn có thể chọn điểm thủ công.”; vị trí chưa cập nhật → “Đang chờ GPS…”.", "back": "s4" } ] },
+    { "id": "s5", "text": "5. Tourist di chuyển ngoài thực địa." },
+    { "id": "s6", "text": "6. Vào vùng một điểm mới, hệ thống tự mở nội dung và phát audio người thật; không có (hoặc lỗi) thì đọc bằng giọng thiết bị." },
+    { "id": "s7", "text": "7. Tourist tạm dừng, tua, chuyển điểm hoặc đổi ngôn ngữ (trong các ngôn ngữ có ở lịch trình)." },
+    { "id": "s8", "text": "8. Nghe hết các điểm, hệ thống hiện hộp thoại hoàn thành." }
+  ],
+  "alts": [
+    { "id": "A2", "steps": ["A2.1. Người nhận mở liên kết chia sẻ và chọn đi theo.", "A2.2. Hệ thống tải lịch trình chia sẻ (công khai) vào cùng trình phát; người nhận không sửa được."], "to": "s3" },
+    { "id": "A1", "steps": ["A1.1. Tourist chọn “Nghe thử từng điểm” hoặc bấm một điểm trên danh sách / bản đồ.", "A1.2. Hệ thống phát nội dung điểm đó, không cần đến gần, không dùng GPS."], "to": "s7" }
+  ]
+}

@@ -1,0 +1,23 @@
+fastapi==0.115.*
+uvicorn[standard]==0.32.*
+pydantic==2.*
+pydantic-settings==2.*
+python-dotenv==1.*
+httpx==0.27.*
+langsmith==0.4.*
+# Chatbot (phase 3, #AI-46): versions resolved together with langsmith 0.4 and httpx 0.27.
+langgraph==1.0.*
+langgraph-checkpoint==4.*
+langchain-core==1.6.*
+langchain-google-genai==3.0.*
+langchain-groq==1.0.*
+# Chatbot index store (#219): pgvector in schema "ai" through asyncpg (binary wheels, no compiler).
+asyncpg==0.30.*
+# Local embeddings (ONNX runtime) live in requirements-embeddings.txt (#219), installed by the Dockerfile.
+# AMQP client of the chatbot indexer (#219, D21): the only RabbitMQ consumer of this service.
+aio-pika==9.4.*
+# Persistent chat memory (#219, CHAT_MEMORY_BACKEND=postgres): official LangGraph Postgres
+# checkpointer (3.2 needs langgraph-checkpoint>=4.3,<5) over psycopg 3 (binary wheels).
+langgraph-checkpoint-postgres==3.2.*
+psycopg[binary]==3.3.*
+psycopg-pool==3.3.*

@@ -1,0 +1,87 @@
+// =========================================================
+// UC12 (bước 1–2, 6) — Lấy cấu hình ngôn ngữ & giọng của tour. Chỉ tác giả.
+// Chưa cấu hình → chỉ có ngôn ngữ gốc, chưa có ngôn ngữ phụ/bản dịch.
+// =========================================================
+import { TourNotFoundError, NotTourOwnerError } from '../../domain/errors/index.js';
+import { splitLanguagesByReadiness, isOutdatedEdit, autoLanguageCodes } from '../../domain/i18n/translation-status.js';
+
+/** Ráp cấu hình trả về từ các mảnh đã tải (dùng chung với SetTourLanguages). */
+export function buildLanguageConfig({ tour, langs, translations, places }) {
+  const source = tour.originalLanguage;
+  const voice = langs.find((l) => l.gender)?.toPublic().voice ?? null;
+
+  // Ngôn ngữ: luôn gồm ngôn ngữ gốc (kể cả khi chưa lưu TourLanguage nào).
+  // Kèm tiến độ dịch thật + `ready` (khách chỉ thấy ngôn ngữ ready — UC02/UC04).
+  const base = langs.length
+    ? langs.map((l) => l.toPublic())
+    : [{ languageCode: source, isSource: true, voice: null }];
+  const { ready, progress } = splitLanguagesByReadiness({
+    source,
+    languages: base.map((l) => l.languageCode),
+    places,
+    translations,
+  });
+  const languages = base.map((l) => ({
+    ...l,
+    ready: ready.includes(l.languageCode),
+    translated: progress[l.languageCode]?.translated ?? 0,
+    total: progress[l.languageCode]?.total ?? places.length,
+    outdated: progress[l.languageCode]?.outdated ?? 0,
+  }));
+
+  // Ngôn ngữ khách đã yêu cầu dịch tự động (tác giả chưa bật) — tác giả có thể bật để dùng lại.
+  const autoCodes = autoLanguageCodes(translations, base.map((l) => l.languageCode));
+  const auto = splitLanguagesByReadiness({ source, languages: autoCodes, places, translations });
+  const autoLanguages = autoCodes.map((code) => ({
+    languageCode: code,
+    ready: auto.ready.includes(code),
+    translated: auto.progress[code].translated,
+    total: auto.progress[code].total,
+  }));
+
+  // outdated = bản chỉnh tay nhưng mô tả gốc đã đổi sau đó (UC10) → tác giả nên xem lại.
+  const placeById = new Map(places.map((p) => [p.id, p]));
+  const byPlace = new Map(places.map((p) => [p.id, []]));
+  for (const t of translations) {
+    if (!byPlace.has(t.placeId)) continue;
+    byPlace.get(t.placeId).push({ ...t.toPublic(), outdated: isOutdatedEdit(placeById.get(t.placeId), t) });
+  }
+
+  return {
+    tourId: tour.id,
+    sourceLanguage: source,
+    voice,
+    languages,
+    autoTranslate: tour.autoTranslate !== false,
+    autoLanguages,
+    places: places.map((p) => ({
+      placeId: p.id,
+      name: p.name,
+      translations: byPlace.get(p.id) ?? [],
+    })),
+  };
+}
+
+export class GetLanguageConfig {
+  /** @param {{ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo }} deps */
+  constructor({ tourRepo, placeRepo, tourLanguageRepo, placeTranslationRepo }) {
+    this.tourRepo = tourRepo;
+    this.placeRepo = placeRepo;
+    this.tourLanguageRepo = tourLanguageRepo;
+    this.placeTranslationRepo = placeTranslationRepo;
+  }
+
+  /** @param {{ authorId, tourId }} input */
+  async execute({ authorId, tourId }) {
+    const tour = await this.tourRepo.findById(tourId);
+    if (!tour) throw new TourNotFoundError();
+    if (!tour.isOwnedBy(authorId)) throw new NotTourOwnerError();
+
+    const [langs, translations, places] = await Promise.all([
+      this.tourLanguageRepo.listByTour(tourId),
+      this.placeTranslationRepo.listByTour(tourId),
+      this.placeRepo.listByTour(tourId),
+    ]);
+    return buildLanguageConfig({ tour, langs, translations, places });
+  }
+}

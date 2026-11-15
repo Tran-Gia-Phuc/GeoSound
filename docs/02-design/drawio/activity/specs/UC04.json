@@ -1,0 +1,43 @@
+{
+  "uc": "UC04",
+  "steps": [
+    { "id": "s1", "text": "1. Tourist ở chi tiết tour (UC02) nhấn “Bắt đầu đi tour”. Muốn nghe trước khi đến → A5.", "alts": ["A5"] },
+    { "id": "s2", "decision": true, "text": "2. Client mở trình phát GPS, tải chi tiết tour: điểm dừng, text, audio, route, vùng kích hoạt, audio chỉ đường; tải được? E4.", "exceptions": [
+      { "id": "E4", "text": "E4. Mất mạng → “Mất kết nối mạng” + “Thử lại”; tour không công khai → “Tour không tồn tại hoặc chưa công khai.”; tour đã tải → mở bản offline.", "back": "end" } ] },
+    { "id": "s3", "decision": true, "text": "3. Client xin quyền vị trí, hiện bản đồ: vị trí hiện tại, route, các điểm; có vị trí đủ tốt? E1, E2.", "exceptions": [
+      { "id": "E1", "text": "E1. Chưa có / bị từ chối quyền vị trí hoặc thiết bị không có GPS → báo lỗi, gợi ý nút “Nghe thử” (A5).", "back": "end" },
+      { "id": "E2", "text": "E2. GPS yếu (sai số > 50 m) hoặc không cập nhật quá 12 giây → báo “GPS yếu”, cho chọn điểm thủ công.", "back": "s4" } ] },
+    { "id": "s4", "text": "4. Tourist di chuyển theo route." },
+    { "id": "s5", "text": "5. Mỗi lần vị trí đổi, client kiểm tra vị trí có nằm trong vùng kích hoạt nào (tròn hoặc đa giác)." },
+    { "id": "s6", "text": "6. Tourist bước vào vùng kích hoạt của một điểm." },
+    { "id": "s7", "decision": true, "text": "7. Client tự phát điểm: audio thu âm nếu có, nếu không giọng thiết bị đọc text; gửi thống kê “play” (UC17); phát được? A1, A2, E3.", "alts": ["A1", "A2"], "exceptions": [
+      { "id": "E3", "text": "E3. Audio thiếu hoặc lỗi → chuyển sang giọng thiết bị đọc text; vẫn lỗi → mở sheet điểm, hiện text kèm thông báo lỗi.", "back": "s8" } ] },
+    { "id": "s8", "text": "8. Sheet điểm hiện tên, text và ảnh." },
+    { "id": "s9", "text": "9. Tourist bước vào vùng chỉ đường (ngã rẽ)." },
+    { "id": "s10", "text": "10. Nếu không đang phát gì, client phát audio chỉ đường của vùng đó." },
+    { "id": "s11", "text": "11. Phát xong một điểm, client phát gợi ý “đi tiếp” nếu tác giả đã cấu hình; banner báo điểm tiếp theo và khoảng cách." },
+    { "id": "s12", "text": "12. Tourist điều khiển: phát / tạm dừng, tua ±15 giây, điểm trước / sau, đổi ngôn ngữ, danh sách điểm, “Báo cáo tour” (UC06).", "alts": ["A3"] },
+    { "id": "s13", "text": "13. Tourist đến và nghe xong điểm cuối.", "alts": ["A4"] },
+    { "id": "s14", "text": "14. Client đánh dấu hoàn thành, gửi thống kê “complete” (UC17), hiện hộp hoàn thành: “Đánh giá tour” (UC05), “Khám phá tour khác”." }
+  ],
+  "alts": [
+    { "id": "A5", "steps": [
+      "A5.1. Tourist nhấn “Nghe thử” (hoặc chạm một điểm); client mở trình phát từ xa, không dùng GPS.",
+      "A5.2. Tourist chọn điểm, chuyển điểm trước / sau, đổi ngôn ngữ; client phát điểm và hiện text, ảnh.",
+      "A5.3. Nghe hết các điểm → hộp hoàn thành như bước 14."
+    ], "to": "s14" },
+    { "id": "A1", "steps": [
+      "A1.1. Vào nhiều vùng cùng lúc → phát điểm có độ ưu tiên cao nhất (tác giả đặt ở UC11)."
+    ], "to": "s8" },
+    { "id": "A2", "steps": [
+      "A2.1. Đang phát thì vào vùng điểm khác: ưu tiên cao hơn → chen ngang ngay; bằng hoặc thấp hơn → phát sau nếu vẫn trong vùng."
+    ], "to": "s8" },
+    { "id": "A3", "steps": [
+      "A3.1. Tourist chạm điểm trên bản đồ hoặc trong danh sách; client phát ngay điểm đó, không phát gợi ý “đi tiếp”."
+    ], "to": "s8" },
+    { "id": "A4", "steps": [
+      "A4.1. Tourist tạm rời; tiến độ (điểm đã nghe, điểm cuối, ngôn ngữ) được lưu trên máy.",
+      "A4.2. Mở lại → banner “Bạn đã nghe x/n điểm”, cho nghe tiếp."
+    ], "to": "s5" }
+  ]
+}

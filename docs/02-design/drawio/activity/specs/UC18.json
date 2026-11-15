@@ -1,0 +1,22 @@
+{
+  "uc": "UC18",
+  "steps": [
+    { "id": "s1", "text": "1. Contributor mở “Hồ sơ tác giả”; hệ thống hiển thị tên, giới thiệu, ảnh đại diện.", "alts": ["A1"] },
+    { "id": "s2", "decision": true, "text": "2. Contributor sửa thông tin, có thể tải ảnh đại diện lên, rồi lưu; dữ liệu hợp lệ? E3.", "exceptions": [
+      { "id": "E3", "text": "E3. Tên rỗng / quá 120 ký tự, giới thiệu quá 500 ký tự, URL ảnh không được phép → báo lỗi theo trường.", "back": "s2" } ] },
+    { "id": "s3", "decision": true, "text": "3. Tourist mở trang tác giả (từ chi tiết tour, danh sách “Đang theo dõi” hoặc menu tài khoản); tác giả tồn tại? A4, E2.", "alts": ["A4"], "exceptions": [
+      { "id": "E2", "text": "E2. Không tồn tại, không phải contributor, bị cấm hoặc đang tạm khoá → “Không tìm thấy tác giả”.", "back": "end" } ] },
+    { "id": "s4", "decision": true, "text": "4. Hệ thống hiển thị ảnh, tên, giới thiệu, ngày tham gia, số người theo dõi và tour công khai mới nhất; có tour công khai? E1.", "exceptions": [
+      { "id": "E1", "text": "E1. Tác giả chưa có tour công khai → danh sách tour trống, trang vẫn hiển thị.", "back": "s5" } ] },
+    { "id": "s5", "decision": true, "text": "5. Tourist nhấn “Theo dõi”; số người theo dõi đổi ngay; đã đăng nhập và theo dõi được? A2, A3, A5, E4.", "alts": ["A2", "A3", "A5"], "exceptions": [
+      { "id": "E4", "text": "E4/E5. Tự theo dõi chính mình → báo lỗi; mất kết nối → “Không thể kết nối, vui lòng thử lại”; số người theo dõi quay lại giá trị cũ.", "back": "s5" } ] },
+    { "id": "s6", "text": "6. Tourist mở một tour từ danh sách; hệ thống mở chi tiết tour (UC02)." }
+  ],
+  "alts": [
+    { "id": "A1", "steps": ["A1.1. Tourist / Admin cũng sửa được tên, giới thiệu, ảnh đại diện.", "A1.2. Không có trang tác giả công khai."], "to": "end" },
+    { "id": "A4", "steps": ["A4.1. Người đã đăng nhập mở “Đang theo dõi” (mới theo dõi nhất trước, 20 mỗi trang).", "A4.2. Chọn một tác giả trong danh sách."], "to": "s4" },
+    { "id": "A2", "steps": ["A2.1. Tourist nhấn “Đang theo dõi” để bỏ theo dõi (luôn được phép).", "A2.2. Hệ thống trả số người theo dõi mới."], "to": "s6" },
+    { "id": "A3", "steps": ["A3.1. Khách chưa đăng nhập nhấn “Theo dõi”.", "A3.2. Client chuyển tới trang đăng nhập rồi quay lại trang tác giả."], "to": "s5" },
+    { "id": "A5", "steps": ["A5.1. Tác giả xem trang của chính mình: nút Theo dõi bị ẩn, thay bằng liên kết tới trình sửa hồ sơ."], "to": "s6" }
+  ]
+}

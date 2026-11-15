@@ -1,0 +1,120 @@
+/* UC17 (#271) — tour statistics in Studio. */
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+.stats-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.stats-filters__periods,
+.stats-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.stats-filters__range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+.stats-filters__range .input,
+.stats-filters__lang .input {
+  width: 100%;
+  min-width: 0;
+}
+.stats-filters__lang {
+  max-width: 320px;
+}
+.stats-tiles {
+  min-width: 0;
+}
+@media (min-width: 760px) {
+  .stats-tiles {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+.stats-daily,
+.stats-ratings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.stats-chart {
+  margin: 0;
+  min-width: 0;
+}
+.stats-chart__title {
+  font-weight: 600;
+  margin-bottom: var(--sp-2);
+}
+.stats-chart__scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.stats-chart__bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 100%;
+  width: max-content;
+  border-bottom: 1px solid var(--border);
+}
+.stats-chart__col {
+  flex: 1 0 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  border-radius: 4px;
+}
+.stats-chart__col:hover .stats-chart__bar,
+.stats-chart__col:focus-visible .stats-chart__bar {
+  filter: brightness(0.85);
+}
+.stats-chart__col:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+.stats-chart__track {
+  height: 140px;
+  display: flex;
+  align-items: flex-end;
+}
+.stats-chart__bar {
+  display: block;
+  width: 100%;
+  background: var(--primary);
+  border-radius: 4px 4px 0 0;
+}
+.stats-chart__day {
+  min-height: 14px;
+  font-size: 10.5px;
+  color: var(--fg-subtle);
+  text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.stats-table summary {
+  cursor: pointer;
+  font-size: 13.5px;
+  color: var(--primary);
+  font-weight: 600;
+  margin-bottom: var(--sp-2);
+}
+.stats-ratings__h3 {
+  font-size: 15px;
+  margin: var(--sp-2) 0 0;
+}
+.stats-empty {
+  margin: var(--sp-4) auto;
+  text-align: center;
+}

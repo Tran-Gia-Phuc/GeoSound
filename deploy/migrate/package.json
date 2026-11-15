@@ -1,0 +1,8 @@
+{
+  "name": "geosound-migrate",
+  "private": true,
+  "description": "Prisma CLI of the migrate image (deployment plan task 2.4); same version as the service images.",
+  "dependencies": {
+    "prisma": "5.22.0"
+  }
+}

@@ -1,0 +1,220 @@
+// =========================================================
+// Entity: Tour. Lõi nghiệp vụ UC09 (Quản lý tour của mình):
+//   - tạo tour mặc định trạng thái "Nháp" (draft)
+//   - chỉ tác giả thao tác tour của mình: isOwnedBy()
+//   - sửa tour đã công khai → phải gửi duyệt lại: applyEdits()
+// Thuần domain: không biết Prisma/HTTP. Repo map DB row <-> entity này.
+// =========================================================
+
+// Vòng đời tour (khớp danh sách trạng thái ở UC09 / kiểm duyệt 3 tầng).
+export const TOUR_STATUS = Object.freeze({
+  DRAFT: 'draft', // Nháp
+  AI_CHECKING: 'ai_checking', // Chờ AI (UC15)
+  AI_WARNING: 'ai_warning', // AI Warning
+  PENDING_REVIEW: 'pending_review', // Chờ Admin duyệt (UC19)
+  PUBLIC: 'public', // Công khai (đã duyệt)
+  REJECTED: 'rejected', // Bị từ chối
+  RESTRICTED: 'restricted', // Truy cập hạn chế (UC14)
+  HIDDEN: 'hidden', // Đang bị ẩn
+  CHANGES_REQUESTED: 'changes_requested', // UC19 / A3: admin asked for changes, the author edits and submits again (UC15)
+});
+
+export const TOUR_TYPES = Object.freeze(['walking', 'driving', 'cycling', 'indoor']);
+
+// Các trường contributor được sửa ở UC09 (nội dung mô tả tour).
+// city/duration dùng cho tìm kiếm & hiển thị ở UC02.
+export const EDITABLE_FIELDS = Object.freeze([
+  'title',
+  'description',
+  'coverImageUrl',
+  'originalLanguage',
+  'type',
+  'city',
+  'duration',
+]);
+
+// Trạng thái "đang hiển thị với khách" — sửa nội dung thì phải gửi duyệt lại.
+// UC14 (#269): RESTRICTED is not here any more: it is never public and never reviewed, so editing a
+// restricted tour keeps it restricted (testers see the new content; no moderation, no catalog event).
+const LIVE_STATUSES = new Set([TOUR_STATUS.PUBLIC]);
+
+// UC14 (#269) — statuses from which the author may turn restricted mode on. A public tour must be
+// unpublished first; a tour in moderation must be edited back to draft first.
+const RESTRICTABLE_FROM = new Set([
+  TOUR_STATUS.DRAFT,
+  TOUR_STATUS.REJECTED,
+  TOUR_STATUS.CHANGES_REQUESTED,
+]);
+export const RESTRICTABLE_STATUSES = Object.freeze([...RESTRICTABLE_FROM]);
+
+// Xuất bản thẳng (bỏ qua kiểm duyệt — quyết định D1): tác giả được đưa tour lên
+// Công khai từ các trạng thái chưa công khai. HIDDEN là quyết định của quản trị viên nên
+// tác giả không tự gỡ được. RESTRICTED (UC14) must be turned off first (back to draft).
+const PUBLISHABLE_FROM = new Set([
+  TOUR_STATUS.DRAFT,
+  TOUR_STATUS.REJECTED,
+  TOUR_STATUS.AI_CHECKING,
+  TOUR_STATUS.AI_WARNING,
+  TOUR_STATUS.PENDING_REVIEW,
+  TOUR_STATUS.CHANGES_REQUESTED,
+]);
+
+// UC15 — statuses whose moderation result would be invalidated by a content edit.
+const IN_MODERATION = new Set([
+  TOUR_STATUS.AI_CHECKING,
+  TOUR_STATUS.AI_WARNING,
+  TOUR_STATUS.PENDING_REVIEW,
+]);
+
+// UC19 — statuses an admin can decide on (approve / reject / request changes).
+export const REVIEWABLE_STATUSES = Object.freeze([TOUR_STATUS.AI_WARNING, TOUR_STATUS.PENDING_REVIEW]);
+const REVIEWABLE = new Set(REVIEWABLE_STATUSES);
+
+export class Tour {
+  /**
+   * @param {{
+   *   id?: string, title: string, description?: string, coverImageUrl?: string|null,
+   *   originalLanguage: string, type?: string, status?: string, authorId: string,
+   *   createdAt?: Date, updatedAt?: Date,
+   * }} props
+   */
+  constructor(props) {
+    this.id = props.id ?? null;
+    this.title = props.title;
+    this.description = props.description ?? '';
+    this.coverImageUrl = props.coverImageUrl ?? null;
+    this.originalLanguage = props.originalLanguage;
+    this.type = props.type ?? 'walking';
+    this.status = props.status ?? TOUR_STATUS.DRAFT;
+    this.authorId = props.authorId;
+    // UC02 — thành phố (lọc), thời lượng ước tính (phút), điểm đánh giá.
+    this.city = props.city ?? null;
+    this.duration = props.duration ?? null;
+    // Hệ thống duy trì (UC05 cập nhật); mặc định 0 khi chưa có đánh giá.
+    this.averageRating = props.averageRating ?? 0;
+    this.ratingCount = props.ratingCount ?? 0;
+    // UC15 — AI/geo reasons of the last moderation result + revision sent in tour.submitted.
+    this.moderationReasons = props.moderationReasons ?? [];
+    this.moderationRevision = props.moderationRevision ?? null;
+    // UC19 — reason of the last admin rejection / change request, shown to the author.
+    this.reviewReason = props.reviewReason ?? null;
+    // UC14 (#269) — passcode bookkeeping (the hash itself never enters the entity).
+    this.passcodeVersion = props.passcodeVersion ?? 0;
+    this.passcodeSetAt = props.passcodeSetAt ?? null;
+    // UC12: tourists may ask for an automatic translation into a language the author did not turn on.
+    this.autoTranslate = props.autoTranslate ?? true;
+    this.createdAt = props.createdAt ?? null;
+    this.updatedAt = props.updatedAt ?? null;
+  }
+
+  /** Quy tắc: chỉ tác giả mới quản lý tour của mình. */
+  isOwnedBy(userId) {
+    return this.authorId === userId;
+  }
+
+  /** Tour đang hiển thị với khách du lịch (công khai / truy cập hạn chế). */
+  isLive() {
+    return LIVE_STATUSES.has(this.status);
+  }
+
+  /** UC02 — chỉ tour công khai (đã duyệt) mới hiện trong tìm kiếm công khai. */
+  isPublic() {
+    return this.status === TOUR_STATUS.PUBLIC;
+  }
+
+  /** UC14 (#269) — restricted mode (passcode; testers only). */
+  isRestricted() {
+    return this.status === TOUR_STATUS.RESTRICTED;
+  }
+
+  /** UC14 (#269) — the author can turn restricted mode on from the current status. */
+  canRestrict() {
+    return RESTRICTABLE_FROM.has(this.status);
+  }
+
+  /**
+   * UC09 / A1 — áp các thay đổi nội dung. Nếu tour đang hiển thị thì đưa về
+   * "Nháp" (sửa tour công khai → phải gửi duyệt lại ở UC15).
+   * Giá trị đưa vào phải đã được chuẩn hóa/validate ở use-case.
+   * @param {Record<string, any>} fields
+   * @returns {boolean} requiresResubmit — có cần gửi duyệt lại không
+   */
+  applyEdits(fields) {
+    for (const key of EDITABLE_FIELDS) {
+      if (fields[key] !== undefined) this[key] = fields[key];
+    }
+    const requiresResubmit = this.isLive();
+    if (requiresResubmit) this.status = TOUR_STATUS.DRAFT;
+    return requiresResubmit;
+  }
+
+  /** Tác giả có thể tự xuất bản tour ở trạng thái hiện tại không. */
+  canPublish() {
+    return PUBLISHABLE_FROM.has(this.status);
+  }
+
+  /** Đưa tour lên Công khai. Kiểm tra sẵn sàng (nội dung) do use-case làm. */
+  publish() {
+    this.status = TOUR_STATUS.PUBLIC;
+  }
+
+  /**
+   * UC15 (MODERATION_EVENTS_ENABLED) — submit for AI moderation instead of direct publish.
+   * Allowed from the same statuses as publish(). Readiness is checked by the use-case.
+   */
+  submitForModeration() {
+    this.status = TOUR_STATUS.AI_CHECKING;
+  }
+
+  /** UC15 — the tour is waiting for / has passed AI moderation; editing it must withdraw it. */
+  isInModeration() {
+    return IN_MODERATION.has(this.status);
+  }
+
+  /** UC19 — an admin can approve / reject / request changes only in these statuses. */
+  isReviewable() {
+    return REVIEWABLE.has(this.status);
+  }
+
+  /** Tác giả gỡ tour công khai về Nháp (khách không còn thấy). */
+  unpublish() {
+    this.status = TOUR_STATUS.DRAFT;
+  }
+
+  /** Dữ liệu đầy đủ trả về cho chính tác giả (form chỉnh sửa). */
+  toPublic() {
+    return {
+      id: this.id,
+      title: this.title,
+      description: this.description,
+      coverImageUrl: this.coverImageUrl,
+      originalLanguage: this.originalLanguage,
+      type: this.type,
+      status: this.status,
+      authorId: this.authorId,
+      city: this.city,
+      duration: this.duration,
+      averageRating: this.averageRating,
+      ratingCount: this.ratingCount,
+      moderationReasons: this.moderationReasons,
+      reviewReason: this.reviewReason,
+      autoTranslate: this.autoTranslate,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
+
+  /** Bản rút gọn cho danh sách "tour của tôi" (UC09 bước 2). */
+  toSummary() {
+    return {
+      id: this.id,
+      title: this.title,
+      coverImageUrl: this.coverImageUrl,
+      originalLanguage: this.originalLanguage,
+      type: this.type,
+      status: this.status,
+      city: this.city,
+      updatedAt: this.updatedAt,
+    };
+  }
+}

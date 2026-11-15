@@ -1,0 +1,99 @@
+/* UC03 offline tours: download section (tour detail) and library (/offline). Phone first. */
+.offline-dl__langs,
+.offline-lib__tours,
+.offline-tour__langs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.offline-dl__lang,
+.offline-lang {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 0;
+  border-top: 1px solid var(--line, rgba(127, 127, 127, 0.2));
+}
+.offline-dl__lang:first-child,
+.offline-lang:first-child {
+  border-top: 0;
+}
+.offline-dl__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+.offline-dl__head,
+.offline-lang__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-width: 0;
+}
+.offline-dl__actions,
+.offline-lang__actions,
+.offline-progress__actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.offline-progress {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.offline-progress__bar {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--brand, #0f766e);
+}
+.offline-progress__reason {
+  margin: 0;
+}
+.offline-progress__errors {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+.offline-lib__usage {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.offline-lib__usage p {
+  margin: 2px 0 0;
+}
+.offline-lib__tours {
+  margin-top: 12px;
+}
+.offline-tour {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.offline-tour__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.offline-tour__cover {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border-radius: 10px;
+  object-fit: cover;
+}
+.offline-tour__title {
+  margin: 0;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+.offline-lib__empty {
+  margin: 32px auto;
+}

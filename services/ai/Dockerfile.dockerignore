@@ -1,0 +1,16 @@
+# Build context of services/ai/Dockerfile (task 1.3, #365). The build context is the repo root (compose files,
+# CI images.yml), so BuildKit reads this file, next to the Dockerfile, and not the root .dockerignore.
+# Allow list: only what the Dockerfile copies is sent to the builder.
+*
+!services/ai/
+**/.env
+**/.env.*
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+services/ai/.venv/
+services/ai/tests/
+services/ai/eval/
+services/ai/prisma/
+services/ai/README.md
+services/ai/Dockerfile*

@@ -1,0 +1,120 @@
+{
+  "description": "Fixture public tours for the chatbot offline evaluation (#189). Each entry of `tours` is a tour.published payload; `topics` is the topic assignment the indexer would get from the topic extractor.",
+  "tours": [
+    {
+      "tourId": "t-hn-food", "revision": "2026-10-01T00:00:00Z", "status": "public", "language": "en",
+      "title": "Hanoi street food walk",
+      "description": "Taste pho, bun cha and snacks at the street food stalls of the Old Quarter in Hanoi.",
+      "city": "Hanoi", "type": "walking", "durationMinutes": 120,
+      "places": [
+        {"placeId": "p-hn-pho", "name": "Bat Dan pho stall", "type": "restaurant", "description": "Family beef pho noodle soup stall, queue in the early morning.", "lat": 21.0336, "lng": 105.8466, "sequence": 0},
+        {"placeId": "p-hn-bun-cha", "name": "Bun cha Huong Lien", "type": "restaurant", "description": "Grilled pork with rice noodles, a classic Hanoi lunch dish.", "lat": 21.0181, "lng": 105.8539, "sequence": 1},
+        {"placeId": "p-hn-market", "name": "Dong Xuan market", "type": "market", "description": "Old covered market with food stalls and local snacks.", "lat": 21.0381, "lng": 105.8497, "sequence": 2}
+      ]
+    },
+    {
+      "tourId": "t-hn-history", "revision": "2026-10-01T00:00:00Z", "status": "public", "language": "vi",
+      "title": "Hành trình lịch sử Hà Nội",
+      "description": "Đi bộ qua đền, Văn Miếu và bảo tàng để tìm hiểu lịch sử nghìn năm của Hà Nội.",
+      "city": "Hà Nội", "type": "walking", "durationMinutes": 150, "languages": ["vi", "en"],
+      "places": [
+        {"placeId": "p-hn-temple", "name": "Đền Ngọc Sơn", "type": "temple", "description": "Ngôi đền trên hồ Hoàn Kiếm, nối với bờ bằng cầu Thê Húc.", "lat": 21.0307, "lng": 105.8524, "sequence": 0,
+         "translations": [{"language": "en", "text": "Ngoc Son temple on Hoan Kiem lake, reached by the red Huc bridge."}]},
+        {"placeId": "p-hn-literature", "name": "Văn Miếu Quốc Tử Giám", "type": "temple", "description": "Văn Miếu, trường đại học đầu tiên của Việt Nam, xây năm 1070.", "lat": 21.0285, "lng": 105.8355, "sequence": 1,
+         "translations": [{"language": "en", "text": "Temple of Literature, the first university of Vietnam, built in 1070."}]},
+        {"placeId": "p-hn-museum", "name": "Bảo tàng Lịch sử Quốc gia", "type": "museum", "description": "Bảo tàng lịch sử Việt Nam trong tòa nhà kiến trúc Đông Dương.", "lat": 21.0245, "lng": 105.8592, "sequence": 2}
+      ]
+    },
+    {
+      "tourId": "t-hn-architecture", "revision": "2026-10-01T00:00:00Z", "status": "public", "language": "en",
+      "title": "Hanoi French architecture by bike",
+      "description": "Cycle past French colonial architecture: the opera house, the cathedral and the Long Bien bridge in Hanoi.",
+      "city": "Hanoi", "type": "cycling", "durationMinutes": 90,
+      "places": [
+        {"placeId": "p-hn-opera", "name": "Hanoi Opera House", "type": "theatre", "description": "French colonial opera house built in 1911, neoclassical architecture.", "lat": 21.0245, "lng": 105.8575, "sequence": 0},
+        {"placeId": "p-hn-cathedral", "name": "St Joseph Cathedral", "type": "church", "description": "Neo-gothic church from 1886 with twin bell towers.", "lat": 21.0287, "lng": 105.8489, "sequence": 1},
+        {"placeId": "p-hn-long-bien", "name": "Long Bien bridge", "type": "landmark", "description": "Steel cantilever bridge over the Red River, built 1899 to 1902.", "lat": 21.0430, "lng": 105.8590, "sequence": 2}
+      ]
+    },
+    {
+      "tourId": "t-hcm-food", "revision": "2026-10-01T00:00:00Z", "status": "public", "language": "vi",
+      "title": "Ẩm thực đường phố Sài Gòn",
+      "description": "Đi bộ thưởng thức cơm tấm, bánh mì và món ăn đường phố quanh chợ Bến Thành, Sài Gòn.",
+      "city": "Hồ Chí Minh", "type": "walking", "durationMinutes": 180, "languages": ["vi", "en"],
+      "places": [
+        {"placeId": "p-hcm-ben-thanh", "name": "Chợ Bến Thành", "type": "market", "description": "Chợ Bến Thành, khu chợ lâu đời với nhiều quầy món ăn.", "lat": 10.7725, "lng": 106.6980, "sequence": 0,
+         "translations": [{"language": "en", "text": "Ben Thanh market, historic market with many food stalls."}]},
+        {"placeId": "p-hcm-com-tam", "name": "Quán cơm tấm Ba Ghiền", "type": "restaurant", "description": "Cơm tấm sườn nướng nổi tiếng của Sài Gòn.", "lat": 10.7790, "lng": 106.6870, "sequence": 1},
+        {"placeId": "p-hcm-banh-mi", "name": "Bánh mì Huỳnh Hoa", "type": "restaurant", "description": "Tiệm bánh mì đầy pate và thịt nguội, luôn đông khách.", "lat": 10.7713, "lng": 106.6925, "sequence": 2}
+      ]
+    },
+    {
+      "tourId": "t-hcm-history", "revision": "2026-10-01T00:00:00Z", "status": "public", "language": "en",
+      "title": "Saigon history and colonial buildings",
+      "description": "Walk through the history of Saigon: Independence Palace, the Central Post Office and Notre Dame cathedral in Ho Chi Minh City.",
+      "city": "Ho Chi Minh City", "type": "walking", "durationMinutes": 120,
+      "places": [
+        {"placeId": "p-hcm-palace", "name": "Independence Palace", "type": "landmark", "description": "Historic palace where the war ended in 1975, 1960s modernist architecture.", "lat": 10.7770, "lng": 106.6953, "sequence": 0},
+        {"placeId": "p-hcm-post", "name": "Saigon Central Post Office", "type": "landmark", "description": "Central Post Office from the French colonial era, designed in the 1880s.", "lat": 10.7799, "lng": 106.6999, "sequence": 1},
+        {"placeId": "p-hcm-notre-dame", "name": "Notre Dame Cathedral Saigon", "type": "church", "description": "Red brick cathedral built between 1863 and 1880.", "lat": 10.7798, "lng": 106.6990, "sequence": 2}
+      ]
+    },
+    {
+      "tourId": "t-hcm-nature", "revision": "2026-10-01T00:00:00Z", "status": "public", "language": "en",
+      "title": "Green Saigon cycling loop",
+      "description": "Cycle between parks, gardens and the river: the green side of nature in Ho Chi Minh City.",
+      "city": "Ho Chi Minh City", "type": "cycling", "durationMinutes": 240,
+      "places": [
+        {"placeId": "p-hcm-tao-dan", "name": "Tao Dan park", "type": "park", "description": "Large shady park with old trees and a bird cafe.", "lat": 10.7745, "lng": 106.6920, "sequence": 0},
+        {"placeId": "p-hcm-botanical", "name": "Saigon Zoo and Botanical Garden", "type": "garden", "description": "Botanical garden from 1864 with tropical plants.", "lat": 10.7875, "lng": 106.7053, "sequence": 1},
+        {"placeId": "p-hcm-river", "name": "Bach Dang river park", "type": "park", "description": "Riverside park along the Saigon river, best at sunset.", "lat": 10.7745, "lng": 106.7065, "sequence": 2}
+      ]
+    },
+    {
+      "tourId": "t-ha-oldtown", "revision": "2026-10-01T00:00:00Z", "status": "public", "language": "vi",
+      "title": "Phố cổ Hội An",
+      "description": "Đi bộ khám phá kiến trúc và di sản phố cổ Hội An: Chùa Cầu, nhà cổ và hội quán.",
+      "city": "Hội An", "type": "walking", "durationMinutes": 120, "languages": ["vi", "en"],
+      "places": [
+        {"placeId": "p-ha-bridge", "name": "Chùa Cầu", "type": "landmark", "description": "Chùa Cầu do thương nhân Nhật Bản xây thế kỷ 17, biểu tượng của Hội An.", "lat": 15.8771, "lng": 108.3260, "sequence": 0,
+         "translations": [{"language": "en", "text": "Japanese Covered Bridge built by Japanese merchants in the 17th century, symbol of Hoi An."}]},
+        {"placeId": "p-ha-tan-ky", "name": "Nhà cổ Tấn Ký", "type": "house", "description": "Nhà cổ hơn 200 năm với kiến trúc gỗ Việt, Hoa, Nhật.", "lat": 15.8768, "lng": 108.3284, "sequence": 1,
+         "translations": [{"language": "en", "text": "Tan Ky old house, over 200 years old, wooden architecture."}]},
+        {"placeId": "p-ha-assembly", "name": "Hội quán Phúc Kiến", "type": "temple", "description": "Hội quán của người Hoa với cổng tam quan rực rỡ.", "lat": 15.8775, "lng": 108.3307, "sequence": 2}
+      ]
+    },
+    {
+      "tourId": "t-ha-food", "revision": "2026-10-01T00:00:00Z", "status": "public", "language": "en",
+      "title": "Hoi An food trail",
+      "description": "Eat cao lau, banh mi and white rose dumplings: a food walk through Hoi An.",
+      "city": "Hoi An", "type": "walking", "durationMinutes": 90,
+      "places": [
+        {"placeId": "p-ha-cao-lau", "name": "Cao lau noodle shop", "type": "restaurant", "description": "Cao lau, the local noodle dish of Hoi An, with pork and greens.", "lat": 15.8780, "lng": 108.3290, "sequence": 0},
+        {"placeId": "p-ha-banh-mi", "name": "Banh Mi Phuong", "type": "restaurant", "description": "Famous banh mi sandwich shop.", "lat": 15.8790, "lng": 108.3300, "sequence": 1},
+        {"placeId": "p-ha-market", "name": "Hoi An central market", "type": "market", "description": "Central market with food stalls by the river.", "lat": 15.8765, "lng": 108.3310, "sequence": 2}
+      ]
+    },
+    {
+      "tourId": "t-ha-nature", "revision": "2026-10-01T00:00:00Z", "status": "public", "language": "en",
+      "title": "Hoi An countryside and beach ride",
+      "description": "Cycle through rice fields, a coconut forest and An Bang beach: nature around Hoi An.",
+      "city": "Hoi An", "type": "cycling", "durationMinutes": 180,
+      "places": [
+        {"placeId": "p-ha-rice", "name": "Tra Que vegetable village", "type": "village", "description": "Herb gardens and rice fields of an organic farming village.", "lat": 15.9020, "lng": 108.3420, "sequence": 0},
+        {"placeId": "p-ha-beach", "name": "An Bang beach", "type": "beach", "description": "Quiet sandy beach with seafood restaurants.", "lat": 15.9130, "lng": 108.3480, "sequence": 1},
+        {"placeId": "p-ha-coconut", "name": "Bay Mau coconut forest", "type": "park", "description": "Coconut forest with basket boat rides on the water.", "lat": 15.8730, "lng": 108.3600, "sequence": 2}
+      ]
+    }
+  ],
+  "topics": {
+    "t-hn-food": {"tour": ["food"], "places": {"p-hn-pho": ["food"], "p-hn-bun-cha": ["food"], "p-hn-market": ["food", "shopping"]}},
+    "t-hn-history": {"tour": ["history", "religion", "culture"], "places": {"p-hn-temple": ["religion"], "p-hn-literature": ["history", "culture"], "p-hn-museum": ["history", "culture"]}},
+    "t-hn-architecture": {"tour": ["architecture", "history"], "places": {"p-hn-opera": ["architecture", "art"], "p-hn-cathedral": ["architecture", "religion"], "p-hn-long-bien": ["architecture", "history"]}},
+    "t-hcm-food": {"tour": ["food"], "places": {"p-hcm-ben-thanh": ["food", "shopping"], "p-hcm-com-tam": ["food"], "p-hcm-banh-mi": ["food"]}},
+    "t-hcm-history": {"tour": ["history", "architecture"], "places": {"p-hcm-palace": ["history"], "p-hcm-post": ["architecture"], "p-hcm-notre-dame": ["architecture", "religion"]}},
+    "t-hcm-nature": {"tour": ["nature"], "places": {"p-hcm-tao-dan": ["nature"], "p-hcm-botanical": ["nature", "family"], "p-hcm-river": ["nature"]}},
+    "t-ha-oldtown": {"tour": ["history", "architecture"], "places": {"p-ha-bridge": ["history", "architecture"], "p-ha-tan-ky": ["architecture"], "p-ha-assembly": ["religion", "culture"]}},
+    "t-ha-food": {"tour": ["food"], "places": {"p-ha-cao-lau": ["food"], "p-ha-banh-mi": ["food"], "p-ha-market": ["food", "shopping"]}},
+    "t-ha-nature": {"tour": ["nature"], "places": {"p-ha-rice": ["nature"], "p-ha-beach": ["nature"], "p-ha-coconut": ["nature", "family"]}}
+  }
+}

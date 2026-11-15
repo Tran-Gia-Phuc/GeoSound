@@ -1,0 +1,133 @@
+{{- /*
+RabbitMQ broker (deployment plan task 2.3, issue #371): one node, a StatefulSet with a PVC.
+Deviation from section 8.3: no RabbitMQ Cluster Operator. One node needs no clustering, and the
+StatefulSet keeps the host name rabbitmq-0, so the data directory (named after the node) survives
+a restart, like `hostname: rabbitmq` in docker-compose.prod.yml.
+The broker user comes from the secret .Values.rabbitmq.secret (RABBITMQ_DEFAULT_USER,
+RABBITMQ_DEFAULT_PASS); the apps read RABBITMQ_URL from geosound-infra (task 2.5 creates both).
+*/ -}}
+{{- with .Values.rabbitmq }}
+{{- if .enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+  labels:
+    {{- include "geosound.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: rabbitmq
+data:
+  # Management UI through `kubectl port-forward svc/rabbitmq 15672` only; metrics on 15692.
+  enabled_plugins: |
+    [rabbitmq_management,rabbitmq_prometheus].
+  rabbitmq.conf: |
+    loopback_users = none
+    log.console = true
+    log.console.level = info
+    log.file = false
+    vm_memory_high_watermark.relative = 0.6
+    disk_free_limit.absolute = 256MB
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "geosound.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: rabbitmq
+spec:
+  selector:
+    {{- include "geosound.selector" (dict "root" $ "name" "rabbitmq") | nindent 4 }}
+  ports:
+    - { name: amqp, port: 5672, targetPort: amqp }
+    - { name: management, port: 15672, targetPort: management }
+    - { name: metrics, port: 15692, targetPort: metrics }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "geosound.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: rabbitmq
+spec:
+  serviceName: rabbitmq
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "geosound.selector" (dict "root" $ "name" "rabbitmq") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "geosound.labels" $ | nindent 8 }}
+        app.kubernetes.io/name: rabbitmq
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false # RABBITMQ_PORT=tcp://... would be read as a broker setting
+      terminationGracePeriodSeconds: 60 # time to flush queues to disk
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100 # rabbitmq in the alpine image
+        runAsGroup: 101
+        fsGroup: 101 # the PVC is writable by the broker
+        # Change the owner only on a new volume: a recursive chmod on every mount makes
+        # .erlang.cookie group readable and Erlang then refuses to start.
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: rabbitmq
+          image: {{ .image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: amqp, containerPort: 5672 }
+            - { name: management, containerPort: 15672 }
+            - { name: metrics, containerPort: 15692 }
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef: { name: {{ .secret }}, key: RABBITMQ_DEFAULT_USER }
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef: { name: {{ .secret }}, key: RABBITMQ_DEFAULT_PASS }
+          startupProbe:
+            tcpSocket: { port: amqp }
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            tcpSocket: { port: amqp }
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            # The node answers; an exec probe because a stuck node may still accept TCP.
+            exec: { command: [rabbitmq-diagnostics, -q, ping] }
+            periodSeconds: 60
+            timeoutSeconds: 15
+            failureThreshold: 3
+          resources:
+            {{- toYaml .resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/rabbitmq }
+            - { name: config, mountPath: /etc/rabbitmq/enabled_plugins, subPath: enabled_plugins }
+            - { name: config, mountPath: /etc/rabbitmq/rabbitmq.conf, subPath: rabbitmq.conf }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: config
+          configMap: { name: rabbitmq-config }
+        - name: tmp
+          emptyDir: { sizeLimit: 64Mi }
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- with .storageClass }}
+        storageClassName: {{ . }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .storage }}
+{{- end }}
+{{- end }}

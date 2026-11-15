@@ -1,0 +1,11 @@
+{{- /* Non-secret settings shared by every app (section 8.4). Values are strings for env. */ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: geosound-config
+  labels:
+    {{- include "geosound.labels" . | nindent 4 }}
+data:
+  {{- range $k, $v := .Values.config }}
+  {{ $k }}: {{ $v | toString | quote }}
+  {{- end }}

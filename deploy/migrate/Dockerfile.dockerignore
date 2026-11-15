@@ -1,0 +1,7 @@
+# Build context of deploy/migrate/Dockerfile (repo root). Allow list: the Prisma CLI pin, the
+# migrate script and, per service, schema.prisma and migrations/ only (no seed scripts).
+*
+!deploy/migrate/package.json
+!scripts/db/migrate.sh
+!services/*/prisma/schema.prisma
+!services/*/prisma/migrations/

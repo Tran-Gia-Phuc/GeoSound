@@ -1,0 +1,48 @@
+# Argo CD on the laptop k3s (deployment plan section 9, docs/04-guides/k3s-cluster.md section B5).
+# Values of the argo/argo-cd chart, pinned to 10.18.0 (Argo CD v3.6.1):
+#   helm repo add argo https://argoproj.github.io/argo-helm
+#   helm upgrade --install argocd argo/argo-cd -n argocd --version 10.18.0 \
+#     -f deploy/argocd/values-local.yaml --wait
+# A laptop runs it next to the whole stack, so every part is single and small.
+
+configs:
+  cm:
+    # Explicit on purpose: label tracking would overwrite app.kubernetes.io/instance, which is part
+    # of the immutable Deployment selectors of the geosound chart.
+    application.resourceTrackingMethod: annotation
+  params:
+    # The UI is reached through a port-forward only (127.0.0.1:4467), so no TLS in the server.
+    server.insecure: true
+
+dex:
+  enabled: false # one local admin account, no SSO
+
+applicationSet:
+  replicas: 0 # one hand-written Application, no generators (the chart has no enabled flag here)
+
+notifications:
+  enabled: true # triggers and the Discord service come with task 3.4
+  argocdUrl: http://127.0.0.1:4467
+  resources:
+    requests: { cpu: 10m, memory: 32Mi }
+    limits: { cpu: 100m, memory: 128Mi }
+
+controller:
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: 500m, memory: 768Mi }
+
+repoServer:
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+
+server:
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: 250m, memory: 256Mi }
+
+redis:
+  resources:
+    requests: { cpu: 25m, memory: 32Mi }
+    limits: { cpu: 100m, memory: 128Mi }

@@ -1,0 +1,420 @@
+/* =========================================================
+   GeoSound — Lịch trình cá nhân (UC07) + Khám phá địa điểm.
+   Dùng lại token & lớp .btn/.input/.chip của hệ thống. Mobile-first.
+   ========================================================= */
+
+/* ---- Khung chung các màn ---- */
+.itin,
+.explore {
+  max-width: 680px;
+  margin: 0 auto;
+  width: 100%;
+  padding: calc(var(--sat) + var(--sp-4)) var(--sp-4) var(--sp-6);
+}
+.itin__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+.itin__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.itin__h1 {
+  font-size: 24px;
+  letter-spacing: -0.01em;
+}
+.itin__loading {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.itin__empty {
+  margin: var(--sp-5) auto;
+  text-align: center;
+  align-items: center;
+}
+
+/* ---- Tạo nhanh ---- */
+.itin__create {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+/* ---- Danh sách lịch trình ---- */
+.itin__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.itin-card {
+  display: flex;
+  align-items: stretch;
+  gap: var(--sp-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.itin-card__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--sp-4);
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+.itin-card__title {
+  font-weight: 700;
+  font-size: 16px;
+}
+.itin-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+.itin-card__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.itin-card__preview {
+  font-size: 13px;
+  color: var(--fg-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.itin-card__del {
+  align-self: center;
+  margin-right: var(--sp-3);
+  color: var(--danger);
+  flex: none;
+}
+
+/* ---- Khám phá ---- */
+.explore__dest {
+  font-size: 14px;
+}
+.explore__target {
+  margin-bottom: var(--sp-1);
+}
+.explore__search {
+  display: flex;
+  gap: var(--sp-2);
+}
+.explore__searchbox {
+  position: relative;
+  flex: 1;
+  display: flex;
+}
+.explore__searchicon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--fg-subtle);
+  pointer-events: none;
+}
+.explore__searchbox .input {
+  padding-left: 40px;
+}
+.explore__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.place-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3);
+  box-shadow: var(--shadow-sm);
+}
+.place-card__thumb {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  display: grid;
+  place-items: center;
+  color: var(--fg-subtle);
+  overflow: hidden;
+}
+.place-card__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.place-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.place-card__name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.place-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+.place-card__tour {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.place-card__add {
+  flex: none;
+}
+.place-card__added {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--success);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 0 var(--sp-3);
+}
+
+/* ---- Trình chỉnh sửa lịch trình ---- */
+.itin-edit {
+  max-width: 680px;
+  margin: 0 auto;
+  width: 100%;
+  padding: calc(var(--sat) + var(--sp-3)) var(--sp-4) calc(var(--sab) + 84px);
+}
+.itin-edit__title {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-width: 0;
+  background: none;
+  border: none;
+  color: var(--fg);
+  font-weight: 700;
+  font-size: 18px;
+}
+.itin-edit__title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.itin-edit__rename {
+  flex: 1;
+  display: flex;
+  gap: var(--sp-2);
+}
+.itin-edit__map {
+  height: 40vh;
+  min-height: 240px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.itin-edit__summary {
+  display: flex;
+  gap: var(--sp-4);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: var(--sp-4) 0;
+  font-size: 14px;
+  color: var(--fg-muted);
+}
+.itin-edit__summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.itin-edit__summary span b,
+.itin-edit__summary span {
+  font-weight: 600;
+}
+.itin-edit__err {
+  margin-bottom: var(--sp-3);
+}
+.itin-edit__shared-title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  align-items: flex-start;
+  margin-bottom: var(--sp-3);
+}
+
+/* Danh sách điểm (stops) */
+.stops {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  counter-reset: stop;
+}
+.stop {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-3);
+}
+.stop.is-active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.stop__seq {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 14px;
+}
+.stop__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  background: none;
+  border: none;
+  text-align: left;
+  color: inherit;
+  padding: var(--sp-1) 0;
+}
+.stop__name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stop__leg {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.stop__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+.iconbtn--sm {
+  width: 36px;
+  height: 36px;
+}
+.iconbtn--danger {
+  color: var(--danger);
+}
+
+/* Thanh hành động cố định cuối màn editor */
+.itin-edit__bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4) calc(var(--sab) + var(--sp-3));
+  background: color-mix(in srgb, var(--bg-elev) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--border);
+  max-width: 680px;
+  margin: 0 auto;
+}
+.itin-edit__bar .btn {
+  flex: 1;
+}
+.btn.is-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Hộp thoại chia sẻ */
+.share {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5) var(--sp-5);
+}
+.share__link {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+/* ---- Lối vào ở trang chủ ---- */
+.home__nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-6);
+}
+.home__navcard {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: inherit;
+}
+.home__navcard:hover {
+  background: var(--surface-2);
+}
+.home__navicon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--primary-soft);
+  color: var(--primary);
+  flex: none;
+}
+.home__navtext {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.home__navcard .recent__chev {
+  transform: rotate(180deg);
+  color: var(--fg-subtle);
+}

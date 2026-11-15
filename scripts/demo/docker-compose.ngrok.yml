@@ -1,0 +1,19 @@
+# Phone demo through an ngrok tunnel (docs/04-guides/phone-demo.md).
+# Used on top of the main compose file by start-demo.ps1 / start-demo.sh:
+#   docker compose -f docker-compose.yml -f scripts/demo/docker-compose.ngrok.yml up -d
+# Needs NGROK_AUTHTOKEN and NGROK_DOMAIN in the root .env (each teammate uses their own ngrok account).
+services:
+  client:
+    environment:
+      VITE_ALLOWED_HOSTS: ${NGROK_DOMAIN:?set NGROK_DOMAIN in .env}
+
+  ngrok:
+    image: ngrok/ngrok:3
+    command: ["http", "client:5173", "--url=${NGROK_DOMAIN}", "--log=stdout"]
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?set NGROK_AUTHTOKEN in .env}
+    ports:
+      - "127.0.0.1:4040:4040" # ngrok inspector, this PC only
+    depends_on:
+      - client
+    restart: unless-stopped

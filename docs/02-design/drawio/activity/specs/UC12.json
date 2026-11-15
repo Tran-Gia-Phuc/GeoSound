@@ -1,0 +1,21 @@
+{
+  "uc": "UC12",
+  "steps": [
+    { "id": "s1", "text": "1. Contributor mở bước “Ngôn ngữ” của tour." },
+    { "id": "s2", "text": "2. Hệ thống hiển thị ngôn ngữ gốc, ngôn ngữ phụ, giọng, bản dịch từng điểm và tiến độ “n/n điểm đã dịch”." },
+    { "id": "s3", "text": "3. Contributor chọn các ngôn ngữ phụ và giọng (nam / nữ, vùng miền tùy chọn), nhấn “Lưu”.", "alts": ["A3"] },
+    { "id": "s4", "text": "4. Hệ thống chuẩn hóa mã ngôn ngữ (bỏ trùng, bỏ ngôn ngữ gốc), đồng bộ danh sách, xóa ngôn ngữ bị gỡ cùng bản dịch." },
+    { "id": "s5", "decision": true, "text": "5. Hệ thống dịch theo lô bằng AI (mỗi ngôn ngữ một lượt, tối đa 20 đoạn), bỏ qua bản đã chỉnh tay; dịch được? E1.", "exceptions": [
+      { "id": "E1", "text": "E1. AI dịch lỗi (hết giờ, lỗi máy chủ, thiếu bản dịch) → “Dịch tự động thất bại, vui lòng thử lại”; lỗi tạo TTS (503).", "back": "s3" } ] },
+    { "id": "s6", "text": "6. Hệ thống lưu bản dịch cho mọi điểm × mọi ngôn ngữ (gốc / máy dịch / đã chỉnh) và trả cấu hình mới." },
+    { "id": "s7", "decision": true, "text": "7. Contributor chọn tab ngôn ngữ phụ, nghe thử một điểm bằng giọng thiết bị (chưa có tệp âm thanh); phát được? A1, E3.", "alts": ["A1"], "exceptions": [
+      { "id": "E3", "text": "E3. Trình duyệt không phát được → “Không phát được bản nghe thử. Nội dung bản dịch vẫn được giữ; bạn có thể thử lại.”", "back": "s7" } ] },
+    { "id": "s8", "decision": true, "text": "8. Contributor sửa bản dịch sai tên riêng / thuật ngữ và lưu dòng đó; hợp lệ? A2, E2.", "alts": ["A2"], "exceptions": [
+      { "id": "E2", "text": "E2. Ngôn ngữ không hỗ trợ hoặc chưa cấu hình cho tour; sửa bản ngôn ngữ gốc → “Sửa nội dung ngôn ngữ gốc ở phần quản lý điểm (UC10)”.", "back": "s8" } ] }
+  ],
+  "alts": [
+    { "id": "A3", "steps": ["A3.1. Contributor bỏ một ngôn ngữ phụ rồi lưu.", "A3.2. Hệ thống xóa ngôn ngữ đó cùng các bản dịch tương ứng."], "to": "s7" },
+    { "id": "A1", "steps": ["A1.1. Contributor bỏ qua nghe thử."], "to": "s8" },
+    { "id": "A2", "steps": ["A2.1. Bản dịch được đánh dấu “đã chỉnh” và giữ nguyên ở các lần Lưu sau."], "to": "end" }
+  ]
+}

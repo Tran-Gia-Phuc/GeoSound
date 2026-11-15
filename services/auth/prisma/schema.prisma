@@ -1,5 +1,8 @@
 // Auth service — schema "auth". Mỗi service 1 schema riêng (schema-per-service).
-// Data model chi tiết sẽ chốt sau (tech-stack.md §11). Model dưới là placeholder.
+// Phục vụ UC01 (đăng ký/đăng nhập/OTP/quên mật khẩu) và UC21 (ban tài khoản).
+//
+// Lưu ý: OTP và "đăng ký đang chờ xác thực" KHÔNG nằm ở DB mà ở Redis (TTL 2 phút)
+// — xem infrastructure/cache/redis-challenge-store.js.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,13 +13,65 @@ datasource db {
   url      = env("DATABASE_URL") // ...?schema=auth
 }
 
-// --- Placeholder (sẽ thay khi chốt data model) ---
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String // bcrypt hash
-  role      String   @default("tourist") // tourist | contributor | admin
-  createdAt DateTime @default(now())
+  id             String    @id @default(uuid())
+  email          String    @unique
+  passwordHash   String    @map("password_hash") // bcrypt hash
+  fullName       String    @map("full_name")
+  role           String    @default("tourist") // tourist | contributor | admin
+  status         String    @default("active") // active | suspended | banned  (UC21)
+  banReason      String?   @map("ban_reason") // reason of the current suspension or ban (UC21)
+  suspendedUntil DateTime? @map("suspended_until") // UC21: end of a suspension; past = active again
+  failedAttempts Int       @default(0) @map("failed_attempts") // sai mật khẩu liên tiếp (E2)
+  lockedUntil    DateTime? @map("locked_until") // tạm khóa đăng nhập tới thời điểm này
+  bio            String? // UC18: author page introduction (max 500)
+  avatarUrl      String?   @map("avatar_url") // UC18: Media upload URL (https or /api/media/files/images/...)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  sessions       Session[]
+  followers      AuthorFollow[] @relation("AuthorFollowers") // UC18: rows where this user is the author
+  following      AuthorFollow[] @relation("FollowerFollowing") // UC18: authors this user follows
 
   @@map("users")
+}
+
+// UC23 — one row per signed-in device (docs/02-design/device-sessions.md section 5.1).
+// `id` is the `sid` carried in the tokens. "One active session per (user_id, device_id)" is a
+// partial unique rule that Prisma cannot express: the login use case enforces it (R1).
+model Session {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  deviceId     String?   @map("device_id") // random id kept by the client (R1); null when not sent
+  deviceName   String    @map("device_name") // parsed from the User-Agent (R2)
+  userAgent    String?   @map("user_agent")
+  ipAddress    String?   @map("ip_address") // last seen; never shown in full (R2, R12)
+  location     String? // city, country when known (R12)
+  refreshHash  String    @map("refresh_hash") // sha-256 of the current refresh token (R11)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastActiveAt DateTime  @default(now()) @map("last_active_at") @db.Timestamptz(3)
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3) // min(idle, absolute) limit (R8)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(3)
+  revokeReason String?   @map("revoke_reason") // user | user_all | password_reset | password_change | banned | suspended | limit | reuse | expired
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, deviceId])
+  @@index([revokedAt])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// UC18 — a signed-in user follows a contributor (docs/02-design/uc18-author-page.md section 3).
+// The unique pair makes follow idempotent (insert ... on conflict do nothing).
+model AuthorFollow {
+  id         String   @id @default(uuid())
+  followerId String   @map("follower_id")
+  authorId   String   @map("author_id")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  follower   User     @relation("FollowerFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  author     User     @relation("AuthorFollowers", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, authorId])
+  @@index([authorId])
+  @@map("author_follows")
 }

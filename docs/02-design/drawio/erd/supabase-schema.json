@@ -1,0 +1,4762 @@
+{
+ "ai": {
+  "chunks": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "node_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "lang",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "source",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "text",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "embedding",
+     "nullable": false,
+     "type": "vector(384)"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "node_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "ai",
+     "refTable": "nodes"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "edges": {
+   "columns": [
+    {
+     "name": "src",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "dst",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "kind",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "props",
+     "nullable": false,
+     "type": "jsonb"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "src"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "ai",
+     "refTable": "nodes"
+    },
+    {
+     "columns": [
+      "dst"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "ai",
+     "refTable": "nodes"
+    }
+   ],
+   "pk": [
+    "src",
+    "dst",
+    "kind"
+   ],
+   "unique": []
+  },
+  "index_meta": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "smallint"
+    },
+    {
+     "name": "embedding_model",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "dimension",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp(6) with time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "nodes": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "kind",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "name",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "props",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "tour_id",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "revision",
+     "nullable": true,
+     "type": "timestamp(6) with time zone"
+    },
+    {
+     "name": "topics_pending",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "lat",
+     "nullable": true,
+     "type": "double precision"
+    },
+    {
+     "name": "lng",
+     "nullable": true,
+     "type": "double precision"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "tour_index": {
+   "columns": [
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "revision",
+     "nullable": true,
+     "type": "timestamp(6) with time zone"
+    },
+    {
+     "name": "state",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp(6) with time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "tour_id"
+   ],
+   "unique": []
+  }
+ },
+ "ai_chat": {
+  "chat_messages": {
+   "columns": [
+    {
+     "name": "session_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "message_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "role",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "citations",
+     "nullable": true,
+     "type": "jsonb"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "session_id"
+     ],
+     "refColumns": [
+      "session_id"
+     ],
+     "refSchema": "ai_chat",
+     "refTable": "chat_sessions"
+    }
+   ],
+   "pk": [
+    "session_id",
+    "message_id"
+   ],
+   "unique": []
+  },
+  "chat_sessions": {
+   "columns": [
+    {
+     "name": "session_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "last_active_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "session_id"
+   ],
+   "unique": []
+  },
+  "checkpoint_blobs": {
+   "columns": [
+    {
+     "name": "thread_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "checkpoint_ns",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "channel",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "version",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "blob",
+     "nullable": true,
+     "type": "bytea"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "thread_id",
+    "checkpoint_ns",
+    "channel",
+    "version"
+   ],
+   "unique": []
+  },
+  "checkpoint_migrations": {
+   "columns": [
+    {
+     "name": "v",
+     "nullable": false,
+     "type": "integer"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "v"
+   ],
+   "unique": []
+  },
+  "checkpoint_writes": {
+   "columns": [
+    {
+     "name": "thread_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "checkpoint_ns",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "checkpoint_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "task_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "idx",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "channel",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "type",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "blob",
+     "nullable": false,
+     "type": "bytea"
+    },
+    {
+     "name": "task_path",
+     "nullable": false,
+     "type": "text"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "thread_id",
+    "checkpoint_ns",
+    "checkpoint_id",
+    "task_id",
+    "idx"
+   ],
+   "unique": []
+  },
+  "checkpoints": {
+   "columns": [
+    {
+     "name": "thread_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "checkpoint_ns",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "checkpoint_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "parent_checkpoint_id",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "type",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "checkpoint",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "metadata",
+     "nullable": false,
+     "type": "jsonb"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "thread_id",
+    "checkpoint_ns",
+    "checkpoint_id"
+   ],
+   "unique": []
+  }
+ },
+ "app_auth": {
+  "author_follows": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "follower_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "author_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) with time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "follower_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "app_auth",
+     "refTable": "users"
+    },
+    {
+     "columns": [
+      "author_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "app_auth",
+     "refTable": "users"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "follower_id",
+     "author_id"
+    ]
+   ]
+  },
+  "sessions": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "user_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "device_id",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "device_name",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "user_agent",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "ip_address",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "location",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "refresh_hash",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) with time zone"
+    },
+    {
+     "name": "last_active_at",
+     "nullable": false,
+     "type": "timestamp(3) with time zone"
+    },
+    {
+     "name": "expires_at",
+     "nullable": false,
+     "type": "timestamp(3) with time zone"
+    },
+    {
+     "name": "revoked_at",
+     "nullable": true,
+     "type": "timestamp(3) with time zone"
+    },
+    {
+     "name": "revoke_reason",
+     "nullable": true,
+     "type": "text"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "user_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "app_auth",
+     "refTable": "users"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "users": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "email",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "password_hash",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "full_name",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "role",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "status",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "ban_reason",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "failed_attempts",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "locked_until",
+     "nullable": true,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "avatar_url",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "bio",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "suspended_until",
+     "nullable": true,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "email"
+    ]
+   ]
+  }
+ },
+ "auth": {
+  "audit_log_entries": {
+   "columns": [
+    {
+     "name": "instance_id",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "payload",
+     "nullable": true,
+     "type": "json"
+    },
+    {
+     "name": "created_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "ip_address",
+     "nullable": false,
+     "type": "character varying(64)"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "custom_oauth_providers": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "provider_type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "identifier",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "name",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "client_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "client_secret",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "acceptable_client_ids",
+     "nullable": false,
+     "type": "text[]"
+    },
+    {
+     "name": "scopes",
+     "nullable": false,
+     "type": "text[]"
+    },
+    {
+     "name": "pkce_enabled",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "attribute_mapping",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "authorization_params",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "enabled",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "email_optional",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "issuer",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "discovery_url",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "skip_nonce_check",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "cached_discovery",
+     "nullable": true,
+     "type": "jsonb"
+    },
+    {
+     "name": "discovery_cached_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "authorization_url",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "token_url",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "userinfo_url",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "jwks_uri",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "custom_claims_allowlist",
+     "nullable": false,
+     "type": "text[]"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "identifier"
+    ]
+   ]
+  },
+  "flow_state": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "user_id",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "auth_code",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "code_challenge_method",
+     "nullable": true,
+     "type": "auth.code_challenge_method"
+    },
+    {
+     "name": "code_challenge",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "provider_type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "provider_access_token",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "provider_refresh_token",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "authentication_method",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "auth_code_issued_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "invite_token",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "referrer",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "oauth_client_state_id",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "linking_target_id",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "email_optional",
+     "nullable": false,
+     "type": "boolean"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "identities": {
+   "columns": [
+    {
+     "name": "provider_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "user_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "identity_data",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "provider",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "last_sign_in_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "created_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "email",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "user_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "users"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "provider_id",
+     "provider"
+    ]
+   ]
+  },
+  "instances": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "uuid",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "raw_base_config",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "mfa_amr_claims": {
+   "columns": [
+    {
+     "name": "session_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "authentication_method",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "session_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "sessions"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "session_id",
+     "authentication_method"
+    ]
+   ]
+  },
+  "mfa_challenges": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "factor_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "verified_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "ip_address",
+     "nullable": false,
+     "type": "inet"
+    },
+    {
+     "name": "otp_code",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "web_authn_session_data",
+     "nullable": true,
+     "type": "jsonb"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "factor_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "mfa_factors"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "mfa_factors": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "user_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "friendly_name",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "factor_type",
+     "nullable": false,
+     "type": "auth.factor_type"
+    },
+    {
+     "name": "status",
+     "nullable": false,
+     "type": "auth.factor_status"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "secret",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "phone",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "last_challenged_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "web_authn_credential",
+     "nullable": true,
+     "type": "jsonb"
+    },
+    {
+     "name": "web_authn_aaguid",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "last_webauthn_challenge_data",
+     "nullable": true,
+     "type": "jsonb"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "user_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "users"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "last_challenged_at"
+    ],
+    [
+     "friendly_name",
+     "user_id"
+    ],
+    [
+     "user_id",
+     "phone"
+    ]
+   ]
+  },
+  "mfa_recovery_code_sets": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "user_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "mfa_factor_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "failed_verification_count",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "verification_locked_until",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "user_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "users"
+    },
+    {
+     "columns": [
+      "mfa_factor_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "mfa_factors"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "user_id"
+    ],
+    [
+     "mfa_factor_id"
+    ]
+   ]
+  },
+  "mfa_recovery_codes": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "mfa_recovery_code_set_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "code_hash",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "consumed_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "mfa_recovery_code_set_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "mfa_recovery_code_sets"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "oauth_authorizations": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "authorization_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "client_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "user_id",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "redirect_uri",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "scope",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "state",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "resource",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "code_challenge",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "code_challenge_method",
+     "nullable": true,
+     "type": "auth.code_challenge_method"
+    },
+    {
+     "name": "response_type",
+     "nullable": false,
+     "type": "auth.oauth_response_type"
+    },
+    {
+     "name": "status",
+     "nullable": false,
+     "type": "auth.oauth_authorization_status"
+    },
+    {
+     "name": "authorization_code",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "expires_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "approved_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "nonce",
+     "nullable": true,
+     "type": "text"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "client_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "oauth_clients"
+    },
+    {
+     "columns": [
+      "user_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "users"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "authorization_id"
+    ],
+    [
+     "authorization_code"
+    ]
+   ]
+  },
+  "oauth_client_states": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "provider_type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "code_verifier",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "oauth_clients": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "client_secret_hash",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "registration_type",
+     "nullable": false,
+     "type": "auth.oauth_registration_type"
+    },
+    {
+     "name": "redirect_uris",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "grant_types",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "client_name",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "client_uri",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "logo_uri",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "deleted_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "client_type",
+     "nullable": false,
+     "type": "auth.oauth_client_type"
+    },
+    {
+     "name": "token_endpoint_auth_method",
+     "nullable": false,
+     "type": "text"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "oauth_consents": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "user_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "client_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "scopes",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "granted_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "revoked_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "user_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "users"
+    },
+    {
+     "columns": [
+      "client_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "oauth_clients"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "user_id",
+     "client_id"
+    ]
+   ]
+  },
+  "one_time_tokens": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "user_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "token_type",
+     "nullable": false,
+     "type": "auth.one_time_token_type"
+    },
+    {
+     "name": "token_hash",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "relates_to",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp without time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp without time zone"
+    },
+    {
+     "name": "expires_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "user_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "users"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "user_id",
+     "token_type"
+    ]
+   ]
+  },
+  "refresh_tokens": {
+   "columns": [
+    {
+     "name": "instance_id",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "bigint"
+    },
+    {
+     "name": "token",
+     "nullable": true,
+     "type": "character varying(255)"
+    },
+    {
+     "name": "user_id",
+     "nullable": true,
+     "type": "character varying(255)"
+    },
+    {
+     "name": "revoked",
+     "nullable": true,
+     "type": "boolean"
+    },
+    {
+     "name": "created_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "parent",
+     "nullable": true,
+     "type": "character varying(255)"
+    },
+    {
+     "name": "session_id",
+     "nullable": true,
+     "type": "uuid"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "session_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "sessions"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "token"
+    ]
+   ]
+  },
+  "saml_providers": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "sso_provider_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "entity_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "metadata_xml",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "metadata_url",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "attribute_mapping",
+     "nullable": true,
+     "type": "jsonb"
+    },
+    {
+     "name": "created_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "name_id_format",
+     "nullable": true,
+     "type": "text"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "sso_provider_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "sso_providers"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "entity_id"
+    ]
+   ]
+  },
+  "saml_relay_states": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "sso_provider_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "request_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "for_email",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "redirect_to",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "flow_state_id",
+     "nullable": true,
+     "type": "uuid"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "sso_provider_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "sso_providers"
+    },
+    {
+     "columns": [
+      "flow_state_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "flow_state"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "schema_migrations": {
+   "columns": [
+    {
+     "name": "version",
+     "nullable": false,
+     "type": "character varying(255)"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "version"
+   ],
+   "unique": []
+  },
+  "scim_tokens": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "sso_provider_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "token_hash",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "prefix",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "expires_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "revoked_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "last_used_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "sso_provider_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "sso_providers"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "token_hash"
+    ]
+   ]
+  },
+  "scim_users": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "sso_provider_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "user_id",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "resource",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "user_name",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "external_id",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "active",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "deleted_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "sso_provider_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "sso_providers"
+    },
+    {
+     "columns": [
+      "user_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "users"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "sso_provider_id",
+     "user_name"
+    ],
+    [
+     "sso_provider_id",
+     "external_id"
+    ]
+   ]
+  },
+  "sessions": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "user_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "created_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "factor_id",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "aal",
+     "nullable": true,
+     "type": "auth.aal_level"
+    },
+    {
+     "name": "not_after",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "refreshed_at",
+     "nullable": true,
+     "type": "timestamp without time zone"
+    },
+    {
+     "name": "user_agent",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "ip",
+     "nullable": true,
+     "type": "inet"
+    },
+    {
+     "name": "tag",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "oauth_client_id",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "refresh_token_hmac_key",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "refresh_token_counter",
+     "nullable": true,
+     "type": "bigint"
+    },
+    {
+     "name": "scopes",
+     "nullable": true,
+     "type": "text"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "user_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "users"
+    },
+    {
+     "columns": [
+      "oauth_client_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "oauth_clients"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "sso_domains": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "sso_provider_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "domain",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "sso_provider_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "sso_providers"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    []
+   ]
+  },
+  "sso_providers": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "resource_id",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "disabled",
+     "nullable": true,
+     "type": "boolean"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    []
+   ]
+  },
+  "users": {
+   "columns": [
+    {
+     "name": "instance_id",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "aud",
+     "nullable": true,
+     "type": "character varying(255)"
+    },
+    {
+     "name": "role",
+     "nullable": true,
+     "type": "character varying(255)"
+    },
+    {
+     "name": "email",
+     "nullable": true,
+     "type": "character varying(255)"
+    },
+    {
+     "name": "encrypted_password",
+     "nullable": true,
+     "type": "character varying(255)"
+    },
+    {
+     "name": "email_confirmed_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "invited_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "confirmation_token",
+     "nullable": true,
+     "type": "character varying(255)"
+    },
+    {
+     "name": "confirmation_sent_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "recovery_token",
+     "nullable": true,
+     "type": "character varying(255)"
+    },
+    {
+     "name": "recovery_sent_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "email_change_token_new",
+     "nullable": true,
+     "type": "character varying(255)"
+    },
+    {
+     "name": "email_change",
+     "nullable": true,
+     "type": "character varying(255)"
+    },
+    {
+     "name": "email_change_sent_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "last_sign_in_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "raw_app_meta_data",
+     "nullable": true,
+     "type": "jsonb"
+    },
+    {
+     "name": "raw_user_meta_data",
+     "nullable": true,
+     "type": "jsonb"
+    },
+    {
+     "name": "is_super_admin",
+     "nullable": true,
+     "type": "boolean"
+    },
+    {
+     "name": "created_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "phone",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "phone_confirmed_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "phone_change",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "phone_change_token",
+     "nullable": true,
+     "type": "character varying(255)"
+    },
+    {
+     "name": "phone_change_sent_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "confirmed_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "email_change_token_current",
+     "nullable": true,
+     "type": "character varying(255)"
+    },
+    {
+     "name": "email_change_confirm_status",
+     "nullable": true,
+     "type": "smallint"
+    },
+    {
+     "name": "banned_until",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "reauthentication_token",
+     "nullable": true,
+     "type": "character varying(255)"
+    },
+    {
+     "name": "reauthentication_sent_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "is_sso_user",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "deleted_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "is_anonymous",
+     "nullable": false,
+     "type": "boolean"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "phone"
+    ],
+    [
+     "confirmation_token"
+    ],
+    [
+     "recovery_token"
+    ],
+    [
+     "email_change_token_current"
+    ],
+    [
+     "email_change_token_new"
+    ],
+    [
+     "reauthentication_token"
+    ],
+    [
+     "email"
+    ]
+   ]
+  },
+  "webauthn_challenges": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "user_id",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "challenge_type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "session_data",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "expires_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "user_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "users"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "webauthn_credentials": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "user_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "credential_id",
+     "nullable": false,
+     "type": "bytea"
+    },
+    {
+     "name": "public_key",
+     "nullable": false,
+     "type": "bytea"
+    },
+    {
+     "name": "attestation_type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "aaguid",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "sign_count",
+     "nullable": false,
+     "type": "bigint"
+    },
+    {
+     "name": "transports",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "backup_eligible",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "backed_up",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "friendly_name",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "last_used_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "user_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "auth",
+     "refTable": "users"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "credential_id"
+    ]
+   ]
+  }
+ },
+ "media": {
+  "audio_assets": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tourId",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "lang",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "s3Url",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "kind",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "createdAt",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  }
+ },
+ "moderation": {
+  "moderation_cases": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "subject_type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "subject_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tour_id",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "revision",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "status",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "verdict",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "severity",
+     "nullable": true,
+     "type": "double precision"
+    },
+    {
+     "name": "reasons",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "attempts",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "model",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "images_checked",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "last_error",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "payload",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "published_at",
+     "nullable": true,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "checked_at",
+     "nullable": true,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "subject_type",
+     "subject_id",
+     "revision"
+    ]
+   ]
+  }
+ },
+ "notification": {
+  "in_app_notifications": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "user_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tour_id",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "title",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "body",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "data",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "read_at",
+     "nullable": true,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "source_key",
+     "nullable": false,
+     "type": "text"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "source_key"
+    ]
+   ]
+  },
+  "notifications": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "userId",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "message",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "read",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "createdAt",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  }
+ },
+ "realtime": {
+  "messages": {
+   "columns": [
+    {
+     "name": "topic",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "extension",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "payload",
+     "nullable": true,
+     "type": "jsonb"
+    },
+    {
+     "name": "event",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "private",
+     "nullable": true,
+     "type": "boolean"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp without time zone"
+    },
+    {
+     "name": "inserted_at",
+     "nullable": false,
+     "type": "timestamp without time zone"
+    },
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "binary_payload",
+     "nullable": true,
+     "type": "bytea"
+    },
+    {
+     "name": "skip_broadcast",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "expires_at",
+     "nullable": true,
+     "type": "timestamp without time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id",
+    "inserted_at"
+   ],
+   "unique": []
+  },
+  "schema_migrations": {
+   "columns": [
+    {
+     "name": "version",
+     "nullable": false,
+     "type": "bigint"
+    },
+    {
+     "name": "inserted_at",
+     "nullable": true,
+     "type": "timestamp(0) without time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "version"
+   ],
+   "unique": []
+  },
+  "subscription": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "bigint"
+    },
+    {
+     "name": "subscription_id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "entity",
+     "nullable": false,
+     "type": "regclass"
+    },
+    {
+     "name": "filters",
+     "nullable": false,
+     "type": "realtime.user_defined_filter[]"
+    },
+    {
+     "name": "claims",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "claims_role",
+     "nullable": false,
+     "type": "regrole"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp without time zone"
+    },
+    {
+     "name": "action_filter",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "selected_columns",
+     "nullable": true,
+     "type": "text[]"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "subscription_id",
+     "entity",
+     "action_filter"
+    ]
+   ]
+  }
+ },
+ "storage": {
+  "bucket_lifecycle_states": {
+   "columns": [
+    {
+     "name": "bucket_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "generation",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "next_run_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "claim_id",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "claim_until",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "continuation",
+     "nullable": true,
+     "type": "jsonb"
+    },
+    {
+     "name": "last_started_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "last_completed_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "last_success_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "last_result",
+     "nullable": true,
+     "type": "jsonb"
+    },
+    {
+     "name": "failure_count",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "last_error",
+     "nullable": true,
+     "type": "jsonb"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "bucket_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "storage",
+     "refTable": "buckets"
+    }
+   ],
+   "pk": [
+    "bucket_id"
+   ],
+   "unique": []
+  },
+  "buckets": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "name",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "owner",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "created_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "public",
+     "nullable": true,
+     "type": "boolean"
+    },
+    {
+     "name": "avif_autodetection",
+     "nullable": true,
+     "type": "boolean"
+    },
+    {
+     "name": "file_size_limit",
+     "nullable": true,
+     "type": "bigint"
+    },
+    {
+     "name": "allowed_mime_types",
+     "nullable": true,
+     "type": "text[]"
+    },
+    {
+     "name": "owner_id",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "type",
+     "nullable": false,
+     "type": "storage.buckettype"
+    },
+    {
+     "name": "versioning_status",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "lifecycle_configuration",
+     "nullable": true,
+     "type": "jsonb"
+    },
+    {
+     "name": "lifecycle_configuration_generation",
+     "nullable": true,
+     "type": "uuid"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "name"
+    ]
+   ]
+  },
+  "buckets_analytics": {
+   "columns": [
+    {
+     "name": "name",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "type",
+     "nullable": false,
+     "type": "storage.buckettype"
+    },
+    {
+     "name": "format",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "deleted_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "name"
+    ]
+   ]
+  },
+  "buckets_vectors": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "type",
+     "nullable": false,
+     "type": "storage.buckettype"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "lifecycle_abandoned_artifacts": {
+   "columns": [
+    {
+     "name": "bucket_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "key",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "name",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "version",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "attempted_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "bucket_id",
+    "key"
+   ],
+   "unique": []
+  },
+  "migrations": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "name",
+     "nullable": false,
+     "type": "character varying(100)"
+    },
+    {
+     "name": "hash",
+     "nullable": false,
+     "type": "character varying(40)"
+    },
+    {
+     "name": "executed_at",
+     "nullable": true,
+     "type": "timestamp without time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "name"
+    ]
+   ]
+  },
+  "objects": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "bucket_id",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "name",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "owner",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "created_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "last_accessed_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "metadata",
+     "nullable": true,
+     "type": "jsonb"
+    },
+    {
+     "name": "path_tokens",
+     "nullable": true,
+     "type": "text[]"
+    },
+    {
+     "name": "version",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "owner_id",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "user_metadata",
+     "nullable": true,
+     "type": "jsonb"
+    },
+    {
+     "name": "archived_at",
+     "nullable": true,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "is_delete_marker",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "is_versioned",
+     "nullable": false,
+     "type": "boolean"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "bucket_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "storage",
+     "refTable": "buckets"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "bucket_id",
+     "name"
+    ],
+    [
+     "bucket_id",
+     "name",
+     "version"
+    ],
+    [
+     "bucket_id",
+     "name",
+     "archived_at"
+    ]
+   ]
+  },
+  "s3_multipart_uploads": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "in_progress_size",
+     "nullable": false,
+     "type": "bigint"
+    },
+    {
+     "name": "upload_signature",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "bucket_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "key",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "version",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "owner_id",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "user_metadata",
+     "nullable": true,
+     "type": "jsonb"
+    },
+    {
+     "name": "metadata",
+     "nullable": true,
+     "type": "jsonb"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "bucket_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "storage",
+     "refTable": "buckets"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "s3_multipart_uploads_parts": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "upload_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "size",
+     "nullable": false,
+     "type": "bigint"
+    },
+    {
+     "name": "part_number",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "bucket_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "key",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "etag",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "owner_id",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "version",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "bucket_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "storage",
+     "refTable": "buckets"
+    },
+    {
+     "columns": [
+      "upload_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "storage",
+     "refTable": "s3_multipart_uploads"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "vector_indexes": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "name",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "bucket_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "data_type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "dimension",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "distance_metric",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "metadata_configuration",
+     "nullable": true,
+     "type": "jsonb"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "bucket_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "storage",
+     "refTable": "buckets_vectors"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "name",
+     "bucket_id"
+    ]
+   ]
+  }
+ },
+ "tour": {
+  "admin_actions": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "admin_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "action",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "target_type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "target_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "reason",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "data",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "source_key",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "source_key"
+    ]
+   ]
+  },
+  "forbidden_zones": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "name",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "geometry",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "active",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "itineraries": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "owner_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "name",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "share_token",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "share_token"
+    ]
+   ]
+  },
+  "itinerary_items": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "itinerary_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "place_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "name",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "lat",
+     "nullable": false,
+     "type": "double precision"
+    },
+    {
+     "name": "lng",
+     "nullable": false,
+     "type": "double precision"
+    },
+    {
+     "name": "images",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "radius_meters",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "source_language",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "available_languages",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "audio_by_lang",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "sequence",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "itinerary_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "tour",
+     "refTable": "itineraries"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "place_translations": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "place_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "language_code",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "text",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "text_source",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tts_url",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "tts_prerendered",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "place_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "tour",
+     "refTable": "places"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "place_id",
+     "language_code"
+    ]
+   ]
+  },
+  "places": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "name",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "description",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "lat",
+     "nullable": false,
+     "type": "double precision"
+    },
+    {
+     "name": "lng",
+     "nullable": false,
+     "type": "double precision"
+    },
+    {
+     "name": "sequence",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "images",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "audio_url",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "audio_source",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "moderation_reasons",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "moderation_revision",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "moderation_status",
+     "nullable": false,
+     "type": "text"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "tour_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "tour",
+     "refTable": "tours"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "route_configs": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "path",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "triggers",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "nav_audios",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "tour_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "tour",
+     "refTable": "tours"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "tour_id"
+    ]
+   ]
+  },
+  "tour_access_grants": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "user_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "passcode_version",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "tour_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "tour",
+     "refTable": "tours"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "tour_id",
+     "user_id"
+    ]
+   ]
+  },
+  "tour_activity_marks": {
+   "columns": [
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "actor_key",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "action",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "language",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "day",
+     "nullable": false,
+     "type": "date"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "tour_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "tour",
+     "refTable": "tours"
+    }
+   ],
+   "pk": [
+    "tour_id",
+    "actor_key",
+    "action",
+    "language",
+    "day"
+   ],
+   "unique": []
+  },
+  "tour_daily_stats": {
+   "columns": [
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "day",
+     "nullable": false,
+     "type": "date"
+    },
+    {
+     "name": "language",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "views",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "plays",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "completions",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "downloads",
+     "nullable": false,
+     "type": "integer"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "tour_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "tour",
+     "refTable": "tours"
+    }
+   ],
+   "pk": [
+    "tour_id",
+    "day",
+    "language"
+   ],
+   "unique": []
+  },
+  "tour_languages": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "language_code",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "is_source",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "tts_voice_gender",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "tts_voice_region",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "tour_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "tour",
+     "refTable": "tours"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "tour_id",
+     "language_code"
+    ]
+   ]
+  },
+  "tour_ratings": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "user_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "user_name",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "stars",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "comment",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "tour_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "tour",
+     "refTable": "tours"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "tour_id",
+     "user_id"
+    ]
+   ]
+  },
+  "tour_reports": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "reporter_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "reason",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "note",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "status",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "tour_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "tour",
+     "refTable": "tours"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "tour_id",
+     "reporter_id"
+    ]
+   ]
+  },
+  "tour_review_actions": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "admin_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "action",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "reason",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "from_status",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "tour_unlock_attempts": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "user_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "tour_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "tour",
+     "refTable": "tours"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "tours": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "title",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "description",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "cover_image_url",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "original_language",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "status",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "author_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "city",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "duration",
+     "nullable": true,
+     "type": "integer"
+    },
+    {
+     "name": "average_rating",
+     "nullable": false,
+     "type": "double precision"
+    },
+    {
+     "name": "rating_count",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "moderation_reasons",
+     "nullable": false,
+     "type": "jsonb"
+    },
+    {
+     "name": "moderation_revision",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "review_reason",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "open_report_count",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "passcode_hash",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "passcode_set_at",
+     "nullable": true,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "passcode_version",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "report_flagged_at",
+     "nullable": true,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "review_queued_at",
+     "nullable": true,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  }
+ },
+ "vault": {
+  "secrets": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "uuid"
+    },
+    {
+     "name": "name",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "description",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "secret",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "key_id",
+     "nullable": true,
+     "type": "uuid"
+    },
+    {
+     "name": "nonce",
+     "nullable": true,
+     "type": "bytea"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp with time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "name"
+    ]
+   ]
+  }
+ }
+}

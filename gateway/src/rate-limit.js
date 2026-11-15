@@ -28,3 +28,6 @@ export async function rateLimit(req, res, next) {
     next(); // fail-open
   }
 }
+
+// Shared Redis client (null while Redis is not ready), used by the chat limiter.
+export const getRedis = () => redis;

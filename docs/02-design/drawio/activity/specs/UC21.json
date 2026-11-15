@@ -1,0 +1,25 @@
+{
+  "uc": "UC21",
+  "steps": [
+    { "id": "s1", "text": "1. Admin mở trang “Người dùng”, tìm theo email hoặc họ tên, lọc theo vai trò / trạng thái." },
+    { "id": "s2", "decision": true, "text": "2. Auth trả danh sách tài khoản (mới nhất trước, 20 / trang, tối đa 50) kèm vai trò, trạng thái, lý do cấm, hạn tạm khóa; hợp lệ? A3, E2.", "alts": ["A3"], "exceptions": [
+      { "id": "E2", "text": "E2. Không có token hợp lệ → 401; không phải admin → 403; tham số tìm kiếm sai → 400.", "back": "end" } ] },
+    { "id": "s3", "text": "3. Admin chọn một tài khoản." },
+    { "id": "s4", "decision": true, "text": "4. Auth trả thông tin và số phiên đang hoạt động; Tour trả lịch sử vi phạm (tour bị ẩn / từ chối, số báo cáo, 20 hành động gần nhất); tồn tại? E1.", "exceptions": [
+      { "id": "E1", "text": "E1. Tài khoản không tồn tại → 404 “Không tìm thấy tài khoản”.", "back": "s3" } ] },
+    { "id": "s5", "decision": true, "text": "5. Admin chọn Cảnh báo, Tạm khóa (1, 7, 30 ngày hoặc ngày kết thúc) hoặc Cấm, nhập lý do, xác nhận; hợp lệ? A1, A2, E6.", "alts": ["A1", "A2"], "exceptions": [
+      { "id": "E6", "text": "E6. Thiếu lý do, lý do quá 1000 ký tự, số ngày sai, ngày kết thúc đã qua hoặc quá 365 ngày → 422.", "back": "s5" } ] },
+    { "id": "s6", "decision": true, "text": "6. Auth kiểm tra quy tắc (không tự xử lý, không xử lý admin, chưa bị cấm); được phép? E3, E4/E5.", "exceptions": [
+      { "id": "E3", "text": "E3. Thao tác lên chính mình → 403 “Không thể xử lý chính tài khoản của bạn”; lên admin khác → 403.", "back": "s4" },
+      { "id": "E4", "text": "E4/E5. Tài khoản đã bị cấm, hoặc admin khác vừa đổi trạng thái → 409 “vui lòng tải lại”.", "back": "s4" } ] },
+    { "id": "s7", "text": "6. (tiếp) Cảnh báo giữ nguyên trạng thái; Tạm khóa / Cấm ghi trạng thái mới rồi thu hồi mọi phiên của tài khoản." },
+    { "id": "s8", "decision": true, "text": "7. Auth phát sự kiện xử lý tài khoản; Notification lưu thông báo trong app và gửi email; Tour ghi nhật ký cho UC22; gửi được? E7/E8.", "exceptions": [
+      { "id": "E7", "text": "E7/E8. Đăng xuất, gửi sự kiện hoặc email thất bại → chỉ ghi log, hành động vẫn thành công (thông báo trong app đã lưu).", "back": "s9" } ] },
+    { "id": "s9", "text": "8. Client hiện thông báo thành công và tải lại trang." }
+  ],
+  "alts": [
+    { "id": "A3", "steps": ["A3.1. Tài khoản có hạn tạm khóa đã qua.", "A3.2. Khi đăng nhập, làm mới phiên và hiển thị, tài khoản được tính là “Hoạt động” (không ghi lại)."], "to": "s3" },
+    { "id": "A1", "steps": ["A1.1. Tài khoản đang Tạm khóa / Bị cấm: Admin chọn “Khôi phục” (lý do không bắt buộc).", "A1.2. Trạng thái về Hoạt động, xóa lý do cấm và hạn tạm khóa."], "to": "s8" },
+    { "id": "A2", "steps": ["A2.1. Admin tạm khóa lại tài khoản đang Tạm khóa (ngày mới thay ngày cũ) hoặc cấm hẳn."], "to": "s6" }
+  ]
+}

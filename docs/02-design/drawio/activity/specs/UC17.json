@@ -1,0 +1,20 @@
+{
+  "uc": "UC17",
+  "steps": [
+    { "id": "s1", "decision": true, "text": "1. (Nền) App gửi lượt xem, nghe, hoàn thành, tải về; Tour đếm mỗi (tour, người, hành động, ngôn ngữ, ngày) một lần; được đếm? A2, E4.", "alts": ["A2"], "exceptions": [
+      { "id": "E4", "text": "E4. Thiếu cả token lẫn mã thiết bị, hoặc dữ liệu sai → 400; client bỏ qua, không ảnh hưởng khách.", "back": "s2" } ] },
+    { "id": "s2", "text": "2. Contributor mở tour trong Studio và chọn bước “Thống kê”.", "alts": ["A3"] },
+    { "id": "s3", "decision": true, "text": "3. Hệ thống kiểm tra quyền (tác giả hoặc Admin) và tổng hợp số liệu (mặc định 30 ngày); được phép và tải được? E2, E3.", "exceptions": [
+      { "id": "E2", "text": "E2. Không phải tác giả, không phải Admin → 403; client hiển thị lỗi quyền.", "back": "end" },
+      { "id": "E3", "text": "E3. Bộ lọc sai (từ ngày sau đến ngày, quá 366 ngày) → 400; lỗi mạng → “Không thể kết nối, vui lòng thử lại” kèm “Thử lại”.", "back": "s5" } ] },
+    { "id": "s4", "decision": true, "text": "4. Hệ thống hiển thị các ô số liệu, biểu đồ theo ngày, bảng số liệu, phân bố sao và 20 nhận xét mới nhất; có dữ liệu? E1.", "exceptions": [
+      { "id": "E1", "text": "E1. Mọi số liệu bằng 0 → “Chưa có dữ liệu thống kê”.", "back": "end" } ] },
+    { "id": "s5", "decision": true, "text": "5. Contributor đổi khoảng thời gian hoặc ngôn ngữ? A1.", "alts": ["A1"] },
+    { "id": "s6", "text": "6. Contributor đọc nhận xét để biết điểm cần cải thiện." }
+  ],
+  "alts": [
+    { "id": "A2", "steps": ["A2.1. Tour không công khai, id không tồn tại, hành động lặp trong ngày hoặc vượt 200 lượt / ngày → vẫn trả thành công, không đếm."], "to": "s2" },
+    { "id": "A3", "steps": ["A3.1. Admin xem thống kê của tour bất kỳ qua cùng chức năng."], "to": "s3" },
+    { "id": "A1", "steps": ["A1.1. Chọn 7 / 30 / 90 ngày hoặc “Tuỳ chọn” (tối đa 366 ngày) và một ngôn ngữ; bộ lọc giữ trên URL.", "A1.2. Hệ thống tải lại số liệu hoạt động; đánh giá và nhận xét không lọc."], "to": "s4" }
+  ]
+}

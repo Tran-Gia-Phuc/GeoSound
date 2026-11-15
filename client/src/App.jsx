@@ -1,13 +1,254 @@
-// Skeleton màn hình. Routing + map (Leaflet) + luồng 3 actor thêm sau.
-const API = import.meta.env.VITE_API_BASE_URL || '';
+// Định tuyến client. Màn thường nằm trong AppLayout (thanh tab dưới ở điện thoại,
+// thanh trên ở desktop); màn chi tiết có thanh hành động riêng dùng AppLayout
+// tabs={false}; trình phát / đăng nhập là toàn màn hình.
+//   /account            — tài khoản + giao diện sáng/tối
+//   /account/devices    — thiết bị đang đăng nhập (UC23, cần đăng nhập)
+//   /notifications      — trung tâm thông báo (UC16, cần đăng nhập)
+//   /account/profile    — sửa hồ sơ (UC18 A1, cần đăng nhập)
+//   /account/following  — tác giả đang theo dõi (UC18, cần đăng nhập)
+//   /authors/:id        — trang tác giả công khai + theo dõi (UC18)
+//   /                   — Khám phá: tìm tour + địa điểm (UC02, UC07) — ?tab=&q=&city=…
+//   /login, /register   — đăng nhập / đăng ký (chọn vai trò) (UC01)
+//   /forgot-password    — quên mật khẩu (UC01 A2)
+//   /tours, /explore    — chuyển hướng về / (giữ tham số)
+//   /tour/:id           — chi tiết tour (UC02)
+//   /tour/:id/play      — trình nghe tour (UC04)
+//   /tour/:id/unlock    — nhập mã để mở tour truy cập hạn chế (UC14, cần đăng nhập)
+//   /tour/:id/restricted(/play) — chi tiết / trình nghe bản truy cập hạn chế (UC14)
+//   /itineraries        — lịch trình của tôi (UC07, cần đăng nhập)
+//   /itineraries/:id    — chỉnh sửa lịch trình (UC07, cần đăng nhập)
+//   /shared/:token      — xem lịch trình được chia sẻ (UC07/A4, công khai)
+//   /itinerary/:id/go   — đi theo lịch trình của tôi (UC08, cần đăng nhập)
+//   /shared/:token/go   — đi theo lịch trình được chia sẻ (UC08, công khai)
+//   /chat               — trợ lý GeoSound (chatbot, #188; công khai)
+//   /offline            — tour đã tải trên thiết bị (UC03, không cần tài khoản)
+//   /offline/:tourId/play — nghe tour đã tải từ dữ liệu trên máy (UC03 → UC04, chạy không cần mạng)
+//   /admin              — khu quản trị (chỉ quản trị viên): /admin/reviews, /admin/reviews/:tourId (UC19),
+//                         /admin/reports (UC20), /admin/reports/:tourId,
+//                         /admin/users (UC21), /admin/users/:id, /admin/devices (UC23),
+//                         /admin/dashboard, /admin/actions, /admin/actions/:id (UC22)
+//   /studio             — tour của tôi (UC09, chỉ người đóng góp)
+//   /studio/tours/new   — tạo tour (UC09)
+//   /studio/tours/:id   — soạn tour theo các bước (StudioTourLayout + stepper):
+//        (index) Thông tin (UC09) · places Điểm dừng (UC10) · route Vùng kích hoạt (UC11)
+//        · languages Ngôn ngữ (UC12) · publish Xem thử & Xuất bản (UC09 A3)
+//   /studio/tours/:tourId/preview — xem thử tour (UC13)
+// Dùng data router (createBrowserRouter) để chặn rời form chưa lưu (useBlocker).
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  Link,
+  Navigate,
+  Route,
+  RouterProvider,
+  useLocation,
+  useParams,
+} from 'react-router-dom';
+import DiscoverPage from './features/discover/DiscoverPage.jsx';
+import TourDetailPage from './features/tours/TourDetailPage.jsx';
+import TourPlayerPage from './features/player/TourPlayerPage.jsx';
+import UnlockTourPage from './features/tours/UnlockTourPage.jsx';
+import LoginPage from './features/auth/LoginPage.jsx';
+import RegisterPage from './features/auth/RegisterPage.jsx';
+import ForgotPasswordPage from './features/auth/ForgotPasswordPage.jsx';
+import ItinerariesPage from './features/itineraries/ItinerariesPage.jsx';
+import ItineraryEditorPage from './features/itineraries/ItineraryEditorPage.jsx';
+import SharedItineraryPage from './features/itineraries/SharedItineraryPage.jsx';
+import ItineraryPlayerPage from './features/itineraries/ItineraryPlayerPage.jsx';
+import SharedItineraryPlayerPage from './features/itineraries/SharedItineraryPlayerPage.jsx';
+import RequireAuth from './auth/RequireAuth.jsx';
+import RequireContributor from './auth/RequireContributor.jsx';
+import StudioToursPage from './features/studio/StudioToursPage.jsx';
+import TourCreatePage from './features/studio/TourCreatePage.jsx';
+import TourEditorPage from './features/studio/TourEditorPage.jsx';
+import PlacesManagerPage from './features/studio/PlacesManagerPage.jsx';
+import RouteConfigPage from './features/studio/RouteConfigPage.jsx';
+import LanguagesPage from './features/studio/LanguagesPage.jsx';
+import StudioTourLayout from './features/studio/StudioTourLayout.jsx';
+import PublishStepPage from './features/studio/PublishStepPage.jsx';
+import TourStatsPage from './features/studio/TourStatsPage.jsx';
+import AccountPage from './features/account/AccountPage.jsx';
+import MyRatingsPage from './features/account/MyRatingsPage.jsx';
+import DevicesPage from './features/account/DevicesPage.jsx';
+import ChangePasswordPage from './features/account/ChangePasswordPage.jsx';
+import OnlineDevicesPage from './features/admin/OnlineDevicesPage.jsx';
+import AdminHomePage from './features/admin/AdminHomePage.jsx';
+import ReportedToursPage from './features/admin/ReportedToursPage.jsx';
+import ReportDossierPage from './features/admin/ReportDossierPage.jsx';
+import ReviewQueuePage from './features/admin/ReviewQueuePage.jsx';
+import ReviewDossierPage from './features/admin/ReviewDossierPage.jsx';
+import UsersPage from './features/admin/UsersPage.jsx';
+import UserDetailPage from './features/admin/UserDetailPage.jsx';
+import DashboardPage from './features/admin/DashboardPage.jsx';
+import ActionLogPage from './features/admin/ActionLogPage.jsx';
+import ActionDetailPage from './features/admin/ActionDetailPage.jsx';
+import NotificationsPage from './features/notifications/NotificationsPage.jsx';
+import { UnreadCountLayout } from './features/notifications/UnreadCount.jsx';
+import AuthorPage from './features/authors/AuthorPage.jsx';
+import ProfileEditPage from './features/authors/ProfileEditPage.jsx';
+import FollowingPage from './features/authors/FollowingPage.jsx';
+import SessionWatcher from './auth/SessionWatcher.jsx';
+import AppLayout from './components/shell/AppLayout.jsx';
+import OfflineLibraryPage from './features/offline/OfflineLibraryPage.jsx';
+import ChatPage from './features/chat/ChatPage.jsx';
+import { loadOfflineDetail } from './lib/offline-store.js';
+import { previewTour } from './lib/studio.js';
+import { fetchRestrictedTour, translateRestrictedTour } from './lib/restricted-access.js';
+import { translateTour } from './lib/tours.js';
+
+// /tours và /explore cũ → màn Khám phá (giữ tham số; /explore mở tab Địa điểm).
+function RedirectToDiscover({ tab }) {
+  const { search, state } = useLocation();
+  const sp = new URLSearchParams(search);
+  if (tab) sp.set('tab', tab);
+  const qs = sp.toString();
+  return <Navigate to={`/${qs ? `?${qs}` : ''}`} state={state} replace />;
+}
+
+// UC04 mở từ chi tiết tour (UC02) — thoát thì quay về chi tiết tour.
+function PlayTourRoute() {
+  const { tourId } = useParams();
+  return (
+    <TourPlayerPage
+      backTo={`/tour/${tourId}`}
+      backLabel="Chi tiết tour"
+      rateHref={`/tour/${tourId}#ratings`}
+      reportable
+      recordStats
+      translate={(lang) => translateTour(tourId, lang)}
+    />
+  );
+}
+
+// UC14 — trình nghe bản truy cập hạn chế (chủ tour hoặc người thử đã mở khoá).
+function PlayRestrictedRoute() {
+  const { tourId } = useParams();
+  return (
+    <TourPlayerPage
+      loadDetail={(lang, opts) => fetchRestrictedTour(tourId, lang, opts)}
+      translate={(lang) => translateRestrictedTour(tourId, lang)}
+      progressKey={`restricted:${tourId}`}
+      backTo={`/tour/${tourId}/restricted`}
+      backLabel="Chi tiết tour"
+      remember={false}
+    />
+  );
+}
+
+// UC03 — nghe tour đã tải: dữ liệu + tệp lấy từ máy (blob: URL), không gọi mạng; thoát về thư viện.
+// Không gửi thống kê (đang offline) và không có nút báo cáo.
+function PlayOfflineRoute() {
+  const { tourId } = useParams();
+  return (
+    <TourPlayerPage
+      loadDetail={(lang) => loadOfflineDetail(tourId, lang)}
+      progressKey={`offline:${tourId}`}
+      backTo="/offline"
+      backLabel="Tour đã tải"
+      remember={false}
+      completeAction={{ label: 'Về Tour đã tải', to: '/offline' }}
+      errorActions={() => <Link className="btn btn--primary" to="/offline">Tour đã tải</Link>}
+    />
+  );
+}
+
+// UC13 — xem thử tour của chính tác giả: tái dùng trình phát UC04 nhưng nguồn là
+// endpoint preview (mọi trạng thái); thoát quay về trình chỉnh sửa tour.
+// E1 (422 — chưa có điểm dừng; route đã tự sinh): dẫn thẳng tới bước thêm điểm.
+function PreviewTourRoute() {
+  const { tourId } = useParams();
+  const base = `/studio/tours/${tourId}`;
+  return (
+    <TourPlayerPage
+      loadDetail={(lang, opts) => previewTour(tourId, lang, opts)}
+      progressKey={`studio-preview:${tourId}`}
+      backTo={base}
+      backLabel="Về trình chỉnh sửa"
+      remember={false}
+      allowSimulation
+      editPlaceHref={(placeId) => `${base}/places?edit=${encodeURIComponent(placeId)}`}
+      completeAction={{ label: 'Về bước Xuất bản', to: `${base}/publish` }}
+      freshProgress
+      modeLabels={{ gps: 'Xem thử — đi bộ mô phỏng', remote: 'Xem thử từng điểm' }}
+      errorActions={(err) =>
+        err.status === 422 ? (
+          <Link className="btn btn--primary" to={`${base}/places`}>Thêm điểm dừng</Link>
+        ) : null
+      }
+    />
+  );
+}
+
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    // SessionWatcher: sends the user to /login when the server ends the session (UC23).
+    <Route element={<SessionWatcher />}>
+      {/* UC16: các màn có khung app dùng chung một số thông báo chưa đọc */}
+      <Route element={<UnreadCountLayout />}>
+      {/* Màn gốc của các tab */}
+      <Route element={<AppLayout />}>
+        <Route path="/" element={<DiscoverPage />} />
+        <Route path="/tours" element={<RedirectToDiscover />} />
+        <Route path="/explore" element={<RedirectToDiscover tab="places" />} />
+        <Route path="/itineraries" element={<ItinerariesPage />} />
+        <Route path="/account" element={<AccountPage />} />
+        <Route path="/account/devices" element={<RequireAuth><DevicesPage /></RequireAuth>} />
+        <Route path="/account/password" element={<RequireAuth><ChangePasswordPage /></RequireAuth>} />
+        <Route path="/tour/:tourId/unlock" element={<RequireAuth><UnlockTourPage /></RequireAuth>} />
+        <Route path="/admin" element={<RequireAuth><AdminHomePage /></RequireAuth>} />
+        <Route path="/admin/reviews" element={<RequireAuth><ReviewQueuePage /></RequireAuth>} />
+        <Route path="/admin/reviews/:tourId" element={<RequireAuth><ReviewDossierPage /></RequireAuth>} />
+        <Route path="/admin/reports" element={<RequireAuth><ReportedToursPage /></RequireAuth>} />
+        <Route path="/admin/reports/:tourId" element={<RequireAuth><ReportDossierPage /></RequireAuth>} />
+        <Route path="/account/profile" element={<RequireAuth><ProfileEditPage /></RequireAuth>} />
+        <Route path="/account/following" element={<RequireAuth><FollowingPage /></RequireAuth>} />
+        <Route path="/account/ratings" element={<RequireAuth><MyRatingsPage /></RequireAuth>} />
+        <Route path="/authors/:id" element={<AuthorPage />} />
+        <Route path="/offline" element={<OfflineLibraryPage />} />
+        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/admin/users" element={<RequireAuth><UsersPage /></RequireAuth>} />
+        <Route path="/admin/users/:id" element={<RequireAuth><UserDetailPage /></RequireAuth>} />
+        <Route path="/admin/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
+        <Route path="/admin/actions" element={<RequireAuth><ActionLogPage /></RequireAuth>} />
+        <Route path="/admin/actions/:id" element={<RequireAuth><ActionDetailPage /></RequireAuth>} />
+        <Route path="/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
+        <Route path="/admin/devices" element={<RequireAuth><OnlineDevicesPage /></RequireAuth>} />
+        <Route path="/studio" element={<RequireContributor><StudioToursPage /></RequireContributor>} />
+        <Route path="/studio/tours/new" element={<RequireContributor><TourCreatePage /></RequireContributor>} />
+        <Route path="/studio/tours/:id" element={<RequireContributor><StudioTourLayout /></RequireContributor>}>
+          <Route index element={<TourEditorPage />} />
+          <Route path="places" element={<PlacesManagerPage />} />
+          <Route path="route" element={<RouteConfigPage />} />
+          <Route path="languages" element={<LanguagesPage />} />
+          <Route path="publish" element={<PublishStepPage />} />
+          <Route path="stats" element={<TourStatsPage />} />
+        </Route>
+      </Route>
+
+      {/* Màn chi tiết có thanh hành động riêng ở đáy: ẩn tab dưới */}
+      <Route element={<AppLayout tabs={false} />}>
+        <Route path="/tour/:tourId" element={<TourDetailPage />} />
+        <Route path="/tour/:tourId/restricted" element={<RequireAuth><TourDetailPage key="restricted" restricted /></RequireAuth>} />
+        <Route path="/itineraries/:id" element={<RequireAuth><ItineraryEditorPage /></RequireAuth>} />
+        <Route path="/shared/:token" element={<SharedItineraryPage />} />
+      </Route>
+      </Route>
+
+      {/* Toàn màn hình */}
+      <Route path="/login" element={<LoginPage key="login" initialTab="login" />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/tour/:tourId/play" element={<PlayTourRoute />} />
+      <Route path="/offline/:tourId/play" element={<PlayOfflineRoute />} />
+      <Route path="/tour/:tourId/restricted/play" element={<RequireAuth><PlayRestrictedRoute /></RequireAuth>} />
+      <Route path="/itinerary/:id/go" element={<RequireAuth><ItineraryPlayerPage /></RequireAuth>} />
+      <Route path="/shared/:token/go" element={<SharedItineraryPlayerPage />} />
+      <Route path="/studio/tours/:tourId/preview" element={<RequireContributor><PreviewTourRoute /></RequireContributor>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Route>,
+  ),
+);
 
 export default function App() {
-  return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', padding: 24, lineHeight: 1.5 }}>
-      <h1>GeoSound</h1>
-      <p>Audio guide du lịch theo GPS. Skeleton PWA — 1 codebase cho Tourist / Contributor / Admin.</p>
-      <p>Gateway API: <code>{API || '(đặt VITE_API_BASE_URL)'}</code></p>
-      <p>TODO: routing theo vai trò, bản đồ Leaflet, offline cache tour + audio.</p>
-    </main>
-  );
+  return <RouterProvider router={router} />;
 }

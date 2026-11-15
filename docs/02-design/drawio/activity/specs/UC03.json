@@ -1,0 +1,37 @@
+{
+  "uc": "UC03",
+  "steps": [
+    { "id": "s1", "text": "1. Tourist ở chi tiết tour, mục “Tải về để nghe offline”, chọn một hoặc nhiều ngôn ngữ và nhấn “Tải xuống (n ngôn ngữ)”." },
+    { "id": "s2", "decision": true, "text": "2. Client kiểm tra mạng; có kết nối? E1.", "exceptions": [
+      { "id": "E1", "text": "E1. Không có mạng → “Cần kết nối mạng (Wi-Fi hoặc dữ liệu di động) để tải tour”.", "back": "end" } ] },
+    { "id": "s3", "decision": true, "text": "3. Client lấy gói của từng ngôn ngữ: phiên bản, dữ liệu trình phát và danh sách tệp (ảnh, audio điểm, audio chỉ đường); lấy được? E2.", "exceptions": [
+      { "id": "E2", "text": "E2. Tour không còn công khai, hoặc ngôn ngữ chưa cấu hình / chưa dịch đủ → báo lỗi.", "back": "end" } ] },
+    { "id": "s4", "decision": true, "text": "4. Client ước tính dung lượng các tệp còn thiếu, so với dung lượng trống của trình duyệt; đủ chỗ? E3.", "exceptions": [
+      { "id": "E3", "text": "E3. Không đủ dung lượng (ước tính trước hoặc khi đang ghi) → dừng, “Không đủ dung lượng trên thiết bị.”, link “Quản lý tour đã tải”.", "back": "end" } ] },
+    { "id": "s5", "decision": true, "text": "5. Client tải 3 tệp cùng lúc, lưu từng tệp trên máy, hiện tiến trình thật (số tệp, số byte); tải xong mọi tệp? A1, E4, E5.", "alts": ["A1"], "exceptions": [
+      { "id": "E4", "text": "E4. Mất mạng giữa chừng → “Mất kết nối mạng. Phần đã tải được giữ lại.”; gói tạm dừng, tiếp tục khi có mạng.", "back": "s5" },
+      { "id": "E5", "text": "E5. Một tệp lỗi → tệp đó hiện “Thử lại”; gói chưa được đánh dấu sẵn sàng.", "back": "s5" } ] },
+    { "id": "s6", "text": "6. Gói chuyển “sẵn sàng”; client xin lưu trữ lâu dài và gửi thống kê lượt tải (UC17) một lần cho mỗi gói." },
+    { "id": "s7", "text": "7. Mục tải hiện dung lượng gói và nút “Mở bản offline”." },
+    { "id": "s8", "text": "8. Tourist mở Tài khoản → “Tour đã tải”.", "alts": ["A2", "A3", "A4"] },
+    { "id": "s9", "decision": true, "text": "9. Client hiện tour đã tải (ngôn ngữ, dung lượng, ngày); có mạng thì báo “Có bản mới” / “Tour không còn công khai”; đọc được? E6.", "exceptions": [
+      { "id": "E6", "text": "E6. Chưa tải tour nào → danh sách rỗng, nút “Tìm tour” (UC02); lỗi đọc dữ liệu → “Thử lại”; gói thiếu tệp → báo tệp thiếu.", "back": "end" } ] }
+  ],
+  "alts": [
+    { "id": "A1", "steps": [
+      "A1.1. Tourist nhấn “Tạm dừng”, “Tiếp tục” hoặc “Huỷ” khi đang tải.",
+      "A1.2. Tạm dừng giữ tệp đã lưu; tiếp tục chỉ tải tệp còn thiếu; huỷ xoá gói tải dở. App tắt giữa chừng → gói “Bị gián đoạn”, tiếp tục được."
+    ], "to": "s5" },
+    { "id": "A2", "steps": [
+      "A2.1. Tourist chọn “Xoá” một ngôn ngữ; hộp xác nhận nêu số byte thật sẽ được giải phóng.",
+      "A2.2. Tourist xác nhận; client xoá gói và các tệp không còn gói nào dùng, cập nhật dung lượng."
+    ], "to": "s9" },
+    { "id": "A3", "steps": [
+      "A3.1. Tourist chọn “Nghe” hoặc “Đi tour”: trình phát (UC04) đọc dữ liệu trên máy, không gọi mạng, không gửi thống kê, không có nút báo cáo."
+    ], "to": "end" },
+    { "id": "A4", "steps": [
+      "A4.1. Khi có “Có bản mới”, Tourist chọn “Cập nhật”.",
+      "A4.2. Client tải lại gói, giữ các tệp không đổi, chỉ tải tệp mới; gói chưa sẵn sàng cho tới khi đủ tệp."
+    ], "to": "s5" }
+  ]
+}

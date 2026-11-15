@@ -1,11 +1,14 @@
 {
   "name": "@geosound/notification",
   "version": "0.1.0",
-  "description": "Notification worker — UC16: consume event -> báo contributor (in-app/email).",
+  "description": "Notification service — UC16: consume tour events -> in-app notification (HTTP /api/notifications) + email.",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "test": "node --test test/*.test.js",
+    "email:preview": "node scripts/preview-otp-email.js",
+    "email:test": "node --env-file=../../.env scripts/send-test-email.js",
     "dev": "nodemon src/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
@@ -13,6 +16,9 @@
   "dependencies": {
     "@prisma/client": "^5.18.0",
     "amqplib": "^0.10.4",
+    "express": "^4.19.2",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.9.14",
     "zod": "^3.23.8"
   },

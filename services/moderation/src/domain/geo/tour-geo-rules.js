@@ -1,0 +1,192 @@
+// Tour geo rules G1-G6 (task #AI-35). Pure, deterministic, no LLM.
+// See docs/02-design/moderation-architecture.md section 5.1. Only G1 can Reject; any other finding is a
+// Warning so a human looks at it. Output shape matches what mergeVerdicts expects.
+import { VERDICT } from '../entities/moderation-case.js';
+import { haversineMeters, routeLengthMeters, centroid } from './distance.js';
+
+export const DEFAULT_GEO_LIMITS = Object.freeze({
+  legMaxM: Object.freeze({ walking: 3000, cycling: 15000, driving: 100000 }),
+  spreadMaxM: Object.freeze({ walking: 10000, cycling: 40000, driving: 200000 }),
+  speedKmh: Object.freeze({ walking: 4.5, cycling: 15, driving: 40 }),
+  dwellMinutesPerStop: 5,
+  duplicateMinM: 10,
+  durationFactor: 2,
+  zigzagFactor: 1.8,
+  longLegStrongMultiplier: 5,
+});
+
+const MOVING_TYPES = ['walking', 'cycling', 'driving'];
+
+const SEVERITY = Object.freeze({
+  invalid: 1,
+  duplicate: 0.4,
+  longLeg: 0.5,
+  longLegStrong: 0.7,
+  spread: 0.5,
+  duration: 0.4,
+  zigzag: 0.4,
+});
+
+const fmtDistance = (m) => (m >= 1000 ? `${(Math.round(m / 100) / 10).toString()} km` : `${Math.round(m)} m`);
+
+// Reason texts follow the tour language like the AI reasons (#253); anything but 'vi' gets English.
+const MESSAGES = Object.freeze({
+  en: {
+    minutes: (min) => `${Math.round(min)} min`,
+    mode: { walking: 'walking', cycling: 'cycling', driving: 'driving' },
+    invalid: (stop) => `Stop ${stop} has an invalid coordinate.`,
+    duplicate: (stop, d, other, min) => `Stop ${stop} is only ${d} from stop ${other} (minimum ${min}).`,
+    longLeg: (stop, d, max, mode) => `Stop ${stop} is ${d} from the previous stop (limit ${max} for ${mode}).`,
+    spread: (d, max, mode) => `The farthest stop is ${d} from the tour center (limit ${max} for ${mode}).`,
+    duration: (est, mode, declared) => `The route needs about ${est} for ${mode}, much more than the declared ${declared}.`,
+    zigzag: (route, nn) => `The stop order zig-zags: the route is ${route}, a shorter order would be about ${nn}.`,
+  },
+  vi: {
+    minutes: (min) => `${Math.round(min)} phút`,
+    mode: { walking: 'đi bộ', cycling: 'đạp xe', driving: 'lái xe' },
+    invalid: (stop) => `Điểm dừng ${stop} có tọa độ không hợp lệ.`,
+    duplicate: (stop, d, other, min) => `Điểm dừng ${stop} chỉ cách điểm dừng ${other} ${d} (tối thiểu ${min}).`,
+    longLeg: (stop, d, max, mode) => `Điểm dừng ${stop} cách điểm trước ${d} (giới hạn ${max} khi ${mode}).`,
+    spread: (d, max, mode) => `Điểm xa nhất cách tâm tour ${d} (giới hạn ${max} khi ${mode}).`,
+    duration: (est, mode, declared) => `Lộ trình cần khoảng ${est} khi ${mode}, dài hơn nhiều so với thời lượng khai báo ${declared}.`,
+    zigzag: (route, nn) => `Thứ tự điểm dừng đi vòng vèo: lộ trình dài ${route}, sắp xếp lại chỉ khoảng ${nn}.`,
+  },
+});
+
+export const messagesFor = (language) =>
+  (String(language ?? '').toLowerCase().startsWith('vi') ? MESSAGES.vi : MESSAGES.en);
+
+const finding = (field, severity, message) => ({ field, category: 'route', message, source: 'geo', severity });
+
+export function isValidCoordinate(p) {
+  if (p == null) return false;
+  const { lat, lng } = p;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+  return !(lat === 0 && lng === 0);
+}
+
+// Stable sort by sequence; a missing sequence goes last, keeping input order. Exported so callers can map
+// a `places[i]` field (index after this sort) back to its placeId.
+export function sortBySequence(places) {
+  const key = (p) => (Number.isFinite(p?.sequence) ? p.sequence : Number.POSITIVE_INFINITY);
+  return places
+    .map((p, i) => ({ p, i }))
+    .sort((a, b) => key(a.p) - key(b.p) || a.i - b.i)
+    .map(({ p }) => p);
+}
+
+// Greedy nearest-neighbour route starting at the first stop.
+function nearestNeighbourLength(points) {
+  const rest = points.slice(1);
+  let current = points[0];
+  let total = 0;
+  while (rest.length > 0) {
+    let best = 0;
+    let bestD = haversineMeters(current, rest[0]);
+    for (let k = 1; k < rest.length; k += 1) {
+      const d = haversineMeters(current, rest[k]);
+      if (d < bestD) {
+        best = k;
+        bestD = d;
+      }
+    }
+    total += bestD;
+    current = rest.splice(best, 1)[0];
+  }
+  return total;
+}
+
+export function evaluateTourGeo({ type, durationMinutes, places, language } = {}, limits = DEFAULT_GEO_LIMITS) {
+  const sorted = sortBySequence(Array.isArray(places) ? places : []);
+  const isIndoor = type === 'indoor';
+  const mode = MOVING_TYPES.includes(type) ? type : 'walking';
+  const t = messagesFor(language);
+  const modeName = t.mode[mode];
+  const reasons = [];
+
+  // G1: invalid coordinates. Those stops are excluded from G2-G6.
+  const valid = [];
+  let hasInvalid = false;
+  sorted.forEach((p, i) => {
+    if (isValidCoordinate(p)) {
+      valid.push({ index: i, lat: p.lat, lng: p.lng });
+    } else {
+      hasInvalid = true;
+      reasons.push(finding(`places[${i}]`, SEVERITY.invalid, t.invalid(i + 1)));
+    }
+  });
+
+  // G2: duplicate stops (any pair). One finding per later stop.
+  for (let b = 1; b < valid.length; b += 1) {
+    for (let a = 0; a < b; a += 1) {
+      const d = haversineMeters(valid[a], valid[b]);
+      if (d < limits.duplicateMinM) {
+        reasons.push(finding(
+          `places[${valid[b].index}]`,
+          SEVERITY.duplicate,
+          t.duplicate(valid[b].index + 1, fmtDistance(d), valid[a].index + 1, fmtDistance(limits.duplicateMinM)),
+        ));
+        break;
+      }
+    }
+  }
+
+  if (!isIndoor && valid.length >= 2) {
+    // G3: long leg between consecutive valid stops.
+    const legMax = limits.legMaxM[mode];
+    for (let k = 1; k < valid.length; k += 1) {
+      const d = haversineMeters(valid[k - 1], valid[k]);
+      if (d > legMax) {
+        const strong = d > legMax * limits.longLegStrongMultiplier;
+        reasons.push(finding(
+          `places[${valid[k].index}]`,
+          strong ? SEVERITY.longLegStrong : SEVERITY.longLeg,
+          t.longLeg(valid[k].index + 1, fmtDistance(d), fmtDistance(legMax), modeName),
+        ));
+      }
+    }
+
+    // G4: spread around the centroid.
+    const c = centroid(valid);
+    const spread = Math.max(...valid.map((p) => haversineMeters(c, p)));
+    const spreadMax = limits.spreadMaxM[mode];
+    if (spread > spreadMax) {
+      reasons.push(finding(
+        'route',
+        SEVERITY.spread,
+        t.spread(fmtDistance(spread), fmtDistance(spreadMax), modeName),
+      ));
+    }
+
+    // G5: estimated time vs declared duration.
+    const routeM = routeLengthMeters(valid);
+    if (Number.isFinite(durationMinutes) && durationMinutes > 0) {
+      const travelMin = (routeM / 1000 / limits.speedKmh[mode]) * 60;
+      const estimated = travelMin + limits.dwellMinutesPerStop * valid.length;
+      if (estimated > limits.durationFactor * durationMinutes) {
+        reasons.push(finding(
+          'route',
+          SEVERITY.duration,
+          t.duration(t.minutes(estimated), modeName, t.minutes(durationMinutes)),
+        ));
+      }
+    }
+
+    // G6: zig-zag order compared with a nearest-neighbour route.
+    if (valid.length >= 4) {
+      const nn = nearestNeighbourLength(valid);
+      if (nn > 0 && routeM > limits.zigzagFactor * nn) {
+        reasons.push(finding(
+          'route',
+          SEVERITY.zigzag,
+          t.zigzag(fmtDistance(routeM), fmtDistance(nn)),
+        ));
+      }
+    }
+  }
+
+  const verdict = hasInvalid ? VERDICT.REJECT : reasons.length > 0 ? VERDICT.WARNING : VERDICT.PASS;
+  const severity = reasons.reduce((max, r) => Math.max(max, r.severity), 0);
+  return { verdict, severity, reasons };
+}

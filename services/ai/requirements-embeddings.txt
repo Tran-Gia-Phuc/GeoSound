@@ -1,0 +1,6 @@
+# Local embeddings runtime of the chatbot index (#219, decision 6c): ONNX, no torch.
+# Installed by the Dockerfile; not needed by the unit tests (they use FakeEmbedder).
+onnxruntime==1.20.*
+tokenizers==0.21.*
+huggingface_hub==0.26.*
+numpy==2.*

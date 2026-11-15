@@ -1,0 +1,130 @@
+// =========================================================
+// UC09 / A3 — Xuất bản & gỡ tour (xuất bản thẳng, bỏ qua kiểm duyệt — D1).
+//   - PublishTour        : kiểm tra sẵn sàng → status = public (khách tìm thấy)
+//   - UnpublishTour      : public → draft (khách không còn thấy)
+//   - GetPublishReadiness: checklist sẵn sàng cho màn "Xuất bản" của Studio
+// Chỉ tác giả. Sửa tour đang công khai vẫn đưa về Nháp như cũ (Tour.applyEdits).
+// UC15 (MODERATION_EVENTS_ENABLED): with `moderation`, PublishTour becomes "submit for review":
+// extra checks (D5: no place 'checking'/'rejected'; at most 50 places), status = ai_checking and
+// tour.submitted is sent. The AI result comes back via ApplyModerationResult.
+// Without it: direct publish as today.
+// #240 (CHATBOT_EVENTS_ENABLED): with `catalog`, entering public sends tour.published and
+// UnpublishTour sends tour.unpublished (reason 'unpublished'), after the save.
+// UC14 (#269): a restricted tour is refused (409 tour_restricted): restricted mode must be turned off first.
+// =========================================================
+import { checkPublishReadiness } from '../../domain/tour/publish-readiness.js';
+import {
+  TourNotFoundError,
+  NotTourOwnerError,
+  TourNotReadyError,
+  TourStatusTransitionError,
+  TourRestrictedError,
+} from '../../domain/errors/index.js';
+import { submitTourForModeration } from './submit-for-moderation.js';
+import { notifyTourPublished, notifyTourUnpublished } from './notify-tour-catalog.js';
+
+async function loadOwned(tourRepo, { authorId, tourId }) {
+  const tour = await tourRepo.findById(tourId);
+  if (!tour) throw new TourNotFoundError();
+  if (!tour.isOwnedBy(authorId)) throw new NotTourOwnerError();
+  return tour;
+}
+
+export class GetPublishReadiness {
+  /** @param {{ tourRepo, placeRepo, moderation? }} deps */
+  constructor({ tourRepo, placeRepo, moderation = null }) {
+    this.tourRepo = tourRepo;
+    this.placeRepo = placeRepo;
+    this.moderation = moderation;
+  }
+
+  /** @param {{ authorId: string, tourId: string }} input */
+  async execute(input) {
+    const tour = await loadOwned(this.tourRepo, input);
+    const places = await this.placeRepo.listByTour(tour.id);
+    return {
+      status: tour.status,
+      canPublish: tour.canPublish(),
+      placeCount: places.length,
+      ...checkPublishReadiness({ tour, places, requireModeration: Boolean(this.moderation) }),
+    };
+  }
+}
+
+export class PublishTour {
+  /** @param {{ tourRepo, placeRepo, moderation?, catalog?, tourLanguageRepo?, placeTranslationRepo?, logger? }} deps */
+  constructor({
+    tourRepo,
+    placeRepo,
+    moderation = null,
+    catalog = null,
+    tourLanguageRepo = null,
+    placeTranslationRepo = null,
+    logger = console,
+  }) {
+    this.tourRepo = tourRepo;
+    this.placeRepo = placeRepo;
+    this.moderation = moderation;
+    this.catalog = catalog;
+    this.tourLanguageRepo = tourLanguageRepo;
+    this.placeTranslationRepo = placeTranslationRepo;
+    this.logger = logger;
+  }
+
+  /** @param {{ authorId: string, tourId: string }} input */
+  async execute(input) {
+    const tour = await loadOwned(this.tourRepo, input);
+    if (tour.isPublic()) return { tour: tour.toPublic(), changed: false };
+    // UC14 (#269): a restricted tour is never sent to moderation / published as is; the author turns
+    // restricted mode off first (back to draft, testers lose access), then submits (UC15).
+    if (tour.isRestricted()) throw new TourRestrictedError();
+    if (!tour.canPublish()) {
+      throw new TourStatusTransitionError('Tour đang bị quản trị viên ẩn/hạn chế, không thể tự xuất bản');
+    }
+
+    const places = await this.placeRepo.listByTour(tour.id);
+    const { ready, checks } = checkPublishReadiness({
+      tour,
+      places,
+      requireModeration: Boolean(this.moderation),
+    });
+    if (!ready) {
+      throw new TourNotReadyError(
+        checks.filter((c) => c.required && !c.ok).map(({ key, label }) => ({ key, label })),
+      );
+    }
+
+    if (this.moderation) {
+      tour.submitForModeration();
+      const saved = await this.tourRepo.save(tour);
+      const submitted = await submitTourForModeration(this, saved, places);
+      return { tour: submitted.toPublic(), changed: true };
+    }
+
+    tour.publish();
+    const saved = await this.tourRepo.save(tour);
+    await notifyTourPublished(this, saved);
+    return { tour: saved.toPublic(), changed: true };
+  }
+}
+
+export class UnpublishTour {
+  /** @param {{ tourRepo, catalog?, logger? }} deps */
+  constructor({ tourRepo, catalog = null, logger = console }) {
+    this.tourRepo = tourRepo;
+    this.catalog = catalog;
+    this.logger = logger;
+  }
+
+  /** @param {{ authorId: string, tourId: string }} input */
+  async execute(input) {
+    const tour = await loadOwned(this.tourRepo, input);
+    if (!tour.isPublic()) {
+      throw new TourStatusTransitionError('Chỉ gỡ được tour đang công khai');
+    }
+    tour.unpublish();
+    const saved = await this.tourRepo.save(tour);
+    await notifyTourUnpublished(this, saved, 'unpublished');
+    return { tour: saved.toPublic() };
+  }
+}

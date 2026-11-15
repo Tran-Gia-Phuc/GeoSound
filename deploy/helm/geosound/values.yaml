@@ -1,0 +1,204 @@
+# Defaults for every GeoSound app (deployment plan section 8.3).
+# Environment files override them: deploy/envs/<env>/values.yaml.
+# One release per namespace: the Kubernetes Services are named after the apps (auth, tour, ...),
+# so the default service URLs of the gateway and the services (http://auth:3001, ...) work as is.
+
+global:
+  image:
+    # Image = <registry>/geosound-<app>:<tag>. CI publishes every tag for all 8 apps (task 1.1),
+    # so one tag deploys the whole stack. No default: a release without a tag fails to render.
+    registry: ghcr.io/tran-gia-phuc
+    tag: ""
+    pullPolicy: IfNotPresent
+  # Only for private GHCR packages: names of docker-registry secrets in the namespace.
+  imagePullSecrets: []
+
+# Non-secret settings shared by every app: ConfigMap geosound-config, loaded with envFrom.
+# A change restarts the pods (checksum annotation). Secrets never go here (section 8.4).
+config:
+  NODE_ENV: production
+  RABBITMQ_EXCHANGE: geosound.events
+  # Graceful shutdown (task 0.5): /readyz answers 503 at once, the HTTP server closes after this
+  # delay, so Traefik and the Service endpoints drop the pod before connections are refused.
+  SHUTDOWN_DELAY_MS: "5000"
+  MODERATION_EVENTS_ENABLED: "true"
+  CHATBOT_EVENTS_ENABLED: "true"
+  CHATBOT_ENABLED: "true"
+  CHATBOT_INDEXER_ENABLED: "true"
+  CHAT_MEMORY_BACKEND: memory
+  LANGSMITH_TRACING: "false"
+  # Service URLs (the Kubernetes Services are named after the apps). Most have a default in the
+  # code, but notification's contributor email lookup (#258) has none and stays off without
+  # AUTH_SERVICE_URL. Listed here like the .env of docker compose.
+  AUTH_SERVICE_URL: http://auth:3001
+  TOUR_SERVICE_URL: http://tour:3002
+  MODERATION_SERVICE_URL: http://moderation:3003
+  AI_SERVICE_URL: http://ai:3004
+  MEDIA_SERVICE_URL: http://media:3005
+  NOTIFICATION_SERVICE_URL: http://notification:3006
+
+# Settings used when an app does not set its own.
+defaults:
+  replicas: 1
+  # Node images: `USER node` is a name, so runAsNonRoot needs the numeric id to verify it.
+  runAsUser: 1000
+  readOnlyRootFilesystem: true
+  resources:
+    requests: { cpu: 50m, memory: 192Mi }
+    limits: { cpu: 500m, memory: 384Mi }
+  probes:
+    readinessPath: /readyz
+    livenessPath: /healthz
+    # startup: up to failureThreshold × periodSeconds before liveness takes over.
+    startup: { periodSeconds: 5, failureThreshold: 24 }
+  # Secrets loaded whole with envFrom (section 8.4). Missing ones block the pod unless listed in
+  # optionalSecrets. The database URL is not here: each app gets only its own key (database).
+  secrets: []
+
+# Secrets an app may start without. Empty in production: without geosound-smtp, auth falls back
+# to its console mailer, which writes the OTP codes to the log.
+optionalSecrets: []
+
+# Secret that holds DATABASE_URL_<SVC> (section 8.4).
+databaseSecret: geosound-db
+
+services:
+  client: # nginx serving the built PWA (task 0.1); /api goes to the gateway (Ingress, task 2.2)
+    port: 8080
+    public: true # reached through the Ingress (task 2.2)
+    runAsUser: 101 # nginx-unprivileged
+    probes: { readinessPath: /healthz }
+    # nginx has no SHUTDOWN_DELAY_MS: sleep before SIGTERM so the endpoints drop the pod first.
+    preStopSleepSeconds: 5
+    resources:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { cpu: 200m, memory: 64Mi }
+
+  gateway:
+    port: 8080
+    public: true
+    env:
+      GATEWAY_PORT: "8080"
+      TRUST_PROXY: "1" # behind Traefik: rate limits per client IP (task 0.10)
+    secrets: [geosound-infra]
+
+  auth:
+    port: 3001
+    # Callers allowed by the NetworkPolicy (task 2.2): notification looks up contributor emails.
+    allowFrom: [gateway, notification]
+    database: { key: DATABASE_URL_AUTH }
+    secrets: [geosound-jwt, geosound-infra, geosound-smtp]
+
+  tour:
+    port: 3002
+    allowFrom: [gateway]
+    database: { key: DATABASE_URL_TOUR }
+    # geosound-ai: GEMINI_API_KEY of the translator (TRANSLATOR=gemini).
+    secrets: [geosound-jwt, geosound-infra, geosound-ai]
+
+  moderation: # never calls an LLM itself: no geosound-ai
+    port: 3003
+    allowFrom: [gateway]
+    database: { key: DATABASE_URL_MODERATION }
+    secrets: [geosound-infra]
+
+  media:
+    port: 3005
+    allowFrom: [gateway]
+    database: { key: DATABASE_URL_MEDIA }
+    env:
+      # Task 0.7: uploads go to Supabase Storage; the app stops at start without its keys.
+      MEDIA_STORAGE: supabase
+    secrets: [geosound-jwt, geosound-infra, geosound-storage]
+
+  notification:
+    port: 3006
+    allowFrom: [gateway]
+    database: { key: DATABASE_URL_NOTIFICATION }
+    secrets: [geosound-jwt, geosound-infra, geosound-smtp]
+
+  ai: # moderation, chatbot, translation; the embedding model is inside the image (task 0.3)
+    port: 3004
+    allowFrom: [gateway, moderation, tour] # chat; moderation reviews; tour translation
+    runAsUser: 10001
+    # The AI settings read DATABASE_URL_AI (index) and DATABASE_URL_DIRECT_AI (chat memory).
+    databaseEnv:
+      DATABASE_URL_AI: DATABASE_URL_AI
+      DATABASE_URL_DIRECT_AI: DATABASE_URL_DIRECT_AI
+    secrets: [geosound-jwt, geosound-infra, geosound-ai]
+    resources:
+      requests: { cpu: 200m, memory: 512Mi }
+      limits: { cpu: "1", memory: 1Gi }
+    probes:
+      # Measured: about 30 s to the first /healthz at 1 CPU (model load). 180 s (6x) leaves room
+      # for a throttled CPU on a busy node; a healthy pod passes as soon as it answers.
+      startup: { periodSeconds: 5, failureThreshold: 36 }
+
+# Message broker and cache inside the release (task 2.3). Switch one off to use an external
+# broker or Redis: then point RABBITMQ_URL / REDIS_URL in geosound-infra at it.
+# Secret geosound-broker: RABBITMQ_DEFAULT_USER, RABBITMQ_DEFAULT_PASS, REDIS_PASSWORD (optional).
+rabbitmq:
+  enabled: true
+  image: rabbitmq:3.13-alpine # management and prometheus plugins turned on by the chart
+  secret: geosound-broker
+  storage: 5Gi
+  storageClass: "" # cluster default (k3s: local-path)
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: "1", memory: 512Mi }
+
+redis:
+  enabled: true
+  image: redis:7.4-alpine
+  secret: geosound-broker
+  storage: 1Gi
+  storageClass: ""
+  resources:
+    requests: { cpu: 25m, memory: 32Mi }
+    limits: { cpu: 250m, memory: 128Mi }
+
+# Migrations before every install and upgrade (task 2.4): Job geosound-migrate, image
+# geosound-migrate with the release tag. Turn it off only to migrate by hand (scripts/db/migrate.sh).
+migrate:
+  enabled: true
+  # Schemas migrated, in this order; each needs DATABASE_URL_<SVC> in databaseSecret.
+  services: [auth, tour, moderation, notification, media, ai]
+  backoffLimit: 1
+  activeDeadlineSeconds: 600
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+
+# Smoke test after every sync (phase 3, task 3.3): Job geosound-smoke, Argo CD PostSync hook.
+# Read only: the readiness path of every enabled app, then the public tour list. No login, no write.
+smoke:
+  enabled: false # on in staging
+  image: curlimages/curl:8.23.0@sha256:3fb7e13e5d179a845c97d78204f3f1064d1907037f26a3ebf91710571151fd93
+  toursUrl: http://gateway:8080/api/tours?limit=1 # the route the Ingress forwards /api/tours to
+  checkTimeoutSeconds: 120 # retries per check before the Job fails
+  backoffLimit: 1
+  activeDeadlineSeconds: 300
+  resources:
+    requests: { cpu: 10m, memory: 16Mi }
+    limits: { cpu: 100m, memory: 64Mi }
+
+# Public entry (task 2.2): /api -> gateway, / -> client. Empty host = any host (local tests only).
+ingress:
+  enabled: true
+  className: traefik # the k3s ingress controller
+  host: ""
+  # cert-manager ClusterIssuer (deploy/cluster/cluster-issuers.yaml, task 2.6): letsencrypt-staging
+  # while testing, then letsencrypt-prod. Empty = plain HTTP, no certificate.
+  clusterIssuer: ""
+  tlsSecret: geosound-tls
+  # With a certificate, plain HTTP answers 301 to HTTPS (Traefik Middleware redirect-https).
+  # The ACME challenge path keeps working: cert-manager's solver Ingress has no middleware.
+  redirectHttps: true
+
+# Network policies (task 2.2): deny incoming traffic, then allow per app (public, allowFrom).
+networkPolicy:
+  enabled: true
+  ingressController: # who may reach the public apps
+    namespace: kube-system # k3s runs Traefik there
+    podLabels: { app.kubernetes.io/name: traefik }
+  monitoringNamespace: monitoring # Prometheus (phase 4); empty = no scraping rule

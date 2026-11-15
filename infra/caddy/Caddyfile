@@ -1,0 +1,19 @@
+# Public entry of docker-compose.prod.yml (deployment plan task 0.10, #361).
+# SITE_ADDRESS = the VM's domain (Caddy gets a Let's Encrypt certificate, HTTP redirects to HTTPS),
+# or ":80" (default) for plain HTTP on the VM's IP.
+# Caddy replaces any client-sent X-Forwarded-For with the real client IP (no trusted_proxies),
+# and the gateway trusts this one hop (TRUST_PROXY=1).
+{$SITE_ADDRESS::80} {
+	# API, chat (SSE: Caddy flushes text/event-stream at once) and geocoding -> gateway.
+	handle /api/* {
+		reverse_proxy gateway:8080
+	}
+
+	# Everything else -> the PWA (nginx, SPA fallback, cache headers).
+	handle {
+		reverse_proxy client:8080
+	}
+
+	# No access log here: the gateway writes the JSON request lines (task 0.9), and Caddy's
+	# access log would keep query strings, which 0.9 leaves out on purpose.
+}

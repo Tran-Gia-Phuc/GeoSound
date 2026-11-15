@@ -1,0 +1,28 @@
+{
+  "uc": "UC15",
+  "steps": [
+    { "id": "s1", "text": "1. Contributor mở bước “Gửi duyệt”; hệ thống hiển thị checklist (bắt buộc / khuyến nghị).", "alts": ["A3"] },
+    { "id": "s2", "text": "2. Contributor nhấn “Gửi duyệt” và xác nhận trong hộp thoại." },
+    { "id": "s3", "decision": true, "text": "3. Tour kiểm tra quyền, trạng thái, điều kiện (tên, ngôn ngữ, ≥1 điểm có mô tả, không điểm đang kiểm / bị từ chối, ≤50 điểm); đạt? E1–E4.", "exceptions": [
+      { "id": "E1", "text": "E1/E2. Thiếu điều kiện, còn điểm đang kiểm duyệt / bị AI từ chối, hoặc quá 50 điểm → “Tour chưa đủ điều kiện xuất bản” kèm mục cần sửa.", "back": "s1" },
+      { "id": "E3", "text": "E3/E4. Tour đang truy cập hạn chế hoặc bị Admin ẩn → 409; không phải tác giả → 403; tour không tồn tại → 404.", "back": "end" } ] },
+    { "id": "s4", "decision": true, "text": "4. Tour chuyển sang “AI đang kiểm duyệt”, lưu revision và gửi tour đi kiểm duyệt; kiểm duyệt bật và gửi được? A6, E5.", "alts": ["A6"], "exceptions": [
+      { "id": "E5", "text": "E5. Không gửi được sự kiện (RabbitMQ lỗi) → chỉ ghi log, tour vẫn ở “AI đang kiểm duyệt”; contributor có thể gửi lại.", "back": "s2" } ] },
+    { "id": "s5", "decision": true, "text": "5. Client hiển thị “AI đang kiểm duyệt tour” và hỏi lại trạng thái mỗi 5 giây; hỏi được? E8.", "exceptions": [
+      { "id": "E8", "text": "E8. Hỏi trạng thái thất bại → “Chưa cập nhật được trạng thái: …” kèm nút “Thử lại”; không báo kết quả sớm.", "back": "s5" } ] },
+    { "id": "s6", "text": "6. Moderation lưu case theo tour và revision, chạy luật vị trí G1–G6 (không gọi LLM)." },
+    { "id": "s7", "decision": true, "text": "7. Moderation gọi AI: một lần LLM (Gemini, dự phòng Groq), ≥ 0.8 Reject, ≥ 0.4 Warning, còn lại Pass; AI trả kết quả? E6, E7.", "exceptions": [
+      { "id": "E6", "text": "E6. AI lỗi tạm thời sau 3 lần thử (hoặc lỗi cấu hình) → không phát kết quả, tour vẫn chờ; Moderation thử lại mỗi 60 giây.", "back": "s7" },
+      { "id": "E7", "text": "E7. Đầu vào không hợp lệ / thiếu nội dung → Warning “cần người xem” (G1 Reject vẫn thắng); văn bản bị chặn → Reject.", "back": "s8" } ] },
+    { "id": "s8", "decision": true, "text": "8. Moderation gộp kết quả AI và luật vị trí (xấu nhất thắng, severity lớn nhất); kết quả Pass? A1, A2.", "alts": ["A1", "A2"] },
+    { "id": "s9", "decision": true, "text": "9. Tour đặt “Chờ duyệt”, lưu lý do, đưa vào hàng chờ Admin (UC19); tour vẫn đang kiểm duyệt và revision khớp? A4.", "alts": ["A4"] },
+    { "id": "s10", "text": "10. Client hiển thị trạng thái mới “Đang chờ Admin duyệt”." }
+  ],
+  "alts": [
+    { "id": "A3", "steps": ["A3.1. Contributor chọn “Xem thử”, hệ thống mở UC13.", "A3.2. Contributor quay lại bước “Gửi duyệt”."], "to": "s1" },
+    { "id": "A6", "steps": ["A6.1. Máy chủ tắt kiểm duyệt: nút là “Xuất bản”.", "A6.2. Tour chuyển thẳng sang Công khai (UC09 A3)."], "to": "end" },
+    { "id": "A1", "steps": ["A1.1. Kết quả Warning → Tour đặt “Cảnh báo AI”, lưu lý do, xếp đầu hàng chờ Admin.", "A1.2. Client hiển thị “Đang chờ Admin duyệt — có cảnh báo AI” kèm lý do."], "to": "s10" },
+    { "id": "A2", "steps": ["A2.1. Kết quả Reject → tour về Nháp, lưu lý do, không vào hàng chờ Admin.", "A2.2. Client hiện “AI đã từ chối lần gửi duyệt trước”, nút “Gửi duyệt lại”.", "A2.3. Notification lưu thông báo trong app (UC16) và gửi email kèm lý do cho tác giả."], "to": "end" },
+    { "id": "A4", "steps": ["A4.1. Contributor sửa tour / điểm khi đang duyệt → tour về Nháp.", "A4.2. Kết quả AI đến muộn bị bỏ qua; contributor phải gửi duyệt lại."], "to": "end" }
+  ]
+}

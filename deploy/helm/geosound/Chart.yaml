@@ -1,0 +1,8 @@
+apiVersion: v2
+name: geosound
+description: GeoSound apps on Kubernetes (deployment plan phase 2, docs/02-design/deployment-plan.md section 8)
+type: application
+# Chart version: bump on a change of the templates or the defaults.
+version: 0.1.0
+# The app version is the image tag of each release (global.image.tag), not this field.
+appVersion: "0.0.0"

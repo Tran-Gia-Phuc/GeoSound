@@ -1,0 +1,7 @@
+# Accepted Trivy findings (task 1.2, #364), read by the scan step of .github/workflows/images.yml.
+# One vulnerability id per line, with a comment above it: why it is accepted and when to look again.
+# Prefer fixing the image (base image, package upgrade); an entry here hides the finding in every image.
+#
+# Example:
+#   # nginx: not reachable in our config (no HTTP/3), review 2027-01-31
+#   CVE-2026-00000

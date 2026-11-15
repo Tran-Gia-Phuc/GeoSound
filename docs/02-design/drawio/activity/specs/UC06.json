@@ -1,0 +1,26 @@
+{
+  "uc": "UC06",
+  "steps": [
+    { "id": "s1", "text": "1. Tourist bấm “Báo cáo” trên chi tiết tour hoặc trên thanh trên cùng của trình phát." },
+    { "id": "s2", "decision": true, "text": "2. Client kiểm tra báo cáo của Tourist; đã đăng nhập, tour công khai của người khác, chưa báo cáo? E1, E3/E4, A1.", "alts": ["A1"], "exceptions": [
+      { "id": "E1", "text": "E1. Chưa đăng nhập → “Bạn cần đăng nhập để báo cáo tour này.” với nút “Đăng nhập để báo cáo” (UC01).", "back": "end" },
+      { "id": "E3", "text": "E3/E4. Tác giả báo cáo tour của mình → “Bạn không thể báo cáo tour của chính mình”; tour không công khai → không tìm thấy tour.", "back": "end" } ] },
+    { "id": "s3", "decision": true, "text": "3. Tourist chọn lý do (sai sự thật / phản cảm / spam / vi phạm bản quyền / khác) và nhập mô tả; hợp lệ? E2.", "exceptions": [
+      { "id": "E2", "text": "E2. Chưa chọn lý do → “Vui lòng chọn lý do báo cáo”; chọn “khác” mà không mô tả → “Vui lòng mô tả lý do”.", "back": "s3" } ] },
+    { "id": "s4", "text": "4. Tourist nhấn “Gửi báo cáo”." },
+    { "id": "s5", "decision": true, "text": "5. Tour lưu báo cáo “mở”, tăng số báo cáo mở, đếm số tài khoản báo cáo trong 7 ngày qua; lưu được? A2, E5, E6.", "alts": ["A2"], "exceptions": [
+      { "id": "E5", "text": "E5. Gửi trùng (ví dụ hai tab cùng lúc) → báo đã báo cáo, client hiện trạng thái “đã báo cáo”.", "back": "end" },
+      { "id": "E6", "text": "E6. Mất mạng → “Không thể kết nối, vui lòng thử lại”.", "back": "s4" } ] },
+    { "id": "s6", "text": "6. Tour phát sự kiện tour bị báo cáo (không kèm người báo cáo); Notification lưu thông báo trong app cho tác giả (UC16), không gửi email." },
+    { "id": "s7", "text": "7. Client hiện “Đã gửi báo cáo, cảm ơn bạn” và chuyển sang trạng thái “Bạn đã báo cáo tour này”." }
+  ],
+  "alts": [
+    { "id": "A1", "steps": [
+      "A1.1. Đã báo cáo trước đó → client hiện “Bạn đã báo cáo tour này”, lý do đã chọn và “Quản trị viên sẽ xem xét báo cáo của bạn.” thay cho form."
+    ], "to": "end" },
+    { "id": "A2", "steps": [
+      "A2.1. Có báo cáo mở từ 5 tài khoản khác nhau trong 7 ngày → Tour đánh dấu tour bị gắn cờ (chỉ lần đầu).",
+      "A2.2. Tour vào hàng đợi báo cáo của Admin (UC20); tour không bị ẩn tự động."
+    ], "to": "s6" }
+  ]
+}

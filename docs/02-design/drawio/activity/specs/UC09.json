@@ -1,0 +1,26 @@
+{
+  "uc": "UC09",
+  "steps": [
+    { "id": "s1", "text": "1. Contributor mở Studio." },
+    { "id": "s2", "decision": true, "text": "2. Hệ thống hiển thị “Tour của tôi”: trạng thái, số điểm, tiến độ n/4 bước, bộ lọc, tìm kiếm; tải được và có tour? E1, E5.", "exceptions": [
+      { "id": "E1", "text": "E1. Chưa có tour nào → ô trống “Chưa có tour nào” và nút “Tạo tour”.", "back": "s3" },
+      { "id": "E5", "text": "E5. Lỗi tải danh sách → cảnh báo và nút “Thử lại danh sách”.", "back": "s2" } ] },
+    { "id": "s3", "decision": true, "text": "3. Contributor chọn “Tạo tour” (không sửa / xóa / gửi duyệt tour có sẵn)? A1, A2, A3, E4, E6.", "alts": ["A1", "A2", "A3"], "exceptions": [
+      { "id": "E4", "text": "E4. Tour không tồn tại (404) hoặc là tour của người khác (403) → báo lỗi.", "back": "end" },
+      { "id": "E6", "text": "E6. Gửi duyệt khi chưa đủ điều kiện (422, kèm danh sách thiếu), trạng thái không cho phép hoặc tour hạn chế (409) → báo lỗi.", "back": "s3" } ] },
+    { "id": "s4", "text": "4. Hệ thống mở form: tên, ngôn ngữ gốc (bắt buộc), loại tour, thành phố, thời lượng, mô tả, ảnh bìa, khung xem trước." },
+    { "id": "s5", "text": "5. Contributor nhập thông tin; (tùy chọn) tải ảnh bìa lên." },
+    { "id": "s6", "decision": true, "text": "6. Hệ thống kiểm ảnh bìa và tải lên Media, nhận lại URL; ảnh hợp lệ? E3.", "exceptions": [
+      { "id": "E3", "text": "E3. Ảnh sai định dạng → “Chỉ nhận ảnh JPG, PNG, WebP hoặc GIF”; quá 8 MB; lưu trữ lỗi (503).", "back": "s5" } ] },
+    { "id": "s7", "text": "7. Contributor nhấn “Tạo & thêm điểm dừng”.", "alts": ["A4"] },
+    { "id": "s8", "decision": true, "text": "8. Hệ thống kiểm dữ liệu, tạo tour ở trạng thái Nháp với tác giả là người đăng nhập; hợp lệ? E2.", "exceptions": [
+      { "id": "E2", "text": "E2. Thiếu tên / ngôn ngữ gốc, ngôn ngữ không hỗ trợ, loại tour sai → “Vui lòng nhập tên tour”, “Vui lòng chọn ngôn ngữ gốc”…", "back": "s5" } ] },
+    { "id": "s9", "text": "9. Hệ thống chuyển tới bước Điểm dừng (UC10)." }
+  ],
+  "alts": [
+    { "id": "A1", "steps": ["A1.1. Contributor mở tour, sửa thông tin và lưu.", "A1.2. Hệ thống lưu trường thay đổi; tour Công khai hoặc đang kiểm duyệt (đổi nội dung AI đọc) → về Nháp, cần gửi duyệt lại."], "to": "end" },
+    { "id": "A2", "steps": ["A2.1. Contributor chọn “Xoá tour” và xác nhận.", "A2.2. Hệ thống xóa tour cùng điểm, route, ngôn ngữ, bản dịch; tour biến mất khỏi tìm kiếm; về Studio."], "to": "end" },
+    { "id": "A3", "steps": ["A3.1. Contributor mở bước Xuất bản, xem checklist và gửi duyệt.", "A3.2. Bật kiểm duyệt: tour sang “Đang kiểm duyệt AI” (UC15); tắt: công khai ngay. Có thể gỡ tour công khai về Nháp."], "to": "end" },
+    { "id": "A4", "steps": ["A4.1. Contributor chọn “Lưu nháp & thoát”.", "A4.2. Hệ thống tạo tour ở Nháp và quay về Studio."], "to": "end" }
+  ]
+}

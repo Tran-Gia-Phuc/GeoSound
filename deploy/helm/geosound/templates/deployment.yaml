@@ -1,0 +1,129 @@
+{{- /* One Deployment per entry of .Values.services (deployment plan section 8.3). */ -}}
+{{- $root := . }}
+{{- $configChecksum := include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+{{- range $name, $raw := .Values.services }}
+{{- if ne (toString (dig "enabled" true ($raw | default dict))) "false" }}
+{{- $app := include "geosound.app" (dict "root" $root "app" $raw) | fromYaml }}
+{{- $probes := $app.probes }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "geosound.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+spec:
+  {{- /* An HPA (task 2.2) owns the replica count when it is set. */}}
+  {{- if not $app.hpa }}
+  replicas: {{ $app.replicas }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "geosound.selector" (dict "root" $root "name" $name) | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0 # a new pod is Ready before an old one stops
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        {{- include "geosound.labels" $root | nindent 8 }}
+        app.kubernetes.io/name: {{ $name }}
+      annotations:
+        # A config change restarts the pods.
+        checksum/config: {{ $configChecksum }}
+    spec:
+      automountServiceAccountToken: false # no app talks to the Kubernetes API
+      enableServiceLinks: false # no <SVC>_PORT variables: AUTH_PORT would clash with the app settings
+      # The app stops by itself within 28 s (task 0.5).
+      terminationGracePeriodSeconds: 30
+      {{- with $root.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range . }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ $app.runAsUser }}
+        runAsGroup: {{ $app.runAsUser }}
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: {{ $name }}
+          image: {{ include "geosound.image" (dict "root" $root "name" $name) }}
+          imagePullPolicy: {{ $root.Values.global.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ $app.port }}
+          envFrom:
+            - configMapRef:
+                name: geosound-config
+            {{- range $app.secrets }}
+            - secretRef:
+                name: {{ . }}
+                {{- if has . $root.Values.optionalSecrets }}
+                optional: true
+                {{- end }}
+            {{- end }}
+          env:
+            - name: PORT
+              value: {{ $app.port | quote }}
+            {{- /* Only this app's database URL, never the whole geosound-db secret. */}}
+            {{- with $app.database }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $root.Values.databaseSecret }}
+                  key: {{ .key }}
+            {{- end }}
+            {{- range $envName, $key := $app.databaseEnv }}
+            - name: {{ $envName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $root.Values.databaseSecret }}
+                  key: {{ $key }}
+                  optional: true
+            {{- end }}
+            {{- range $k, $v := $app.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          startupProbe:
+            httpGet: { path: {{ $probes.livenessPath }}, port: http }
+            periodSeconds: {{ $probes.startup.periodSeconds }}
+            failureThreshold: {{ $probes.startup.failureThreshold }}
+            timeoutSeconds: 3
+          readinessProbe:
+            # /readyz checks the dependencies (task 0.4), 2 s each, and answers 503 while draining.
+            httpGet: { path: {{ $probes.readinessPath }}, port: http }
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            # /healthz: process alive, no I/O. A broker outage must not restart every pod.
+            httpGet: { path: {{ $probes.livenessPath }}, port: http }
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          {{- with $app.preStopSleepSeconds }}
+          lifecycle:
+            preStop:
+              sleep: { seconds: {{ . }} }
+          {{- end }}
+          resources:
+            {{- toYaml $app.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: {{ $app.readOnlyRootFilesystem }}
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp # the only writable path (nginx pid and temp files, Python and Node temp files)
+          emptyDir: { sizeLimit: 64Mi }
+{{- end }}
+{{- end }}

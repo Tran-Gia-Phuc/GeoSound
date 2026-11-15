@@ -28,6 +28,24 @@ main
 
 Use lowercase, hyphens, and a short name that describes the work.
 
+### Name branches by feature, not by use case
+
+- A branch name describes the **feature / capability**, not the UC number.
+  Use `feature/tour-management`, not `feature/uc09-...`.
+- **One UC can map to several feature branches.** Split a UC whenever its parts
+  are genuinely separable (each is an independent deliverable and they do not
+  churn the same files). Keep them in one branch only when they share the same
+  module/aggregate and splitting would cause constant conflicts.
+- Record the UC→feature mapping in the **PR description** (e.g. "Implements UC09"),
+  not in the branch name.
+
+| UC | Feature branch(es) |
+| --- | --- |
+| UC09 – Manage my tours (CRUD) | `feature/tour-management` (one branch: create/list/edit/delete share the Tour aggregate) |
+| UC02 – Find & view tour | `feature/tour-search` + `feature/tour-detail` |
+| UC04 – Listen to tour | `feature/tour-gps-playback` + `feature/tour-remote-preview` |
+| UC03 – Offline tours | `feature/tour-download` + `feature/offline-library` |
+
 ## Commits
 
 - One commit, one change. Write messages in **English**. Keep the style consistent on a branch.

@@ -1,0 +1,9 @@
+.itinerary-editor-a .stop { min-height:76px; }.itinerary-editor-a .stop__actions .iconbtn { min-width:44px; min-height:44px; }
+.itinerary-editor-a .itin-edit__rename { flex-wrap:wrap; }.itinerary-editor-a .itin-edit__rename .input { flex:1; min-width:140px; }
+@media(min-width:1000px) {
+ .itinerary-editor-a { display:grid; grid-template-columns:minmax(340px, .9fr) minmax(0,1.2fr); grid-template-rows:auto auto 1fr; align-content:start; gap:24px; max-width:1280px; margin:0 auto; padding:28px 24px 110px; width:100%; }
+ .itinerary-editor-a .itin__top { grid-column:1/-1; margin:0; }.itinerary-editor-a .itin-edit__map { grid-column:2; grid-row:2/span 3; height:min(70vh,700px); min-height:460px; border-radius:18px; overflow:hidden; position:sticky; top:84px; }
+ .itinerary-editor-a .itin-edit__summary { grid-column:1; grid-row:2; padding:18px; background:var(--surface); border:1px solid var(--border); border-radius:14px; margin:0; }
+ .itinerary-editor-a .itin-edit__list { grid-column:1; grid-row:3; padding:20px; background:var(--surface); border:1px solid var(--border); border-radius:14px; }.itinerary-editor-a .itin-edit__err { grid-column:1; grid-row:4; }
+ .itinerary-editor-a .itin-edit__bar { max-width:650px; bottom:16px; padding:14px; border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow-lg); }
+}

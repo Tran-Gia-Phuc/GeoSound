@@ -1,0 +1,8 @@
+.itinerary-library-a { max-width:1040px; }
+.itinerary-library-a__overview { display:flex; align-items:center; flex-wrap:wrap; gap:18px; background:var(--primary-soft); border:1px solid var(--border); border-radius:16px; padding:22px; }
+.itinerary-library-a__overview > div { flex:1; min-width:160px; }.itinerary-library-a__overview b { font-size:22px; }.itinerary-library-a__overview p { margin-top:6px; }
+.itinerary-library-a .itin-card { padding:4px; align-items:center; }.itinerary-library-a .itin-card__main { gap:10px; }.itinerary-library-a .itin-card__title { font-size:18px; }
+.itinerary-library-a__rename { display:grid; gap:10px; flex:1; padding:16px; min-width:0; }
+@media(max-width:560px) { .itinerary-library-a .itin__create { flex-wrap:wrap; }.itinerary-library-a .itin__create .input { width:100%; }.itinerary-library-a .itin__create .btn { width:100%; }.itinerary-library-a .itin-card__meta { gap:8px; } }
+
+.itinerary-library-a__cover { width:100%; max-height:160px; object-fit:cover; border-radius:10px; }

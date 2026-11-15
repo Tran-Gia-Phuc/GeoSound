@@ -1,6 +1,6 @@
 // Tour service — schema "tour". PostGIS bật từ migration đầu.
-// Cột kiểu geometry sẽ khai bằng migration SQL thủ công (Prisma chưa hỗ trợ geometry
-// native) hoặc Unsupported("geometry(...)"). Data model chi tiết: tech-stack.md §11.
+// Cột kiểu geometry (route/điểm/vùng kích hoạt của UC10/UC11) sẽ khai bằng
+// migration SQL thủ công hoặc Unsupported("geometry(...)"). Data model: tech-stack.md §11.
 
 generator client {
   provider = "prisma-client-js"
@@ -11,14 +11,376 @@ datasource db {
   url      = env("DATABASE_URL") // ...?schema=tour
 }
 
-// --- Placeholder (sẽ thay khi chốt data model) ---
+// UC09 — Tour của contributor. Vòng đời status: draft|ai_checking|ai_warning|
+// pending_review|public|rejected|restricted|hidden|changes_requested (xem domain/entities/tour.js).
+// UC19: an admin decides only from ai_warning / pending_review -> public | rejected | changes_requested.
 model Tour {
-  id          String   @id @default(uuid())
-  title       String
-  description String
-  status      String   @default("draft") // draft|submitted|ai_passed|approved|...
-  authorId    String
-  createdAt   DateTime @default(now())
+  id               String   @id @default(uuid())
+  title            String
+  description      String   @default("")
+  coverImageUrl    String?  @map("cover_image_url")
+  originalLanguage String   @map("original_language")
+  type             String   @default("walking")
+  status           String   @default("draft")
+  authorId         String   @map("author_id")
+  // UC02 — tìm kiếm & hiển thị.
+  city          String?
+  duration      Int? // thời lượng ước tính (phút)
+  averageRating Float    @default(0) @map("average_rating") // UC05 cập nhật
+  ratingCount   Int      @default(0) @map("rating_count")
+  // UC15 (MODERATION_EVENTS_ENABLED): AI/geo reasons of the last result, and the revision sent in tour.submitted.
+  moderationReasons  Json    @default("[]") @map("moderation_reasons")
+  moderationRevision String? @map("moderation_revision")
+  // UC19: reason of the last admin rejection / change request (shown to the author); null after approval.
+  reviewReason  String?  @map("review_reason")
+  // UC06 (#268): set once when 5 distinct accounts reported the tour within 7 days (UC20 review queue;
+  // the tour stays public). openReportCount = reports with status open (queue sort). Written by raw SQL
+  // so updated_at (moderation / catalog revision) does not move.
+  reportFlaggedAt DateTime? @map("report_flagged_at")
+  openReportCount Int       @default(0) @map("open_report_count")
+  // UC22 (#275): when the tour last entered the admin review queue (pending_review / ai_warning), set in
+  // the same write as that status. A UC19 decision copies it into its admin_actions row (data.queuedAt)
+  // for the average review time.
+  reviewQueuedAt DateTime? @map("review_queued_at")
+  // UC14 (#269): restricted access. passcodeHash = scrypt hash with a random salt (never returned);
+  // passcodeVersion goes up on every passcode change and when restricted mode is turned off, so every
+  // tour_access_grants row of an older version stops opening the tour.
+  passcodeHash    String?   @map("passcode_hash")
+  passcodeVersion Int       @default(0) @map("passcode_version")
+  passcodeSetAt   DateTime? @map("passcode_set_at")
+  // UC12 / UC04: tourists may ask for a language the author did not turn on; the place descriptions
+  // are then translated on demand (place_translations.text_source = auto). The author can turn it off.
+  autoTranslate   Boolean   @default(true) @map("auto_translate")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
+  places        Place[]
+  routeConfig   RouteConfig?
+  languages     TourLanguage[]
+  ratings       TourRating[]
+  reports       TourReport[]
+  accessGrants  TourAccessGrant[]
+  unlockTries   TourUnlockAttempt[]
+  // UC17 (#271) — statistics tables (written by raw SQL, never through the Tour row).
+  dailyStats    TourDailyStat[]
+  activityMarks TourActivityMark[]
+
+  @@index([authorId])
+  @@index([status])
+  // UC02 — lọc tour công khai theo thành phố.
+  @@index([status, city])
   @@map("tours")
+}
+
+// UC19 — log of admin decisions (read by UC22). One row per decision, written in the same
+// transaction as the status change. tourId is a soft reference (no FK) so the log survives
+// the deletion of the tour.
+//   action = approve | reject | request_changes; fromStatus = ai_warning | pending_review
+model TourReviewAction {
+  id         String   @id @default(uuid())
+  tourId     String   @map("tour_id")
+  adminId    String   @map("admin_id")
+  action     String
+  reason     String?
+  fromStatus String   @map("from_status")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([tourId, createdAt])
+  @@index([createdAt])
+  @@map("tour_review_actions")
+}
+
+// UC20 (#273) — append-only log of admin actions (decision L14, docs/02-design/uc20-report-handling.md),
+// also used by UC21 (account actions) and read by UC22. Written in the same transaction as the change
+// it records; the repository has no update or delete. targetId is a soft reference (no FK) so the log
+// survives the deletion of its target.
+//   action     = hide_tour | restore_tour | dismiss_reports (UC20), approve_tour | reject_tour |
+//                request_tour_changes (UC19), warn_user | suspend_user | ban_user | restore_user (UC21)
+//   targetType = tour | user
+//   data       = small JSON context, e.g. { fromStatus, reportCount }, { fromStatus, queuedAt }, { until }
+//   sourceKey  = UC22 (#275): set only for rows fed by an event (account.moderated), unique, so a
+//                redelivered event adds no row; null for rows written by Tour itself
+model AdminAction {
+  id         String   @id @default(uuid())
+  adminId    String   @map("admin_id")
+  action     String
+  targetType String   @map("target_type")
+  targetId   String   @map("target_id")
+  reason     String?
+  data       Json     @default("{}")
+  sourceKey  String?  @unique @map("source_key")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([targetType, targetId, createdAt])
+  @@index([createdAt])
+  @@index([adminId, createdAt])
+  @@index([action, createdAt])
+  @@map("admin_actions")
+}
+
+// UC05 (#267) — one rating per account and tour (docs/02-design/uc05-ratings.md). userName is the
+// reviewer's display name at rating time (Tour never reads the Auth database). tours.average_rating /
+// rating_count are updated in the same transaction as every change of a row here.
+model TourRating {
+  id        String   @id @default(uuid())
+  tourId    String   @map("tour_id")
+  userId    String   @map("user_id")
+  userName  String   @map("user_name")
+  stars     Int
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@unique([tourId, userId])
+  @@index([tourId, createdAt])
+  @@index([userId])
+  @@map("tour_ratings")
+}
+
+// UC17 (#271) — daily counters of tourist activity per tour and language (docs/02-design/uc17-tour-stats.md).
+// Written only by raw SQL together with a new TourActivityMark (one count per actor, action, language
+// and UTC day); tours.updated_at never moves.
+model TourDailyStat {
+  tourId      String   @map("tour_id")
+  day         DateTime @db.Date
+  language    String
+  views       Int      @default(0)
+  plays       Int      @default(0)
+  completions Int      @default(0)
+  downloads   Int      @default(0)
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@id([tourId, day, language])
+  @@map("tour_daily_stats")
+}
+
+// UC17 (#271) — dedup mark: actorKey = sha256 of salt + account id or device id (never a raw id, IP or
+// user agent). Marks older than 40 days are purged hourly.
+model TourActivityMark {
+  tourId    String   @map("tour_id")
+  actorKey  String   @map("actor_key")
+  action    String
+  language  String
+  day       DateTime @db.Date
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@id([tourId, actorKey, action, language, day])
+  @@index([actorKey, day])
+  @@index([day])
+  @@map("tour_activity_marks")
+}
+
+// UC06 (#268) — one community report per account and tour (docs/02-design/uc06-reports.md).
+// reason = false_info | offensive | spam | copyright | other; status = open | dismissed | actioned (UC20).
+// The reporter id is never exposed to the contributor.
+model TourReport {
+  id         String   @id @default(uuid())
+  tourId     String   @map("tour_id")
+  reporterId String   @map("reporter_id")
+  reason     String
+  note       String?
+  status     String   @default("open")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@unique([tourId, reporterId])
+  @@index([tourId, status, createdAt])
+  // UC22 (#275): tours reported within a period (dashboard).
+  @@index([createdAt])
+  @@map("tour_reports")
+}
+
+// UC14 (#269) — one unlock per tester account and restricted tour (docs/02-design/uc14-restricted-access.md).
+// Valid only while passcodeVersion equals tours.passcode_version.
+model TourAccessGrant {
+  id              String   @id @default(uuid())
+  tourId          String   @map("tour_id")
+  userId          String   @map("user_id")
+  passcodeVersion Int      @map("passcode_version")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@unique([tourId, userId])
+  @@index([userId])
+  @@map("tour_access_grants")
+}
+
+// UC14 (#269) — wrong passcode attempts (rate limit: 5 per account and tour per 15 minutes). A row is
+// inserted before the check and deleted again when the code was right, so concurrent requests count
+// each other. Old rows are only read through the window; they can be purged at any time.
+model TourUnlockAttempt {
+  id        String   @id @default(uuid())
+  tourId    String   @map("tour_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@index([tourId, userId, createdAt])
+  @@map("tour_unlock_attempts")
+}
+
+// UC10 — Điểm dừng trên tour. lat/lng lưu Float; cột geometry(Point) + chỉ mục
+// không gian (UC11 "tour gần tôi" / vùng kích hoạt) sẽ thêm bằng migration SQL.
+model Place {
+  id          String   @id @default(uuid())
+  tourId      String   @map("tour_id")
+  name        String
+  type        String   @default("other")
+  description String
+  lat         Float
+  lng         Float
+  sequence    Int      @default(0)
+  images      Json     @default("[]") // [{ url, caption }]
+  audioUrl    String?  @map("audio_url")
+  audioSource String   @default("tts") @map("audio_source") // human | tts
+  // UC15 (MODERATION_EVENTS_ENABLED): checking | approved | warning | rejected. Default approved so
+  // existing rows (and flag off) stay as today. Revision = the one sent in place.submitted.
+  moderationStatus   String  @default("approved") @map("moderation_status")
+  moderationReasons  Json    @default("[]") @map("moderation_reasons")
+  moderationRevision String? @map("moderation_revision")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tour         Tour               @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  translations PlaceTranslation[]
+
+  @@index([tourId, sequence])
+  @@map("places")
+}
+
+// UC10 / E2 — Vùng cấm (quân sự, trường học, bệnh viện, lãnh sự quán...).
+// geometry = GeoJSON Polygon { type:'Polygon', coordinates:[[[lng,lat],...]] }.
+// Dùng Json để kiểm bằng ray casting (point-in-polygon.js). Có thể chuyển sang
+// cột geometry(Polygon) + PostGIS ST_Contains khi cần truy vấn không gian quy mô lớn.
+model ForbiddenZone {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   @default("other") // military | school | hospital | consulate | other
+  geometry  Json
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([active])
+  @@map("forbidden_zones")
+}
+
+// UC11 — Cấu hình route & kích hoạt audio của MỘT tour (1-1 với Tour).
+// Lưu cả cụm bằng Json (giống images của Place / geometry vùng cấm):
+//   path      = polyline route nối các điểm: [{ lat, lng }, ...]
+//   triggers  = vùng kích hoạt theo điểm: [{ placeId, zone, priority, nextHint }]
+//               zone = { shape:'circle', center:{lat,lng}, radiusMeters } |
+//                      { shape:'polygon', geometry: GeoJSON Polygon }
+//   navAudios = audio chỉ đường (ngã rẽ): [{ id, label, audioUrl, zone }]
+// Có thể tách cột geometry(LineString/Polygon) + PostGIS khi cần truy vấn
+// không gian lúc khách đi tour (UC04).
+model RouteConfig {
+  id        String   @id @default(uuid())
+  tourId    String   @unique @map("tour_id")
+  path      Json     @default("[]")
+  triggers  Json     @default("[]")
+  navAudios Json     @default("[]") @map("nav_audios")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@map("route_configs")
+}
+
+// UC12 — Ngôn ngữ của tour: gốc (is_source) + phụ (tự dịch + TTS). Mang giọng
+// TTS (nam/nữ, vùng miền) áp cho ngôn ngữ đó. Data model: ERD TOUR_LANGUAGES.
+model TourLanguage {
+  id             String   @id @default(uuid())
+  tourId         String   @map("tour_id")
+  languageCode   String   @map("language_code")
+  isSource       Boolean  @default(false) @map("is_source")
+  ttsVoiceGender String?  @map("tts_voice_gender") // male | female
+  ttsVoiceRegion String?  @map("tts_voice_region")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@unique([tourId, languageCode])
+  @@map("tour_languages")
+}
+
+// UC07 — Lịch trình cá nhân của khách du lịch (gắn tài khoản ownerId = user.sub).
+// shareToken: mã chia sẻ công khai (A4), null nếu chưa chia sẻ.
+model Itinerary {
+  id         String   @id @default(uuid())
+  ownerId    String   @map("owner_id")
+  name       String
+  shareToken String?  @unique @map("share_token")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  items ItineraryItem[]
+
+  @@index([ownerId])
+  @@map("itineraries")
+}
+
+// UC07 — Một điểm trong lịch trình. SNAPSHOT dữ liệu hiển thị/phát của địa điểm
+// tại thời điểm thêm (toạ độ, ảnh, audio đa ngữ, bán kính kích hoạt) để:
+//   - chia sẻ (A4) & phát lại (UC08) ổn định, không vỡ khi tác giả sửa tour gốc;
+//   - sẵn sàng tải offline (A3) về sau.
+//   audioByLang = { "<lang>": { text, audioUrl, audioSource } }
+//   availableLanguages = ["vi","en",...]
+model ItineraryItem {
+  id                 String   @id @default(uuid())
+  itineraryId        String   @map("itinerary_id")
+  placeId            String   @map("place_id") // nguồn gốc (tham chiếu mềm)
+  tourId             String   @map("tour_id")
+  name               String
+  type               String   @default("other")
+  lat                Float
+  lng                Float
+  images             Json     @default("[]")
+  radiusMeters       Int      @default(50) @map("radius_meters") // vùng kích hoạt UC08
+  sourceLanguage     String   @map("source_language")
+  availableLanguages Json     @default("[]") @map("available_languages")
+  audioByLang        Json     @default("{}") @map("audio_by_lang")
+  sequence           Int      @default(0)
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@index([itineraryId, sequence])
+  @@map("itinerary_items")
+}
+
+// UC12 — Bản dịch + TTS của một điểm theo một ngôn ngữ.
+//   text_source: source (text gốc = mô tả điểm) | machine (tự dịch) | edited (chỉnh tay)
+//                | auto (dịch theo yêu cầu của khách cho ngôn ngữ tác giả chưa bật; chưa được tác giả xem)
+//   tts_prerendered: đã pre-render & cache cho offline (UC03) hay chưa.
+//   source_hash: hash of the place description the text was made from (sourceHash()). A machine
+//   translation whose hash no longer matches is stale and is translated again; null = row written
+//   before the column existed (served as is, translated again on the next refresh).
+model PlaceTranslation {
+  id             String   @id @default(uuid())
+  placeId        String   @map("place_id")
+  languageCode   String   @map("language_code")
+  text           String
+  textSource     String   @default("machine") @map("text_source")
+  sourceHash     String?  @map("source_hash")
+  ttsUrl         String?  @map("tts_url")
+  ttsPrerendered Boolean  @default(false) @map("tts_prerendered")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([placeId, languageCode])
+  @@index([languageCode])
+  @@map("place_translations")
 }

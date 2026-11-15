@@ -1,0 +1,223 @@
+# =========================================================
+# CI — chạy trên mỗi push nhánh feature/* và mỗi Pull Request vào main.
+# Mục tiêu: bắt lỗi sớm mà KHÔNG cần hạ tầng (DB/Redis/RabbitMQ):
+#   1) syntax-check toàn bộ JS (chưa có ESLint)
+#   2) validate các Prisma schema
+#   3) chạy test của các workspace có script "test" (auth: test fake in-memory)
+#   4) build client (Vite) để chắc frontend còn compile
+# Monorepo npm workspaces, Node 20 (khớp Dockerfile node:20-alpine).
+# =========================================================
+name: CI
+
+on:
+  push:
+    branches: ['develop', 'staging', 'main', 'feature/**', 'ci/**']
+    tags: ['v*'] # releases: tests, then the images job tags the images vX.Y.Z
+  pull_request:
+    branches: ['develop', 'staging', 'main']
+
+# Cancel the older run when a new commit lands on the same feature branch or PR.
+# Integration branches (develop, staging, main) and release tags never cancel: every merge
+# commit gets its own result, so a red build points at the PR that broke it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ !contains(fromJSON('["refs/heads/develop","refs/heads/staging","refs/heads/main"]'), github.ref) && !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  backend:
+    name: Backend — syntax, prisma, tests
+    runs-on: ubuntu-latest
+    # Disposable Postgres with pgvector: shadow database of the migrations check (task 0.6, #352).
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: shadow
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ci -d shadow"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies (workspaces)
+        run: npm install
+
+      - name: Syntax check (node --check)
+        run: |
+          set -e
+          files=$(find gateway services shared -name '*.js' -not -path '*/node_modules/*')
+          for f in $files; do node --check "$f"; done
+          echo "Syntax OK: $(echo "$files" | wc -l) file(s)"
+
+      - name: Validate Prisma schemas
+        # DATABASE_URL giả: prisma validate chỉ kiểm schema, KHÔNG kết nối DB,
+        # nhưng cần biến env mà schema tham chiếu phải tồn tại.
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+        run: |
+          set -e
+          for schema in services/*/prisma/schema.prisma; do
+            echo "prisma validate -> $schema"
+            npx prisma validate --schema "$schema"
+          done
+
+      - name: Prisma migrations match schema.prisma
+        # Replays prisma/migrations of every service on the shadow Postgres above and diffs the
+        # result with schema.prisma: a schema change without a migration fails here (task 0.6).
+        env:
+          SHADOW_DATABASE_URL: postgresql://ci:ci@localhost:5432/shadow
+        run: sh scripts/db/check-migrations.sh
+
+      - name: Run workspace tests
+        run: npm test --workspaces --if-present
+
+  client:
+    name: Client — build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies (workspaces)
+        run: npm install
+
+      - name: Build client (Vite)
+        run: npm run build --workspace client
+
+  browser:
+    name: Client — browser smoke tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run browser tests
+        run: npm run test:ui --workspace client
+
+  # Deployment plan task 2.1 (#369): the Helm chart renders for every environment and every
+  # object matches the Kubernetes API schema (kubeconform, strict).
+  chart:
+    name: Deploy — Helm chart
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+      - name: Install kubeconform
+        env:
+          KUBECONFORM_VERSION: v0.6.7
+        run: |
+          set -eu
+          curl -sSfL -o /tmp/kubeconform.tgz \
+            "https://github.com/yannh/kubeconform/releases/download/$KUBECONFORM_VERSION/kubeconform-linux-amd64.tar.gz"
+          tar -xzf /tmp/kubeconform.tgz -C /usr/local/bin kubeconform
+      - name: Lint, render and validate
+        run: sh scripts/deploy/check-chart.sh
+
+  # Deployment plan phase 1 (#363): production images, only after every test job passed.
+  # Pull requests build the changed images without pushing; develop, staging, main and v* tags
+  # publish them to GHCR. Feature branch pushes skip it (their pull request builds them).
+  images:
+    name: Images
+    needs: [backend, client, browser]
+    if: >-
+      github.event_name == 'pull_request' ||
+      contains(fromJSON('["refs/heads/develop","refs/heads/staging","refs/heads/main"]'), github.ref) ||
+      startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/images.yml
+    with:
+      push: ${{ github.event_name == 'push' }}
+
+  # Deployment plan phase 3, task 3.2 (#386): every build of branch staging is deployed. The job
+  # writes the new tag into deploy/envs/staging/values.yaml on staging only (decision P3-5) and
+  # Argo CD applies it. It pushes with GITHUB_TOKEN, and commits pushed with GITHUB_TOKEN start no
+  # workflow, so the bot commit runs no CI and there is no loop (P3-4).
+  promote:
+    name: Promote to staging
+    needs: [images]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    concurrency: # one promotion at a time, none cancelled: the order guard keeps the newest tag
+      group: promote-staging
+      cancel-in-progress: false
+    env:
+      VALUES: deploy/envs/staging/values.yaml
+      YQ_VERSION: v4.44.3
+      YQ_SHA256: a2c097180dd884a8d50c956ee16a9cec070f30a7947cf4ebf87d5f36213e9ed7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: staging # the tip of the branch, which may be newer than this build
+          fetch-depth: 0 # the order guard compares commits
+
+      - name: Install yq
+        run: |
+          set -eu
+          curl -sSfL -o "$RUNNER_TEMP/yq" "https://github.com/mikefarah/yq/releases/download/$YQ_VERSION/yq_linux_amd64"
+          echo "$YQ_SHA256  $RUNNER_TEMP/yq" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/yq"
+
+      - name: Write the new tag
+        id: tag
+        run: |
+          set -eu
+          yq="$RUNNER_TEMP/yq"
+          tag="sha-$(git rev-parse --short=7 "$GITHUB_SHA")" # same tag as images.yml
+          current=$("$yq" '.global.image.tag' "$VALUES")
+          echo "staging runs $current, this build is $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          # Order guard: if the running tag was built from this commit or from a later one, a
+          # newer build was promoted first. Going back to this tag would deploy older code.
+          running="${current#sha-}"
+          if git rev-parse --verify --quiet "$running^{commit}" > /dev/null &&
+            git merge-base --is-ancestor "$GITHUB_SHA" "$running"; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "- Nothing to do: staging already runs \`$current\`, built from this commit or a later one." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # yq rewrites the whole file (drops blank lines, reformats { a: b }), so sed changes the
+          # one line and yq checks the result.
+          sed -i "s/^    tag: sha-[0-9a-f]\{7,40\}\$/    tag: $tag/" "$VALUES"
+          test "$("$yq" '.global.image.tag' "$VALUES")" = "$tag"
+          test "$(git diff --numstat -- "$VALUES")" = "$(printf '1\t1\t%s' "$VALUES")"
+          test -z "$(git status --porcelain | grep -v " $VALUES\$" || true)"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push to staging
+        if: steps.tag.outputs.skip == 'false'
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -eu
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898+github-actions[bot]@users.noreply.github.com'
+          git commit -q -m "chore: deploy $TAG to staging" -- "$VALUES"
+          if ! git push origin HEAD:staging; then
+            echo "staging moved during the job: rebase once and push again"
+            git pull --rebase origin staging
+            git push origin HEAD:staging
+          fi
+          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$(git rev-parse HEAD)"
+          echo "- Deployed \`$TAG\` to staging: $url (Argo CD applies it within about 3 minutes)." >> "$GITHUB_STEP_SUMMARY"

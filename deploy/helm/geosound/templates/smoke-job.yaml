@@ -1,0 +1,90 @@
+{{- /*
+Smoke test after every sync (deployment plan phase 3, task 3.3, issue #388).
+Argo CD runs it at PostSync, when every resource of the release is healthy; plain
+`helm upgrade --install` runs it at post-install / post-upgrade. A failed Job marks the sync
+failed, so a broken release shows up in Argo CD (and in Discord, task 3.4).
+Read only (decision P3-2): it checks the readiness path of every enabled app, then
+GET /api/tours through the gateway. No login, no write: in the laptop cluster the services use
+the team's Supabase. Each check retries for smoke.checkTimeoutSeconds, then the script stops at
+the first failure.
+*/ -}}
+{{- with .Values.smoke }}
+{{- if .enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: geosound-smoke
+  labels:
+    {{- include "geosound.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: smoke
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    helm.sh/hook: post-install,post-upgrade
+    # Kept after the run for `kubectl logs job/geosound-smoke`; replaced by the next one.
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: {{ .backoffLimit }}
+  activeDeadlineSeconds: {{ .activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "geosound.labels" $ | nindent 8 }}
+        app.kubernetes.io/name: smoke # the network policies of the apps let this label in
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100 # curl_user of curlimages/curl
+        runAsGroup: 101
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: smoke
+          image: {{ .image }}
+          imagePullPolicy: IfNotPresent
+          command: [sh, -ec]
+          args:
+            - |
+              timeout={{ .checkTimeoutSeconds }}
+              # ready <name> <url>: wait for 200, at most $timeout seconds.
+              ready() {
+                end=$(( $(date +%s) + timeout ))
+                while :; do
+                  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$2" || true)
+                  if [ "$code" = 200 ]; then echo "OK   $1 $2"; return 0; fi
+                  if [ "$(date +%s)" -ge "$end" ]; then echo "FAIL $1 $2 (last status $code)"; exit 1; fi
+                  sleep 3
+                done
+              }
+              # json <name> <url>: wait for 200 with a JSON body, at most $timeout seconds.
+              json() {
+                end=$(( $(date +%s) + timeout ))
+                while :; do
+                  out=$(curl -s --max-time 10 -w '\n%{http_code} %{content_type}' "$2" || true)
+                  meta=$(printf '%s\n' "$out" | tail -n 1)
+                  body=$(printf '%s\n' "$out" | sed '$d' | head -c 1)
+                  case "$meta/$body" in
+                    "200 application/json"*/"["* | "200 application/json"*/"{"*) echo "OK   $1 $2"; return 0 ;;
+                  esac
+                  if [ "$(date +%s)" -ge "$end" ]; then echo "FAIL $1 $2 (last: $meta)"; exit 1; fi
+                  sleep 3
+                done
+              }
+              {{- range $name, $raw := $.Values.services }}
+              {{- if ne (toString (dig "enabled" true ($raw | default dict))) "false" }}
+              {{- $app := include "geosound.app" (dict "root" $ "app" $raw) | fromYaml }}
+              ready {{ $name }} http://{{ $name }}:{{ $app.port }}{{ $app.probes.readinessPath }}
+              {{- end }}
+              {{- end }}
+              json "public tours" "{{ .toursUrl }}"
+              echo "smoke test passed"
+          resources:
+            {{- toYaml .resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+{{- end }}
+{{- end }}

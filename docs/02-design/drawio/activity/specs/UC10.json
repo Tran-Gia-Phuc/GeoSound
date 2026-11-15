@@ -1,0 +1,28 @@
+{
+  "uc": "UC10",
+  "steps": [
+    { "id": "s1", "text": "1. Contributor mở bước “Điểm dừng” của tour và chọn thêm điểm." },
+    { "id": "s2", "text": "2. Hệ thống hiển thị bản đồ, form điểm và danh sách điểm hiện có." },
+    { "id": "s3", "decision": true, "text": "3. Contributor tìm địa chỉ; tìm thấy địa chỉ? A1, E1.", "alts": ["A1"], "exceptions": [
+      { "id": "E1", "text": "E1. Không tìm thấy địa chỉ (hoặc dịch vụ tìm địa chỉ lỗi) → gợi ý thả ghim thủ công (A1).", "back": "s2" } ] },
+    { "id": "s4", "text": "4. Hệ thống đặt ghim tại địa chỉ đã chọn; ghim kéo được để chỉnh." },
+    { "id": "s5", "decision": true, "text": "5. Contributor nhập tên, loại, mô tả (bắt buộc), ảnh và audio người thật (tùy chọn); hợp lệ? E3, E4.", "exceptions": [
+      { "id": "E3", "text": "E3. Thiếu tên hoặc mô tả → báo “Vui lòng nhập tên địa điểm” / “Mô tả là bắt buộc”.", "back": "s5" },
+      { "id": "E4", "text": "E4. File sai định dạng hoặc quá giới hạn → từ chối tải file đó.", "back": "s5" } ] },
+    { "id": "s6", "text": "6. Hệ thống tải từng file lên Media và nhận lại URL." },
+    { "id": "s7", "text": "7. Contributor nhấn “Lưu” điểm." },
+    { "id": "s8", "decision": true, "text": "8. Hệ thống kiểm tra vị trí với các vùng cấm; ngoài vùng cấm? E2.", "exceptions": [
+      { "id": "E2", "text": "E2. Vị trí nằm trong vùng cấm → báo tên vùng, vẽ vùng cấm màu đỏ, yêu cầu dời ghim.", "back": "s4" } ] },
+    { "id": "s9", "text": "9. Hệ thống lưu điểm ở cuối danh sách (audio người thật nếu có, nếu không đọc bằng giọng thiết bị)." },
+    { "id": "s10", "decision": true, "text": "10. Hệ thống gửi điểm đi kiểm duyệt AI (văn bản + ảnh); kết quả đạt? A4, E5.", "alts": ["A4"], "exceptions": [
+      { "id": "E5", "text": "E5. AI từ chối → chip “bị từ chối” kèm lý do, chặn gửi duyệt tour tới khi sửa; ảnh không kiểm được → Cảnh báo cho admin.", "back": "s11" } ] },
+    { "id": "s11", "text": "11. Hệ thống hiển thị điểm trên bản đồ và trong danh sách cùng trạng thái kiểm duyệt." },
+    { "id": "s12", "decision": true, "text": "12. Contributor tiếp tục thêm điểm, hoặc sắp xếp / sửa / xóa điểm? A2, A3.", "alts": ["A2", "A3"] }
+  ],
+  "alts": [
+    { "id": "A1", "steps": ["A1.1. Contributor chạm bản đồ để thả ghim (hoặc nhập tọa độ).", "A1.2. Hệ thống ghi nhận tọa độ và tiếp tục từ bước 5."], "to": "s5" },
+    { "id": "A4", "steps": ["A4.1. Tour đang trong kiểm duyệt bị sửa điểm.", "A4.2. Hệ thống rút tour về Nháp; contributor phải gửi duyệt lại."], "to": "s11" },
+    { "id": "A2", "steps": ["A2.1. Contributor dùng nút lên / xuống để đổi thứ tự.", "A2.2. Hệ thống cập nhật thứ tự các điểm."], "to": "end" },
+    { "id": "A3", "steps": ["A3.1. Contributor chọn “Sửa” hoặc “Xóa” (xác nhận khi xóa).", "A3.2. Hệ thống cập nhật hoặc xóa điểm (kèm bản dịch), làm mới bản đồ và danh sách."], "to": "end" }
+  ]
+}

@@ -5,6 +5,25 @@
 # =========================================================
 
 services:
+  client: # React PWA (Vite dev server) — Tourist / Contributor / Admin
+    # Dev image (Vite dev server). The production image is client/Dockerfile (nginx).
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    ports:
+      - "${CLIENT_PORT:-5173}:5173"
+    environment:
+      # Gọi API qua proxy '/api' (same-origin). Trong mạng compose gateway = http://gateway:8080.
+      VITE_PROXY_TARGET: http://gateway:8080
+    # Mount source để Vite HMR: sửa code frontend là tự reload, KHÔNG cần rebuild image.
+    # node_modules giữ trong container qua anonymous volume (không bị host che).
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - gateway
+    restart: unless-stopped
+
   gateway:
     build: ./gateway
     env_file: [.env]
@@ -15,7 +34,10 @@ services:
       auth: { condition: service_started }
       tour: { condition: service_started }
       moderation: { condition: service_started }
+      media: { condition: service_started }
+      notification: { condition: service_started }
     restart: unless-stopped
+    stop_grace_period: 30s # graceful shutdown (#348): the app stops in at most 28 s
 
   auth:
     build:
@@ -30,6 +52,7 @@ services:
       rabbitmq: { condition: service_healthy }
       postgres: { condition: service_healthy }
     restart: unless-stopped
+    stop_grace_period: 30s # graceful shutdown (#348): the app stops in at most 28 s
 
   tour:
     build:
@@ -44,6 +67,7 @@ services:
       rabbitmq: { condition: service_healthy }
       postgres: { condition: service_healthy }
     restart: unless-stopped
+    stop_grace_period: 30s # graceful shutdown (#348): the app stops in at most 28 s
 
   moderation:
     build:
@@ -54,31 +78,78 @@ services:
       PORT: 3003
       DATABASE_URL: ${DATABASE_URL_MODERATION}
     depends_on:
+      redis: { condition: service_healthy } # retry sweeper lock (deployment plan task 0.8)
       rabbitmq: { condition: service_healthy }
       postgres: { condition: service_healthy }
+      ai: { condition: service_started }
     restart: unless-stopped
+    stop_grace_period: 30s # graceful shutdown (#348): the app stops in at most 28 s
 
-  media: # worker, KHÔNG expose port
+  media: # HTTP :3005 (chỉ trong mạng compose, qua gateway /api/media) + worker
     build:
       context: .
       dockerfile: services/media/Dockerfile
     env_file: [.env]
     environment:
+      PORT: 3005
       DATABASE_URL: ${DATABASE_URL_MEDIA}
+      MEDIA_DIR: /data/media
+    volumes:
+      - mediadata:/data/media # file tải lên khi chưa cấu hình Supabase Storage
     depends_on:
       rabbitmq: { condition: service_healthy }
     restart: unless-stopped
+    stop_grace_period: 30s # graceful shutdown (#348): the app stops in at most 28 s
 
-  notification: # worker, KHÔNG expose port
+  notification: # HTTP :3006 (only inside the compose network, gateway /api/notifications) + worker
     build:
       context: .
       dockerfile: services/notification/Dockerfile
     env_file: [.env]
     environment:
+      PORT: 3006
       DATABASE_URL: ${DATABASE_URL_NOTIFICATION}
     depends_on:
+      redis: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
     restart: unless-stopped
+    stop_grace_period: 30s # graceful shutdown (#348): the app stops in at most 28 s
+
+  ai:
+    build:
+      context: .
+      dockerfile: services/ai/Dockerfile
+    env_file: [.env]
+    environment:
+      PORT: 3004
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+    stop_grace_period: 30s # graceful shutdown (#348): the app stops in at most 28 s
+
+  # One-shot schema migrations (deployment plan task 0.6, #352). Not started by `up`:
+  #   docker compose --profile migrate run --rm migrate [deploy|status|check|baseline] [service...]
+  # No service changes its schema on start. Uses DATABASE_URL_DIRECT_<SVC>, else DATABASE_URL_<SVC>.
+  # The tour image has the Prisma CLI; every service's prisma folder is mounted read-only.
+  migrate:
+    profiles: [migrate]
+    build:
+      context: .
+      dockerfile: services/tour/Dockerfile
+    env_file: [.env]
+    entrypoint: ["sh", "/migrate.sh"]
+    command: ["deploy"]
+    volumes:
+      - ./scripts/db/migrate.sh:/migrate.sh:ro
+      - ./services/auth/prisma:/migrations/auth:ro
+      - ./services/tour/prisma:/migrations/tour:ro
+      - ./services/moderation/prisma:/migrations/moderation:ro
+      - ./services/notification/prisma:/migrations/notification:ro
+      - ./services/media/prisma:/migrations/media:ro
+      - ./services/ai/prisma:/migrations/ai:ro
+    depends_on:
+      postgres: { condition: service_healthy }
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -123,4 +194,5 @@ services:
     restart: unless-stopped
 
 volumes:
+  mediadata:
   pgdata:
