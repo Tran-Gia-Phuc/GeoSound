@@ -1,6 +1,6 @@
 # Deployment plan: CI/CD, Kubernetes, Prometheus and Grafana
 
-Status: **in progress** (proposal 2026-11-09). Phase 0 (tasks 0.1 to 0.10) is done (section 6.1). Phase 1 (tasks 1.1 to 1.3) is built (section 7.1); it is done when a merge to `staging` publishes the 8 images. Phase 2 (tasks 2.1 to 2.6) is built and checked on a local k3s (section 8.6); it is done when the chart runs on the real VM. Phase 3 is in progress (section 9.4): Argo CD runs on the laptop cluster (3.1). Later phases need the team's agreement, because they touch every service and the shared infrastructure.
+Status: **in progress** (proposal 2026-11-09). Phase 0 (tasks 0.1 to 0.10) is done (section 6.1). Phase 1 (tasks 1.1 to 1.3) is built (section 7.1); it is done when a merge to `staging` publishes the 8 images. Phase 2 (tasks 2.1 to 2.6) is built and checked on a local k3s (section 8.6); it is done when the chart runs on the real VM. Phase 3 is in progress (section 9.4): Argo CD runs on the laptop cluster (3.1), and the CI job `promote` deploys every build of `staging` (3.2). Later phases need the team's agreement, because they touch every service and the shared infrastructure.
 
 ## 1. Goal and scope
 
@@ -359,10 +359,10 @@ Status: 2.1 (#369), 2.3 (#371), 2.5 (#373), 2.4 (#372), 2.2 (#370) and 2.6 (#374
 ### 9.1 Flow
 
 ```text
-merge to staging
-  → images.yml builds sha-abc1234
-  → promote job: yq sets every changed service tag in deploy/envs/staging/values.yaml,
-    commits "chore: deploy sha-abc1234 to staging" with a bot token
+merge a pull request develop → staging
+  → images.yml builds sha-abc1234 (or retags the unchanged images, so the tag exists for every app)
+  → promote job: sets the one global tag global.image.tag in deploy/envs/staging/values.yaml
+    on branch staging, commits "chore: deploy sha-abc1234 to staging" with GITHUB_TOKEN
   → Argo CD (auto-sync, self-heal, prune) applies the chart
   → PreSync: migrate Jobs
   → rolling update, readiness gates traffic
@@ -377,7 +377,7 @@ tag v1.4.0 on main
   → an admin clicks Sync in Argo CD for geosound-prod (manual sync)
 ```
 
-The promote job uses a fine-grained token that can only write `deploy/` contents, stored as the secret `DEPLOY_BOT_TOKEN`. To avoid a loop, `images.yml` ignores commits that only change `deploy/**`.
+The promote job (`ci.yml`, job `promote`) pushes with the workflow's own `GITHUB_TOKEN` and `contents: write` (decision P3-4), not with a `DEPLOY_BOT_TOKEN`: no secret from the repo owner is needed, and a commit pushed with `GITHUB_TOKEN` starts no workflow, so there is no loop and no `paths-ignore`. There is one image tag for the whole stack (`global.image.tag`), not one per service: `images.yml` gives every app the tag of every build. The bot commits only on `staging` (P3-5); `develop` keeps an old tag that nobody edits, so the `develop` → `staging` pull request never conflicts with the bot commits.
 
 ### 9.2 Rollback
 
@@ -395,11 +395,21 @@ The promote job uses a fine-grained token that can only write `deploy/` contents
 
 ### 9.4 Progress and deviations from the plan above
 
-Status: 3.1 (#383) done. Work order and decisions P3-1 to P3-6: `deployment-phase3-implementation.md`.
+Status: 3.1 (#383) and 3.2 (#386) done. Work order: `deployment-phase3-implementation.md`.
+
+Decisions taken with the user for this phase (they change sections 9.1 to 9.3 where they differ):
+
+- **P3-1** The cluster never migrates Supabase: the laptop values turn the PreSync migrate Job off; migrations go through `docker compose --profile migrate run --rm migrate deploy <svc>`.
+- **P3-2** The PostSync smoke test has no login and writes nothing: `/readyz` of every app and `GET /api/tours` only. `scripts/deploy/smoke-staging.sh` (it registers accounts) never runs against the Supabase-backed cluster.
+- **P3-3** Secrets stay out of Git and out of Argo CD: Argo CD manages only the chart, so it never prunes the hand-applied secrets (database URLs, Discord webhook).
+- **P3-4** The promote job pushes with `GITHUB_TOKEN` and `contents: write`, not `DEPLOY_BOT_TOKEN` (section 9.1).
+- **P3-5** Argo CD tracks branch `staging`. Deploying means merging a pull request `develop` → `staging`; bot commits land only on `staging`.
+- **P3-6** Production (the second half of 9.1) is documentation only in this phase: there is no prod cluster, and the `production` environment needs the repo owner.
 
 | # | Issue / PR | Result |
 | --- | --- | --- |
 | 3.1 | #383 | Argo CD v3.6.1 (chart `argo/argo-cd` 10.18.0, `deploy/argocd/values-local.yaml`: no Dex, ApplicationSet controller at 0 replicas, notifications on for 3.4, small limits, `server.insecure` behind a port-forward on `127.0.0.1:4467`, annotation tracking set explicitly so `app.kubernetes.io/instance` in the immutable selectors is left alone) on the laptop k3s. Application `deploy/argocd/apps/geosound-staging.yaml`: branch `staging`, release name `geosound`, values `envs/staging` + `local` + the new `local/values-supabase.yaml` (laptop stack on the team Supabase: migrate Job off, real `ai`, media in `/tmp`), automated sync with prune and self-heal, server-side apply. Runbook section B5 (install, UI password into a file, adoption, never `helm upgrade` / `helm uninstall` afterwards, pause auto-sync, back to compose). Checked on the laptop: the Application adopted the hand-installed Helm release (revision 4, `sha-ba8649d`) and became Synced and Healthy; `/api/tours` answered 200 with the real data. Deviation: adoption rolled all 8 Deployments once. `checksum/config` hashes the rendered ConfigMap template, revision 4 was installed from a Windows checkout with CRLF line ends, and Argo CD renders from Git with LF (an LF render gives exactly Argo CD's hash); `.gitattributes` now keeps `deploy/**` in LF. Before adoption the `ai` pod was recreated once: its image predates #375 and had given up on RabbitMQ (`/readyz` 503). Since `staging` has no chart yet (task 3.2, U1), the live Application tracked the task branch and then a temporary branch: a harmless commit there (an HPA for `client`, min = max = 1) was applied by automated sync about 3.5 minutes after the push, and its revert pruned the HPA, with no pod restart; a hand change of `client` replicas to 2 was put back by self-heal within seconds. The temporary branch is deleted. Supabase was not touched. |
+| 3.2 | #386 | CI job `promote` in `ci.yml`: after `images`, only on a push to `staging` (never on `develop`, `main`, tags or pull requests), job permissions `contents: write` only, concurrency group `promote-staging` without cancelling. It checks out the tip of `staging`, computes `sha-<7>` the same way as `images.yml`, and writes it into `global.image.tag` of `deploy/envs/staging/values.yaml`, then commits `chore: deploy <tag> to staging` as `github-actions[bot]` and pushes (one `git pull --rebase` and a second push if `staging` moved, else the job fails). The step summary gives the tag and the commit link. Order guard: when the running tag was built from this commit or a later one (`git merge-base --is-ancestor`), a newer build was promoted first and the job only logs it. Deviation: `yq -i` (v4.44.3, pinned by checksum) drops the blank lines and rewrites `{ a: b }` maps of the file, so `sed` changes the one line and `yq` checks the new value; the job also checks that the diff is exactly one line of that file. The tag comment in the staging values says it is written on `staging` only. Checked: `actionlint` 1.7.7 with shellcheck is clean; in a test repository the step wrote over an unknown tag, skipped an older build and a rerun of the same build, and wrote a newer one, each time a one-line diff. |
 
 ## 10. Phase 4: observability
 
