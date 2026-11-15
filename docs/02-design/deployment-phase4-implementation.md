@@ -60,7 +60,7 @@ Facts checked on 2026-11-16 against branch `docs/deploy-phase3-status` (`66c3743
 - **U0, before any issue:** confirm who does tasks 4.1, 4.2, 4.5, 4.6 and 4.7.
   - Plan section 12 gives the stack to DevOps; 4.3, 4.4 and the AI dashboard are the AI part (the user).
   - Confirm that the user takes the whole phase (as for phase 3), and that the agent may open the 7 issues of section 3 on the public repo.
-- **U1, task 4.1:** the user approves installing the stack on the laptop (about 1.3 GiB of extra memory requests).
+- **U1, task 4.1:** the user approves installing the stack on the laptop (about 1.13 GiB of extra memory requests; about 1 GiB measured, see `docs/04-guides/k3s-cluster.md` B6).
 - **U2, task 4.7:** the user creates the Alertmanager secret themselves (the agent never sees the URL):
   ```bash
   export KUBECONFIG=~/.kube/geosound-k3s.yaml

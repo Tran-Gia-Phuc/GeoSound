@@ -275,20 +275,22 @@ Grafana `http://127.0.0.1:4468` (user `admin`, password from the file above), Pr
 {namespace="geosound-staging"} | reqId="<id>"
 ```
 
-**Resources.** The memory requests add up to about 1.13 GiB (limit for phase 4: 1.5 GiB). Measured with `kubectl top node` and `kubectl -n monitoring top pod` after 15 minutes:
+**Resources.** The memory requests add up to about 1.13 GiB (limit for phase 4: 1.5 GiB). Measured with `kubectl top node` and `kubectl -n monitoring top pod` 15 minutes after the install (2026-11-16, k3s v1.31.4 in Docker, node allocatable 7.7 GiB):
 
 | Component | Memory request | Memory limit | Measured |
 | --- | --- | --- | --- |
-| Prometheus (+ config-reloader) | 300Mi + 24Mi | 900Mi + 48Mi | TBD |
-| Alertmanager (+ config-reloader) | 32Mi + 24Mi | 64Mi + 48Mi | TBD |
-| Prometheus Operator | 48Mi | 128Mi | TBD |
-| Grafana (+ 2 sidecars) | 192Mi + 2 × 48Mi | 512Mi + 2 × 128Mi | TBD |
-| kube-state-metrics | 48Mi | 128Mi | TBD |
-| node-exporter | 24Mi | 64Mi | TBD |
-| Loki | 256Mi | 768Mi | TBD |
-| Alloy (+ config-reloader) | 96Mi + 20Mi | 256Mi + 40Mi | TBD |
-| **Total** | **1160Mi** | | TBD |
-| Node memory before / after install | | | TBD / TBD |
+| Prometheus (+ config-reloader) | 300Mi + 24Mi | 900Mi + 48Mi | 452Mi + 14Mi |
+| Alertmanager (+ config-reloader) | 32Mi + 24Mi | 64Mi + 48Mi | 20Mi + 16Mi |
+| Prometheus Operator | 48Mi | 128Mi | 23Mi |
+| Grafana (+ 2 sidecars) | 192Mi + 2 × 48Mi | 512Mi + 2 × 128Mi | 275Mi + 34Mi + 29Mi |
+| kube-state-metrics | 48Mi | 128Mi | 18Mi |
+| node-exporter | 24Mi | 64Mi | 12Mi |
+| Loki | 256Mi | 768Mi | 61Mi |
+| Alloy (+ config-reloader) | 96Mi + 20Mi | 256Mi + 40Mi | 52Mi + 7Mi |
+| **Total** | **1160Mi** | | **1013Mi** |
+| Node memory before / after install | | | 3141Mi (39 %) / 3949Mi (50 %) |
+
+Prometheus and Grafana use more than their request but stay well under their limit; the other components stay under their request. No pod restarted in the first 15 minutes.
 
 **The Discord webhook URL never reaches Loki.** The Argo CD notifications controller logs `[DEBUG] POST <webhook URL>` for every message (B5, "Known limit"). That line comes from the default logger of go-retryablehttp, which ignores the controller's log level: the line appears at the default level `info`, so changing the level in `deploy/argocd/values-local.yaml` would not remove it, and that file is not changed. The filter is in Alloy instead (`deploy/monitoring/values/alloy.yaml`): it drops every `[DEBUG] <method> http(s)://...` line of the namespace `argocd`, and rewrites any Discord webhook URL left in any line of any namespace to `<redacted-webhook>`. Check in Explore that `{namespace="argocd"} |= "discord.com/api/webhooks"` returns nothing. The controller's own log still holds the URL: keep reading it through the `sed` of B5.
 
