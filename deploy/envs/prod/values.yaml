@@ -7,6 +7,10 @@ global:
     # A release tag vX.Y.Z, changed through a reviewed pull request (phase 3).
     tag: sha-ba8649d
 
+ingress:
+  host: geosound.example.com
+  clusterIssuer: letsencrypt-prod
+
 services:
   gateway:
     # 2 to 4 pods at 70 % of the CPU request (task 2.2); also gets a disruption budget.

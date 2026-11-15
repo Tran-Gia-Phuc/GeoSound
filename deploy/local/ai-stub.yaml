@@ -1,0 +1,66 @@
+# Laptop k3s only: the AI stub of the moderation e2e test (tests/e2e/ai-stub/server.mjs) in place
+# of the real AI reviewer, so a place submission gets its result without an LLM key. The code
+# comes from the ConfigMap ai-stub, created from the repo file:
+#   kubectl -n geosound-staging create configmap ai-stub \
+#     --from-file=tests/e2e/ai-stub/server.mjs --dry-run=client -o yaml | kubectl apply -f -
+# deploy/local/values.yaml points moderation at it (AI_SERVICE_URL=http://ai-stub:3004).
+# Markers in the place text: E2E_REJECT, E2E_WARN, E2E_422; no marker = Pass.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-stub
+  labels: { app: ai-stub }
+spec:
+  selector: { matchLabels: { app: ai-stub } }
+  template:
+    metadata: { labels: { app: ai-stub } }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: ai-stub
+          image: node:20-alpine
+          command: [node, /app/server.mjs]
+          env:
+            - { name: PORT, value: "3004" }
+            - name: INTERNAL_SERVICE_TOKEN # the same token moderation sends
+              valueFrom:
+                secretKeyRef: { name: geosound-infra, key: INTERNAL_SERVICE_TOKEN }
+          ports: [{ name: http, containerPort: 3004 }]
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: code, mountPath: /app, readOnly: true }
+      volumes:
+        - name: code
+          configMap: { name: ai-stub }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-stub
+spec:
+  selector: { app: ai-stub }
+  ports: [{ name: http, port: 3004, targetPort: http }]
+---
+# Only moderation calls the stub.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: local-ai-stub
+spec:
+  podSelector: { matchLabels: { app: ai-stub } }
+  policyTypes: [Ingress]
+  ingress:
+    - ports: [{ port: 3004, protocol: TCP }]
+      from:
+        - podSelector:
+            matchLabels: { app.kubernetes.io/instance: geosound, app.kubernetes.io/name: moderation }

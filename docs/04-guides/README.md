@@ -11,3 +11,4 @@ Add these after `frontend/` and `backend/` are scaffolded.
 - [Phone demo through ngrok](phone-demo.md)
 - [Seed data and the chatbot index](seed-data.md)
 - [Production deploy on one VM (docker-compose.prod.yml)](vm-deploy.md)
+- [Kubernetes cluster runbook (k3s, VM or laptop)](k3s-cluster.md)
