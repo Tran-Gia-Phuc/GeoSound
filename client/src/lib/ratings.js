@@ -19,6 +19,15 @@ export function listRatings(tourId, { page = 1, limit = RATINGS_PAGE_SIZE } = {}
   return api.get(`${base(tourId)}?${q.toString()}`, opts);
 }
 
+/**
+ * GET /ratings/mine?page&limit (signed in, newest first) ->
+ * { items: [{ id, tourId, userName, stars, comment, createdAt, updatedAt, tour }], page, limit, total }
+ */
+export function listMyRatings({ page = 1, limit = RATINGS_PAGE_SIZE } = {}, opts) {
+  const q = new URLSearchParams({ page: String(page), limit: String(limit) });
+  return api.get(`/api/tours/ratings/mine?${q.toString()}`, { ...opts, auth: true });
+}
+
 /** GET /:id/ratings/mine -> my rating or null. */
 export async function getMyRating(tourId, opts) {
   const body = await api.get(`${base(tourId)}/mine`, { ...opts, auth: true });

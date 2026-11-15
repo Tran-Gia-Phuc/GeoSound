@@ -7,7 +7,7 @@
 //   - E1: no notification -> "Chưa có thông báo nào".
 // =========================================================
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import AppHeader from '../../components/shell/AppHeader.jsx';
 import { useToast } from '../../components/Toast.jsx';
@@ -127,8 +127,19 @@ export default function NotificationsPage() {
   const hasUnread = unread > 0 || (items ?? []).some((n) => !n.read);
 
   return (
-    <div className="page page--narrow notifs">
-      <AppHeader title="Thông báo" backTo="/account" />
+    <div className="page notifs">
+      <div className="notifs__hero">
+        <div className="notifs__hero-top">
+          <AppHeader title="Thông báo" backTo="/account" />
+          <span className={`notifs__status ${hasUnread ? 'notifs__status--unread' : ''}`}>
+            <Icon name={hasUnread ? 'bell' : 'check-circle'} size={14} />
+            {unread > 0 ? `${unread} chưa đọc` : hasUnread ? 'Có tin chưa đọc' : 'Đã cập nhật'}
+          </span>
+        </div>
+        <p className="notifs__subtitle">
+          Theo dõi trạng thái duyệt tour, tiến độ thuyết minh âm thanh AI và các cập nhật quan trọng cho hành trình của bạn.
+        </p>
+      </div>
 
       <div className="notifs__bar">
         <div className="segmented notifs__filter" role="radiogroup" aria-label="Lọc thông báo">
@@ -169,11 +180,29 @@ export default function NotificationsPage() {
         )
       ) : items.length === 0 ? (
         <div className="card notifs__empty">
-          <Icon name="bell" size={32} />
-          <b>{filter === 'unread' ? 'Không có thông báo chưa đọc' : 'Chưa có thông báo nào'}</b>
-          <p className="muted small">
+          <div className="notifs__empty-orb" aria-hidden="true">
+            <Icon name="bell" size={30} />
+          </div>
+          <h2 className="notifs__empty-title">
+            {filter === 'unread' ? 'Không có thông báo chưa đọc' : 'Chưa có thông báo nào'}
+          </h2>
+          <p className="notifs__empty-desc">
             Khi tour của bạn được duyệt, bị từ chối, cần chỉnh sửa hoặc thuyết minh đã sẵn sàng, thông báo sẽ hiện ở đây.
           </p>
+          <div className="notifs__empty-pills" aria-hidden="true">
+            <span className="notifs__empty-pill">
+              <Icon name="check-circle" size={13} /> Duyệt &amp; góp ý tour
+            </span>
+            <span className="notifs__empty-pill">
+              <Icon name="volume" size={13} /> Thuyết minh âm thanh AI
+            </span>
+            <span className="notifs__empty-pill">
+              <Icon name="bell" size={13} /> Cảnh báo bảo mật
+            </span>
+          </div>
+          <Link className="btn btn--primary btn--sm notifs__empty-cta" to="/">
+            Khám phá tour ngay
+          </Link>
         </div>
       ) : (
         <>

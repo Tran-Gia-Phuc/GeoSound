@@ -20,6 +20,7 @@ import {
 } from '../src/domain/entities/tour-rating.js';
 import {
   ListTourRatings,
+  ListMyTourRatings,
   GetMyTourRating,
   SaveMyTourRating,
   DeleteMyTourRating,
@@ -87,6 +88,22 @@ class FakeRatingRepo {
     const all = [...this.rows.values()].filter((r) => r.tourId === tourId).sort((a, b) => b.createdAt - a.createdAt);
     return { items: all.slice(skip, skip + take), total: all.length };
   }
+  async listByUser(userId, { skip, take }) {
+    const all = [...this.rows.values()]
+      .filter((r) => r.userId === userId)
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+    const items = all.slice(skip, skip + take).map((r) => {
+      const t = this.tourRepo.rows.get(r.tourId);
+      return {
+        ...r.toPublic(),
+        tourId: r.tourId,
+        tour: t
+          ? { id: t.id, title: t.title, city: t.city ?? null, coverImageUrl: t.coverImageUrl ?? null, status: t.status, averageRating: t.averageRating, ratingCount: t.ratingCount }
+          : null,
+      };
+    });
+    return { items, total: all.length };
+  }
   async distribution(tourId) {
     const out = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     for (const r of this.rows.values()) if (r.tourId === tourId) out[r.stars] += 1;
@@ -106,6 +123,7 @@ function kit() {
     tourRepo,
     ratingRepo,
     list: new ListTourRatings(deps),
+    listMine: new ListMyTourRatings(deps),
     mine: new GetMyTourRating(deps),
     save: new SaveMyTourRating(deps),
     remove: new DeleteMyTourRating(deps),
@@ -230,6 +248,7 @@ test('HTTP: public list, signed-in mine / save / delete, status codes and valida
   const k = kit();
   const controller = new TourRatingController({
     listTourRatings: k.list,
+    listMyTourRatings: k.listMine,
     getMyTourRating: k.mine,
     saveMyTourRating: k.save,
     deleteMyTourRating: k.remove,
@@ -255,6 +274,7 @@ test('HTTP: public list, signed-in mine / save / delete, status codes and valida
   const put = (who, body) => fetch(`${base}/${PUBLIC_ID}/ratings/mine`, { method: 'PUT', headers: as(who), body: JSON.stringify(body) });
   try {
     assert.equal((await fetch(`${base}/${PUBLIC_ID}/ratings/mine`)).status, 401);
+    assert.equal((await fetch(`${base}/ratings/mine`)).status, 401);
     assert.equal((await fetch(`${base}/${PUBLIC_ID}/ratings/mine`, { method: 'PUT', body: '{}' })).status, 401);
 
     const missing = await put('u1:An', {});
@@ -285,6 +305,14 @@ test('HTTP: public list, signed-in mine / save / delete, status codes and valida
 
     const mine = await fetch(`${base}/${PUBLIC_ID}/ratings/mine`, { headers: as('u1') });
     assert.equal((await mine.json()).rating.stars, 4);
+
+    const myHistoryRes = await fetch(`${base}/ratings/mine?page=1&limit=10`, { headers: as('u1') });
+    assert.equal(myHistoryRes.status, 200);
+    const myHistory = await myHistoryRes.json();
+    assert.equal(myHistory.total, 1);
+    assert.equal(myHistory.items[0].tourId, PUBLIC_ID);
+    assert.equal(myHistory.items[0].stars, 4);
+    assert.equal(myHistory.items[0].tour.id, PUBLIC_ID);
 
     assert.equal((await fetch(`${base}/${PUBLIC_ID}/ratings/mine`, { method: 'DELETE', headers: as('u1') })).status, 204);
     assert.equal((await fetch(`${base}/${PUBLIC_ID}/ratings/mine`, { method: 'DELETE', headers: as('u1') })).status, 404);

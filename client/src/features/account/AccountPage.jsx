@@ -74,6 +74,14 @@ export default function AccountPage() {
             <Icon name="star" size={20} /> <span>Tác giả đang theo dõi</span>
             <Icon name="chevron-left" size={16} className="menu__chev" />
           </Link>
+          <Link className="menu__item" to="/account/ratings">
+            <Icon name="star" size={20} />
+            <span>
+              Đánh giá của tôi
+              <span className="muted small menu__sub">Xem lại, chỉnh sửa hoặc xoá các đánh giá cũ</span>
+            </span>
+            <Icon name="chevron-left" size={16} className="menu__chev" />
+          </Link>
           <Link className="menu__item" to="/itineraries">
             <Icon name="route" size={20} /> <span>Lịch trình của tôi</span>
             <Icon name="chevron-left" size={16} className="menu__chev" />
