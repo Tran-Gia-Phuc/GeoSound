@@ -20,9 +20,11 @@ import {
   stopConsuming,
   close as closeRabbit,
   isReady as rabbitReady,
+  useMetrics as useRabbitMetrics,
 } from '../shared/rabbitmq/index.js';
 import { EVENTS } from '../shared/events/index.js';
 import { registerHealthRoutes, redisCheck } from '../shared/health/index.js';
+import { createMetrics } from '../shared/metrics/index.js';
 import { createShutdown, closeServer } from '../shared/shutdown/index.js';
 import { buildContainer } from './container.js';
 
@@ -44,9 +46,14 @@ setSessionRevocationCheck(createRedisRevocationCheck(revocationRedis));
 const PORT = process.env.PORT || 3005;
 // Graceful shutdown (#348): SIGTERM / SIGINT run the steps registered below the listen() call.
 const shutdown = createShutdown({ service: 'media' });
+// Prometheus metrics (task 4.2, #399): HTTP requests and RabbitMQ events, GET /metrics.
+const metrics = createMetrics({ service: 'media' });
+useRabbitMetrics(metrics);
 const { mediaRouter, localDir, storageName } = buildContainer(process.env);
 
 const app = express();
+// No app-wide express.json() here (uploads read a raw body): metrics come first.
+app.use(metrics.httpMiddleware());
 app.use(logger);
 // /healthz, /health (liveness) and /readyz (#345): the worker needs RabbitMQ; Redis (revocation
 // check, fail open) is only reported.
@@ -59,6 +66,9 @@ registerHealthRoutes(app, {
     redis: { check: redisCheck(revocationRedis), required: false },
   },
 });
+// GET /metrics, no auth: internal only. Traefik routes only /api to the gateway, and the gateway
+// refuses /api/*/metrics, so only the in-cluster scrape reaches it.
+metrics.registerMetricsRoute(app);
 app.use('/', mediaRouter);
 if (localDir) {
   // File tải lên khi dev (LocalDiskStorage) — tên file là UUID, không đổi nội dung.
