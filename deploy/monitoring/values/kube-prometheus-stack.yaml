@@ -67,8 +67,11 @@ defaultRules:
   # Our own TargetDown (deploy/monitoring/alerts/geosound-rules.yaml, task 4.7) has the same name:
   # without this, Discord would get two TargetDown alerts for the same outage. The other default
   # alerts have different names and stay on.
+  # KubeAPIErrorBudgetBurn (critical) measures an API server SLO: on the single-node laptop cluster
+  # it fires whenever a rollout slows the API server down, which says nothing about GeoSound.
   disabled:
     TargetDown: true
+    KubeAPIErrorBudgetBurn: true
 
 alertmanager:
   alertmanagerSpec:
