@@ -1,7 +1,7 @@
 // Merging moderation signals (task #AI-33): worst wins, max severity, reasons with source.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeVerdicts } from '../src/domain/moderation/merge-verdicts.js';
+import { mergeVerdicts, verdictSourceOf } from '../src/domain/moderation/merge-verdicts.js';
 
 const r = (verdict, severity, reasons = [], source) => ({ verdict, severity, reasons, ...(source && { source }) });
 const reason = (field, category = 'misleading', extra = {}) => ({ field, category, message: `${field} issue`, ...extra });
@@ -77,4 +77,15 @@ test('inputs are not mutated and reasons are copies', () => {
   const out = mergeVerdicts(input);
   assert.deepEqual(input, snapshot);
   assert.notEqual(out.reasons[0], rs[0]);
+});
+
+test('verdictSourceOf: the first signal with the final verdict; a tie gives the first (AI) signal (task 4.4)', () => {
+  assert.equal(verdictSourceOf([r('Pass', 0.1, [], 'ai'), r('Warning', 0.5, [], 'geo')]), 'geo');
+  assert.equal(verdictSourceOf([r('Reject', 0.9, [], 'ai'), r('Warning', 0.5, [], 'geo')]), 'ai');
+  assert.equal(verdictSourceOf([r('Warning', 0.5, [], 'ai'), r('Warning', 0.6, [], 'geo')]), 'ai');
+  assert.equal(verdictSourceOf([r('Pass', 0, [], 'ai'), r('Pass', 0, [], 'geo')]), 'ai');
+  assert.equal(verdictSourceOf([r('Warning', 0.5, [], 'ai'), r('Reject', 1, [], 'geo')]), 'geo');
+  assert.equal(verdictSourceOf([r('Pass', 0, [], 'ai'), null, r('bogus', 0, [], 'geo')]), 'geo', 'unknown verdict counts as Warning');
+  assert.equal(verdictSourceOf([r('Pass', 0)]), null);
+  assert.equal(verdictSourceOf([]), null);
 });
