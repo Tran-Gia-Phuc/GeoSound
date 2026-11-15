@@ -152,13 +152,15 @@ spec:
 
         # One series per device (the same device mounted twice counts once); read-only and virtual
         # filesystems are left out.
+        # 9p and drvfs are host drives that Docker Desktop mounts into the node (Windows C:\ at
+        # /output on the laptop k3s), not node disks.
         - alert: DiskAlmostFull
           expr: |
             max by (instance, device) (
               (
-                node_filesystem_avail_bytes{job="node-exporter", fstype!="", fstype!~"tmpfs|ramfs|squashfs|overlay|nsfs|fuse.*"}
+                node_filesystem_avail_bytes{job="node-exporter", fstype!="", fstype!~"tmpfs|ramfs|squashfs|overlay|nsfs|fuse.*|9p|drvfs"}
                 /
-                node_filesystem_size_bytes{job="node-exporter", fstype!="", fstype!~"tmpfs|ramfs|squashfs|overlay|nsfs|fuse.*"}
+                node_filesystem_size_bytes{job="node-exporter", fstype!="", fstype!~"tmpfs|ramfs|squashfs|overlay|nsfs|fuse.*|9p|drvfs"}
               )
               unless on (instance, device, mountpoint) node_filesystem_readonly{job="node-exporter"} == 1
             ) < 0.15
