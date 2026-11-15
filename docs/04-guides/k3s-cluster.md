@@ -210,6 +210,8 @@ url=$(grep -m1 '^WEBHOOK_DISCORD_URL=' .env | cut -d= -f2- | tr -d '\r"'"'"'') &
 
 Check the key name only: `kubectl -n argocd get secret argocd-notifications-secret -o jsonpath='{.data}' | grep -o discord-webhook-url`. The controller reads the Secret on change, no restart. When a message does not arrive: `kubectl -n argocd logs deploy/argocd-notifications-controller --since 10m | sed -E 's#https://[^ "]*#<url>#g'` (the `sed` hides the webhook URL).
 
+**Known limit: the controller logs the webhook URL.** Its HTTP client (go-retryablehttp inside notifications-engine) writes `[DEBUG] POST <url>` for every message, whatever the log level, and has no setting to turn it off. The URL holds the webhook token. So: read that log only through the `sed` above, never paste it anywhere, and before logs leave the cluster (Loki in phase 4) drop the `[DEBUG] POST` lines of `argocd-notifications-controller` in the collector. If the URL ever leaks, delete the webhook in Discord, create a new one and recreate the Secret.
+
 **Try a branch without merging:** `kubectl -n argocd patch app geosound-staging --type merge -p '{"spec":{"source":{"targetRevision":"<branch>"}}}'`, and `kubectl apply -f deploy/argocd/apps/geosound-staging.yaml` to go back to `staging`.
 
 **Pause auto-sync** (to try something by hand): `kubectl -n argocd patch app geosound-staging --type merge -p '{"spec":{"syncPolicy":{"automated":null}}}'`. Resume with `kubectl apply -f deploy/argocd/apps/geosound-staging.yaml`.
