@@ -138,3 +138,15 @@ redis:
   resources:
     requests: { cpu: 25m, memory: 32Mi }
     limits: { cpu: 250m, memory: 128Mi }
+
+# Migrations before every install and upgrade (task 2.4): Job geosound-migrate, image
+# geosound-migrate with the release tag. Turn it off only to migrate by hand (scripts/db/migrate.sh).
+migrate:
+  enabled: true
+  # Schemas migrated, in this order; each needs DATABASE_URL_<SVC> in databaseSecret.
+  services: [auth, tour, moderation, notification, media, ai]
+  backoffLimit: 1
+  activeDeadlineSeconds: 600
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }
