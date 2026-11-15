@@ -284,7 +284,7 @@ class PlaceModerator:
 
     def __init__(self, llm: Any = None, image_fetcher: ImageFetcher | None = None) -> None:
         # BLOCK_NONE: Gemini must be able to read harmful text in order to flag it.
-        self.llm = llm or FallbackLLM(primary=GeminiClient(safety_block_none=True))
+        self.llm = llm or FallbackLLM(primary=GeminiClient(safety_block_none=True), task="place")
         self.image_fetcher = image_fetcher or make_image_fetcher()
         self.system_prompt = PROMPT_PATH.read_text(encoding="utf-8")
 

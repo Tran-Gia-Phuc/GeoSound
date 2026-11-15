@@ -123,7 +123,7 @@ class TourModerator:
 
     def __init__(self, llm: Any = None) -> None:
         # BLOCK_NONE: Gemini must be able to read harmful text in order to flag it.
-        self.llm = llm or FallbackLLM(primary=GeminiClient(safety_block_none=True))
+        self.llm = llm or FallbackLLM(primary=GeminiClient(safety_block_none=True), task="tour")
         self.system_prompt = PROMPT_PATH.read_text(encoding="utf-8")
 
     async def scan_tour(self, request: TourModerationRequest) -> tuple[list[Finding], str]:
