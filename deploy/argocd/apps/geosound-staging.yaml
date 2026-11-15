@@ -1,0 +1,33 @@
+# The staging stack on the laptop k3s, managed by Argo CD (docs/04-guides/k3s-cluster.md, B5).
+#   kubectl apply -f deploy/argocd/apps/geosound-staging.yaml
+# Argo CD manages the chart only. The secrets (SealedSecrets) are applied by hand and are not
+# tracked, so Argo CD never prunes them (decision P3-3). After adoption, never run
+# `helm upgrade` or `helm uninstall geosound` on this namespace.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: geosound-staging
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Tran-Gia-Phuc/GeoSound.git # public, no credentials
+    targetRevision: staging # deploying = merging a PR develop -> staging (decision P3-5)
+    path: deploy/helm/geosound
+    helm:
+      # Required: Deployment selectors and Service names depend on the release name.
+      releaseName: geosound
+      valueFiles:
+        - ../../envs/staging/values.yaml
+        - ../../local/values.yaml
+        - ../../local/values-supabase.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: geosound-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true
