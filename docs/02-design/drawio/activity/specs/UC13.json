@@ -1,20 +1,89 @@
 {
   "uc": "UC13",
   "steps": [
-    { "id": "s1", "text": "1. Ở bước Xuất bản, contributor nhấn “Xem thử như khách”." },
-    { "id": "s2", "decision": true, "text": "2. Hệ thống mở trang xem thử và tải bản xem thử của tour; xem thử được? E1, E2.", "exceptions": [
-      { "id": "E1", "text": "E1. Tour chưa có điểm nào → “Chưa thể xem thử: tour cần có ít nhất một điểm dừng”, nút “Thêm điểm dừng”.", "back": "end" },
-      { "id": "E2", "text": "E2. Tour của người khác (403) hoặc không tồn tại (404) → báo lỗi.", "back": "end" } ] },
-    { "id": "s3", "text": "3. Hệ thống kiểm quyền tác giả, dựng view như chi tiết công khai (điểm, ảnh, bản dịch, route, vùng) kèm nhãn xem thử." },
-    { "id": "s4", "text": "4. Trình phát mở chế độ “Xem thử — đi bộ mô phỏng”: vị trí mô phỏng ở đầu route, không cần GPS thật." },
-    { "id": "s5", "text": "5. Contributor bấm đi bộ mô phỏng (chọn tốc độ) hoặc chạm bản đồ để dời vị trí.", "alts": ["A1"] },
-    { "id": "s6", "decision": true, "text": "6. Vào vùng kích hoạt, trình phát tự phát điểm như UC04 (ưu tiên vùng cao hơn), hiện văn bản, ảnh, gợi ý, audio chỉ đường; phát được? E3.", "exceptions": [
-      { "id": "E3", "text": "E3. Trình duyệt chặn âm thanh / không có giọng cho ngôn ngữ → báo và cho phát lại (như UC04).", "back": "s6" } ] },
-    { "id": "s7", "decision": true, "text": "7. Contributor kiểm tra nội dung; ổn thì nhấn “Về bước Xuất bản” hoặc “Về trình chỉnh sửa”? A2, A3.", "alts": ["A2", "A3"] }
+    {
+      "id": "s1",
+      "text": "1. Ở bước Xuất bản, Contributor nhấn “Xem thử như khách”. E1.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Tour chưa có điểm → 422 “Chưa thể xem thử: tour cần có ít nhất một điểm dừng” và nút “Thêm điểm dừng”; route / vùng chưa cấu hình không chặn (được tự sinh).",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s2",
+      "text": "2. Hệ thống (Tour) kiểm tra quyền tác giả và dựng dữ liệu giống trang công khai (điểm, ảnh, bản dịch, route, vùng hiệu lực). E2.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. Tour của người khác → 403; tour không tồn tại → 404.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. Hệ thống mở trình phát ở chế độ “Xem thử — đi bộ mô phỏng”, vị trí mô phỏng đặt ở đầu route, không cần GPS thật."
+    },
+    {
+      "id": "s4",
+      "text": "4. Contributor bấm đi bộ mô phỏng (chọn tốc độ) hoặc chạm bản đồ để dời vị trí. A1.",
+      "alts": [
+        "A1"
+      ]
+    },
+    {
+      "id": "s5",
+      "text": "5. Khi vị trí vào vùng kích hoạt, hệ thống tự phát điểm đó như UC#04 (ưu tiên vùng cao hơn; audio thu âm hoặc giọng của thiết bị), hiển thị văn bản, ảnh, gợi ý “đi tiếp” và audio chỉ đường. E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Trình duyệt chặn âm thanh hoặc thiếu giọng đọc cho ngôn ngữ → báo và cho phát lại (như UC#04).",
+          "back": "s4"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. Contributor kiểm tra nội dung, đổi ngôn ngữ nếu cần. A3.",
+      "alts": [
+        "A3"
+      ]
+    },
+    {
+      "id": "s7",
+      "text": "7. Contributor nhấn “Về bước Xuất bản” hoặc “Về trình chỉnh sửa”. A2.",
+      "alts": [
+        "A2"
+      ]
+    }
   ],
   "alts": [
-    { "id": "A1", "steps": ["A1.1. Contributor chọn “Xem thử từng điểm”, chọn điểm trong danh sách để nghe, không dùng vị trí."], "to": "s7" },
-    { "id": "A2", "steps": ["A2.1. Contributor phát hiện lỗi, bấm nút sửa trên điểm.", "A2.2. Hệ thống mở sửa điểm (UC10); route / vùng sửa ở UC11, bản dịch ở UC12."], "to": "end" },
-    { "id": "A3", "steps": ["A3.1. Contributor đổi ngôn ngữ nghe.", "A3.2. Hệ thống tải lại bản xem thử theo ngôn ngữ mới."], "to": "s4" }
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Xem thử từng điểm: chọn điểm trong danh sách để nghe, không dùng vị trí."
+      ],
+      "to": "s6"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Đổi ngôn ngữ nghe: hệ thống tải lại bản xem thử theo ngôn ngữ khác."
+      ],
+      "to": "s6"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Phát hiện lỗi → sửa ngay: nút sửa trên điểm mở UC#10; route / vùng sửa ở UC#11; bản dịch sửa ở UC#12."
+      ],
+      "to": "end"
+    }
   ]
 }

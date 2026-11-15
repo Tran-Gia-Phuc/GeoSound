@@ -6,123 +6,144 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="2" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 48px;&quot;&gt;UC12&lt;/font&gt;" vertex="1">
-          <mxGeometry height="60" width="120" x="-1310" y="-110" as="geometry" />
+          <mxGeometry height="60" width="120" x="-2510" y="-110" as="geometry" />
         </mxCell>
         <mxCell id="3" parent="1" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#ff0000;" value="" vertex="1">
           <mxGeometry height="40" width="40" x="-20" y="0" as="geometry" />
         </mxCell>
-        <mxCell id="4" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="1. Contributor mở bước “Ngôn ngữ” của tour." vertex="1">
+        <mxCell id="4" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="1. Contributor mở bước “Ngôn ngữ”." vertex="1">
           <mxGeometry height="60" width="220" x="-110" y="90" as="geometry" />
         </mxCell>
-        <mxCell id="5" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="2. Hệ thống hiển thị ngôn ngữ gốc, ngôn ngữ phụ, giọng, bản dịch từng điểm và tiến độ “n/n điểm đã dịch”." vertex="1">
-          <mxGeometry height="90" width="220" x="-110" y="210" as="geometry" />
+        <mxCell id="5" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="2. Hệ thống hiển thị ngôn ngữ gốc, các ngôn ngữ phụ đã chọn, giọng đọc, bản dịch từng điểm và tiến độ (“n/n điểm đã dịch”)." vertex="1">
+          <mxGeometry height="105" width="220" x="-110" y="210" as="geometry" />
         </mxCell>
         <mxCell id="6" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="3. Contributor chọn các ngôn ngữ phụ và giọng (nam / nữ, vùng miền tùy chọn), nhấn “Lưu”." vertex="1">
-          <mxGeometry height="75" width="220" x="-110" y="360" as="geometry" />
+          <mxGeometry height="75" width="220" x="-110" y="375" as="geometry" />
         </mxCell>
-        <mxCell id="7" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="4. Hệ thống chuẩn hóa mã ngôn ngữ (bỏ trùng, bỏ ngôn ngữ gốc), đồng bộ danh sách, xóa ngôn ngữ bị gỡ cùng bản dịch." vertex="1">
-          <mxGeometry height="90" width="220" x="-110" y="495" as="geometry" />
+        <mxCell id="7" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="4. Hệ thống chuẩn hóa danh sách ngôn ngữ (bỏ trùng, bỏ ngôn ngữ gốc) và xóa ngôn ngữ bị gỡ cùng bản dịch của nó." vertex="1">
+          <mxGeometry height="90" width="220" x="-110" y="510" as="geometry" />
         </mxCell>
-        <mxCell id="8" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="5. Hệ thống dịch theo lô bằng AI (mỗi ngôn ngữ một lượt, tối đa 20 đoạn), bỏ qua bản đã chỉnh tay; dịch được? E1." vertex="1">
-          <mxGeometry height="145" width="320" x="-160" y="645" as="geometry" />
+        <mxCell id="8" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="5. Hệ thống dịch theo lô qua AI (tối đa 20 đoạn mỗi lần gọi), chỉ dịch điểm chưa có bản dịch hoặc bản dịch đã cũ; bản chỉnh tay được giữ. E1." vertex="1">
+          <mxGeometry height="160" width="320" x="-160" y="660" as="geometry" />
         </mxCell>
-        <mxCell id="9" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="6. Hệ thống lưu bản dịch cho mọi điểm × mọi ngôn ngữ (gốc / máy dịch / đã chỉnh) và trả cấu hình mới." vertex="1">
-          <mxGeometry height="90" width="220" x="-110" y="850" as="geometry" />
+        <mxCell id="9" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="6. Hệ thống lưu bản dịch của mọi điểm theo mọi ngôn ngữ và trả cấu hình mới." vertex="1">
+          <mxGeometry height="75" width="220" x="-110" y="880" as="geometry" />
         </mxCell>
-        <mxCell id="10" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="7. Contributor chọn tab ngôn ngữ phụ, nghe thử một điểm bằng giọng thiết bị (chưa có tệp âm thanh); phát được? A1, E3." vertex="1">
-          <mxGeometry height="145" width="320" x="-160" y="1000" as="geometry" />
+        <mxCell id="10" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="7. Contributor chọn tab một ngôn ngữ phụ và nghe thử một điểm. A1." vertex="1">
+          <mxGeometry height="75" width="220" x="-110" y="1015" as="geometry" />
         </mxCell>
-        <mxCell id="11" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="8. Contributor sửa bản dịch sai tên riêng / thuật ngữ và lưu dòng đó; hợp lệ? A2, E2." vertex="1">
-          <mxGeometry height="130" width="320" x="-160" y="1205" as="geometry" />
+        <mxCell id="11" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="8. Contributor sửa bản dịch sai (tên riêng, thuật ngữ) và lưu dòng đó. A2." vertex="1">
+          <mxGeometry height="115" width="320" x="-160" y="1150" as="geometry" />
         </mxCell>
         <mxCell id="12" parent="1" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#ff0000;" value="" vertex="1">
-          <mxGeometry height="40" width="40" x="-20" y="1425" as="geometry" />
+          <mxGeometry height="40" width="40" x="-20" y="1355" as="geometry" />
         </mxCell>
-        <mxCell id="13" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E1. AI dịch lỗi (hết giờ, lỗi máy chủ, thiếu bản dịch) → “Dịch tự động thất bại, vui lòng thử lại”; lỗi tạo TTS (503)." vertex="1">
-          <mxGeometry height="90" width="250" x="355" y="618" as="geometry" />
+        <mxCell id="13" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E1. AI dịch lỗi (timeout, 5xx, sai số lượng bản dịch) → 503 “Dịch tự động thất bại, vui lòng thử lại”." vertex="1">
+          <mxGeometry height="75" width="250" x="355" y="655" as="geometry" />
         </mxCell>
-        <mxCell id="14" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E3. Trình duyệt không phát được → “Không phát được bản nghe thử. Nội dung bản dịch vẫn được giữ; bạn có thể thử lại.”" vertex="1">
-          <mxGeometry height="90" width="250" x="355" y="973" as="geometry" />
+        <mxCell id="14" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E2. Mã ngôn ngữ ngoài tập hỗ trợ → 400 “Ngôn ngữ không hỗ trợ: xx”; sửa bản ngôn ngữ chưa cấu hình → 400 “Ngôn ngữ chưa được cấu hình cho tour”; sửa ngôn ngữ gốc → sửa ở UC#10." vertex="1">
+          <mxGeometry height="120" width="250" x="355" y="1078" as="geometry" />
         </mxCell>
-        <mxCell id="15" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E2. Ngôn ngữ không hỗ trợ hoặc chưa cấu hình cho tour; sửa bản ngôn ngữ gốc → “Sửa nội dung ngôn ngữ gốc ở phần quản lý điểm (UC10)”." vertex="1">
-          <mxGeometry height="90" width="250" x="355" y="1170" as="geometry" />
+        <mxCell id="15" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E3. Trình duyệt không phát được → “Không phát được bản nghe thử. Nội dung bản dịch vẫn được giữ; bạn có thể thử lại.”" vertex="1">
+          <mxGeometry height="90" width="250" x="355" y="1228" as="geometry" />
         </mxCell>
-        <mxCell id="16" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A3.1. Contributor bỏ một ngôn ngữ phụ rồi lưu." vertex="1">
-          <mxGeometry height="60" width="220" x="-510" y="465" as="geometry" />
+        <mxCell id="16" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A1. Nghe thử: hệ thống đọc bản dịch bằng giọng của thiết bị (Web Speech), nhãn “Nghe thử bằng giọng trên thiết bị · chưa có tệp âm thanh”. E3." vertex="1">
+          <mxGeometry height="105" width="220" x="-510" y="1120" as="geometry" />
         </mxCell>
-        <mxCell id="17" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A3.2. Hệ thống xóa ngôn ngữ đó cùng các bản dịch tương ứng." vertex="1">
-          <mxGeometry height="60" width="220" x="-510" y="575" as="geometry" />
+        <mxCell id="17" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A2. Chỉnh bản dịch: bản dịch được đánh dấu “đã chỉnh tay” và được giữ ở các lần lưu sau. E2." vertex="1">
+          <mxGeometry height="90" width="220" x="-910" y="1295" as="geometry" />
         </mxCell>
-        <mxCell id="18" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A1.1. Contributor bỏ qua nghe thử." vertex="1">
-          <mxGeometry height="60" width="220" x="-910" y="1175" as="geometry" />
+        <mxCell id="18" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A3. Gỡ một ngôn ngữ phụ: hệ thống xóa ngôn ngữ và các bản dịch của nó." vertex="1">
+          <mxGeometry height="75" width="220" x="-1310" y="1295" as="geometry" />
         </mxCell>
-        <mxCell id="19" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A2.1. Bản dịch được đánh dấu “đã chỉnh” và giữ nguyên ở các lần Lưu sau." vertex="1">
-          <mxGeometry height="75" width="220" x="-1310" y="1365" as="geometry" />
+        <mxCell id="19" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A4. Mô tả gốc đổi (UC#10): hệ thống dịch lại điểm đó; bản chỉnh tay được giữ nhưng gắn chip “Cần xem lại”." vertex="1">
+          <mxGeometry height="90" width="220" x="-1710" y="1295" as="geometry" />
         </mxCell>
-        <mxCell id="20" edge="1" parent="1" source="3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="4" value="">
+        <mxCell id="20" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A5. Khách yêu cầu dịch tự động ngôn ngữ chưa bật (UC#04 A7): bản dịch được lưu riêng, hiển thị ở bước Ngôn ngữ; tác giả bật ngôn ngữ đó thì dùng lại bản dịch, không gọi AI lại." vertex="1">
+          <mxGeometry height="120" width="220" x="-2110" y="1295" as="geometry" />
+        </mxCell>
+        <mxCell id="21" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A6. Công tắc “Cho khách yêu cầu dịch tự động”: tắt thì khách không yêu cầu được ngôn ngữ ngoài danh sách và các bản dịch tự động đã có bị ẩn." vertex="1">
+          <mxGeometry height="105" width="220" x="-2510" y="1295" as="geometry" />
+        </mxCell>
+        <mxCell id="22" edge="1" parent="1" source="3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="4" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="21" edge="1" parent="1" source="4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="5" value="">
+        <mxCell id="23" edge="1" parent="1" source="4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="5" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="22" edge="1" parent="1" source="5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="6" value="">
+        <mxCell id="24" edge="1" parent="1" source="5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="6" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="23" edge="1" parent="1" source="6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="7" value="">
+        <mxCell id="25" edge="1" parent="1" source="6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="7" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="24" edge="1" parent="1" source="7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="8" value="">
+        <mxCell id="26" edge="1" parent="1" source="7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="8" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="25" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="9" value="yes">
+        <mxCell id="27" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="9" value="yes">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="26" edge="1" parent="1" source="9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="10" value="">
+        <mxCell id="28" edge="1" parent="1" source="9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="10" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="27" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="11" value="yes">
+        <mxCell id="29" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="11" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="28" edge="1" parent="1" source="11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="12" value="yes">
+        <mxCell id="30" edge="1" parent="1" source="11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="12" value="yes">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="29" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="13" value="no">
+        <mxCell id="31" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="13" value="no">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="30" edge="1" parent="1" source="13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="6" value="">
+        <mxCell id="32" edge="1" parent="1" source="13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="6" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="31" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="14" value="no">
+        <mxCell id="33" edge="1" parent="1" source="11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="14" value="no">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="32" edge="1" parent="1" source="14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="10" value="">
+        <mxCell id="34" edge="1" parent="1" source="14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="11" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="33" edge="1" parent="1" source="11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="15" value="no">
+        <mxCell id="35" edge="1" parent="1" source="11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="15" value="no">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="34" edge="1" parent="1" source="15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="11" value="">
+        <mxCell id="36" edge="1" parent="1" source="15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="11" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="35" edge="1" parent="1" source="16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="17" value="">
+        <mxCell id="37" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="16" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="36" edge="1" parent="1" source="6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="16" value="">
+        <mxCell id="38" edge="1" parent="1" source="16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="11" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="37" edge="1" parent="1" source="17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="10" value="">
+        <mxCell id="39" edge="1" parent="1" source="11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="17" value="no">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="38" edge="1" parent="1" source="10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="18" value="no">
+        <mxCell id="40" edge="1" parent="1" source="17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="11" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="39" edge="1" parent="1" source="18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="11" value="">
+        <mxCell id="41" edge="1" parent="1" source="11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="18" value="no">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="40" edge="1" parent="1" source="11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="19" value="no">
+        <mxCell id="42" edge="1" parent="1" source="18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="12" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="41" edge="1" parent="1" source="19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="12" value="">
+        <mxCell id="43" edge="1" parent="1" source="11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="19" value="no">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="44" edge="1" parent="1" source="19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="12" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="45" edge="1" parent="1" source="11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="20" value="no">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="46" edge="1" parent="1" source="20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="12" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="47" edge="1" parent="1" source="11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="21" value="no">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="48" edge="1" parent="1" source="21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="12" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>

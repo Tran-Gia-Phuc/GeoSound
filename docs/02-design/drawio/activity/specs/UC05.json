@@ -1,30 +1,99 @@
 {
   "uc": "UC05",
   "steps": [
-    { "id": "s1", "text": "1. Tourist mở mục “Đánh giá” trên chi tiết tour, hoặc bấm nút đánh giá ở hộp kết thúc của trình phát (UC04)." },
-    { "id": "s2", "decision": true, "text": "2. Client hiện tóm tắt (điểm trung bình, số lượt, phân bố 1–5 sao) và nhận xét mới nhất, 10 mục mỗi trang; tour công khai? E3.", "alts": ["A3"], "exceptions": [
-      { "id": "E3", "text": "E3. Tour không công khai hoặc không tồn tại → báo không tìm thấy tour, giống chi tiết công khai.", "back": "end" } ] },
-    { "id": "s3", "decision": true, "text": "3. Client kiểm tra đánh giá của Tourist; đã đăng nhập, không phải tác giả, chưa đánh giá? E1, E4, A1, A2.", "alts": ["A1", "A2"], "exceptions": [
-      { "id": "E1", "text": "E1. Chưa đăng nhập → nút “Đăng nhập để đánh giá” (UC01), xong quay lại đúng mục đánh giá.", "back": "s3" },
-      { "id": "E4", "text": "E4. Tác giả mở tour của mình → “Bạn là tác giả của tour này nên không thể tự đánh giá.”", "back": "end" } ] },
-    { "id": "s4", "decision": true, "text": "4. Tourist chọn số sao và nhập nhận xét (không bắt buộc, tối đa 1000 ký tự); đã chọn sao? E2.", "exceptions": [
-      { "id": "E2", "text": "E2. Chưa chọn sao → “Vui lòng chọn số sao”.", "back": "s4" } ] },
-    { "id": "s5", "text": "5. Tourist nhấn “Gửi đánh giá”." },
-    { "id": "s6", "decision": true, "text": "6. Tour lưu đánh giá, cập nhật điểm trung bình và số lượt cùng lúc, trả tóm tắt mới; gửi được? E5.", "exceptions": [
-      { "id": "E5", "text": "E5. Mất mạng → “Không thể kết nối, vui lòng thử lại”.", "back": "s5" } ] },
-    { "id": "s7", "text": "7. Client hiện “Cảm ơn đánh giá của bạn” và làm mới tóm tắt, danh sách." }
+    {
+      "id": "s1",
+      "text": "1. Tourist mở chi tiết tour công khai (UC#02) và kéo tới mục “Đánh giá”."
+    },
+    {
+      "id": "s2",
+      "text": "2. Hệ thống hiển thị điểm trung bình, số lượt đánh giá và danh sách nhận xét mới nhất (10 mục mỗi trang, có “Xem thêm”); nếu Tourist đã đánh giá thì hiện đánh giá của mình ở đầu. E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Tour không công khai (nháp, hạn chế, bị ẩn…) hoặc không tồn tại → 404.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. Tourist chọn số sao (1–5), nhập nhận xét (tùy chọn, tối đa 1000 ký tự) và nhấn “Gửi đánh giá”. E1, E2.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Chưa đăng nhập → nút gửi đổi thành “Đăng nhập để đánh giá” và chuyển tới trang Đăng nhập (401).",
+          "back": "s3"
+        },
+        {
+          "id": "E2",
+          "text": "E2. Chưa chọn số sao → “Vui lòng chọn số sao” (400); nhận xét quá 1000 ký tự → 400.",
+          "back": "s3"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s4",
+      "text": "4. Hệ thống (Tour) kiểm tra tour đang công khai và Tourist không phải tác giả. E3, E4.",
+      "exceptions": [
+        {
+          "id": "E4",
+          "text": "E4. Tourist là tác giả của tour → 403 “Bạn là tác giả của tour này nên không thể tự đánh giá.”",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s5",
+      "text": "5. Hệ thống lưu đánh giá và cập nhật điểm trung bình, số lượt đánh giá của tour trong cùng một giao dịch."
+    },
+    {
+      "id": "s6",
+      "text": "6. Hệ thống báo “Cảm ơn đánh giá của bạn” và hiển thị đánh giá mới trong danh sách. E5.",
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. Mất mạng → “Không thể kết nối, vui lòng thử lại”; sửa / xóa đánh giá không còn tồn tại → 404.",
+          "back": "s3"
+        }
+      ],
+      "alts": [
+        "A1",
+        "A2",
+        "A3"
+      ],
+      "decision": true
+    }
   ],
   "alts": [
-    { "id": "A3", "steps": [
-      "A3.1. Tourist cuộn danh sách và tải trang nhận xét tiếp theo (tối đa 50 mục mỗi trang)."
-    ], "to": "s3" },
-    { "id": "A1", "steps": [
-      "A1.1. Tourist chọn “Sửa” trên “Đánh giá của bạn”, đổi số sao hoặc nhận xét, nhấn “Lưu thay đổi”.",
-      "A1.2. Tour cập nhật (không tạo dòng mới), tính lại điểm trung bình; báo “Đã cập nhật đánh giá”, nhận xét có nhãn “đã sửa”."
-    ], "to": "end" },
-    { "id": "A2", "steps": [
-      "A2.1. Tourist chọn “Xóa” trên “Đánh giá của bạn”.",
-      "A2.2. Tour xoá đánh giá, tính lại số lượt và điểm trung bình; báo “Đã xoá đánh giá” (không còn đánh giá → báo lỗi)."
-    ], "to": "end" }
+    {
+      "id": "A1",
+      "steps": [
+        "A1.1. Tourist đã có đánh giá chọn “Sửa”, đổi số sao hoặc nhận xét rồi gửi.",
+        "A1.2. Hệ thống ghi đè đánh giá cũ (không tạo đánh giá thứ hai), tính lại điểm trung bình, hiện nhãn “đã sửa” và báo “Đã cập nhật đánh giá”."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2.1. Tourist chọn “Xóa” và xác nhận.",
+        "A2.2. Hệ thống xóa đánh giá, tính lại điểm trung bình và số lượt, báo “Đã xoá đánh giá”. E5."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3.1. Tourist mở Tài khoản → “Đánh giá của tôi”.",
+        "A3.2. Hệ thống trả mọi đánh giá của tài khoản, mới nhất trước, kèm tour được đánh giá; có bộ lọc theo số sao và “Xem thêm”. Chưa có đánh giá → “Bạn chưa đánh giá tour nào”.",
+        "A3.3. Tourist chọn “Sửa” hoặc “Xoá” ở một đánh giá.",
+        "A3.4. Hệ thống xử lý như A1 / A2 ngay trên trang này."
+      ],
+      "to": "end"
+    }
   ]
 }
