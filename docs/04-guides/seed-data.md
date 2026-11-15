@@ -58,5 +58,6 @@ docker compose exec rabbitmq rabbitmqctl list_queues name messages consumers | g
 ```
 
 `consumers` must be 1. With 0, the AI indexer is not running: see `docker compose logs ai`.
-Since #341 it retries the first RabbitMQ connection 10 times, 3 s apart, so an AI container that
-starts while RabbitMQ boots still starts its indexer.
+Since #375 it retries the first RabbitMQ connection until it works (3 s, doubling, at most 30 s
+apart) in the background, so an AI container that starts while RabbitMQ boots still starts its
+indexer; meanwhile `/readyz` answers 503 and the logs show `RabbitMQ not ready ... retry <n>`.

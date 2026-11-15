@@ -303,6 +303,61 @@ def test_connection_is_retried_while_rabbitmq_boots(monkeypatch):
     run(handle_.aclose())
 
 
+def test_connect_delays_double_up_to_the_cap():
+    from itertools import islice
+
+    assert list(islice(consumer.connect_delays(3, 30), 7)) == [3, 6, 12, 24, 30, 30, 30]
+
+
+def test_first_connection_is_retried_without_limit_by_default(monkeypatch, caplog):
+    # #375: a fresh cluster boots RabbitMQ in minutes; the indexer must not give up after 30 s.
+    conn, calls, waits = FakeConnection(), [], []
+
+    async def connect(url):
+        calls.append(url)
+        if len(calls) <= 20:
+            raise ConnectionError(url)  # the URL must not leak through the log
+        return conn
+
+    async def sleep(delay):
+        waits.append(delay)
+
+    monkeypatch.setattr(PgVectorIndexStore, "aclose", lambda self: asyncio.sleep(0))
+    with caplog.at_level(logging.INFO, logger="app.chatbot.rag.consumer"):
+        handle_ = run(start_indexer(settings(rabbitmq_url="amqp://u:amqp-secret@mq:5672"),
+                                    connect=connect, sleep=sleep))
+    assert handle_ is not None and len(calls) == 21
+    assert waits[:5] == [3, 6, 12, 24, 30] and set(waits[4:]) == {30}
+    assert "amqp-secret" not in caplog.text and "not started" not in caplog.text
+    assert "connected after 21 attempts" in caplog.text
+    run(handle_.aclose())
+
+
+def test_cancel_while_waiting_for_rabbitmq_closes_the_store(monkeypatch):
+    calls, closed = [], []
+
+    async def connect(url):
+        calls.append(url)
+        raise ConnectionError("refused")
+
+    async def fake_aclose(self):
+        closed.append(True)
+
+    monkeypatch.setattr(PgVectorIndexStore, "aclose", fake_aclose)
+
+    async def scenario():
+        task = asyncio.create_task(
+            start_indexer(settings(), connect=connect, sleep=lambda d: asyncio.sleep(0)))
+        while len(calls) < 3:
+            await asyncio.sleep(0)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    run(scenario())
+    assert closed == [True]
+
+
 # --- chat retriever wiring ---
 
 
@@ -374,9 +429,78 @@ def test_lifespan_starts_and_closes_handles(monkeypatch):
     monkeypatch.setattr(consumer, "start_indexer", fake_start)
     monkeypatch.setattr(chat_api, "_service", Service())
     with TestClient(main.app):
-        assert events == ["indexer started"]
+        wait_for(lambda: events == ["indexer started"])  # started in a background task (#375)
     assert events == ["indexer started", "indexer closed", "chat closed"]
     assert chat_api._service is None
+
+
+def wait_for(condition, timeout=5.0):
+    import time
+
+    deadline = time.monotonic() + timeout
+    while not condition():
+        assert time.monotonic() < deadline, "condition not met in time"
+        time.sleep(0.01)
+
+
+def test_lifespan_serves_while_rabbitmq_is_down_and_becomes_ready(monkeypatch):
+    # #375: /healthz answers at once, /readyz is 503 until the indexer connects, no restart.
+    import threading
+    from types import SimpleNamespace
+
+    from fastapi.testclient import TestClient
+
+    from app import main
+    from app.api import health
+
+    rabbitmq_up = threading.Event()
+    connection = SimpleNamespace(is_closed=False, connected=SimpleNamespace(is_set=lambda: True))
+
+    class Handle:
+        def __init__(self):
+            self.connection = connection
+
+        async def aclose(self):
+            pass
+
+    async def fake_start(s):
+        while not rabbitmq_up.is_set():
+            await asyncio.sleep(0.01)
+        return Handle()
+
+    health._down.clear()
+    monkeypatch.setattr(main.settings, "chatbot_indexer_enabled", True)
+    monkeypatch.setattr(health, "get_settings", lambda: SimpleNamespace(chatbot_indexer_enabled=True))
+    monkeypatch.setattr(consumer, "start_indexer", fake_start)
+    with TestClient(main.app) as client:
+        assert client.get("/healthz").status_code == 200
+        assert client.get("/readyz").status_code == 503
+        rabbitmq_up.set()
+        wait_for(lambda: client.get("/readyz").status_code == 200)
+    health._down.clear()
+
+
+def test_lifespan_shutdown_cancels_a_pending_start(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app import main
+
+    events = []
+
+    async def fake_start(s):
+        events.append("waiting")
+        try:
+            await asyncio.Event().wait()  # RabbitMQ never answers
+        except asyncio.CancelledError:
+            events.append("cancelled")
+            raise
+
+    monkeypatch.setattr(main.settings, "chatbot_indexer_enabled", True)
+    monkeypatch.setattr(consumer, "start_indexer", fake_start)
+    with TestClient(main.app):
+        wait_for(lambda: events == ["waiting"])
+    assert events == ["waiting", "cancelled"]
+    assert main.app.state.chatbot_indexer is None
 
 
 def test_lifespan_flag_off_builds_nothing(monkeypatch):

@@ -15,7 +15,9 @@ stays HTTP only. It is off unless `CHATBOT_INDEXER_ENABLED=true`.
   message is rejected without requeue and one error line is logged.
 - `start_indexer` connects (aio-pika, robust connection), declares the topic
   exchange `RABBITMQ_EXCHANGE` (durable) and the durable queue
-  `CHATBOT_INDEXER_QUEUE` bound to `ROUTING_KEYS`, with prefetch 1.
+  `CHATBOT_INDEXER_QUEUE` bound to `ROUTING_KEYS`, with prefetch 1. The first
+  connection is retried until RabbitMQ answers (growing delay, capped); the app
+  runs it in a background task, so `/readyz` stays 503 until then (#375).
 
 Logs never contain the message body, user text or connection strings.
 """
@@ -182,13 +184,28 @@ def build_indexer(settings) -> tuple[Indexer, Any] | None:
         return None
 
 
+def connect_delays(first: float, cap: float):
+    """Delays between connection attempts: `first`, doubling, never more than `cap`."""
+    delay = first
+    while True:
+        yield min(delay, cap)
+        delay = min(delay * 2, cap)
+
+
 async def start_indexer(settings, *, connect: Callable[..., Awaitable[Any]] | None = None,
-                        connect_attempts: int = 10, connect_delay: float = 3.0,
+                        connect_attempts: int | None = None, connect_delay: float = 3.0,
+                        connect_max_delay: float = 30.0,
+                        sleep: Callable[[float], Awaitable[Any]] = asyncio.sleep,
                         ) -> IndexerHandle | None:
     """Start the indexer consumer when the flag is on. Returns a handle or None.
 
     With `chatbot_indexer_enabled` false (the default) nothing is created. Without
     DATABASE_URL_AI or a working embedder nothing is started either (one log line).
+
+    The first RabbitMQ connection is retried until it works (`connect_attempts=None`), with
+    a delay that grows from `connect_delay` to `connect_max_delay`: on a fresh cluster the
+    broker can take minutes to boot (#375). The caller runs this in a background task so
+    the app serves meanwhile; cancelling it closes the store pool.
     """
     if not getattr(settings, "chatbot_indexer_enabled", False):
         return None
@@ -201,25 +218,31 @@ async def start_indexer(settings, *, connect: Callable[..., Awaitable[Any]] | No
 
     connect = connect or aio_pika.connect_robust
     # connect_robust only reconnects after a first success: retry the first connect too, or an AI
-    # container that starts while RabbitMQ is still booting never indexes anything (#341).
-    error: Exception | None = None
-    for attempt in range(1, connect_attempts + 1):
-        try:
-            connection = await connect(settings.rabbitmq_url)
-            break
-        except Exception as exc:  # noqa: BLE001 - never log the URL (it holds credentials)
-            error = exc
-            if attempt < connect_attempts:
-                log.warning("chatbot indexer: RabbitMQ not ready (%s), retry %d/%d",
-                            type(exc).__name__, attempt, connect_attempts - 1)
-                await asyncio.sleep(connect_delay)
-    else:
-        log.error("chatbot indexer not started: RabbitMQ connection failed (%s)", type(error).__name__)
-        try:
-            await store.aclose()
-        except Exception as close_exc:  # noqa: BLE001 - startup must not fail because of cleanup
-            log.warning("chatbot indexer store close failed (%s)", type(close_exc).__name__)
-        return None
+    # container that starts while RabbitMQ is still booting never indexes anything (#341, #375).
+    connection = None
+    try:
+        attempt = 0
+        delays = connect_delays(connect_delay, connect_max_delay)
+        while connection is None:
+            attempt += 1
+            try:
+                connection = await connect(settings.rabbitmq_url)
+            except Exception as exc:  # noqa: BLE001 - never log the URL (it holds credentials)
+                if connect_attempts is not None and attempt >= connect_attempts:
+                    log.error("chatbot indexer not started: RabbitMQ connection failed (%s)",
+                              type(exc).__name__)
+                    await _close_store_quietly(store)
+                    return None
+                delay = next(delays)
+                limit = f"/{connect_attempts - 1}" if connect_attempts is not None else ""
+                log.warning("chatbot indexer: RabbitMQ not ready (%s), retry %d%s in %.0f s",
+                            type(exc).__name__, attempt, limit, delay)
+                await sleep(delay)
+    except asyncio.CancelledError:  # shutdown before RabbitMQ came up
+        await _close_store_quietly(store)
+        raise
+    if attempt > 1:
+        log.info("chatbot indexer: RabbitMQ connected after %d attempts", attempt)
 
     try:
         channel = await connection.channel()
@@ -256,6 +279,9 @@ async def start_indexer(settings, *, connect: Callable[..., Awaitable[Any]] | No
             )
 
         tag = await queue.consume(on_message)
+    except asyncio.CancelledError:  # shutdown during the queue setup
+        await IndexerHandle(connection, None, None, store).aclose()
+        raise
     except Exception as exc:  # noqa: BLE001
         log.error("chatbot indexer not started: queue setup failed (%s)", type(exc).__name__)
         await IndexerHandle(connection, None, None, store).aclose()
@@ -263,6 +289,13 @@ async def start_indexer(settings, *, connect: Callable[..., Awaitable[Any]] | No
 
     log.info("chatbot indexer started on queue %s (%s)", queue_name, ", ".join(ROUTING_KEYS))
     return IndexerHandle(connection, queue, tag, store)
+
+
+async def _close_store_quietly(store: Any) -> None:
+    try:
+        await store.aclose()
+    except Exception as exc:  # noqa: BLE001 - startup and shutdown must not fail because of cleanup
+        log.warning("chatbot indexer store close failed (%s)", type(exc).__name__)
 
 
 class _Rerouted:
