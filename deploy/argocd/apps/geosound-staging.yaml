@@ -8,6 +8,11 @@ kind: Application
 metadata:
   name: geosound-staging
   namespace: argocd
+  # Sync results to Discord (task 3.4): triggers and the webhook service are in values-local.yaml.
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-succeeded.discord: ""
+    notifications.argoproj.io/subscribe.on-sync-failed.discord: ""
+    notifications.argoproj.io/subscribe.on-health-degraded.discord: ""
 spec:
   project: default
   source:
