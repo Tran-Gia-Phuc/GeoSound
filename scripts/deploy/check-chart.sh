@@ -75,4 +75,23 @@ if [ "$n" != "0" ]; then
   fail=1
 fi
 
+echo "[chart] scraping (task 4.5): off by default; on, one ServiceMonitor per backend app + RabbitMQ + Redis"
+n=$(helm template geosound "$CHART" -f deploy/envs/staging/values.yaml | grep -c "^kind: ServiceMonitor" || true)
+if [ "$n" != "0" ]; then
+  echo "[chart] FAIL: $n ServiceMonitor(s) rendered with metrics.serviceMonitor.enabled off"
+  fail=1
+fi
+helm template geosound "$CHART" -n geosound-staging -f deploy/envs/staging/values.yaml \
+  -f deploy/local/values.yaml > "$OUT/metrics.yaml" || fail=1
+kubeconform -strict -summary -kubernetes-version "$K8S_VERSION" \
+  -schema-location default -schema-location "$CRD_SCHEMAS" "$OUT/metrics.yaml" || fail=1
+# Backend apps = every Deployment but the client (nginx serves no /metrics).
+backend=$(grep -A3 "^kind: Deployment" "$OUT/metrics.yaml" | grep -c "^  name: [a-z]*$" || true)
+grep -A3 "^kind: Deployment" "$OUT/metrics.yaml" | grep -q "^  name: client$" && backend=$((backend - 1))
+monitors=$(grep -c "^kind: ServiceMonitor" "$OUT/metrics.yaml" || true)
+if [ "$monitors" != "$((backend + 2))" ]; then
+  echo "[chart] FAIL: $monitors ServiceMonitor(s), expected $((backend + 2)) ($backend backend apps + RabbitMQ + Redis)"
+  fail=1
+fi
+
 exit "$fail"
