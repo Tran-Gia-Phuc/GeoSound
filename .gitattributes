@@ -4,3 +4,6 @@
 services/*/prisma/migrations/**/*.sql text eol=lf
 services/*/prisma/migrations/migration_lock.toml text eol=lf
 *.sh text eol=lf
+# The chart hashes its rendered ConfigMap into checksum/config: a CRLF checkout renders another
+# hash than Argo CD (which reads Git with LF) and rolls every pod (task 3.1, issue #383).
+deploy/** text eol=lf

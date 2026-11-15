@@ -11,7 +11,9 @@ deploy/
   envs/<env>/           values.yaml per environment (image tag, host, replicas, limits);
                         later sealed-secrets.pem and sealed/*.yaml (task 2.5)
   cluster/              one-time cluster objects: namespaces, Let's Encrypt ClusterIssuers
-  local/                laptop stand-ins (Postgres, AI stub, values): never on a real cluster
+  local/                laptop values and stand-ins (Postgres, AI stub): never on a real cluster;
+                        values-supabase.yaml = laptop stack on the team Supabase (phase 3)
+  argocd/               Argo CD on the laptop cluster: chart values and the Application (phase 3)
   migrate/              the geosound-migrate image (Prisma CLI and every schema)
 ```
 
@@ -34,7 +36,7 @@ What happens:
 
 Before a change to the chart, run `sh scripts/deploy/check-chart.sh` (needs `helm` and `kubeconform`; CI runs the same script in the job `chart`).
 
-Phase 3 replaces the manual command with Argo CD, which applies the same chart and values from Git.
+Phase 3 replaces the manual command with Argo CD, which applies the same chart and values from Git. On the laptop cluster this is done (runbook section B5, `deploy/argocd/`): `geosound-staging` follows branch `staging`, so deploying there means merging into `staging`, and `helm upgrade` / `helm uninstall geosound` must never run on that namespace again.
 
 ## Roll back
 

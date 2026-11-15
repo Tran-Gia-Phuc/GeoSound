@@ -1,6 +1,6 @@
 # Deployment plan: CI/CD, Kubernetes, Prometheus and Grafana
 
-Status: **in progress** (proposal 2026-11-09). Phase 0 (tasks 0.1 to 0.10) is done (section 6.1). Phase 1 (tasks 1.1 to 1.3) is built (section 7.1); it is done when a merge to `staging` publishes the 8 images. Phase 2 (tasks 2.1 to 2.6) is built and checked on a local k3s (section 8.6); it is done when the chart runs on the real VM. Phase 3 is not built yet. Later phases need the team's agreement, because they touch every service and the shared infrastructure.
+Status: **in progress** (proposal 2026-11-09). Phase 0 (tasks 0.1 to 0.10) is done (section 6.1). Phase 1 (tasks 1.1 to 1.3) is built (section 7.1); it is done when a merge to `staging` publishes the 8 images. Phase 2 (tasks 2.1 to 2.6) is built and checked on a local k3s (section 8.6); it is done when the chart runs on the real VM. Phase 3 is in progress (section 9.4): Argo CD runs on the laptop cluster (3.1). Later phases need the team's agreement, because they touch every service and the shared infrastructure.
 
 ## 1. Goal and scope
 
@@ -392,6 +392,14 @@ The promote job uses a fine-grained token that can only write `deploy/` contents
 3. Migrations in this release are backward compatible.
 4. `CHANGELOG.md` updated, tag `vX.Y.Z` created (semantic versioning).
 5. After the sync: Grafana overview shows no rise in 5xx or p95 latency for 15 minutes.
+
+### 9.4 Progress and deviations from the plan above
+
+Status: 3.1 (#383) done. Work order and decisions P3-1 to P3-6: `deployment-phase3-implementation.md`.
+
+| # | Issue / PR | Result |
+| --- | --- | --- |
+| 3.1 | #383 | Argo CD v3.6.1 (chart `argo/argo-cd` 10.18.0, `deploy/argocd/values-local.yaml`: no Dex, ApplicationSet controller at 0 replicas, notifications on for 3.4, small limits, `server.insecure` behind a port-forward on `127.0.0.1:4467`, annotation tracking set explicitly so `app.kubernetes.io/instance` in the immutable selectors is left alone) on the laptop k3s. Application `deploy/argocd/apps/geosound-staging.yaml`: branch `staging`, release name `geosound`, values `envs/staging` + `local` + the new `local/values-supabase.yaml` (laptop stack on the team Supabase: migrate Job off, real `ai`, media in `/tmp`), automated sync with prune and self-heal, server-side apply. Runbook section B5 (install, UI password into a file, adoption, never `helm upgrade` / `helm uninstall` afterwards, pause auto-sync, back to compose). Checked on the laptop: the Application adopted the hand-installed Helm release (revision 4, `sha-ba8649d`) and became Synced and Healthy; `/api/tours` answered 200 with the real data. Deviation: adoption rolled all 8 Deployments once. `checksum/config` hashes the rendered ConfigMap template, revision 4 was installed from a Windows checkout with CRLF line ends, and Argo CD renders from Git with LF (an LF render gives exactly Argo CD's hash); `.gitattributes` now keeps `deploy/**` in LF. Before adoption the `ai` pod was recreated once: its image predates #375 and had given up on RabbitMQ (`/readyz` 503). Since `staging` has no chart yet (task 3.2, U1), the live Application tracked the task branch and then a temporary branch: a harmless commit there (an HPA for `client`, min = max = 1) was applied by automated sync about 3.5 minutes after the push, and its revert pruned the HPA, with no pod restart; a hand change of `client` replicas to 2 was put back by self-heal within seconds. The temporary branch is deleted. Supabase was not touched. |
 
 ## 10. Phase 4: observability
 
