@@ -4,7 +4,7 @@ How to set up a GeoSound cluster from nothing and put the stack on it (deploymen
 
 Versions checked with this runbook (2026-11-15): k3s v1.31.4 (Traefik 2.11), cert-manager v1.21.3, Sealed Secrets v0.41.2, Helm 3.
 
-Argo CD (step 4 of plan 8.1) is not part of this runbook: it comes with phase 3. Until then, deploy with `helm upgrade --install`.
+Argo CD (step 4 of plan 8.1, phase 3) is set up on the laptop cluster in section B5. Once Argo CD manages a namespace, deploy through Git only: never `helm upgrade` or `helm uninstall` there.
 
 ## A. A VM with a public host
 
@@ -168,6 +168,40 @@ Expected: every step `[smoke] ...: <code>`, the first place `approved`, the `E2E
 To try the TLS settings, add `--set ingress.host=geosound.localtest --set ingress.clusterIssuer=letsencrypt-staging`: plain HTTP then answers 301, and cert-manager creates the Certificate `geosound-tls`, which stays not ready (Let's Encrypt cannot reach a laptop).
 
 Clean up: `docker rm -f geosound-k3s`.
+
+### B5. Argo CD
+
+Phase 3 (`docs/02-design/deployment-phase3-implementation.md`, task 3.1, issue #383). Argo CD v3.6.1 (chart `argo/argo-cd` 10.18.0) runs in the namespace `argocd` and keeps `geosound-staging` equal to the chart in Git. From this step on, the laptop stack runs on the **team's real Supabase**: the secrets hold the Supabase URLs (sealed and applied by hand, never in Git), and the third values file `deploy/local/values-supabase.yaml` turns off the migrate Job (migrations still go through `docker compose --profile migrate run --rm migrate deploy <svc>`), points moderation at the real `ai` and keeps media files in the pod's `/tmp`. So **never run `scripts/deploy/smoke-staging.sh` against this cluster**: it registers accounts and writes tours.
+
+**Install** (if `helm` is not on the host, run the same commands in `alpine/helm:3.16.4` with `--network container:geosound-k3s` and `--kube-apiserver https://127.0.0.1:6443`):
+
+```sh
+kubectl create namespace argocd
+helm repo add argo https://argoproj.github.io/argo-helm && helm repo update
+helm upgrade --install argocd argo/argo-cd -n argocd --version 10.18.0 \
+  -f deploy/argocd/values-local.yaml --wait
+```
+
+`deploy/argocd/values-local.yaml` keeps it small (no Dex, no ApplicationSet controller, small limits) and sets `application.resourceTrackingMethod: annotation` on purpose: label tracking would overwrite `app.kubernetes.io/instance`, which is part of the chart's immutable Deployment selectors.
+
+**UI:** `kubectl -n argocd port-forward svc/argocd-server 4467:80 --address 127.0.0.1`, then `http://127.0.0.1:4467`, user `admin`. Write the first password to a file without showing it, and change it in the UI (User Info) if the cluster lives long:
+
+```sh
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' \
+  | base64 -d > ~/.kube/geosound-argocd-admin.txt
+```
+
+**Application:** `kubectl apply -f deploy/argocd/apps/geosound-staging.yaml`. It renders `deploy/helm/geosound` from branch `staging` with release name `geosound` (required: selectors and Service names depend on it) and the values `envs/staging`, `local`, `local/values-supabase` in this order. Auto-sync, prune and self-heal are on: a commit on `staging` reaches the cluster within about 3 minutes (Argo CD polls Git), and a hand edit of a tracked object is put back. The secrets are not in the chart, so Argo CD neither tracks nor prunes them.
+
+**Adopting a release installed by hand.** Argo CD takes over the objects of the Helm release `geosound` in place (it adds its tracking annotation). The old `sh.helm.release.v1.geosound.v*` secrets can stay; Helm is no longer used on this namespace. If the release was installed from a Windows checkout with CRLF line endings, the first sync rolls every Deployment once: `checksum/config` hashes the rendered ConfigMap, and Argo CD renders from Git with LF. `.gitattributes` now keeps `deploy/**` in LF, so a local render matches Argo CD's.
+
+**After adoption, never run `helm upgrade` or `helm uninstall geosound` on `geosound-staging`.** An upgrade fights Argo CD; an uninstall deletes the whole stack (the RabbitMQ and Redis volumes too).
+
+**Try a branch without merging:** `kubectl -n argocd patch app geosound-staging --type merge -p '{"spec":{"source":{"targetRevision":"<branch>"}}}'`, and `kubectl apply -f deploy/argocd/apps/geosound-staging.yaml` to go back to `staging`.
+
+**Pause auto-sync** (to try something by hand): `kubectl -n argocd patch app geosound-staging --type merge -p '{"spec":{"syncPolicy":{"automated":null}}}'`. Resume with `kubectl apply -f deploy/argocd/apps/geosound-staging.yaml`.
+
+**Go back to the compose stack** (both use the same Supabase and must not consume events at the same time): pause auto-sync **first**, else self-heal scales the apps back up, then `kubectl -n geosound-staging scale deploy --all --replicas=0`. To return to the cluster, apply the Application again: self-heal brings the replicas back.
 
 ## Troubleshooting
 
