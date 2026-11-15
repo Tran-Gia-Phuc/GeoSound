@@ -62,4 +62,8 @@ export class InMemoryModerationRepository {
     this.rows.set(id, next);
     return copy(next);
   }
+
+  async countByStatus(status) {
+    return [...this.rows.values()].filter((r) => r.status === status).length;
+  }
 }
