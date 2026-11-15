@@ -438,3 +438,125 @@
     font-size: 26px;
   }
 }
+
+/* ---------- Numbered Pagination ---------- */
+.discover-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 24px;
+  padding: 14px 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, var(--bg));
+  box-shadow: var(--shadow-sm);
+}
+
+.discover-pager__info {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--fg-muted);
+}
+
+.discover-pager__info strong {
+  color: var(--fg);
+  font-weight: 700;
+}
+
+.discover-pager__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  max-width: 100%;
+}
+
+.discover-pager__nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.discover-pager__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 11px;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--fg-muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+
+.discover-pager__btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary-soft) 70%, var(--surface-2));
+  color: var(--fg);
+  transform: translateY(-1px);
+}
+
+.discover-pager__btn.is-active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #042f2e;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 32%, transparent);
+}
+
+.discover-pager__btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.discover-pager__next-icon {
+  transform: rotate(180deg);
+}
+
+.discover-pager__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 38px;
+  color: var(--fg-subtle);
+  font-weight: 600;
+  user-select: none;
+}
+
+.discover-pager__more {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 11px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .discover-pager {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px;
+  }
+
+  .discover-pager__info {
+    text-align: center;
+  }
+
+  .discover-pager__controls {
+    justify-content: center;
+  }
+
+  .discover-pager__nav {
+    justify-content: center;
+  }
+}

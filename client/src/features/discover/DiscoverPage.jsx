@@ -31,6 +31,15 @@ import './discover-a.css';
 const LIMIT = 12;
 const RECENT_KEY = 'geosound:recent-tours';
 
+function inferPageSize(data, list) {
+  const explicit = Number(data?.limit ?? data?.pageSize);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  const count = Array.isArray(list) ? list.length : 0;
+  const total = Number(data?.total) || 0;
+  if (count > 0 && count < total) return count;
+  return LIMIT;
+}
+
 function readRecent() {
   try {
     const saved = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
@@ -151,7 +160,12 @@ export default function DiscoverPage() {
   useEffect(() => {
     let alive = true;
     searchTours({ sort: 'popular', limit: LIMIT })
-      .then((r) => { if (alive) { setPopular(r); if (toursLanding) setError(null); } })
+      .then((r) => {
+        if (alive) {
+          setPopular({ ...r, pageSize: inferPageSize(r, r.tours) });
+          if (toursLanding) setError(null);
+        }
+      })
       .catch((e) => { if (alive && toursLanding) setError({ message: e.offline ? 'Mất kết nối mạng' : e.message, offline: e.offline }); });
     return () => { alive = false; };
   }, [retryKey, toursLanding]);
@@ -215,7 +229,11 @@ export default function DiscoverPage() {
     setResultState(null);
     setError(null);
     query(1)
-      .then((r) => alive && setResultState({ key: resultKey, data: r }))
+      .then((r) => {
+        if (!alive) return;
+        const list = tab === 'places' ? r.items : r.tours;
+        setResultState({ key: resultKey, data: { ...r, pageSize: inferPageSize(r, list) } });
+      })
       .catch((e) => alive && setError({ message: e.offline ? 'Mất kết nối mạng' : e.message || 'Không tải được', offline: e.offline }))
       .finally(() => alive && setLoading(false));
     return () => {
@@ -235,17 +253,71 @@ export default function DiscoverPage() {
     try {
       if (which === 'popular') {
         const r = await searchTours({ sort: 'popular', page: popular.page + 1, limit: LIMIT });
-        if (generation === requestGeneration.current) setPopular((p) => ({ ...r, tours: [...p.tours, ...r.tours] }));
+        if (generation === requestGeneration.current) {
+          setPopular((p) => ({
+            ...r,
+            pageSize: p?.pageSize || inferPageSize(r, p?.tours),
+            tours: [...p.tours, ...r.tours],
+          }));
+        }
       } else {
         const r = await query(results.page + 1);
-        if (generation === requestGeneration.current) setResultState((current) => {
-          if (current?.key !== resultKey) return current;
-          const field = tab === 'places' ? 'items' : 'tours';
-          return { key: resultKey, data: { ...r, [field]: [...current.data[field], ...r[field]] } };
-        });
+        if (generation === requestGeneration.current) {
+          setResultState((current) => {
+            if (current?.key !== resultKey) return current;
+            const field = tab === 'places' ? 'items' : 'tours';
+            return {
+              key: resultKey,
+              data: {
+                ...r,
+                pageSize: current.data?.pageSize || inferPageSize(r, current.data?.[field]),
+                [field]: [...current.data[field], ...r[field]],
+              },
+            };
+          });
+        }
       }
     } catch (e) {
       if (generation === requestGeneration.current) setError({ message: e.message || 'Không tải thêm được', retryMore: which });
+    } finally {
+      if (moreRequest.current === request) moreRequest.current = null;
+      if (generation === requestGeneration.current) setLoadingMore(false);
+    }
+  };
+
+  const goToPage = async (which, targetPage) => {
+    const data = which === 'popular' ? popular : results;
+    if (moreRequest.current || !data || targetPage < 1 || targetPage === data.page) return;
+    const request = {};
+    moreRequest.current = request;
+    const generation = requestGeneration.current;
+    setLoadingMore(true);
+    setError(null);
+    try {
+      if (which === 'popular') {
+        const r = await searchTours({ sort: 'popular', page: targetPage, limit: LIMIT });
+        if (generation === requestGeneration.current) {
+          setPopular((p) => ({ ...r, pageSize: p?.pageSize || inferPageSize(r, r.tours) }));
+          document.getElementById('pop-h')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      } else {
+        const r = await query(targetPage);
+        if (generation === requestGeneration.current) {
+          setResultState((current) => {
+            if (current?.key !== resultKey) return current;
+            const field = tab === 'places' ? 'items' : 'tours';
+            return {
+              key: resultKey,
+              data: { ...r, pageSize: current.data?.pageSize || inferPageSize(r, r[field]) },
+            };
+          });
+          document.getElementById('discover-results-h')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    } catch (e) {
+      if (generation === requestGeneration.current) {
+        setError({ message: e.message || 'Không tải được trang', retryPage: { which, page: targetPage } });
+      }
     } finally {
       if (moreRequest.current === request) moreRequest.current = null;
       if (generation === requestGeneration.current) setLoadingMore(false);
@@ -435,7 +507,7 @@ export default function DiscoverPage() {
             <div className="alert__title">{error.message}</div>
             {error.offline ? 'Kiểm tra kết nối rồi thử lại.' : null}
           </div>
-          <button className="btn" onClick={() => { if (error.retryMore) loadMore(error.retryMore); else { setError(null); setRetryKey((n)=>n+1); } }}>Thử lại</button>
+          <button className="btn" onClick={() => { if (error.retryMore) loadMore(error.retryMore); else if (error.retryPage) goToPage(error.retryPage.which, error.retryPage.page); else { setError(null); setRetryKey((n)=>n+1); } }}>Thử lại</button>
         </div>
       ) : null}
 
@@ -510,11 +582,17 @@ export default function DiscoverPage() {
                 <ul className="tourlist tourlist--compact">
                   {popular.tours.map((t) => <TourCard key={t.id} tour={t} />)}
                 </ul>
-                {popular.tours.length < popular.total ? (
-                  <button className="btn loadmore" onClick={() => loadMore('popular')} disabled={loadingMore}>
-                    {loadingMore ? <Icon name="loader" size={16} className="spin" /> : null} Xem thêm
-                  </button>
-                ) : null}
+                <DiscoverPagination
+                  page={popular.page}
+                  pageSize={popular.pageSize || LIMIT}
+                  total={popular.total}
+                  loadedCount={popular.tours.length}
+                  unit="tour"
+                  ariaLabel="Phân trang tour phổ biến"
+                  busy={loadingMore}
+                  onPageChange={(p) => goToPage('popular', p)}
+                  onLoadMore={() => loadMore('popular')}
+                />
               </>
             ) : (
               <p className="muted">Chưa có tour công khai nào.</p>
@@ -522,7 +600,7 @@ export default function DiscoverPage() {
           </section>
         </>
       ) : (
-        <section className="discover__section" aria-live="polite">
+        <section id="discover-results-h" className="discover__section" aria-live="polite">
           <div className="sorts" role="group" aria-label="Sắp xếp">
             {sortOptions.map((o) => (
               <button
@@ -552,11 +630,17 @@ export default function DiscoverPage() {
                 <ul className="tourlist tourlist--compact">
                   {results.tours.map((t) => <TourCard key={t.id} tour={t} />)}
                 </ul>
-                {results.tours.length < results.total ? (
-                  <button className="btn loadmore" onClick={() => loadMore('results')} disabled={loadingMore}>
-                    {loadingMore ? <Icon name="loader" size={16} className="spin" /> : null} Xem thêm
-                  </button>
-                ) : null}
+                <DiscoverPagination
+                  page={results.page}
+                  pageSize={results.pageSize || LIMIT}
+                  total={results.total}
+                  loadedCount={results.tours.length}
+                  unit="tour"
+                  ariaLabel="Phân trang kết quả tour"
+                  busy={loadingMore}
+                  onPageChange={(p) => goToPage('results', p)}
+                  onLoadMore={() => loadMore('results')}
+                />
               </>
             ) : (
               <Empty what="tour" onReset={resetFilters} canReset={!!(q || filterCount)} />
@@ -596,11 +680,17 @@ export default function DiscoverPage() {
                   </li>
                 ))}
               </ul>
-              {results.items.length < results.total ? (
-                <button className="btn loadmore" onClick={() => loadMore('results')} disabled={loadingMore}>
-                  {loadingMore ? <Icon name="loader" size={16} className="spin" /> : null} Xem thêm
-                </button>
-              ) : null}
+              <DiscoverPagination
+                page={results.page}
+                pageSize={results.pageSize || LIMIT}
+                total={results.total}
+                loadedCount={results.items.length}
+                unit="địa điểm"
+                ariaLabel="Phân trang kết quả địa điểm"
+                busy={loadingMore}
+                onPageChange={(p) => goToPage('results', p)}
+                onLoadMore={() => loadMore('results')}
+              />
             </>
           ) : (
             <Empty what="địa điểm" onReset={resetFilters} canReset={!!(q || filterCount)} />
@@ -923,5 +1013,85 @@ function DiscoverSelectField({ id, label, icon, emptyLabel, value, options, defa
         </ul>
       ) : null}
     </div>
+  );
+}
+
+function buildPageItems(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 3) return [1, 2, 3, 4, 'ellipsis-end', total];
+  if (current >= total - 2) return [1, 'ellipsis-start', total - 3, total - 2, total - 1, total];
+  return [1, 'ellipsis-start', current - 1, current, current + 1, 'ellipsis-end', total];
+}
+
+function DiscoverPagination({
+  page,
+  pageSize,
+  total,
+  loadedCount,
+  unit,
+  ariaLabel,
+  busy,
+  onPageChange,
+  onLoadMore,
+}) {
+  if (!total || total <= 0) return null;
+  const safeSize = pageSize > 0 ? pageSize : LIMIT;
+  const totalPages = Math.max(1, Math.ceil(total / safeSize));
+  const currentPage = Math.min(totalPages, Math.max(1, Number(page) || 1));
+  const pages = buildPageItems(currentPage, totalPages);
+  const canLoadMore = currentPage < totalPages && loadedCount < total;
+
+  return (
+    <nav className="discover-pager" aria-label={ariaLabel}>
+      <p className="discover-pager__info">
+        Trang <strong>{currentPage}</strong> / {totalPages} · {total} {unit}
+      </p>
+      <div className="discover-pager__controls">
+        <div className="discover-pager__nav">
+          <button
+            type="button"
+            className="discover-pager__btn discover-pager__btn--step"
+            aria-label="Trang trước"
+            disabled={busy || currentPage <= 1}
+            onClick={() => onPageChange(currentPage - 1)}
+          >
+            <Icon name="chevron-left" size={16} />
+          </button>
+          {pages.map((item) =>
+            typeof item === 'number' ? (
+              <button
+                key={item}
+                type="button"
+                className={`discover-pager__btn ${item === currentPage ? 'is-active' : ''}`}
+                aria-current={item === currentPage ? 'page' : undefined}
+                disabled={busy}
+                onClick={() => onPageChange(item)}
+              >
+                {item}
+              </button>
+            ) : (
+              <span key={item} className="discover-pager__ellipsis" aria-hidden="true">
+                …
+              </span>
+            ),
+          )}
+          <button
+            type="button"
+            className="discover-pager__btn discover-pager__btn--step"
+            aria-label="Trang sau"
+            disabled={busy || currentPage >= totalPages}
+            onClick={() => onPageChange(currentPage + 1)}
+          >
+            <Icon name="chevron-left" size={16} className="discover-pager__next-icon" />
+          </button>
+        </div>
+        {canLoadMore ? (
+          <button type="button" className="btn btn--ghost discover-pager__more" onClick={onLoadMore} disabled={busy}>
+            {busy ? <Icon name="loader" size={15} className="spin" /> : null}
+            Xem thêm
+          </button>
+        ) : null}
+      </div>
+    </nav>
   );
 }
