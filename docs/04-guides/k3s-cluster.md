@@ -171,11 +171,7 @@ Clean up: `docker rm -f geosound-k3s`.
 
 ## Troubleshooting
 
-**`ai` stays not ready after a fresh install** (`/readyz` answers 503 with `"rabbitmq":"down"`). Known bug: the chatbot indexer tries RabbitMQ for about 30 seconds at start and then gives up for the life of the pod. On a new cluster the RabbitMQ StatefulSet takes longer than that (volume, first boot). The Node services reconnect by themselves. Fix for now:
-
-```sh
-kubectl -n geosound-staging rollout restart deploy/ai
-```
+**`ai` is not ready for a few minutes after a fresh install** (`/readyz` answers 503 with `"rabbitmq":"down"`). Expected: on a new cluster the RabbitMQ StatefulSet takes a while (volume, first boot), and the chatbot indexer waits for it in the background (since #375: retry after 3 s, doubling, at most 30 s apart, no limit). The logs show `RabbitMQ not ready ... retry <n>`, then `RabbitMQ connected after <n> attempts`, and the pod turns ready by itself. Nothing to restart. If it never connects, check `kubectl -n <ns> get pods rabbitmq-0` and the `geosound-infra` / `geosound-broker` secrets.
 
 **A release stuck in `pending-install` or `pending-upgrade`** (after the laptop slept, or a lost connection during `--wait`): `helm history geosound -n <ns>` shows it. If no helm command is still running, delete the release secret of that revision (`kubectl -n <ns> delete secret sh.helm.release.v1.geosound.v<N>`) and run the upgrade again; Helm takes over the existing objects.
 
