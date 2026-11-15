@@ -807,19 +807,19 @@
   color: var(--primary);
 }
 .notif__icon--success {
-  background: color-mix(in srgb, #10b981 16%, var(--surface-2));
-  border-color: color-mix(in srgb, #10b981 36%, transparent);
-  color: #34d399;
+  background: color-mix(in srgb, var(--success) 15%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
+  color: var(--success);
 }
 .notif__icon--danger {
-  background: color-mix(in srgb, var(--danger) 16%, var(--surface-2));
-  border-color: color-mix(in srgb, var(--danger) 36%, transparent);
-  color: #f87171;
+  background: var(--danger-soft);
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+  color: var(--danger);
 }
 .notif__icon--warn {
-  background: color-mix(in srgb, #f59e0b 16%, var(--surface-2));
-  border-color: color-mix(in srgb, #f59e0b 36%, transparent);
-  color: #fbbf24;
+  background: color-mix(in srgb, var(--warning) 15%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--warning) 35%, transparent);
+  color: var(--warning);
 }
 .notif__icon--primary {
   background: color-mix(in srgb, var(--primary) 16%, var(--surface-2));
@@ -861,19 +861,19 @@
   color: var(--fg-muted);
 }
 .notif__tag--success {
-  border-color: color-mix(in srgb, #10b981 36%, transparent);
-  background: color-mix(in srgb, #10b981 14%, transparent);
-  color: #34d399;
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
 }
 .notif__tag--danger {
-  border-color: color-mix(in srgb, var(--danger) 36%, transparent);
-  background: color-mix(in srgb, var(--danger) 14%, transparent);
-  color: #f87171;
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 .notif__tag--warn {
-  border-color: color-mix(in srgb, #f59e0b 36%, transparent);
-  background: color-mix(in srgb, #f59e0b 14%, transparent);
-  color: #fbbf24;
+  border-color: color-mix(in srgb, var(--warning) 35%, transparent);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  color: var(--warning);
 }
 .notif__tag--primary {
   border-color: color-mix(in srgb, var(--primary) 38%, transparent);

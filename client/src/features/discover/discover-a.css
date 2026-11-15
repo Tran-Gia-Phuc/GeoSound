@@ -509,7 +509,7 @@
 .discover-pager__btn.is-active {
   border-color: var(--primary);
   background: var(--primary);
-  color: #042f2e;
+  color: var(--primary-fg);
   box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 32%, transparent);
 }
 
