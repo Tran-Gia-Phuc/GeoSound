@@ -1,0 +1,5 @@
+# Alert rules (task 4.7): PrometheusRule objects with the label release: kube-prometheus-stack.
+# Empty until then.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []
