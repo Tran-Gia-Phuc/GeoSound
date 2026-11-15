@@ -18,6 +18,8 @@ import { RunTourReview } from './application/use-cases/run-tour-review.js';
 import { RetryFailedCases } from './application/use-cases/retry-failed-cases.js';
 import { createPlaceSubmittedHandler } from './interfaces/events/place-submitted-consumer.js';
 import { createTourSubmittedHandler } from './interfaces/events/tour-submitted-consumer.js';
+import { createPromModerationMetrics } from './infrastructure/metrics/prom-moderation-metrics.js';
+import { NOOP_MODERATION_METRICS } from './domain/ports/index.js';
 
 const systemClock = Object.freeze({ now: () => new Date() });
 
@@ -25,12 +27,19 @@ const systemClock = Object.freeze({ now: () => new Date() });
  * @param {{ prisma: object, publish: (eventName: string, payload: object) => Promise<void>,
  *           validateEvent: (eventName: string, payload: object) => object,
  *           config: ReturnType<typeof import('./config.js').loadConfig>, fetchImpl?: typeof fetch,
- *           clock?: { now: () => Date }, logger?: Pick<Console, 'info' | 'warn' | 'error'> }} deps
+ *           clock?: { now: () => Date }, logger?: Pick<Console, 'info' | 'warn' | 'error'>,
+ *           metricFactories?: { counter: Function, histogram: Function, gauge: Function } }} deps
+ *   metricFactories: the factories of shared/metrics createMetrics() (task 4.4); without them the
+ *   ModerationMetrics port is a no-op.
  */
 export function buildContainer({
   prisma, publish, validateEvent, config, fetchImpl = globalThis.fetch, clock = systemClock, logger = console,
+  metricFactories,
 }) {
   // --- infrastructure ---
+  const moderationMetrics = metricFactories
+    ? createPromModerationMetrics(metricFactories, { logger })
+    : NOOP_MODERATION_METRICS;
   const repo = new PrismaModerationRepository(prisma);
   const aiReviewer = new HttpAiReviewer({
     baseUrl: config.ai.baseUrl,
@@ -43,8 +52,11 @@ export function buildContainer({
   const publisher = new EventPublisher({ publish, validate: validateEvent });
 
   // --- application ---
-  const runPlaceReview = new RunPlaceReview({ repo, aiReviewer, publisher, clock, logger });
-  const runTourReview = new RunTourReview({ repo, aiReviewer, publisher, clock, logger, geoLimits: config.geo });
+  const metrics = moderationMetrics; // case outcomes and AI failures (task 4.4)
+  const runPlaceReview = new RunPlaceReview({ repo, aiReviewer, publisher, clock, logger, metrics });
+  const runTourReview = new RunTourReview({
+    repo, aiReviewer, publisher, clock, logger, metrics, geoLimits: config.geo,
+  });
   // Sweeper use-case (#AI-38); index.js starts its timer.
   const retryFailedCases = new RetryFailedCases({
     repo,
@@ -65,5 +77,5 @@ export function buildContainer({
     tourSubmitted: createTourSubmittedHandler({ runTourReview, validate: validateEvent, logger }),
   });
 
-  return { repo, aiReviewer, publisher, runPlaceReview, runTourReview, retryFailedCases, handlers };
+  return { repo, aiReviewer, publisher, runPlaceReview, runTourReview, retryFailedCases, handlers, moderationMetrics };
 }
