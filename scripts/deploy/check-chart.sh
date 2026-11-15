@@ -10,6 +10,8 @@ set -eu
 
 CHART=deploy/helm/geosound
 K8S_VERSION=${1:-1.31.0}
+# Kubernetes schemas, then the community catalog for CRDs (Traefik Middleware; ServiceMonitor later).
+CRD_SCHEMAS='https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
 OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
 
@@ -20,7 +22,8 @@ for values in deploy/envs/*/values.yaml; do
   helm lint --strict "$CHART" -f "$values" || { fail=1; continue; }
   echo "[chart] $env: template + kubeconform (Kubernetes $K8S_VERSION)"
   helm template geosound "$CHART" -n "geosound-$env" -f "$values" > "$OUT/$env.yaml" || { fail=1; continue; }
-  kubeconform -strict -summary -kubernetes-version "$K8S_VERSION" "$OUT/$env.yaml" || fail=1
+  kubeconform -strict -summary -kubernetes-version "$K8S_VERSION" \
+    -schema-location default -schema-location "$CRD_SCHEMAS" "$OUT/$env.yaml" || fail=1
 done
 
 echo "[chart] a release without an image tag must not render"
