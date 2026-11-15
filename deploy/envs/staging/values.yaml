@@ -12,6 +12,12 @@ global:
 optionalSecrets:
   - geosound-smtp
 
+# Public host (task 2.6): an A record to the VM. Let's Encrypt issues the certificate through the
+# HTTP-01 challenge, so port 80 must stay open.
+ingress:
+  host: staging.geosound.example.com
+  clusterIssuer: letsencrypt-prod
+
 services:
   media:
     env:

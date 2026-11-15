@@ -1,0 +1,19 @@
+# Namespaces of the GeoSound cluster (cluster runbook step 6, docs/04-guides/k3s-cluster.md).
+# One Helm release per environment namespace; monitoring comes with phase 4.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: geosound-staging
+  labels: { app.kubernetes.io/part-of: geosound }
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: geosound-prod
+  labels: { app.kubernetes.io/part-of: geosound }
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels: { app.kubernetes.io/part-of: geosound }
