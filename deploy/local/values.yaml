@@ -14,3 +14,12 @@ services:
   media:
     env:
       MEDIA_PUBLIC_BASE_URL: http://localhost/api/media/files
+
+# Prometheus scraping (phase 4, task 4.5): the laptop cluster runs kube-prometheus-stack (task 4.1).
+metrics:
+  serviceMonitor:
+    enabled: true
+
+redis:
+  exporter:
+    enabled: true
