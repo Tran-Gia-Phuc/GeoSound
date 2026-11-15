@@ -68,6 +68,7 @@ import StudioTourLayout from './features/studio/StudioTourLayout.jsx';
 import PublishStepPage from './features/studio/PublishStepPage.jsx';
 import TourStatsPage from './features/studio/TourStatsPage.jsx';
 import AccountPage from './features/account/AccountPage.jsx';
+import MyRatingsPage from './features/account/MyRatingsPage.jsx';
 import DevicesPage from './features/account/DevicesPage.jsx';
 import ChangePasswordPage from './features/account/ChangePasswordPage.jsx';
 import OnlineDevicesPage from './features/admin/OnlineDevicesPage.jsx';
@@ -201,6 +202,7 @@ const router = createBrowserRouter(
         <Route path="/admin/reports/:tourId" element={<RequireAuth><ReportDossierPage /></RequireAuth>} />
         <Route path="/account/profile" element={<RequireAuth><ProfileEditPage /></RequireAuth>} />
         <Route path="/account/following" element={<RequireAuth><FollowingPage /></RequireAuth>} />
+        <Route path="/account/ratings" element={<RequireAuth><MyRatingsPage /></RequireAuth>} />
         <Route path="/authors/:id" element={<AuthorPage />} />
         <Route path="/offline" element={<OfflineLibraryPage />} />
         <Route path="/chat" element={<ChatPage />} />
