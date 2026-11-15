@@ -199,6 +199,17 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.pas
 
 **Smoke test after every sync** (task 3.3, issue #388). The Job `geosound-smoke` is an Argo CD PostSync hook: when every object is healthy, it calls the readiness path of each enabled app and `GET http://gateway:8080/api/tours?limit=1` (200 with JSON), each check retried for up to 120 s. It is read only, so it is safe on the Supabase-backed cluster. A failed check marks the sync **Failed** in Argo CD; the running pods stay as they are. Result: `kubectl -n geosound-staging logs job/geosound-smoke` (one `OK` or `FAIL` line per check; the Job stays until the next sync replaces it).
 
+**Sync results in Discord** (task 3.4, issue #394). The notifications controller posts one message per sync of `geosound-staging`: ✅ synced (smoke test passed), ❌ sync failed (with the failed hook, for example `Job/geosound-smoke`), ⚠️ Degraded. Each names the image tag, the short revision and the link to the app. The triggers, templates and the webhook service `discord` are in `deploy/argocd/values-local.yaml` (applied with the `helm upgrade argocd` above); the Application subscribes with its `notifications.argoproj.io/subscribe.*.discord` annotations. The webhook URL is a secret and never goes into Git: create the Secret by hand once, from a local file or the key `WEBHOOK_DISCORD_URL` of the root `.env`, without printing it (Git Bash, from the repo root):
+
+```sh
+kubectl -n argocd delete secret argocd-notifications-secret --ignore-not-found
+url=$(grep -m1 '^WEBHOOK_DISCORD_URL=' .env | cut -d= -f2- | tr -d '\r"'"'"'') && \
+  kubectl -n argocd create secret generic argocd-notifications-secret \
+    --from-literal="discord-webhook-url=$url"; unset url
+```
+
+Check the key name only: `kubectl -n argocd get secret argocd-notifications-secret -o jsonpath='{.data}' | grep -o discord-webhook-url`. The controller reads the Secret on change, no restart. When a message does not arrive: `kubectl -n argocd logs deploy/argocd-notifications-controller --since 10m | sed -E 's#https://[^ "]*#<url>#g'` (the `sed` hides the webhook URL).
+
 **Try a branch without merging:** `kubectl -n argocd patch app geosound-staging --type merge -p '{"spec":{"source":{"targetRevision":"<branch>"}}}'`, and `kubectl apply -f deploy/argocd/apps/geosound-staging.yaml` to go back to `staging`.
 
 **Pause auto-sync** (to try something by hand): `kubectl -n argocd patch app geosound-staging --type merge -p '{"spec":{"syncPolicy":{"automated":null}}}'`. Resume with `kubectl apply -f deploy/argocd/apps/geosound-staging.yaml`.
