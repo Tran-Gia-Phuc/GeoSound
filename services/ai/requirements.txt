@@ -21,3 +21,7 @@ aio-pika==9.4.*
 langgraph-checkpoint-postgres==3.2.*
 psycopg[binary]==3.3.*
 psycopg-pool==3.3.*
+# Prometheus metrics, GET /metrics (deployment task 4.3, #400). Instrumentator 8.x needs
+# Starlette 1.x; FastAPI 0.115 pins Starlette below 0.47, so 7.1.0 is the newest that fits.
+prometheus_client==0.26.0
+prometheus-fastapi-instrumentator==7.1.0

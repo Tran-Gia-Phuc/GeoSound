@@ -30,7 +30,15 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from app.chatbot.rag.indexer import OUTCOME_INVALID, RETRYABLE, Indexer
+from app import metrics
+from app.chatbot.rag.indexer import (
+    OUTCOME_DELETED,
+    OUTCOME_INDEXED,
+    OUTCOME_INVALID,
+    OUTCOME_NOT_PUBLIC,
+    RETRYABLE,
+    Indexer,
+)
 
 log = logging.getLogger(__name__)
 
@@ -49,6 +57,23 @@ ACKED = "acked"
 REJECTED = "rejected"
 RETRIED = "retried"
 REQUEUED = "requeued"
+
+
+def metric_result(outcome: str) -> str:
+    """chatbot_indexer_events_total result of one handled message.
+
+    indexed: the tour is in the index; removed: it was taken out (unpublish, or a
+    published event whose status is not public); failed: invalid payload or a
+    temporary error (each delivery counts); skipped: everything else (duplicate,
+    stale, unpublish of a tour that was not indexed, routing key not handled).
+    """
+    if outcome == OUTCOME_INDEXED:
+        return "indexed"
+    if outcome in (OUTCOME_DELETED, OUTCOME_NOT_PUBLIC):
+        return "removed"
+    if outcome == OUTCOME_INVALID or should_requeue(outcome):
+        return "failed"
+    return "skipped"
 
 
 def should_requeue(outcome: str) -> bool:
@@ -110,6 +135,7 @@ async def handle_message(
     except Exception as exc:  # noqa: BLE001 - dispatch never raises; belt and braces
         log.error("chatbot index: %s handler failed (%s)", key, type(exc).__name__)
         outcome = "error"
+    metrics.record_indexer_event(key, metric_result(outcome))
 
     if outcome == OUTCOME_INVALID:
         await message.reject(requeue=False)
