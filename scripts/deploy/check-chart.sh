@@ -29,4 +29,12 @@ if helm template geosound "$CHART" > /dev/null 2>&1; then
   fail=1
 fi
 
+echo "[chart] rabbitmq.enabled=false and redis.enabled=false render no broker (external broker)"
+n=$(helm template geosound "$CHART" -f deploy/envs/staging/values.yaml \
+  --set rabbitmq.enabled=false --set redis.enabled=false | grep -c '^kind: StatefulSet' || true)
+if [ "$n" != "0" ]; then
+  echo "[chart] FAIL: $n StatefulSet(s) rendered with the broker switched off"
+  fail=1
+fi
+
 exit "$fail"
