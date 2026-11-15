@@ -1,0 +1,54 @@
+{{- /*
+Prometheus scraping (deployment plan phase 4, task 4.5). Rendered only when
+metrics.serviceMonitor.enabled: the ServiceMonitor CRD comes with kube-prometheus-stack (task 4.1),
+whose Prometheus selects the ServiceMonitors by metrics.serviceMonitor.labels.
+  - every enabled app with `metrics: true`: GET /metrics on its port `http`;
+  - RabbitMQ (rabbitmq_prometheus plugin): port `metrics` 15692;
+  - Redis, when its exporter sidecar runs: port `metrics` 9121.
+Each one selects the Service of its app by the app's selector labels, in the release namespace.
+The NetworkPolicies let networkPolicy.monitoringNamespace reach these ports.
+*/ -}}
+{{- $root := . }}
+{{- with .Values.metrics.serviceMonitor }}
+{{- if .enabled }}
+{{- $sm := . }}
+{{- $targets := list }}
+{{- range $name, $raw := $root.Values.services }}
+{{- if ne (toString (dig "enabled" true ($raw | default dict))) "false" }}
+{{- $app := include "geosound.app" (dict "root" $root "app" $raw) | fromYaml }}
+{{- if $app.metrics }}
+{{- $targets = append $targets (dict "name" $name "port" "http") }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if $root.Values.rabbitmq.enabled }}
+{{- $targets = append $targets (dict "name" "rabbitmq" "port" "metrics") }}
+{{- end }}
+{{- if and $root.Values.redis.enabled $root.Values.redis.exporter.enabled }}
+{{- $targets = append $targets (dict "name" "redis" "port" "metrics") }}
+{{- end }}
+{{- range $targets }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- include "geosound.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: {{ .name }}
+    {{- with $sm.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "geosound.selector" (dict "root" $root "name" .name) | nindent 6 }}
+  namespaceSelector:
+    matchNames: [{{ $root.Release.Namespace }}]
+  endpoints:
+    - port: {{ .port }}
+      path: /metrics
+      interval: {{ $sm.interval }}
+{{- end }}
+{{- end }}
+{{- end }}
