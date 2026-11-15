@@ -273,8 +273,8 @@
     },
     {
       "type": "timeseries",
-      "title": "Node disk usage (/)",
-      "description": "",
+      "title": "Node disk usage",
+      "description": "Used share of each node disk, one line per device. Host drives that Docker Desktop mounts into the node (9p, drvfs) and virtual filesystems are left out, as in the DiskAlmostFull alert.",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -285,8 +285,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "1 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}",
-          "legendFormat": "{{instance}}",
+          "expr": "max by (instance, device) (1 - node_filesystem_avail_bytes{job=\"node-exporter\", fstype!=\"\", fstype!~\"tmpfs|ramfs|squashfs|overlay|nsfs|fuse.*|9p|drvfs\"} / node_filesystem_size_bytes{job=\"node-exporter\", fstype!=\"\", fstype!~\"tmpfs|ramfs|squashfs|overlay|nsfs|fuse.*|9p|drvfs\"})",
+          "legendFormat": "{{instance}} {{device}}",
           "refId": "A",
           "range": true,
           "instant": false,
