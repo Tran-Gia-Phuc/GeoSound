@@ -36,6 +36,7 @@ from typing import Any
 
 from app.chatbot.agent import ChatAgent
 from app.chatbot.limits import ChatBusyError, SlidingWindowLimiter
+from app.chatbot.llm_metrics import with_llm_metrics
 from app.chatbot.memory import (
     ChatMemory,
     ChatMetadataStore,
@@ -82,7 +83,8 @@ class GuardedChatModel:
 
     def _get(self) -> Any:
         if self._model is None:
-            self._model = self._factory()
+            # LLM metrics with task="chat" (deployment task 4.3).
+            self._model = with_llm_metrics(self._factory())
         return self._model
 
     async def ainvoke(self, messages, *args, **kwargs):
@@ -94,7 +96,7 @@ class GuardedChatModel:
             if self._overflow_factory is None:
                 raise ChatBusyError(retry_after, "chat_cap")
             if self._overflow is None:
-                self._overflow = self._overflow_factory()
+                self._overflow = with_llm_metrics(self._overflow_factory())
             # Groq overflow: outside the Gemini cap and the moderation slot.
             return await self._overflow.ainvoke(messages, *args, **kwargs)
         async with semaphore:
