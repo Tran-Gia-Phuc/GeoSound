@@ -1,0 +1,140 @@
+# Values of the prometheus-community/kube-prometheus-stack chart, pinned to 93.3.0 (Prometheus Operator
+# v0.95.2) in deploy/argocd/apps/monitoring.yaml. Installed by Argo CD (task 4.1, issue #398; runbook
+# docs/04-guides/k3s-cluster.md section B6). Never `helm upgrade` this release by hand.
+#
+# Laptop sizing (decision P4-3): retention 2 days, a 3 Gi local-path volume, no Grafana volume, small
+# requests and limits on every container. The target for a real cluster is deployment plan section 10.1:
+# retention 7 days and a 10 Gi volume for Prometheus, more memory for Prometheus and Grafana.
+
+# k3s runs etcd, the scheduler, the controller manager and the proxy inside the k3s process: their
+# endpoints are not reachable, so their targets would always be down. This also drops their rules.
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+prometheusOperator:
+  # The admission webhook only validates PrometheusRule and AlertmanagerConfig objects at apply time.
+  # With it on, the chart runs two certificate Jobs as Helm hooks and patches the caBundle of the
+  # webhook configurations after the sync: Argo CD then sees a drift on every refresh and self-heal
+  # puts the empty caBundle back, which breaks the webhook. Off on the laptop: the rules of task 4.7 are
+  # checked with `promtool check rules` instead. The operator's TLS listener uses the certificate made
+  # by those Jobs, so it is off too (the operator is only reached inside the cluster).
+  admissionWebhooks:
+    enabled: false
+  tls:
+    enabled: false
+  resources:
+    requests: { cpu: 20m, memory: 48Mi }
+    limits: { cpu: 200m, memory: 128Mi }
+  # The config-reloader sidecar of the Prometheus and Alertmanager pods.
+  prometheusConfigReloader:
+    resources:
+      requests: { cpu: 10m, memory: 24Mi }
+      limits: { cpu: 100m, memory: 48Mi }
+
+prometheus:
+  prometheusSpec:
+    scrapeInterval: 30s
+    evaluationInterval: 30s
+    retention: 2d
+    retentionSize: 2GB
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 3Gi
+    resources:
+      requests: { cpu: 100m, memory: 300Mi }
+      limits: { cpu: "1", memory: 900Mi }
+    # ServiceMonitors, PodMonitors and PrometheusRules are picked up in every namespace when they carry
+    # the label `release: kube-prometheus-stack` (the *NilUsesHelmValues defaults select on it).
+    serviceMonitorSelectorNilUsesHelmValues: true
+    serviceMonitorNamespaceSelector: {}
+    podMonitorSelectorNilUsesHelmValues: true
+    podMonitorNamespaceSelector: {}
+    ruleSelectorNilUsesHelmValues: true
+    ruleNamespaceSelector: {}
+
+alertmanager:
+  alertmanagerSpec:
+    replicas: 1
+    resources:
+      requests: { cpu: 10m, memory: 32Mi }
+      limits: { cpu: 100m, memory: 64Mi }
+  # The chart's default config stays for now: every alert goes to the receiver "null".
+  # Task 4.7 adds the Discord receiver here (alertmanager.config, secret alertmanager-discord).
+
+grafana:
+  # Login with the Secret made by hand in the namespace monitoring (runbook B6), never in Git.
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  persistence:
+    enabled: false # dashboards and datasources come from ConfigMaps; nothing to keep
+  testFramework:
+    enabled: false
+  grafana.ini:
+    auth.anonymous:
+      enabled: false
+    users:
+      allow_sign_up: false
+    analytics:
+      check_for_updates: false
+      reporting_enabled: false
+  resources:
+    requests: { cpu: 50m, memory: 192Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+  sidecar:
+    # One value for both sidecars (dashboards and datasources).
+    resources:
+      requests: { cpu: 10m, memory: 48Mi }
+      limits: { cpu: 100m, memory: 128Mi }
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+      # Task 4.6 puts its dashboards in the folder GeoSound with this annotation on the ConfigMap.
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true
+    datasources:
+      enabled: true
+      defaultDatasourceEnabled: true
+      isDefaultDatasource: true
+      name: Prometheus
+      uid: prometheus # fixed, so links and provisioned objects can name it
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      uid: loki
+      access: proxy
+      url: http://loki:3100 # Service of the loki release, same namespace
+      isDefault: false
+      jsonData:
+        maxLines: 1000
+
+kube-state-metrics:
+  resources:
+    requests: { cpu: 10m, memory: 48Mi }
+    limits: { cpu: 100m, memory: 128Mi }
+
+prometheus-node-exporter:
+  # k3s runs inside a Docker container whose / is usually not a shared mount; HostToContainer
+  # propagation then stops the pod from starting. Without propagation the root is still mounted
+  # (filesystem metrics keep working), only mounts made after the start are not seen.
+  hostRootFsMount:
+    enabled: true
+    mountPropagation: ""
+  resources:
+    requests: { cpu: 10m, memory: 24Mi }
+    limits: { cpu: 100m, memory: 64Mi }

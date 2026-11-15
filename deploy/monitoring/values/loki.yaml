@@ -1,0 +1,74 @@
+# Values of the grafana/loki chart, pinned to 7.6.0 (Loki 3.6) in deploy/argocd/apps/monitoring.yaml.
+# Installed by Argo CD (task 4.1, issue #398; runbook docs/04-guides/k3s-cluster.md section B6).
+# Never `helm upgrade` this release by hand.
+#
+# One pod that runs every Loki module (SingleBinary) on a 3 Gi local-path volume, logs kept 48 hours
+# (decision P4-3). Alloy pushes to http://loki:3100/loki/api/v1/push and Grafana reads the same Service.
+# The target for a real cluster is deployment plan section 10.1 (7 days, object storage, 10 Gi).
+
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false # one tenant, reached only inside the cluster
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+  schemaConfig:
+    configs:
+      - from: "2024-04-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+  limits_config:
+    retention_period: 48h
+    allow_structured_metadata: true # reqId is sent as structured metadata, not as a label
+    volume_enabled: true
+  compactor:
+    retention_enabled: true
+    delete_request_store: filesystem
+  pattern_ingester:
+    enabled: false
+  analytics:
+    reporting_enabled: false
+
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: true
+    storageClass: local-path
+    size: 3Gi
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { cpu: "1", memory: 768Mi }
+
+# The scalable targets stay empty in SingleBinary mode.
+read:
+  replicas: 0
+write:
+  replicas: 0
+backend:
+  replicas: 0
+
+# The memcached caches of the chart ask for several GiB: off.
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+
+gateway:
+  enabled: false # nginx in front of Loki is not needed with one pod and no auth
+lokiCanary:
+  enabled: false
+test:
+  enabled: false
+minio:
+  enabled: false
+
+# The rules sidecar loads Loki alerting rules from ConfigMaps; alerts come from Prometheus instead.
+sidecar:
+  rules:
+    enabled: false
