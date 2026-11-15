@@ -11,7 +11,7 @@ import { mountChat } from './chat.js';
 import { createChatRateLimit, createRedisStore } from './chat-rate-limit.js';
 import { createRequestLogger } from './request-log.js';
 import { parseTrustProxy } from './trust-proxy.js';
-import { createMetrics } from './metrics.js';
+import { createMetrics, refuseServiceMetrics } from './metrics.js';
 
 const app = express();
 const PORT = process.env.GATEWAY_PORT || 8080;
@@ -68,8 +68,11 @@ app.get('/readyz', async (_req, res) => {
   }
   res.json({ status: 'ready', service: 'gateway', checks: { redis: up ? 'ok' : 'down' } });
 });
-// GET /metrics, no auth: the ingress only sends /api here (and /api/metrics is a 404).
+// GET /metrics, no auth. Internal: Traefik routes only /api to the gateway.
 metrics.registerMetricsRoute(app);
+// The proxies strip the mount prefix, so /api/tours/metrics would reach Tour's /metrics (no auth):
+// any /api/.../metrics is a 404 here, before the rate limit and every proxy.
+app.use(refuseServiceMetrics);
 
 app.use(rateLimit);
 

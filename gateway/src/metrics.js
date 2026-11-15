@@ -16,6 +16,31 @@ export function routeLabel(path, prefixes) {
   return 'unmatched';
 }
 
+// /api/<anything>/metrics (any case, optional trailing slash): the proxies strip the mount prefix,
+// so /api/tours/metrics would reach the /metrics route of a service, which has no auth.
+const INTERNAL_METRICS_PATH = /^\/api(?:\/.*)?\/metrics\/?$/i;
+
+/** True when the path (query string ignored, percent-escapes decoded) ends in a `metrics` segment under /api. */
+export function isServiceMetricsPath(url) {
+  const path = String(url || '').split('?')[0];
+  let decoded = path;
+  try {
+    decoded = decodeURIComponent(path);
+  } catch {
+    // malformed escape: test the raw path only
+  }
+  return INTERNAL_METRICS_PATH.test(path) || INTERNAL_METRICS_PATH.test(decoded);
+}
+
+/**
+ * Middleware: 404 (same body as the gateway's other 404s) for /api/.../metrics, so the services'
+ * /metrics stay internal. Register it before the proxies.
+ */
+export function refuseServiceMetrics(req, res, next) {
+  if (isServiceMetricsPath(req.originalUrl || req.url)) return res.status(404).json({ error: 'Not found' });
+  next();
+}
+
 /**
  * @param {{ prefixes: string[], service?: string, collectDefault?: boolean }} opts
  *   prefixes: the mounted paths, in the order the gateway registers them.
@@ -54,7 +79,10 @@ export function createMetrics({ prefixes, service = 'gateway', collectDefault = 
     };
   }
 
-  /** GET /metrics (no auth). The ingress only sends /api to the gateway, so it stays internal. */
+  /**
+   * GET /metrics (no auth). Internal: Traefik routes only /api to the gateway, and the gateway
+   * refuses /api/.../metrics (refuseServiceMetrics).
+   */
   function registerMetricsRoute(app) {
     app.get('/metrics', async (_req, res) => {
       try {

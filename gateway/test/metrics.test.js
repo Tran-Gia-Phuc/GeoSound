@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import { createMetrics, routeLabel } from '../src/metrics.js';
+import { createMetrics, isServiceMetricsPath, refuseServiceMetrics, routeLabel } from '../src/metrics.js';
 
 const servers = [];
 after(() => servers.forEach((s) => (s.closeAllConnections(), s.close())));
@@ -21,9 +21,11 @@ function listen(handler) {
 
 const PREFIXES = ['/api/auth', '/api/tours', '/api/geocode'];
 
-/** Gateway laid out like gateway/src/index.js: metrics, health, /metrics, geocode, proxies, 404. */
+/** Gateway laid out like gateway/src/index.js: metrics, health, /metrics, refuse, geocode, proxies, 404. */
 async function gateway() {
+  const upstreamHits = [];
   const target = await listen((req, res) => {
+    upstreamHits.push(req.url);
     res.writeHead(req.url.startsWith('/missing') ? 404 : 200, { 'content-type': 'application/json' });
     res.end('{}');
   });
@@ -33,12 +35,13 @@ async function gateway() {
   app.get('/healthz', (_req, res) => res.json({ status: 'ok' }));
   app.get('/readyz', (_req, res) => res.json({ status: 'ready' }));
   metrics.registerMetricsRoute(app);
+  app.use(refuseServiceMetrics);
   app.get('/api/geocode', (_req, res) => res.json([]));
   for (const p of ['/api/auth', '/api/tours']) app.use(p, createProxyMiddleware({ target, changeOrigin: true }));
   app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
   const url = await listen(app);
   const scrape = () => fetch(`${url}/metrics`).then((r) => r.text());
-  return { url, scrape };
+  return { url, scrape, upstreamHits };
 }
 
 const count = (text, route, status, method = 'GET') => {
@@ -89,4 +92,36 @@ test('unknown paths are unmatched; probes and /metrics are not counted', async (
   assert.doesNotMatch(text, /route="\/(healthz|readyz|metrics)"/);
   const counted = text.split('\n').filter((l) => l.startsWith('http_requests_total{'));
   assert.equal(counted.length, 1, counted.join('\n'));
+});
+
+test('isServiceMetricsPath(): any /api/.../metrics, any case, trailing slash, query or escapes', () => {
+  for (const p of [
+    '/api/metrics',
+    '/api/tours/metrics',
+    '/api/chat/metrics',
+    '/api/admin/tours/metrics/',
+    '/API/Tours/METRICS?x=1',
+    '/api/tours/%6detrics',
+  ]) {
+    assert.equal(isServiceMetricsPath(p), true, p);
+  }
+  for (const p of ['/metrics', '/api/tours/metricsx', '/api/tours/metrics/1', '/api/tours?x=/metrics', '/api/tours/%E0%A4%A']) {
+    assert.equal(isServiceMetricsPath(p), false, p);
+  }
+});
+
+test('/api/*/metrics is a 404 that never reaches a service; the gateway /metrics still answers', async () => {
+  const { url, upstreamHits } = await gateway();
+  for (const p of ['/api/tours/metrics', '/api/auth/metrics/', '/API/Tours/metrics?x=1']) {
+    const res = await fetch(url + p);
+    assert.equal(res.status, 404, p);
+    assert.deepEqual(await res.json(), { error: 'Not found' });
+  }
+  assert.deepEqual(upstreamHits, []);
+  const own = await fetch(`${url}/metrics`);
+  assert.equal(own.status, 200);
+  assert.match(await own.text(), /service="gateway"/);
+  // control: an ordinary proxied path still reaches the upstream
+  assert.equal((await fetch(`${url}/api/tours/abc`)).status, 200);
+  assert.deepEqual(upstreamHits, ['/abc']);
 });
