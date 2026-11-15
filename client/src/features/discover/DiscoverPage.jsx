@@ -372,11 +372,45 @@ export default function DiscoverPage() {
       </div>
 
       <section className="discover-a__filters" aria-label="Bộ lọc khám phá">
-        <label>Thành phố<input className="input" list="discover-a-cities" value={city} onChange={(e)=>setParams({city:e.target.value})} placeholder="Tất cả thành phố" /></label>
-        <datalist id="discover-a-cities">{cities.map((c)=><option value={c} key={c} />)}</datalist>
-        {tab === 'tours' ? <label>Ngôn ngữ<select className="input" value={lang} onChange={(e)=>setParams({lang:e.target.value})}><option value="">Tất cả ngôn ngữ</option>{LANGUAGE_OPTIONS.map((o)=><option value={o.value} key={o.value}>{o.label}</option>)}</select></label> : null}
-        <label>{tab === 'tours' ? 'Loại tour' : 'Loại địa điểm'}<select className="input" value={type} onChange={(e)=>setParams({type:e.target.value})}><option value="">Tất cả loại</option>{(tab === 'tours' ? TOUR_TYPE_OPTIONS : PLACE_TYPE_OPTIONS).map((o)=><option value={o.value} key={o.value}>{o.label}</option>)}</select></label>
-        <label>Sắp xếp<select className="input" value={sort} onChange={(e)=>setParams({sort:e.target.value})}>{sortOptions.map((o)=><option value={o.value} key={o.value}>{o.label}</option>)}</select></label>
+        <DiscoverCityField
+          value={city}
+          cities={cities}
+          onChange={(nextCity) => setParams({ city: nextCity })}
+        />
+        {tab === 'tours' ? (
+          <DiscoverSelectField
+            id="discover-filter-lang"
+            label="Ngôn ngữ"
+            icon="languages"
+            emptyLabel="Tất cả ngôn ngữ"
+            value={lang}
+            options={LANGUAGE_OPTIONS}
+            onChange={(nextLang) => setParams({ lang: nextLang })}
+          />
+        ) : null}
+        <DiscoverSelectField
+          id="discover-filter-type"
+          label={tab === 'tours' ? 'Loại tour' : 'Loại địa điểm'}
+          icon={tab === 'tours' ? 'route' : 'map-pin'}
+          emptyLabel="Tất cả loại"
+          value={type}
+          options={tab === 'tours' ? TOUR_TYPE_OPTIONS : PLACE_TYPE_OPTIONS}
+          onChange={(nextType) => setParams({ type: nextType })}
+        />
+        <DiscoverSelectField
+          id="discover-filter-sort"
+          label="Sắp xếp"
+          icon="sliders"
+          value={sort}
+          options={sortOptions}
+          defaultValue={tab === 'places' ? 'recent' : 'popular'}
+          onChange={(nextSort) => setParams({ sort: nextSort === (tab === 'places' ? 'recent' : 'popular') ? '' : nextSort })}
+        />
+        {filterCount > 0 || sort !== (tab === 'places' ? 'recent' : 'popular') ? (
+          <button type="button" className="discover-a__reset" onClick={resetFilters}>
+            <Icon name="x" size={14} /> Đặt lại
+          </button>
+        ) : null}
       </section>
 
       {cities.length ? (
@@ -655,5 +689,237 @@ function FilterSheet({ open, onClose, tab, values, cities, onChange, onReset }) 
         </div>
       </div>
     </Modal>
+  );
+}
+
+function useDropdownDismiss(open, ref, onDismiss) {
+  useEffect(() => {
+    if (!open) return undefined;
+    const onPointerDown = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onDismiss();
+    };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onDismiss();
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open, ref, onDismiss]);
+}
+
+function normalizeSearchText(str) {
+  return String(str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'd')
+    .toLowerCase()
+    .trim();
+}
+
+function DiscoverCityField({ value, cities, onChange }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const close = useCallback(() => setOpen(false), []);
+  useDropdownDismiss(open, rootRef, close);
+
+  const normalizedValue = normalizeSearchText(value);
+  const matchesExactCity = cities.some((c) => normalizeSearchText(c) === normalizedValue);
+  const visibleCities = useMemo(() => {
+    if (!normalizedValue || matchesExactCity) return cities;
+    return cities.filter((c) => normalizeSearchText(c).includes(normalizedValue));
+  }, [cities, normalizedValue, matchesExactCity]);
+
+  const selectCity = (nextCity) => {
+    onChange(nextCity);
+    setOpen(false);
+  };
+
+  return (
+    <div ref={rootRef} className={`discover-field ${open ? 'is-open' : ''} ${value ? 'is-filled' : ''}`}>
+      <label className="discover-field__label" htmlFor="discover-city-input">
+        <Icon name="map-pin" size={14} /> Thành phố
+      </label>
+      <div className="discover-field__control">
+        <Icon name="map-pin" size={16} className="discover-field__lead" />
+        <input
+          id="discover-city-input"
+          className="discover-field__input"
+          value={value}
+          placeholder="Tất cả thành phố"
+          autoComplete="off"
+          onFocus={() => setOpen(true)}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setOpen(true);
+          }}
+        />
+        <span className="discover-field__actions">
+          {value ? (
+            <button
+              type="button"
+              className="discover-field__clear"
+              aria-label="Xoá lọc thành phố"
+              onClick={() => selectCity('')}
+            >
+              <Icon name="x" size={14} />
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="discover-field__toggle"
+            aria-label="Mở danh sách thành phố"
+            aria-expanded={open}
+            onClick={() => setOpen((prev) => !prev)}
+          >
+            <Icon name="chevron-down" size={16} />
+          </button>
+        </span>
+      </div>
+
+      {open ? (
+        <ul className="discover-dropdown" role="listbox" aria-label="Gợi ý thành phố">
+          <li className="discover-dropdown__group">Điểm đến nổi bật</li>
+          <li>
+            <button
+              type="button"
+              role="option"
+              aria-selected={!value}
+              className={`discover-dropdown__item ${!value ? 'is-selected' : ''}`}
+              onClick={() => selectCity('')}
+            >
+              <Icon name="crosshair" size={15} />
+              <span className="discover-dropdown__item-label">Tất cả thành phố</span>
+              {!value ? <Icon name="check-circle" size={15} /> : null}
+            </button>
+          </li>
+          {visibleCities.length ? (
+            visibleCities.map((c) => {
+              const selected = cityEquals(value, c);
+              return (
+                <li key={c}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    className={`discover-dropdown__item ${selected ? 'is-selected' : ''}`}
+                    onClick={() => selectCity(c)}
+                  >
+                    <Icon name="map-pin" size={15} />
+                    <span className="discover-dropdown__item-label">{c}</span>
+                    {selected ? <Icon name="check-circle" size={15} /> : null}
+                  </button>
+                </li>
+              );
+            })
+          ) : (
+            <li className="discover-dropdown__empty">Không có thành phố khớp "{value}"</li>
+          )}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function cityEquals(a, b) {
+  return Boolean(a && b) && normalizeSearchText(a) === normalizeSearchText(b);
+}
+
+function DiscoverSelectField({ id, label, icon, emptyLabel, value, options, defaultValue = '', onChange }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const close = useCallback(() => setOpen(false), []);
+  useDropdownDismiss(open, rootRef, close);
+
+  const selectedOption = options.find((o) => o.value === value);
+  const selectedLabel = selectedOption ? selectedOption.label : emptyLabel || options[0]?.label || '';
+  const isActive = value !== defaultValue;
+
+  const choose = (nextVal) => {
+    onChange(nextVal);
+    setOpen(false);
+  };
+
+  return (
+    <div ref={rootRef} className={`discover-field ${open ? 'is-open' : ''} ${isActive ? 'is-filled' : ''}`}>
+      <label className="discover-field__label" htmlFor={id}>
+        <Icon name={icon} size={14} /> {label}
+      </label>
+      <div className="discover-select">
+        <select
+          id={id}
+          className="discover-select__native"
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setOpen(false);
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.currentTarget.focus();
+            setOpen((prev) => !prev);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setOpen((prev) => !prev);
+            } else if (e.key === 'Escape') {
+              setOpen(false);
+            }
+          }}
+        >
+          {emptyLabel ? <option value="">{emptyLabel}</option> : null}
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <div className={`discover-select__trigger ${isActive ? 'discover-select__trigger--active' : ''}`} aria-hidden="true">
+          {isActive ? <span className="discover-select__dot" /> : null}
+          <span className="discover-select__value">{selectedLabel}</span>
+          <Icon name="chevron-down" size={16} className="discover-select__chev" />
+        </div>
+      </div>
+
+      {open ? (
+        <ul className="discover-dropdown" role="listbox" aria-label={label}>
+          {emptyLabel ? (
+            <li>
+              <button
+                type="button"
+                role="option"
+                aria-selected={value === ''}
+                className={`discover-dropdown__item ${value === '' ? 'is-selected' : ''}`}
+                onClick={() => choose('')}
+              >
+                <span className="discover-dropdown__item-label">{emptyLabel}</span>
+                {value === '' ? <Icon name="check-circle" size={15} /> : null}
+              </button>
+            </li>
+          ) : null}
+          {options.map((o) => {
+            const selected = value === o.value;
+            return (
+              <li key={o.value}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className={`discover-dropdown__item ${selected ? 'is-selected' : ''}`}
+                  onClick={() => choose(o.value)}
+                >
+                  <span className="discover-dropdown__item-label">{o.label}</span>
+                  {selected ? <Icon name="check-circle" size={15} /> : null}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
   );
 }

@@ -356,27 +356,287 @@
 }
 .discovermap {
   position: relative;
-  height: calc(100dvh - 330px - var(--tabbar-h, 64px) - var(--sab));
-  min-height: 320px;
-  border-radius: var(--r-lg);
+  display: flex;
+  flex-direction: column;
+  height: clamp(460px, 68dvh, 660px);
+  min-height: 400px;
+  min-width: 0;
+  border-radius: 20px;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+.discovermap__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
 }
 .discovermap .gs-map {
   height: 100%;
   width: 100%;
 }
+/* Harmonized dark cartography filter applied only to raster map tiles */
+.discovermap--dark .gs-map {
+  background: #0d1524;
+}
+.discovermap--dark .leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(192deg) brightness(93%) contrast(92%) saturate(78%);
+}
+.discovermap--dark .leaflet-control-attribution {
+  background: rgba(11, 18, 32, 0.78);
+  color: #9fb0c6;
+  border-top-left-radius: 8px;
+}
+.discovermap--dark .leaflet-control-attribution a {
+  color: #5eead4;
+}
+
+/* Override pin cascade from player.css so active place markers turn amber and numbers stay centered */
+.discovermap .gs-pin::before {
+  top: 2px;
+  transform: translateX(-50%);
+}
+.discovermap .gs-pin > span {
+  margin-top: -10px;
+  font-size: 12px;
+  line-height: 1;
+}
+.discovermap .gs-pin--active::before {
+  top: 0;
+  background: #c2600a;
+}
+.discovermap .gs-pin--active > span {
+  margin-top: -6px;
+}
+
+/* Floating top-left HUD */
+.discovermap__hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 550;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 70px);
+  pointer-events: none;
+}
+.discovermap__pill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: color-mix(in srgb, var(--bg-elev) 88%, transparent);
+  backdrop-filter: blur(12px);
+  color: var(--fg);
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+}
+.discovermap__theme {
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
+}
+.discovermap__theme:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.discovermap__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* Floating top-right zoom & fit controls */
+.discovermap__controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 550;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.discovermap__ctrl {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: color-mix(in srgb, var(--bg-elev) 88%, transparent);
+  backdrop-filter: blur(12px);
+  color: var(--fg);
+  box-shadow: var(--shadow-md);
+  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease);
+}
+.discovermap__ctrl:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--surface);
+}
+
+/* Interactive place/tour rail (horizontal quick strip on mobile, left panel on desktop) */
+.discovermap__rail {
+  flex: none;
+  min-width: 0;
+  background: color-mix(in srgb, var(--bg-elev) 96%, transparent);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+.discovermap__railhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px 6px;
+}
+.discovermap__railtitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.discovermap__railbadge {
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-grid;
+  place-items: center;
+  font-variant-numeric: tabular-nums;
+}
+.discovermap__raillist {
+  list-style: none;
+  margin: 0;
+  padding: 4px 12px 10px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.discovermap__raillist > li {
+  flex: 0 0 225px;
+  min-width: 0;
+}
+.discovermap__railitem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
+  text-align: left;
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
+}
+.discovermap__railitem:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+.discovermap__railitem.is-active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary-soft) 55%, var(--surface));
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.discovermap__seq {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.discovermap__railitem.is-active .discovermap__seq {
+  background: var(--primary);
+  color: var(--primary-fg);
+}
+.discovermap__railthumb {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  color: var(--primary);
+}
+.discovermap__railthumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.discovermap__railbody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.discovermap__railname {
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.discovermap__railmeta {
+  font-size: 12px;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .discovermap__empty {
   position: absolute;
-  top: var(--sp-3);
+  top: 56px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 500;
-  padding: 6px 12px;
+  padding: 8px 16px;
   border-radius: 999px;
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-strong);
+  background: color-mix(in srgb, var(--bg-elev) 92%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+/* Selected destination preview card */
 .discovermap__card {
   position: absolute;
   left: var(--sp-3);
@@ -386,11 +646,23 @@
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: var(--sp-2);
-  border-radius: var(--r-lg);
-  background: var(--surface);
-  border: 1px solid var(--border);
+  padding: 10px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 94%, var(--bg));
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border-strong);
   box-shadow: var(--shadow-lg);
+  animation: discoverCardUp var(--t-fast) var(--ease);
+}
+@keyframes discoverCardUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .discovermap__main {
   flex: 1;
@@ -408,9 +680,9 @@
 .discovermap__main img,
 .discovermap__ph {
   flex: none;
-  width: 64px;
-  height: 64px;
-  border-radius: var(--r-md);
+  width: 68px;
+  height: 68px;
+  border-radius: 12px;
   object-fit: cover;
   display: grid;
   place-items: center;
@@ -420,25 +692,77 @@
 .discovermap__text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
+.discovermap__cardtag {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
 .discovermap__text b {
+  font-size: 15px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.discovermap__close {
-  align-self: flex-start;
-  width: 30px;
-  height: 30px;
+.discovermap__sub {
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+.discovermap__cardactions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.discovermap__add {
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+}
+.discovermap__close {
+  width: 32px;
+  height: 32px;
+}
+
 @media (min-width: 900px) {
   .discovermap {
-    height: calc(100dvh - 360px);
+    height: clamp(500px, 64dvh, 660px);
+  }
+  .discovermap--withrail {
+    display: grid;
+    grid-template-columns: 330px minmax(0, 1fr);
+  }
+  .discovermap__rail {
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+    min-height: 0;
+  }
+  .discovermap__railhead {
+    padding: 14px 14px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .discovermap__raillist {
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 10px;
+  }
+  .discovermap__raillist > li {
+    flex: none;
   }
   .discovermap__card {
     right: auto;
-    width: 420px;
+    width: min(420px, calc(100% - 24px));
   }
 }
