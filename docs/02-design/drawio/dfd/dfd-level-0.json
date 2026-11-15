@@ -60,17 +60,17 @@
         {
           "from": "TOURIST",
           "to": "SYS",
-          "label": "Đăng ký / đăng nhập, OTP<br>Từ khóa, chọn tour, vị trí GPS, mã truy cập<br>Lịch trình, đánh giá, báo cáo vi phạm<br>Câu hỏi cho trợ lý AI<br>Mở, đánh dấu thông báo đã đọc"
+          "label": "Đăng ký / đăng nhập, OTP<br>Từ khóa, bộ lọc, chọn tour, vị trí GPS, mã truy cập<br>Yêu cầu dịch sang ngôn ngữ mới<br>Lịch trình, đánh giá (gửi / sửa / xoá), báo cáo vi phạm<br>Câu hỏi cho trợ lý AI<br>Mở, đánh dấu thông báo đã đọc"
         },
         {
           "from": "SYS",
           "to": "TOURIST",
-          "label": "Danh sách, chi tiết tour, thuyết minh, audio<br>Gói tour / lịch trình offline<br>Câu trả lời AI kèm nguồn<br>Thông báo, danh sách thiết bị"
+          "label": "Danh sách, bản đồ, chi tiết tour, thuyết minh, audio<br>Gói tour / lịch trình offline<br>Đánh giá của tôi<br>Câu trả lời AI kèm nguồn<br>Thông báo, danh sách thiết bị"
         },
         {
           "from": "CONTRIB",
           "to": "SYS",
-          "label": "Tour, điểm dừng, ảnh, audio<br>Route, vùng kích hoạt, ngôn ngữ, passcode<br>Yêu cầu gửi duyệt<br>Chọn tour, kỳ thống kê; đọc thông báo"
+          "label": "Tour, điểm dừng, ảnh, audio<br>Route, vùng kích hoạt, ngôn ngữ, công tắc dịch tự động, passcode<br>Yêu cầu gửi duyệt<br>Chọn tour, kỳ thống kê; đọc thông báo"
         },
         {
           "from": "SYS",

@@ -1,28 +1,123 @@
 {
   "uc": "UC14",
   "steps": [
-    { "id": "s1", "text": "1. Tác giả mở bước Xuất bản, khung “Truy cập hạn chế”." },
-    { "id": "s2", "text": "2. Hệ thống hiển thị trạng thái truy cập và số người thử; chỉ cho bật khi tour ở Nháp, Bị từ chối hoặc Cần chỉnh sửa." },
-    { "id": "s3", "decision": true, "text": "3. Tác giả nhập passcode và nhấn “Bật truy cập hạn chế”; passcode hợp lệ và tour bật được? E1, E2.", "exceptions": [
-      { "id": "E1", "text": "E1. Passcode không hợp lệ → “Vui lòng nhập mã truy cập” / “Mã truy cập phải từ 6 đến 32 ký tự”, không chứa khoảng trắng.", "back": "s3" },
-      { "id": "E2", "text": "E2. Trạng thái không cho bật (Công khai, đang kiểm duyệt, Chờ duyệt, Đang ẩn) → 409; không phải tác giả → 403.", "back": "end" } ] },
-    { "id": "s4", "text": "4. Hệ thống lưu passcode đã băm, tăng phiên bản passcode và chuyển tour sang “Truy cập hạn chế” (không qua Admin)." },
-    { "id": "s5", "decision": true, "text": "5. Khung hiện thời điểm bật, số người thử, đường dẫn chia sẻ; tác giả giữ nguyên chế độ? A1, A3, A4, E6.", "alts": ["A1", "A3", "A4"], "exceptions": [
-      { "id": "E6", "text": "E6. Gửi duyệt tour đang hạn chế → 409 “... hãy tắt chế độ này trước khi gửi duyệt”.", "back": "s5" } ] },
-    { "id": "s6", "text": "6. Tác giả gửi đường dẫn và passcode cho nhóm thử." },
-    { "id": "s7", "text": "7. Người thử (đã đăng nhập) mở đường dẫn mở khóa của tour." },
-    { "id": "s8", "decision": true, "text": "8. Hệ thống kiểm tra quyền truy cập; người thử chưa mở khóa? A2.", "alts": ["A2"] },
-    { "id": "s9", "decision": true, "text": "9. Người thử nhập passcode; mã đúng và chưa vượt giới hạn? E3, E4.", "exceptions": [
-      { "id": "E3", "text": "E3/E4. Sai mã → “Mã truy cập không đúng”; sai quá 5 lần trong 15 phút → “... thử lại sau 15 phút” (kể cả khi mã đúng).", "back": "s9" } ] },
-    { "id": "s10", "text": "10. Hệ thống ghi lần thử, so passcode đã băm và lưu quyền truy cập theo tài khoản và phiên bản passcode." },
-    { "id": "s11", "decision": true, "text": "11. Hệ thống mở bản thử có nhãn “Bản thử nghiệm (truy cập hạn chế)” để nghe; tour còn hạn chế và đã mở khóa? A5, E5.", "alts": ["A5"], "exceptions": [
-      { "id": "E5", "text": "E5. Tour không còn hạn chế hoặc chưa mở khóa → 404, chuyển người thử về trang nhập mã.", "back": "s9" } ] }
+    {
+      "id": "s1",
+      "text": "1. Contributor mở bước “Xuất bản” của tour trong Studio, mục “Truy cập hạn chế”."
+    },
+    {
+      "id": "s2",
+      "text": "2. Hệ thống hiển thị trạng thái truy cập hiện tại và ô nhập passcode (chỉ bật khi tour ở Nháp, Bị từ chối hoặc Cần chỉnh sửa). E2.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. Tour không ở trạng thái cho phép bật hạn chế → 409; không phải tác giả → 403; tắt khi tour không hạn chế → 409.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. Contributor nhập passcode (6–32 ký tự, không có khoảng trắng) và nhấn “Bật truy cập hạn chế”. E1.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Passcode trống → “Vui lòng nhập mã truy cập”; có khoảng trắng → “Mã truy cập không được chứa khoảng trắng”; độ dài sai → “Mã truy cập phải từ 6 đến 32 ký tự” (400).",
+          "back": "s3"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s4",
+      "text": "4. Hệ thống (Tour) lưu passcode dạng băm (scrypt), tăng phiên bản passcode và chuyển tour sang “Hạn chế” bằng câu lệnh cập nhật có điều kiện. E2."
+    },
+    {
+      "id": "s5",
+      "text": "5. Hệ thống hiển thị liên kết chia sẻ /tour/:id/unlock để Contributor gửi cho người thử nghiệm."
+    },
+    {
+      "id": "s6",
+      "text": "6. Người thử nghiệm mở liên kết, đăng nhập (nếu chưa) và nhập passcode."
+    },
+    {
+      "id": "s7",
+      "text": "7. Hệ thống kiểm tra passcode, lưu quyền truy cập cho tài khoản đó theo phiên bản passcode hiện tại. E3, E4, E5.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Passcode sai → 403 “Mã truy cập không đúng”.",
+          "back": "end"
+        },
+        {
+          "id": "E4",
+          "text": "E4. Sai quá 5 lần trong 15 phút → 429 “Bạn đã nhập sai quá nhiều lần, vui lòng thử lại sau 15 phút”.",
+          "back": "s6"
+        },
+        {
+          "id": "E5",
+          "text": "E5. Tour không tồn tại hoặc không ở trạng thái Hạn chế → 404.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s8",
+      "text": "8. Hệ thống mở trang tour hạn chế với nhãn “Bản thử nghiệm (truy cập hạn chế)”; người thử nghiệm nghe tour như UC#04. A5.",
+      "exceptions": [
+        {
+          "id": "E6",
+          "text": "E6. Gửi duyệt hoặc xuất bản khi tour đang hạn chế → 409.",
+          "back": "s6"
+        }
+      ],
+      "alts": [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5"
+      ],
+      "decision": true
+    }
   ],
   "alts": [
-    { "id": "A1", "steps": ["A1.1. Tác giả nhập passcode mới và lưu.", "A1.2. Hệ thống băm mã mới, tăng phiên bản, xóa mọi quyền đã cấp; người thử phải nhập mã mới."], "to": "s6" },
-    { "id": "A3", "steps": ["A3.1. Tác giả sửa nội dung tour đang hạn chế.", "A3.2. Tour giữ “Truy cập hạn chế”, người thử thấy nội dung mới; không gửi kiểm duyệt tour."], "to": "s6" },
-    { "id": "A4", "steps": ["A1.3. Tác giả chọn tắt chế độ và xác nhận.", "A1.4. Tour về Nháp, xóa passcode và quyền; người thử mất quyền truy cập.", "A4. Muốn công khai → tác giả gửi duyệt (UC15)."], "to": "end" },
-    { "id": "A2", "steps": ["A2.1. Người thử (hoặc tác giả) đã mở khóa với phiên bản passcode hiện tại → không cần nhập lại."], "to": "s11" },
-    { "id": "A5", "steps": ["A5.1. Người thử chọn “Tải về để nghe offline” (như UC03).", "A5.2. Hệ thống kiểm lại quyền, trả gói đánh dấu hạn chế; không đếm lượt tải."], "to": "end" }
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Đổi passcode: Contributor nhập passcode mới; hệ thống tăng phiên bản và xóa mọi quyền truy cập cũ, người thử nghiệm phải nhập lại."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Tắt truy cập hạn chế: Contributor nhấn “Tắt”; hệ thống chuyển tour về Nháp và xóa mọi quyền truy cập. E2."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Sửa nội dung tour khi đang hạn chế: tour vẫn ở “Hạn chế”, người thử nghiệm thấy nội dung mới."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. Muốn công khai: Contributor tắt truy cập hạn chế trước rồi gửi duyệt (UC#15). E6."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A5",
+      "steps": [
+        "A5. Tải offline: người thử nghiệm tải tour hạn chế về máy như UC#03; hệ thống không ghi nhận lượt tải vào thống kê."
+      ],
+      "to": "end"
+    }
   ]
 }

@@ -1,23 +1,110 @@
 {
   "uc": "UC19",
   "steps": [
-    { "id": "s1", "text": "1. Admin mở trang “Hàng chờ kiểm duyệt”." },
-    { "id": "s2", "decision": true, "text": "2. Hệ thống trả các tour “AI Warning” (lên đầu) và “Chờ duyệt” (chờ lâu nhất trước) kèm tên, thành phố, số lý do; có tour và có quyền? E1, E2.", "exceptions": [
-      { "id": "E1", "text": "E1. Không có tour nào chờ duyệt → danh sách rỗng.", "back": "end" },
-      { "id": "E2", "text": "E2. Không có token hợp lệ → 401; tài khoản không phải admin → 403.", "back": "end" } ] },
-    { "id": "s3", "text": "3. Admin chọn một tour." },
-    { "id": "s4", "decision": true, "text": "4. Hệ thống hiển thị hồ sơ chỉ đọc: thông tin tour, lý do kiểm duyệt, các điểm, lộ trình, lịch sử quyết định; tìm thấy tour? A1, E3.", "alts": ["A1"], "exceptions": [
-      { "id": "E3", "text": "E3. Mã tour sai định dạng → 400; tour không tồn tại → 404.", "back": "s3" } ] },
-    { "id": "s5", "decision": true, "text": "5. Admin chọn “Duyệt” và xác nhận “Duyệt tour này?”? A2, A3.", "alts": ["A2", "A3"] },
-    { "id": "s6", "decision": true, "text": "6. Hệ thống đổi tour sang Công khai (chỉ khi còn chờ duyệt), xoá lý do, ghi log quyết định trong cùng giao dịch; tour còn chờ duyệt? E4.", "exceptions": [
-      { "id": "E4", "text": "E4. Tour không còn chờ duyệt (admin khác đã quyết định) → 409 “Tour không còn ở trạng thái chờ duyệt”, tải lại hồ sơ.", "back": "s4" } ] },
-    { "id": "s7", "decision": true, "text": "7. Hệ thống phát sự kiện tour đã duyệt; Notification gửi thông báo và email cho tác giả (UC16); gửi được? E6.", "exceptions": [
-      { "id": "E6", "text": "E6. Gửi sự kiện thất bại → chỉ ghi log, quyết định vẫn thành công.", "back": "s8" } ] },
-    { "id": "s8", "text": "8. Client báo “Đã duyệt tour, tour đã công khai”, quay về hàng chờ; tour xuất hiện trong tìm kiếm (UC02) và tải được (UC03)." }
+    {
+      "id": "s1",
+      "text": "1. Admin mở trang “Hàng chờ kiểm duyệt”."
+    },
+    {
+      "id": "s2",
+      "text": "2. Hệ thống trả các tour ở “Cảnh báo AI” hoặc “Chờ duyệt”: Cảnh báo AI lên đầu, sau đó tour chờ lâu nhất trước; mỗi dòng có tên, trạng thái, thành phố, số lý do, thời điểm gửi. E1, E2.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Không có tour chờ duyệt → danh sách trống.",
+          "back": "s1"
+        },
+        {
+          "id": "E2",
+          "text": "E2. Không có token hợp lệ → 401; không phải Admin → 403.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. Admin chọn một tour."
+    },
+    {
+      "id": "s4",
+      "text": "4. Hệ thống hiển thị hồ sơ chỉ đọc: thông tin tour, lý do kiểm duyệt (trường, loại, nguồn AI / vị trí, mức độ), các điểm (mô tả, ảnh, audio, vùng kích hoạt, trạng thái kiểm duyệt từng điểm), route và lịch sử quyết định. A1, E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Mã tour sai định dạng → 400; tour không tồn tại → 404.",
+          "back": "end"
+        }
+      ],
+      "alts": [
+        "A1"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s5",
+      "text": "5. Admin chọn “Duyệt” và xác nhận “Duyệt tour này?”. A2, A3.",
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. Từ chối / yêu cầu chỉnh sửa thiếu lý do hoặc quá 1000 ký tự → 422, lỗi hiện trong hộp thoại.",
+          "back": "s5"
+        }
+      ],
+      "alts": [
+        "A2",
+        "A3"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. Hệ thống chuyển tour sang “Công khai” bằng câu lệnh cập nhật có điều kiện (chỉ khi tour còn chờ duyệt), ghi lịch sử duyệt và log hành động Admin trong cùng giao dịch. E4.",
+      "exceptions": [
+        {
+          "id": "E4",
+          "text": "E4. Tour không còn chờ duyệt (Admin khác đã quyết định trước) → 409 “Tour không còn ở trạng thái chờ duyệt” và tải lại hồ sơ.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s7",
+      "text": "7. Hệ thống phát sự kiện tour.approved (và tour.published cho chatbot); Notification tạo thông báo trong app và gửi email cho tác giả (UC#16). E6.",
+      "exceptions": [
+        {
+          "id": "E6",
+          "text": "E6. Gửi sự kiện thất bại → chỉ ghi log, quyết định vẫn thành công.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    }
   ],
   "alts": [
-    { "id": "A1", "steps": ["A1.1. Admin nghe audio, mở ảnh, xem cấu hình lộ trình trong hồ sơ (không sửa, đánh giá, báo cáo)."], "to": "s5" },
-    { "id": "A2", "steps": ["A2.1. Admin chọn “Từ chối”, nhập lý do (bắt buộc, 1–1000 ký tự; sai → lỗi trong hộp thoại, E5).", "A2.2. Tour chuyển sang Bị từ chối, ghi log, phát sự kiện.", "A2.3. Tác giả nhận thông báo và email kèm lý do, có thể sửa và gửi lại (UC15)."], "to": "end" },
-    { "id": "A3", "steps": ["A3.1. Admin chọn “Yêu cầu chỉnh sửa”, nhập ghi chú chung và từng điểm (E5 như A2).", "A3.2. Client ghép thành một lý do; tour chuyển sang Cần chỉnh sửa, ghi log, phát sự kiện.", "A3.3. Tác giả nhận “Tour cần chỉnh sửa”, sửa rồi gửi lại (UC15)."], "to": "end" }
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Xem nội dung: Admin nghe audio, mở ảnh, xem route ngay trong hồ sơ; hồ sơ chỉ đọc, không có nút sửa nội dung."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2.1. Admin chọn “Từ chối” và nhập lý do (bắt buộc, 1–1000 ký tự). E5.",
+        "A2.2. Hệ thống chuyển tour sang “Bị từ chối”, lưu lý do, ghi log và phát tour.rejected; tác giả nhận thông báo và email kèm lý do, có thể sửa và gửi lại (UC#15)."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3.1. Admin nhập ghi chú chung và ghi chú cho từng điểm. E5.",
+        "A3.2. Hệ thống ghép thành một lý do (“Điểm 2 – <tên>: <ghi chú>”), chuyển tour sang “Cần chỉnh sửa”, ghi log và phát tour.changes_requested; tác giả nhận “Tour cần chỉnh sửa”, sửa rồi gửi lại."
+      ],
+      "to": "end"
+    }
   ]
 }

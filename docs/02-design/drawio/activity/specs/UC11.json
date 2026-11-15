@@ -1,24 +1,101 @@
 {
   "uc": "UC11",
   "steps": [
-    { "id": "s1", "text": "1. Contributor mở bước “Vùng kích hoạt” của tour." },
-    { "id": "s2", "decision": true, "text": "2. Hệ thống tải cấu hình hiệu lực (phần thiếu điền mặc định), vẽ route, các điểm và vòng tròn kích hoạt; tải được? E3.", "exceptions": [
-      { "id": "E3", "text": "E3. Tour không tồn tại (404) hoặc là tour của người khác (403) → báo lỗi.", "back": "end" } ] },
-    { "id": "s3", "text": "3. Contributor chọn một điểm và kéo thanh bán kính (10–300 m); vòng tròn trên bản đồ đổi theo." },
-    { "id": "s4", "text": "4. Contributor đặt độ ưu tiên khi chồng vùng: Bình thường / Cao / Rất cao.", "alts": ["A2"] },
-    { "id": "s5", "text": "5. Contributor (tùy chọn) nhập gợi ý “đi tiếp” (lời nhắc và/hoặc audio)." },
-    { "id": "s6", "text": "6. Contributor (tùy chọn) thêm audio chỉ đường: đặt tâm trên bản đồ, bán kính 10–150 m, nhãn, lời nhắc hoặc file audio.", "alts": ["A3"] },
-    { "id": "s7", "text": "7. Contributor (tùy chọn) bấm “Nối lại theo thứ tự điểm” để dựng lại lộ trình.", "alts": ["A1"] },
-    { "id": "s8", "text": "8. Contributor nhấn “Lưu” (thanh lưu chỉ hiện khi có thay đổi).", "alts": ["A4"] },
-    { "id": "s9", "decision": true, "text": "9. Hệ thống kiểm từng vùng, mỗi vùng trỏ tới điểm của tour, mỗi điểm một vùng, rồi lưu toàn bộ cấu hình; hợp lệ? E1, E2.", "exceptions": [
-      { "id": "E1", "text": "E1. Vùng không hợp lệ → “Bán kính vùng kích hoạt phải lớn hơn 0”, “Đa giác chưa khép kín (cần ít nhất 3 đỉnh)”…", "back": "s3" },
-      { "id": "E2", "text": "E2. Vùng trỏ tới điểm ngoài tour, hai vùng cho một điểm, gợi ý trống → “Gợi ý cần có text hoặc audio”…", "back": "s3" } ] },
-    { "id": "s10", "text": "10. Cấu hình được dùng khi khách nghe tour (UC04) và khi xem thử (UC13)." }
+    {
+      "id": "s1",
+      "text": "1. Contributor mở bước “Vùng kích hoạt”."
+    },
+    {
+      "id": "s2",
+      "text": "2. Hệ thống trả cấu hình hiệu lực (phần đã lưu, phần thiếu điền mặc định) và vẽ route, các điểm, vòng tròn kích hoạt trên bản đồ."
+    },
+    {
+      "id": "s3",
+      "text": "3. Contributor chọn một điểm và kéo thanh bán kính (10–300 m); vòng tròn đổi theo."
+    },
+    {
+      "id": "s4",
+      "text": "4. Contributor đặt độ ưu tiên: Bình thường / Cao / Rất cao. A2.",
+      "alts": [
+        "A2"
+      ]
+    },
+    {
+      "id": "s5",
+      "text": "5. Contributor (tùy chọn) nhập gợi ý “đi tiếp” bằng chữ và / hoặc tải audio."
+    },
+    {
+      "id": "s6",
+      "text": "6. Contributor (tùy chọn) thêm audio chỉ đường: đặt tâm trên bản đồ, bán kính 10–150 m, nhãn, lời nhắc hoặc tệp audio. A3.",
+      "alts": [
+        "A3"
+      ]
+    },
+    {
+      "id": "s7",
+      "text": "7. Contributor (tùy chọn) nhấn “Nối lại theo thứ tự điểm”. A1.",
+      "alts": [
+        "A1"
+      ]
+    },
+    {
+      "id": "s8",
+      "text": "8. Contributor nhấn “Lưu” (thanh lưu chỉ hiện khi có thay đổi). A4.",
+      "alts": [
+        "A4"
+      ]
+    },
+    {
+      "id": "s9",
+      "text": "9. Hệ thống kiểm tra từng vùng, mỗi vùng trỏ tới điểm của tour và mỗi điểm chỉ một vùng, rồi lưu cấu hình. E1, E2, E3.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Vùng không hợp lệ → 400: “Bán kính vùng kích hoạt phải lớn hơn 0”, “Đa giác chưa khép kín (cần ít nhất 3 đỉnh)”.",
+          "back": "s8"
+        },
+        {
+          "id": "E2",
+          "text": "E2. Vùng trỏ tới điểm không thuộc tour → “Vùng kích hoạt trỏ tới điểm không thuộc tour”; hai vùng cho một điểm → “Mỗi điểm chỉ có một vùng kích hoạt”; gợi ý trống → “Gợi ý cần có text hoặc audio”.",
+          "back": "s8"
+        },
+        {
+          "id": "E3",
+          "text": "E3. Tour không tồn tại → 404; tour của người khác → 403.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    }
   ],
   "alts": [
-    { "id": "A2", "steps": ["A2.1. Hệ thống lưu ưu tiên 0 / 10 / 20; khi nghe, vùng ưu tiên cao nhất chứa vị trí được phát."], "to": "s5" },
-    { "id": "A3", "steps": ["A3.1. Contributor sửa hoặc xóa audio chỉ đường.", "A3.2. Hệ thống cập nhật danh sách; mỗi mục nhận mã riêng khi lưu."], "to": "s7" },
-    { "id": "A1", "steps": ["A1.1. Hệ thống dựng route từ tọa độ các điểm theo thứ tự (route rỗng thì tự nối các điểm)."], "to": "s8" },
-    { "id": "A4", "steps": ["A4.1. Contributor rời màn khi chưa lưu.", "A4.2. Hệ thống hỏi lại trước khi rời."], "to": "end" }
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Độ ưu tiên lưu là 0 / 10 / 20; khi chạy, vùng có ưu tiên cao hơn thắng khi chồng nhau."
+      ],
+      "to": "s5"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Thêm / sửa / xóa audio chỉ đường; audio chỉ đường không có tệp thì đọc lời nhắc bằng giọng của thiết bị."
+      ],
+      "to": "s7"
+    },
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Dựng lại route: hệ thống nối các tọa độ điểm theo thứ tự; route rỗng thì tự nối khi phát."
+      ],
+      "to": "s8"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. Rời màn khi chưa lưu: hệ thống hỏi xác nhận trước khi rời."
+      ],
+      "to": "end"
+    }
   ]
 }

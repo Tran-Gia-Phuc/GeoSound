@@ -1,23 +1,108 @@
 {
   "uc": "UC20",
   "steps": [
-    { "id": "s1", "text": "1. Admin mở trang “Tour bị báo cáo”." },
-    { "id": "s2", "decision": true, "text": "2. Hệ thống trả các tour có báo cáo mở (nhiều báo cáo, bị gắn cờ, cũ nhất trước; 20 / trang, tối đa 50); có quyền và có tour? E1, E2.", "exceptions": [
-      { "id": "E1", "text": "E1. Không có tour bị báo cáo → danh sách rỗng.", "back": "end" },
-      { "id": "E2", "text": "E2. Không có token hợp lệ → 401; không phải admin → 403; tham số trang sai → 400.", "back": "end" } ] },
-    { "id": "s3", "text": "3. Admin chọn một tour." },
-    { "id": "s4", "decision": true, "text": "4. Hệ thống hiển thị hồ sơ: tóm tắt tour, liên kết tác giả, báo cáo mở, số báo cáo đã bỏ qua / đã xử lý, lịch sử admin; tour tồn tại? E3.", "exceptions": [
-      { "id": "E3", "text": "E3. Mã tour sai định dạng → 400; tour không tồn tại → 404 “tour_not_found”.", "back": "s3" } ] },
-    { "id": "s5", "decision": true, "text": "5. Admin chọn “Ẩn tour”, nhập lý do và xác nhận; lý do hợp lệ? A1, A2, A3, E5.", "alts": ["A1", "A2", "A3"], "exceptions": [
-      { "id": "E5", "text": "E5. Thiếu lý do hoặc lý do quá 1000 ký tự → 422.", "back": "s5" } ] },
-    { "id": "s6", "decision": true, "text": "6. Trong một giao dịch: tour Công khai → Ẩn, báo cáo mở → đã xử lý, xóa bộ đếm và cờ, ghi nhật ký admin; tour còn Công khai? E4.", "exceptions": [
-      { "id": "E4", "text": "E4. Tour không còn Công khai (hoặc admin khác vừa thao tác) → 409; client báo và tải lại hồ sơ.", "back": "s4" } ] },
-    { "id": "s7", "decision": true, "text": "7. Tour phát sự kiện tour bị ẩn; Notification tạo thông báo trong app và gửi email kèm lý do cho tác giả; gửi được? E6.", "exceptions": [
-      { "id": "E6", "text": "E6. Gửi sự kiện thất bại → chỉ ghi log, quyết định vẫn thành công.", "back": "end" } ] }
+    {
+      "id": "s1",
+      "text": "1. Admin mở trang “Báo cáo vi phạm”."
+    },
+    {
+      "id": "s2",
+      "text": "2. Hệ thống trả các tour có báo cáo đang mở, sắp theo số báo cáo giảm dần, tour bị gắn cờ trước, rồi báo cáo cũ nhất trước (20 mục mỗi trang). E1, E2.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Không có tour bị báo cáo → hàng chờ trống.",
+          "back": "s1"
+        },
+        {
+          "id": "E2",
+          "text": "E2. Không có token hợp lệ → 401; không phải Admin → 403; tham số phân trang sai → 400.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. Admin chọn một tour."
+    },
+    {
+      "id": "s4",
+      "text": "4. Hệ thống hiển thị hồ sơ: tóm tắt tour, liên kết trang công khai và tài khoản tác giả (UC#21), các báo cáo đang mở (lý do, ghi chú, thời gian, mã người báo cáo), số báo cáo đã bỏ qua / đã xử lý và lịch sử hành động Admin. E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Mã tour sai định dạng → 400; tour không tồn tại → 404.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s5",
+      "text": "5. Admin chọn “Ẩn tour” và nhập lý do (bắt buộc, 1–1000 ký tự). A1, A2, A3, E5.",
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. Thiếu lý do khi ẩn → 422.",
+          "back": "s5"
+        }
+      ],
+      "alts": [
+        "A1",
+        "A2",
+        "A3"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. Trong một giao dịch, hệ thống chuyển tour Công khai → Bị ẩn, đánh dấu các báo cáo mở là đã xử lý, xóa bộ đếm và cờ, ghi log hide_tour. E4.",
+      "exceptions": [
+        {
+          "id": "E4",
+          "text": "E4. Trạng thái không cho phép (ẩn tour không công khai, khôi phục tour không bị ẩn, bỏ qua khi không còn báo cáo mở) → 409; hai Admin cùng xử lý thì chỉ một người thắng.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s7",
+      "text": "7. Hệ thống phát tour.hidden (và tour.unpublished để gỡ khỏi chatbot); Notification tạo thông báo và gửi email cho tác giả. E6.",
+      "exceptions": [
+        {
+          "id": "E6",
+          "text": "E6. Phát sự kiện thất bại chỉ được ghi log; quyết định vẫn được lưu.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    }
   ],
   "alts": [
-    { "id": "A1", "steps": ["A1.1. Admin chọn “Khôi phục” tour đang Ẩn (lý do không bắt buộc).", "A1.2. Tour về Công khai ngay, không kiểm duyệt lại; báo cáo giữ nguyên.", "A1.3. Tour phát sự kiện khôi phục; Notification báo trong app và gửi email cho tác giả."], "to": "end" },
-    { "id": "A2", "steps": ["A2.1. Admin chọn “Bỏ qua báo cáo” (không vi phạm, lý do không bắt buộc).", "A2.2. Báo cáo mở → đã bỏ qua, xóa bộ đếm và cờ; trạng thái tour giữ nguyên, không phát sự kiện."], "to": "end" },
-    { "id": "A3", "steps": ["A3.1. Tác giả vi phạm nhiều lần: Admin mở trang tài khoản tác giả.", "A3.2. Chuyển sang UC21 – Quản lý tài khoản vi phạm."], "to": "end" }
+    {
+      "id": "A1",
+      "steps": [
+        "A1.1. Admin mở tour đang bị ẩn và chọn “Hiển thị lại” (lý do tùy chọn).",
+        "A1.2. Hệ thống chuyển tour về Công khai (không duyệt lại), ghi log restore_tour, phát tour.restored; tác giả nhận thông báo và email “Tour … đã được hiển thị lại”. E4."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2.1. Admin chọn “Bỏ qua báo cáo” khi tour có báo cáo đang mở.",
+        "A2.2. Hệ thống đánh dấu các báo cáo là đã bỏ qua, xóa bộ đếm, giữ nguyên trạng thái tour, ghi log dismiss_reports; không phát sự kiện. E4."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Xử lý tài khoản tác giả: Admin mở trang tài khoản tác giả và thực hiện UC#21."
+      ],
+      "to": "end"
+    }
   ]
 }

@@ -1,24 +1,130 @@
 {
   "uc": "UC23",
   "steps": [
-    { "id": "s1", "text": "1. Người dùng vào Tài khoản → “Thiết bị đang đăng nhập”.", "alts": ["A3", "A4", "A5"] },
-    { "id": "s2", "decision": true, "text": "2. Auth trả các phiên còn hiệu lực: tên thiết bị, vị trí, lúc đăng nhập, lần hoạt động cuối; tải được? E4.", "exceptions": [
-      { "id": "E4", "text": "E4. Không tải được → “Chưa tải được danh sách thiết bị” kèm nút “Thử lại”.", "back": "s2" } ] },
-    { "id": "s3", "decision": true, "text": "3. Client hiển thị “Thiết bị này” đứng đầu, các thiết bị khác theo hoạt động gần nhất; có thiết bị khác? E1.", "exceptions": [
-      { "id": "E1", "text": "E1. Chỉ có thiết bị hiện tại → một dòng “Thiết bị này”, ẩn nút “Đăng xuất tất cả thiết bị khác”.", "back": "end" } ] },
-    { "id": "s4", "decision": true, "text": "4. Người dùng nhấn “Đăng xuất thiết bị” ở một thiết bị khác? A1, A2.", "alts": ["A1", "A2"] },
-    { "id": "s5", "text": "5. Client hỏi “Đăng xuất khỏi <tên thiết bị>?”: thiết bị đó sẽ cần đăng nhập lại." },
-    { "id": "s6", "text": "6. Người dùng xác nhận." },
-    { "id": "s7", "decision": true, "text": "7. Auth thu hồi phiên và đánh dấu trong Redis; client bỏ dòng đó, báo “Đã đăng xuất <tên thiết bị>”; thành công? E2, E3.", "exceptions": [
-      { "id": "E2", "text": "E2. Phiên đã đăng xuất / hết hạn hoặc không phải của mình → “Thiết bị này đã đăng xuất”, tải lại danh sách.", "back": "s2" },
-      { "id": "E3", "text": "E3. Mất mạng → “Không thể kết nối, vui lòng thử lại”; phiên thiết bị kia không đổi.", "back": "s4" } ] },
-    { "id": "s8", "text": "8. Thiết bị bị đăng xuất: request kế tiếp bị từ chối (401), xóa token, chuyển tới đăng nhập với “Phiên đăng nhập đã kết thúc trên thiết bị này”." }
+    {
+      "id": "s1",
+      "text": "1. Người dùng vào Tài khoản → “Thiết bị đang đăng nhập”."
+    },
+    {
+      "id": "s2",
+      "text": "2. Hệ thống (Auth) trả các phiên còn hiệu lực: tên thiết bị (vd “Chrome trên Windows”), vị trí, thời điểm đăng nhập, hoạt động gần nhất."
+    },
+    {
+      "id": "s3",
+      "text": "3. Hệ thống hiển thị thiết bị hiện tại đầu tiên với nhãn “Thiết bị này”, các thiết bị khác theo hoạt động gần nhất. E1, E4.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Chỉ có thiết bị hiện tại → ẩn nút “Đăng xuất tất cả thiết bị khác”.",
+          "back": "s4"
+        },
+        {
+          "id": "E4",
+          "text": "E4. Không tải được danh sách → “Chưa tải được danh sách thiết bị” kèm nút Thử lại.",
+          "back": "s1"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s4",
+      "text": "4. Người dùng nhấn “Đăng xuất thiết bị” ở một thiết bị khác. A1, A2.",
+      "alts": [
+        "A1",
+        "A2"
+      ]
+    },
+    {
+      "id": "s5",
+      "text": "5. Hệ thống hỏi “Đăng xuất khỏi <tên thiết bị>?”."
+    },
+    {
+      "id": "s6",
+      "text": "6. Người dùng xác nhận."
+    },
+    {
+      "id": "s7",
+      "text": "7. Hệ thống thu hồi phiên, ghi khóa thu hồi vào Redis, bỏ dòng đó khỏi danh sách và báo “Đã đăng xuất <tên thiết bị>”. E2, E3.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. Thiết bị đã đăng xuất / hết hạn hoặc không phải của mình → 404; client báo “Thiết bị này đã đăng xuất” và tải lại danh sách.",
+          "back": "end"
+        },
+        {
+          "id": "E3",
+          "text": "E3. Mất mạng → “Không thể kết nối, vui lòng thử lại”; phiên của thiết bị kia không đổi.",
+          "back": "s6"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s8",
+      "text": "8. Trên thiết bị bị đăng xuất, yêu cầu kế tiếp bị từ chối (401); client xóa token và chuyển tới Đăng nhập với thông báo “Phiên đăng nhập đã kết thúc trên thiết bị này”.",
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. Không phải Admin xem thiết bị online → 403.",
+          "back": "end"
+        },
+        {
+          "id": "E6",
+          "text": "E6. Mã thiết bị sai định dạng → 400; token sai hoặc hết hạn → 401.",
+          "back": "end"
+        },
+        {
+          "id": "E7",
+          "text": "E7. Redis không phản hồi → tín hiệu online bị bỏ qua (vẫn trả 204); Admin chỉ thấy số thiết bị đã đăng nhập kèm ghi chú.",
+          "back": "end"
+        }
+      ],
+      "alts": [
+        "A3",
+        "A4",
+        "A5"
+      ],
+      "decision": true
+    }
   ],
   "alts": [
-    { "id": "A3", "steps": ["A3.1. Hệ thống tự đăng xuất: đặt lại / đổi mật khẩu, admin tạm khóa / cấm, đăng nhập lại cùng thiết bị.", "A3.2. Hoặc phiên quá 7 ngày không dùng / quá 30 ngày, token cũ bị dùng lại, vượt 100 phiên."], "to": "s8" },
-    { "id": "A4", "steps": ["A4.1. Đăng nhập trên thiết bị chưa từng có phiên.", "A4.2. Notification gửi email “Đăng nhập mới trên <thiết bị>” tới email tài khoản."], "to": "end" },
-    { "id": "A5", "steps": ["A5.1. Mọi khách, đăng nhập hay chưa, gửi tín hiệu online mỗi 60 giây khi tab hiển thị hoặc đang phát audio; đóng trang → rời ngay.", "A5.2. Admin mở trang thiết bị online (người không phải admin → 403).", "A5.3. Hệ thống hiện số thiết bị online (gồm khách), khách chưa đăng nhập, tài khoản online, truy cập hôm nay / 7 / 30 ngày; tự làm mới mỗi 30 giây."], "to": "end" },
-    { "id": "A1", "steps": ["A1.1. Người dùng nhấn “Đăng xuất tất cả thiết bị khác” và xác nhận.", "A1.2. Auth thu hồi mọi phiên trừ phiên hiện tại; toast “Đã đăng xuất n thiết bị”."], "to": "s8" },
-    { "id": "A2", "steps": ["A2.1. Người dùng nhấn “Đăng xuất” ở trang Tài khoản.", "A2.2. Hệ thống thu hồi phiên hiện tại và xóa token."], "to": "end" }
+    {
+      "id": "A1",
+      "steps": [
+        "A1.1. Người dùng nhấn “Đăng xuất tất cả thiết bị khác” và xác nhận.",
+        "A1.2. Hệ thống thu hồi mọi phiên trừ phiên hiện tại; danh sách chỉ còn “Thiết bị này”; báo “Đã đăng xuất n thiết bị”."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Đăng xuất thiết bị đang dùng: nút “Đăng xuất” ở trang Tài khoản thu hồi phiên hiện tại (UC#01 A6)."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Hệ thống tự đăng xuất: đặt lại mật khẩu (mọi thiết bị), đổi mật khẩu (trừ thiết bị hiện tại), tạm khóa / cấm (mọi thiết bị, UC#21), quá 7 ngày không hoạt động hoặc 30 ngày từ lúc đăng nhập, refresh token cũ bị dùng lại, vượt 100 phiên."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. Cảnh báo thiết bị mới: đăng nhập trên thiết bị chưa từng có phiên → Auth phát auth.new_device_login, Notification gửi email “Đăng nhập mới trên <thiết bị>”."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A5",
+      "steps": [
+        "A5.1. Mọi client (đăng nhập hay chưa) gửi tín hiệu online mỗi 60 giây khi tab hiển thị hoặc audio đang phát, và gửi tín hiệu rời khi đóng trang. E6, E7.",
+        "A5.2. Admin mở trang “Thiết bị online”.",
+        "A5.3. Hệ thống hiển thị số thiết bị đang online (đã đăng nhập và khách), tài khoản online, phiên đang đăng nhập, thiết bị truy cập hôm nay / 7 / 30 ngày và bảng thiết bị đã đăng nhập đang online; tự làm mới mỗi 30 giây. E5."
+      ],
+      "to": "end"
+    }
   ]
 }
