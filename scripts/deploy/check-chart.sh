@@ -42,8 +42,29 @@ fi
 
 echo "[chart] an app with no caller and no scraping gets no NetworkPolicy (default deny), never an allow-all rule"
 if helm template geosound "$CHART" -f deploy/envs/staging/values.yaml -s templates/networkpolicy.yaml \
-  --set services.tour.allowFrom=null --set networkPolicy.monitoringNamespace= | grep -q "^  name: tour$"; then
+  --set services.tour.allowFrom=null --set networkPolicy.monitoringNamespace= --set smoke.enabled=false |
+  grep -q "^  name: tour$"; then
   echo "[chart] FAIL: a NetworkPolicy was rendered for tour without any allowed source"
+  fail=1
+fi
+
+echo "[chart] smoke test (task 3.3): one PostSync Job that checks every app, and every app lets it in"
+smoke=$(helm template geosound "$CHART" -f deploy/envs/staging/values.yaml -s templates/smoke-job.yaml)
+apps=$(helm template geosound "$CHART" -f deploy/envs/staging/values.yaml -s templates/deployment.yaml |
+  grep -c "^kind: Deployment" || true)
+checks=$(echo "$smoke" | grep -c "^ *ready [a-z]* http://" || true)
+if ! echo "$smoke" | grep -q "argocd.argoproj.io/hook: PostSync" || [ "$checks" != "$apps" ]; then
+  echo "[chart] FAIL: the smoke Job is missing, not PostSync, or checks $checks apps instead of $apps"
+  fail=1
+fi
+allowed=$(helm template geosound "$CHART" -f deploy/envs/staging/values.yaml -s templates/networkpolicy.yaml |
+  grep -c "app.kubernetes.io/name: smoke" || true)
+if [ "$allowed" != "$apps" ]; then
+  echo "[chart] FAIL: $allowed of $apps app NetworkPolicies let the smoke Job in"
+  fail=1
+fi
+if helm template geosound "$CHART" -f deploy/envs/prod/values.yaml | grep -q "name: geosound-smoke"; then
+  echo "[chart] FAIL: the smoke Job is rendered where smoke.enabled is off"
   fail=1
 fi
 

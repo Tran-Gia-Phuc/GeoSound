@@ -197,6 +197,8 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.pas
 
 **After adoption, never run `helm upgrade` or `helm uninstall geosound` on `geosound-staging`.** An upgrade fights Argo CD; an uninstall deletes the whole stack (the RabbitMQ and Redis volumes too).
 
+**Smoke test after every sync** (task 3.3, issue #388). The Job `geosound-smoke` is an Argo CD PostSync hook: when every object is healthy, it calls the readiness path of each enabled app and `GET http://gateway:8080/api/tours?limit=1` (200 with JSON), each check retried for up to 120 s. It is read only, so it is safe on the Supabase-backed cluster. A failed check marks the sync **Failed** in Argo CD; the running pods stay as they are. Result: `kubectl -n geosound-staging logs job/geosound-smoke` (one `OK` or `FAIL` line per check; the Job stays until the next sync replaces it).
+
 **Try a branch without merging:** `kubectl -n argocd patch app geosound-staging --type merge -p '{"spec":{"source":{"targetRevision":"<branch>"}}}'`, and `kubectl apply -f deploy/argocd/apps/geosound-staging.yaml` to go back to `staging`.
 
 **Pause auto-sync** (to try something by hand): `kubectl -n argocd patch app geosound-staging --type merge -p '{"spec":{"syncPolicy":{"automated":null}}}'`. Resume with `kubectl apply -f deploy/argocd/apps/geosound-staging.yaml`.
@@ -216,3 +218,5 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.pas
 **The certificate stays not ready.** `kubectl -n <ns> describe certificate geosound-tls`, then the `Challenge` objects. Usual causes: the DNS record does not point at the VM yet, port 80 is closed, or the chart's NetworkPolicy `acme-http01-solver` is missing (it is rendered whenever `ingress.clusterIssuer` is set).
 
 **The migrate Job failed.** `kubectl -n <ns> logs job/geosound-migrate`. Nothing else changed; fix and upgrade again.
+
+**The sync failed on the smoke test.** `kubectl -n <ns> logs job/geosound-smoke` names the first check that failed. `FAIL <app> ... (last status 000)`: no pod answers (scaled to 0, crash loop, or a NetworkPolicy without the smoke rule); `503`: the app runs but a dependency is down (`kubectl -n <ns> logs deploy/<app>`). After the fix, a new commit or a sync from the UI runs the Job again.
