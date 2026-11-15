@@ -24,9 +24,11 @@ import {
   stopConsuming,
   close as closeRabbit,
   isReady as rabbitReady,
+  useMetrics as useRabbitMetrics,
 } from '../shared/rabbitmq/index.js';
 import { EVENTS } from '../shared/events/index.js';
 import { registerHealthRoutes, prismaCheck, redisCheck } from '../shared/health/index.js';
+import { createMetrics } from '../shared/metrics/index.js';
 import { createShutdown, closeServer } from '../shared/shutdown/index.js';
 import { createMailer } from './services/mailer.js';
 import { handleEvent } from './notify.js';
@@ -50,10 +52,15 @@ setSessionRevocationCheck(createRedisRevocationCheck(revocationRedis));
 const PORT = process.env.PORT || 3006;
 // Graceful shutdown (#348): SIGTERM / SIGINT run the steps registered below the listen() call.
 const shutdown = createShutdown({ service: 'notification' });
+// Prometheus metrics (task 4.2, #399): HTTP requests and consumed events, GET /metrics.
+const metrics = createMetrics({ service: 'notification' });
+useRabbitMetrics(metrics);
 const prisma = new PrismaClient();
 const { notificationRouter, storeInApp } = buildContainer({ prisma, requireAuth: verifyJwt([]) });
 
 const app = express();
+// No app-wide express.json() in this service: metrics come first.
+app.use(metrics.httpMiddleware());
 app.use(logger);
 // /healthz, /health (liveness) and /readyz (#345): the in-app list needs the database, the worker
 // needs RabbitMQ; Redis (revocation check, fail open) is only reported.
@@ -66,6 +73,8 @@ registerHealthRoutes(app, {
     redis: { check: redisCheck(revocationRedis), required: false },
   },
 });
+// GET /metrics (no auth; only the cluster scrapes it, the ingress sends /api to the gateway).
+metrics.registerMetricsRoute(app);
 app.use('/', notificationRouter);
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
