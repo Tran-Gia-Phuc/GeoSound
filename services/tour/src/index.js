@@ -96,7 +96,8 @@ registerHealthRoutes(app, {
     redis: { check: redisCheck(revocationRedis), required: false },
   },
 });
-// GET /metrics (no auth; only the cluster scrapes it, the ingress sends /api to the gateway).
+// GET /metrics, no auth: internal only. Traefik routes only /api to the gateway, and the gateway
+// refuses /api/*/metrics, so only the in-cluster scrape reaches it.
 metrics.registerMetricsRoute(app);
 
 // UC02: tìm kiếm (GET /) + chi tiết (GET /:id) công khai — MOUNT TRƯỚC router

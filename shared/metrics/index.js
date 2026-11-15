@@ -104,6 +104,8 @@ export function createMetrics({ service, collectDefault = true } = {}) {
    * assigns `req.route` (the matched route): when an error leaves a nested router, Express resets
    * `req.baseUrl` to the parent's before the response is sent, so reading it at finish time would
    * drop the mount path.
+   * Router mounts must be static paths: `req.baseUrl` is the real matched URL, so a mount like
+   * app.use('/x/:id', router) would put ids into the `route` label (unbounded cardinality).
    */
   function httpMiddleware() {
     return function metricsMiddleware(req, res, next) {

@@ -73,7 +73,8 @@ registerHealthRoutes(app, {
     redis: { check: redisCheck(revocationRedis), required: false },
   },
 });
-// GET /metrics (no auth; only the cluster scrapes it, the ingress sends /api to the gateway).
+// GET /metrics, no auth: internal only. Traefik routes only /api to the gateway, and the gateway
+// refuses /api/*/metrics, so only the in-cluster scrape reaches it.
 metrics.registerMetricsRoute(app);
 app.use('/', notificationRouter);
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
