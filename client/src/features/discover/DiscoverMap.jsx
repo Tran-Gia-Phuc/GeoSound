@@ -15,9 +15,9 @@ import { PLACE_TYPE_LABELS } from '../../lib/studio.js';
 const createPinIcon = (kind, active, num) =>
   L.divIcon({
     className: 'gs-pin-wrap',
-    html: `<div class="gs-pin ${active ? 'gs-pin--active' : ''} ${kind === 'place' ? 'gs-pin--place' : ''}"><span>${num}</span></div>`,
-    iconSize: [34, 42],
-    iconAnchor: [17, 40],
+    html: `<div class="gs-pin gs-pin--v2 ${active ? 'gs-pin--active' : ''} ${kind === 'place' ? 'gs-pin--place' : 'gs-pin--tour'}"><span class="gs-pin__badge"><span class="gs-pin__num">${num}</span></span><span class="gs-pin__tail" aria-hidden="true"></span></div>`,
+    iconSize: [36, 44],
+    iconAnchor: [18, 43],
   });
 
 function detectDarkTheme() {

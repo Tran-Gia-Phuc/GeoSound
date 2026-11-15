@@ -393,22 +393,93 @@
   color: #5eead4;
 }
 
-/* Override pin cascade from player.css so active place markers turn amber and numbers stay centered */
-.discovermap .gs-pin::before {
-  top: 2px;
-  transform: translateX(-50%);
+/* Modernized map pins for DiscoverMap: centered circular badge + downward pointer */
+.discovermap .gs-pin-wrap {
+  background: transparent;
+  border: none;
 }
-.discovermap .gs-pin > span {
-  margin-top: -10px;
-  font-size: 12px;
+.discovermap .gs-pin--v2 {
+  position: relative;
+  width: 36px;
+  height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  transition: transform 160ms var(--ease);
+}
+.discovermap .gs-pin--v2::before {
+  content: none;
+}
+.discovermap .gs-pin--v2:hover {
+  transform: translateY(-2px) scale(1.08);
+}
+.discovermap .gs-pin__badge {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 2.5px solid #ffffff;
+  background: linear-gradient(145deg, #14b8a6 0%, #0f766e 100%);
+  box-shadow: 0 4px 12px rgba(2, 6, 23, 0.45), 0 0 0 1px rgba(15, 118, 110, 0.4);
+  color: #ffffff;
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1;
+  transition: width 160ms var(--ease), height 160ms var(--ease), background 160ms var(--ease),
+    box-shadow 160ms var(--ease), border-color 160ms var(--ease);
+}
+.discovermap .gs-pin__num {
+  display: block;
   line-height: 1;
 }
-.discovermap .gs-pin--active::before {
-  top: 0;
-  background: #c2600a;
-}
-.discovermap .gs-pin--active > span {
+.discovermap .gs-pin__tail {
+  position: relative;
+  z-index: 1;
+  width: 10px;
+  height: 10px;
   margin-top: -6px;
+  background: #0f766e;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  border-radius: 0 0 2px 0;
+  transform: rotate(45deg);
+  box-shadow: 2px 2px 6px rgba(2, 6, 23, 0.35);
+  transition: background 160ms var(--ease), border-color 160ms var(--ease);
+}
+.discovermap .gs-pin--place .gs-pin__badge {
+  background: linear-gradient(145deg, #38bdf8 0%, #0284c7 100%);
+  box-shadow: 0 4px 12px rgba(2, 6, 23, 0.45), 0 0 0 1px rgba(2, 132, 199, 0.4);
+}
+.discovermap .gs-pin--place .gs-pin__tail {
+  background: #0284c7;
+}
+.discovermap .gs-pin--v2.gs-pin--active .gs-pin__badge {
+  width: 36px;
+  height: 36px;
+  font-size: 13.5px;
+  border-color: #fffbeb;
+  background: linear-gradient(145deg, #fbbf24 0%, #d97706 100%);
+  color: #1f1300;
+  box-shadow: 0 6px 18px rgba(217, 119, 6, 0.55), 0 0 0 5px rgba(245, 158, 11, 0.28);
+  animation: gsPinPulse 1.6s var(--ease) infinite;
+}
+.discovermap .gs-pin--v2.gs-pin--active .gs-pin__tail {
+  background: #d97706;
+  border-color: #fffbeb;
+}
+@keyframes gsPinPulse {
+  0%,
+  100% {
+    box-shadow: 0 6px 18px rgba(217, 119, 6, 0.55), 0 0 0 0 rgba(245, 158, 11, 0.45);
+  }
+  50% {
+    box-shadow: 0 6px 18px rgba(217, 119, 6, 0.55), 0 0 0 9px rgba(245, 158, 11, 0);
+  }
 }
 
 /* Floating top-left HUD */
