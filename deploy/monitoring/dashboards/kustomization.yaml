@@ -1,5 +1,27 @@
-# Grafana dashboards (task 4.6): a configMapGenerator with the label grafana_dashboard: "1" and the
-# annotation grafana_folder: GeoSound. Empty until then.
+# Grafana dashboards (task 4.6, issue #403; deployment plan section 10.3). One ConfigMap per dashboard
+# in the namespace monitoring. The Grafana sidecar of kube-prometheus-stack loads every ConfigMap with
+# the label grafana_dashboard: "1" and puts it in the folder named by the annotation grafana_folder
+# (sidecar.dashboards.folderAnnotation and provider.foldersFromFilesStructure in
+# deploy/monitoring/values/kube-prometheus-stack.yaml).
+# The JSON files take their datasources from the variables ${datasource} (Prometheus) and ${loki}, and
+# have no id, version or iteration: edit them by hand or re-export from Grafana and remove those keys.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-resources: []
+namespace: monitoring
+generatorOptions:
+  disableNameSuffixHash: true # stable names; the sidecar reloads a ConfigMap when its content changes
+  labels:
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: GeoSound
+configMapGenerator:
+  - name: grafana-dashboard-geosound-overview
+    files: [overview.json]
+  - name: grafana-dashboard-geosound-infrastructure
+    files: [infrastructure.json]
+  - name: grafana-dashboard-geosound-messaging
+    files: [messaging.json]
+  - name: grafana-dashboard-geosound-ai-moderation
+    files: [ai-moderation.json]
+  - name: grafana-dashboard-geosound-logs
+    files: [logs.json]

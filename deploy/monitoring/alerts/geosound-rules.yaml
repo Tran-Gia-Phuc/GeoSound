@@ -1,0 +1,174 @@
+# GeoSound alert rules (deployment plan section 10.4, phase 4 task 4.7, issue #404).
+# Picked up by the Prometheus of kube-prometheus-stack through the label release: kube-prometheus-stack
+# (ruleSelectorNilUsesHelmValues, any namespace). Every rule carries team: geosound, so Alertmanager
+# sends it to the Discord channel #geosound-alerts (deploy/monitoring/values/kube-prometheus-stack.yaml).
+# Runbook of each alert: deploy/README.md, section "Alerts" (anchor = alert name in lower case).
+# CertExpiringSoon is left out on the laptop (no domain, no TLS; decision P4-7, task 4.8).
+#
+# Labels used below (deploy/helm/geosound/templates/servicemonitor.yaml):
+#   namespace  the namespace of the target (geosound-staging, later geosound-prod)
+#   job, service  the Kubernetes Service of the app (gateway, auth, tour, ..., ai, rabbitmq, redis)
+#   route      the Express route pattern, or the gateway mount prefix (/api/chat = chat stream)
+# kube-state-metrics keeps the namespace / pod / container of the object (honorLabels).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: geosound-rules
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/part-of: geosound
+spec:
+  groups:
+    - name: geosound.apps
+      rules:
+        - alert: PodCrashLooping
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace=~"geosound-.*"}[15m]) > 3
+          for: 5m
+          labels:
+            team: geosound
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash looping"
+            description: "Container {{ $labels.container }} of pod {{ $labels.pod }} restarted {{ $value | printf \"%.0f\" }} times in the last 15 minutes."
+            runbook_url: https://github.com/Tran-Gia-Phuc/GeoSound/blob/develop/deploy/README.md#podcrashlooping
+
+        # Node services send status "500"; the AI service (FastAPI instrumentator) sends "5xx":
+        # the regex 5.. matches both. At least 5 errors in the window, so one failed request on an
+        # idle staging does not page.
+        - alert: HighErrorRate
+          expr: |
+            (
+              sum by (namespace, service) (rate(http_requests_total{namespace=~"geosound-.*", status=~"5.."}[5m]))
+              /
+              sum by (namespace, service) (rate(http_requests_total{namespace=~"geosound-.*"}[5m]))
+            ) > 0.05
+            and on (namespace, service)
+            sum by (namespace, service) (increase(http_requests_total{namespace=~"geosound-.*", status=~"5.."}[5m])) >= 5
+          for: 5m
+          labels:
+            team: geosound
+            severity: critical
+          annotations:
+            summary: "{{ $labels.service }} answers 5xx to {{ $value | humanizePercentage }} of requests"
+            description: "More than 5% of the HTTP requests of {{ $labels.service }} in {{ $labels.namespace }} ended in a 5xx over the last 5 minutes ({{ $value | humanizePercentage }})."
+            runbook_url: https://github.com/Tran-Gia-Phuc/GeoSound/blob/develop/deploy/README.md#higherrorrate
+
+        # The AI service (LLM calls take seconds) and the chat stream of the gateway (route /api/chat:
+        # a request lasts as long as the streamed answer) are slow by design and left out.
+        - alert: HighLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum by (namespace, service, le) (
+                rate(http_request_duration_seconds_bucket{namespace=~"geosound-.*", service!="ai", route!="/api/chat"}[5m])
+              )
+            ) > 1
+          for: 10m
+          labels:
+            team: geosound
+            severity: warning
+          annotations:
+            summary: "{{ $labels.service }} p95 latency is {{ $value | humanizeDuration }}"
+            description: "The 95th percentile of HTTP request duration of {{ $labels.service }} in {{ $labels.namespace }} has been above 1 s for 10 minutes ({{ $value | humanizeDuration }})."
+            runbook_url: https://github.com/Tran-Gia-Phuc/GeoSound/blob/develop/deploy/README.md#highlatency
+
+        # rabbitmq_prometheus serves aggregated metrics (no queue label): the sum of all queues.
+        - alert: QueueBacklog
+          expr: |
+            sum by (namespace) (rabbitmq_queue_messages_ready{namespace=~"geosound-.*"}) > 100
+          for: 10m
+          labels:
+            team: geosound
+            severity: warning
+          annotations:
+            summary: "{{ $value | printf \"%.0f\" }} RabbitMQ messages waiting in {{ $labels.namespace }}"
+            description: "More than 100 messages have been ready (not delivered to a consumer) in the RabbitMQ queues of {{ $labels.namespace }} for 10 minutes ({{ $value | printf \"%.0f\" }} now)."
+            runbook_url: https://github.com/Tran-Gia-Phuc/GeoSound/blob/develop/deploy/README.md#queuebacklog
+
+        - alert: ModerationStuck
+          expr: |
+            max by (namespace) (moderation_pending_cases{namespace=~"geosound-.*"}) > 20
+          for: 15m
+          labels:
+            team: geosound
+            severity: warning
+          annotations:
+            summary: "{{ $value | printf \"%.0f\" }} moderation cases waiting for a retry in {{ $labels.namespace }}"
+            description: "More than 20 moderation cases have been in ai_failed (waiting for the retry sweeper) for 15 minutes ({{ $value | printf \"%.0f\" }} now). Places and tours are not reviewed."
+            runbook_url: https://github.com/Tran-Gia-Phuc/GeoSound/blob/develop/deploy/README.md#moderationstuck
+
+        # Failures = 429, 5xx, timeout, error. "blocked" (content refused by the provider) is a
+        # moderation answer, not an outage, and is not counted. One series per provider (gemini, groq).
+        - alert: LLMProviderDown
+          expr: |
+            (
+              sum by (namespace, provider) (rate(llm_requests_total{namespace=~"geosound-.*", outcome=~"429|5xx|timeout|error"}[10m]))
+              /
+              sum by (namespace, provider) (rate(llm_requests_total{namespace=~"geosound-.*"}[10m]))
+            ) > 0.5
+          for: 10m
+          labels:
+            team: geosound
+            severity: warning
+          annotations:
+            summary: "LLM provider {{ $labels.provider }} fails {{ $value | humanizePercentage }} of calls"
+            description: "More than half of the calls of the AI service to {{ $labels.provider }} in {{ $labels.namespace }} ended in 429, 5xx, timeout or error over the last 10 minutes ({{ $value | humanizePercentage }})."
+            runbook_url: https://github.com/Tran-Gia-Phuc/GeoSound/blob/develop/deploy/README.md#llmproviderdown
+
+        # A target that disappears (Deployment scaled to 0, pod deleted, Service without endpoints)
+        # leaves no `up` series at all, so `up == 0` alone never fires for it. This rule fires for every
+        # job that had a target in the last hour and has no target up now: it covers both a target
+        # that fails its scrape (up == 0) and a target that vanished. A rollout keeps one target up,
+        # so it does not fire. A job removed on purpose fires until it is out of the 1 h window.
+        # `for: 4m` (plan: 5 m) so a 6-minute outage reaches Discord before the app comes back.
+        - alert: TargetDown
+          expr: |
+            count by (namespace, job) (max_over_time(up{namespace=~"geosound-.*"}[1h]))
+            unless on (namespace, job)
+            count by (namespace, job) (up{namespace=~"geosound-.*"} == 1)
+          for: 4m
+          labels:
+            team: geosound
+            severity: critical
+          annotations:
+            summary: "No {{ $labels.job }} target is up in {{ $labels.namespace }}"
+            description: "Prometheus has had no successful scrape of {{ $labels.job }} in {{ $labels.namespace }} for 4 minutes: the pods are gone, not ready, or /metrics fails."
+            runbook_url: https://github.com/Tran-Gia-Phuc/GeoSound/blob/develop/deploy/README.md#targetdown
+
+    - name: geosound.nodes
+      rules:
+        - alert: NodeMemoryHigh
+          expr: |
+            1 - node_memory_MemAvailable_bytes{job="node-exporter"} / node_memory_MemTotal_bytes{job="node-exporter"} > 0.85
+          for: 10m
+          labels:
+            team: geosound
+            severity: warning
+          annotations:
+            summary: "Node {{ $labels.instance }} uses {{ $value | humanizePercentage }} of its memory"
+            description: "Memory used on node {{ $labels.instance }} has been above 85% for 10 minutes ({{ $value | humanizePercentage }})."
+            runbook_url: https://github.com/Tran-Gia-Phuc/GeoSound/blob/develop/deploy/README.md#nodememoryhigh
+
+        # One series per device (the same device mounted twice counts once); read-only and virtual
+        # filesystems are left out.
+        # 9p and drvfs are host drives that Docker Desktop mounts into the node (Windows C:\ at
+        # /output on the laptop k3s), not node disks.
+        - alert: DiskAlmostFull
+          expr: |
+            max by (instance, device) (
+              (
+                node_filesystem_avail_bytes{job="node-exporter", fstype!="", fstype!~"tmpfs|ramfs|squashfs|overlay|nsfs|fuse.*|9p|drvfs"}
+                /
+                node_filesystem_size_bytes{job="node-exporter", fstype!="", fstype!~"tmpfs|ramfs|squashfs|overlay|nsfs|fuse.*|9p|drvfs"}
+              )
+              unless on (instance, device, mountpoint) node_filesystem_readonly{job="node-exporter"} == 1
+            ) < 0.15
+          for: 10m
+          labels:
+            team: geosound
+            severity: critical
+          annotations:
+            summary: "Disk {{ $labels.device }} on {{ $labels.instance }} has {{ $value | humanizePercentage }} free"
+            description: "Free space on {{ $labels.device }} of node {{ $labels.instance }} has been below 15% for 10 minutes ({{ $value | humanizePercentage }} left)."
+            runbook_url: https://github.com/Tran-Gia-Phuc/GeoSound/blob/develop/deploy/README.md#diskalmostfull
