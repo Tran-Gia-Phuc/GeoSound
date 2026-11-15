@@ -1,6 +1,6 @@
 # Deployment plan: CI/CD, Kubernetes, Prometheus and Grafana
 
-Status: **in progress** (proposal 2026-11-09). Phase 0 (tasks 0.1 to 0.10) is done (section 6.1). Phase 1 (tasks 1.1 to 1.3) is built (section 7.1); it is done when a merge to `staging` publishes the 8 images. Phase 2 (tasks 2.1 to 2.6) is built and checked on a local k3s (section 8.6); it is done when the chart runs on the real VM. Phase 3 is done (section 9.4): Argo CD runs on the laptop cluster (3.1), the CI job `promote` deploys every build of `staging` (3.2), a read-only PostSync Job checks every sync (3.3), the results go to Discord (3.4), and the production release flow is written down (3.5). Later phases need the team's agreement, because they touch every service and the shared infrastructure.
+Status: **in progress** (proposal 2026-11-09). Phase 0 (tasks 0.1 to 0.10) is done (section 6.1). Phase 1 (tasks 1.1 to 1.3) is built (section 7.1); it is done when a merge to `staging` publishes the 8 images. Phase 2 (tasks 2.1 to 2.6) is built and checked on a local k3s (section 8.6); it is done when the chart runs on the real VM. Phase 3 is done (section 9.4): Argo CD runs on the laptop cluster (3.1), the CI job `promote` deploys every build of `staging` (3.2), a read-only PostSync Job checks every sync (3.3), the results go to Discord (3.4), and the production release flow is written down (3.5). Phase 4 is built and runs on the laptop cluster (section 10.6): Prometheus, Grafana, Alertmanager, Loki and Alloy through Argo CD (4.1), metrics in every service (4.2 to 4.4), scraping (4.5), five dashboards (4.6) and alerts to Discord (4.7). Later phases need the team's agreement, because they touch every service and the shared infrastructure.
 
 ## 1. Goal and scope
 
@@ -490,6 +490,32 @@ Alertmanager sends `critical` and `warning` to a Discord webhook (secret), group
 ### 10.5 Tracing (optional)
 
 OpenTelemetry SDK in the gateway and Node services, export to Grafana Tempo, propagate `traceparent` through HTTP and RabbitMQ message headers. LLM calls stay traced in LangSmith. Do this only after phases 0 to 4 are stable.
+
+### 10.6 Progress and deviations from the plan above
+
+Status: 4.1 (#398), 4.2 (#399), 4.3 (#400), 4.4 (#401), 4.5 (#402), 4.6 (#403) and 4.7 (#404) built: phase 4 runs on the laptop cluster. Work order and decisions P4-1 to P4-8: `deployment-phase4-implementation.md`. Runbook: `docs/04-guides/k3s-cluster.md` B6, alerts in `deploy/README.md`.
+
+Laptop sizes (P4-3, they replace 10.1 on the laptop only; 10.1 stays the target for a real cluster):
+
+| Component | Laptop | Plan 10.1 |
+| --- | --- | --- |
+| Prometheus | retention 2 days or 2 GB, 3 Gi `local-path` volume | 7 days, 10 Gi |
+| Loki | SingleBinary, retention 48 hours, 3 Gi volume, memcached caches off | 7 days, 10 Gi |
+| Grafana | no volume (dashboards and datasources come from Git), port-forward `127.0.0.1:4468` | `grafana.<domain>` behind HTTPS |
+| Prometheus / Alertmanager | port-forward `127.0.0.1:4469` / `:4470`, no Ingress | internal |
+| Memory | about 1 GiB for the whole stack (requests 1160 Mi) | |
+
+| Task | Issue | What was built and checked |
+| --- | --- | --- |
+| 4.1 | #398 | PR #409. `deploy/argocd/apps/monitoring.yaml`: four Applications (kube-prometheus-stack 93.3.0, Loki 7.6.0, Alloy 1.16.0, `monitoring-config` for `deploy/monitoring/`), charts pinned, values from `staging`, server-side apply. Grafana admin login from a Secret made by hand, anonymous access off. Alloy ships pod logs with the labels `namespace, pod, container, app, service, level`; it drops the `[DEBUG] POST` lines of the Argo CD notifications controller and rewrites any Discord webhook URL, so the webhook of 3.4 never reaches Loki. |
+| 4.2 | #399 | PR #405. `shared/metrics` (`http_requests_total`, `http_request_duration_seconds`, `/metrics`) and `useMetrics` in `shared/rabbitmq` (`events_published_total`, `events_consumed_total`) in auth, tour, media, notification and the gateway. `route` is the route template or the mount prefix, never a raw URL. The gateway answers 404 for `/api/.../metrics`. Bug found on staging (#412, PR #413): the auth image had no `node_modules` for `shared/`, so the new auth pod crashed on `prom-client`; the Dockerfile now installs them like the other images. |
+| 4.3 | #400 | PR #406. AI: HTTP metrics (`prometheus-fastapi-instrumentator`, label `handler`), `llm_requests_total`, `llm_request_duration_seconds`, `llm_fallback_total`, `chatbot_requests_total`, `chatbot_first_token_seconds`, `chatbot_indexer_events_total`; every label clamped to a closed set. |
+| 4.4 | #401 | PR #408. Moderation: `moderation_cases_total`, `moderation_ai_failed_total`, `moderation_case_duration_seconds`, `moderation_pending_cases` (refreshed by the retry sweeper); no id in any label. |
+| 4.5 | #402 | PR #407. `templates/servicemonitor.yaml`: one ServiceMonitor per backend app, RabbitMQ (aggregated metrics, so no per-queue series) and a `redis_exporter` sidecar; off by default, on in `deploy/local/values.yaml`; NetworkPolicy opens the metrics ports to `monitoring` only. Checked: every GeoSound target up; `/api/<service>/metrics` through Traefik answers 404. |
+| 4.6 | #403 | PR #417. Five dashboards in the folder `GeoSound` (Overview, Infrastructure, Messaging, AI and Moderation, Logs), loaded by the Grafana sidecar from a `configMapGenerator`. Deviations: rollouts are marked from kube-state-metrics (Argo CD is not scraped); the messaging dashboard shows RabbitMQ totals; AI HTTP panels group by `handler`. Every panel query was run through Grafana `/api/ds/query`: no datasource error; the panels that stay empty had no traffic of that kind. Still open on #403: one moderation submission and one chat message on staging (real Gemini calls), then every AI and Moderation panel must show data. |
+| 4.7 | #404 | PR #411. `deploy/monitoring/alerts/geosound-rules.yaml`: PodCrashLooping, HighErrorRate, HighLatency, QueueBacklog, ModerationStuck, LLMProviderDown, NodeMemoryHigh, DiskAlmostFull, TargetDown (fires when a job that had a target in the last hour has no target up, so a Deployment scaled to 0 also fires). Alertmanager posts `team="geosound"` and `severity="critical"` to `#geosound-alerts` with `webhook_url_file` from a Secret made by hand (P4-1, P4-2); default receiver `null`. Noise fixes found on the laptop (#414, PRs #415, #416): `DiskAlmostFull` skips the `9p` / `drvfs` mounts of the Windows host, and the chart's API server SLO group (`KubeAPIErrorBudgetBurn`) is off as a whole group, because disabling its one alert by name left `rules: null`, which the PrometheusRule CRD rejects. Checked on the laptop cluster after the release `sha-31c881e` (PR #418): with auto-sync paused for the test only, `notification` at 0 replicas made `TargetDown` fire after about 5 minutes and post to `#geosound-alerts`; back at 1 replica it resolved and posted again (Alertmanager `alertmanager_notifications_total{integration="discord"}` 6, failed 0). The same rule had already caught a real outage: the auth crash of #412 fired `TargetDown` for `auth` and resolved when the fixed image was deployed. |
+
+Later work (task 4.8, P4-7): `CertExpiringSoon` (needs TLS and a domain), tracing (10.5), Grafana behind an Ingress, the sizes of 10.1 on the real VM.
 
 ## 11. Security checklist
 
