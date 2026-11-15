@@ -109,8 +109,10 @@ def llm_outcome(exc: BaseException) -> str:
             return "blocked"
         return "error"
     name = type(exc).__name__
+    # RetryError: google api_core gave up retrying before its deadline (a fallback case
+    # in app/chatbot/models.py), so it counts as a timeout.
     if isinstance(exc, (TimeoutError, asyncio.TimeoutError)) or "Timeout" in name \
-            or "DeadlineExceeded" in name:
+            or "DeadlineExceeded" in name or name == "RetryError":
         return "timeout"
     status = getattr(exc, "status_code", None)
     if not isinstance(status, int):

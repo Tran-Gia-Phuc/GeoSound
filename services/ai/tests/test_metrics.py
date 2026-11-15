@@ -162,6 +162,11 @@ def test_outcome_mapping_of_sdk_errors_by_status_and_name():
     assert metrics.llm_outcome(ResourceExhausted()) == "429"
     assert metrics.llm_outcome(DeadlineExceeded()) == "timeout"
 
+    class RetryError(Exception):
+        pass
+
+    assert metrics.llm_outcome(RetryError()) == "timeout"
+
 
 def test_label_helpers_only_return_closed_set_values():
     assert metrics.provider_label("Gemini") == "gemini"
