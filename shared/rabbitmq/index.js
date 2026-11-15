@@ -11,6 +11,8 @@
 // Graceful shutdown (task 0.5, issue #348): stopConsuming() cancels the consumers and waits for the
 // handlers in flight (they can still publish), then close() closes the channel; anything not acked
 // by then goes back to the queue. After stopConsuming() nothing connects or reconnects again.
+//
+// Metrics (task 4.2, issue #399): useMetrics(metrics) counts published and consumed events.
 // =========================================================
 import amqp from 'amqplib';
 import { validateEvent } from '../events/index.js';
@@ -35,6 +37,8 @@ let consumerTags = [];
 // Handlers running now, and the waiters of stopConsuming() for the count to reach 0.
 let inFlight = 0;
 let idleWaiters = [];
+// Event counters set by useMetrics() (metrics task 4.2, issue #399); null = nothing is counted.
+let eventMetrics = null;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -137,12 +141,38 @@ export function isReady() {
   return Boolean(channel) && !closing && !draining;
 }
 
+/**
+ * Counts events with the counter factory of shared/metrics (`createMetrics(...)`):
+ *   events_published_total{event}         one per publish() handed to the channel;
+ *   events_consumed_total{event, result}  one per delivered message, where result is
+ *     ack  = the handler succeeded and the message was acked,
+ *     nack = the handler threw (or the body was not JSON) and the message was dropped,
+ *     skip = the ack / nack could not be sent because the delivering channel had closed
+ *            (reconnect or shutdown): the broker redelivers the message.
+ * `event` is the routing key, which is always an event name. Without this call nothing is counted.
+ */
+export function useMetrics(metrics) {
+  eventMetrics = {
+    published: metrics.counter({
+      name: 'events_published_total',
+      help: 'Events published to RabbitMQ, by event name',
+      labelNames: ['event'],
+    }),
+    consumed: metrics.counter({
+      name: 'events_consumed_total',
+      help: 'Events consumed from RabbitMQ, by event name and result (ack, nack, skip)',
+      labelNames: ['event', 'result'],
+    }),
+  };
+}
+
 /** Publishes one event (the payload is validated against the contract first). */
 export async function publish(eventName, payload) {
   if (!channel) throw new Error(NOT_CONNECTED);
   const valid = validateEvent(eventName, payload);
   const body = Buffer.from(JSON.stringify(valid));
   channel.publish(EXCHANGE, eventName, body, { persistent: true, contentType: 'application/json' });
+  eventMetrics?.published.inc({ event: eventName });
   console.log(`[rabbitmq] -> ${eventName}`);
 }
 
@@ -158,19 +188,25 @@ async function startConsumer({ queueName, bindings, handler, options }) {
     inFlight += 1;
     // Ack on the channel that delivered the message: after a reconnect the old one is closed,
     // the ack fails and the broker redelivers the message.
+    const eventName = msg.fields.routingKey;
+    let result;
     try {
-      const eventName = msg.fields.routingKey;
       const payload = JSON.parse(msg.content.toString());
       await handler(eventName, payload);
-      ch.ack(msg);
+      result = 'ack';
     } catch (err) {
       console.error('[rabbitmq] handler error:', err.message);
-      try {
-        ch.nack(msg, false, false); // drop the failed message (later: dead-letter queue)
-      } catch {
-        // channel already closed: the broker redelivers the message
-      }
+      result = 'nack';
+    }
+    try {
+      if (result === 'ack') ch.ack(msg);
+      else ch.nack(msg, false, false); // drop the failed message (later: dead-letter queue)
+    } catch {
+      // channel already closed: the broker redelivers the message
+      console.warn(`[rabbitmq] ${result} of ${eventName} not sent (channel closed): the broker redelivers it`);
+      result = 'skip';
     } finally {
+      eventMetrics?.consumed.inc({ event: eventName, result });
       inFlight -= 1;
       if (inFlight === 0) for (const resolve of idleWaiters.splice(0)) resolve();
     }

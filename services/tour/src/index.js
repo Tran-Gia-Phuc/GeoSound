@@ -15,6 +15,7 @@ import {
   createRedisRevocationCheck,
 } from '../shared/middleware/index.js';
 import { registerHealthRoutes, prismaCheck, redisCheck } from '../shared/health/index.js';
+import { createMetrics } from '../shared/metrics/index.js';
 import { createShutdown, closeServer } from '../shared/shutdown/index.js';
 import { createJobLock } from '../shared/lock/index.js';
 import { buildContainer } from './container.js';
@@ -30,6 +31,8 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 // Graceful shutdown (#348): SIGTERM / SIGINT run the steps registered below the listen() call.
 const shutdown = createShutdown({ service: 'tour' });
+// Prometheus metrics (task 4.2, #399): HTTP requests and RabbitMQ events, GET /metrics.
+const metrics = createMetrics({ service: 'tour' });
 
 // UC23 / design 5.3 — reject access tokens of signed-out sessions (key revoked:sid:<sid>, written by
 // Auth). No offline queue: while Redis is down the check fails at once and verifyJwt lets the
@@ -53,6 +56,7 @@ const chatbotEventsEnabled = isChatbotEventsEnabled(process.env);
 const brokerEnabled = moderationEnabled || chatbotEventsEnabled;
 const rabbit = brokerEnabled ? await import('../shared/rabbitmq/index.js') : null;
 const events = brokerEnabled ? await import('../shared/events/index.js') : null;
+rabbit?.useMetrics(metrics);
 
 const {
   tourRouter,
@@ -77,6 +81,7 @@ const {
 } = buildContainer(process.env, { publish: rabbit?.publish, validateEvent: events?.validateEvent, verifyJwt });
 
 app.use(express.json());
+app.use(metrics.httpMiddleware());
 app.use(logger);
 
 // /healthz, /health (liveness) and /readyz (#345): the database is required; RabbitMQ too when a
@@ -91,6 +96,9 @@ registerHealthRoutes(app, {
     redis: { check: redisCheck(revocationRedis), required: false },
   },
 });
+// GET /metrics, no auth: internal only. Traefik routes only /api to the gateway, and the gateway
+// refuses /api/*/metrics, so only the in-cluster scrape reaches it.
+metrics.registerMetricsRoute(app);
 
 // UC02: tìm kiếm (GET /) + chi tiết (GET /:id) công khai — MOUNT TRƯỚC router
 // contributor để GET công khai không bị chặn bởi verifyJwt; :id ràng buộc UUID
