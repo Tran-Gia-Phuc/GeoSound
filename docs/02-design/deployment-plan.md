@@ -334,6 +334,14 @@ Plain secrets and `.env` files are never committed. GitHub Actions never holds a
 
 Migrations must be backward compatible with the running version (expand, deploy, then contract in a later release), because old and new pods run side by side during a rolling update.
 
+### 8.6 Progress and deviations from the plan above
+
+Status: 2.1 done (#369); next 2.3 (#371), 2.5 (#373), 2.4 (#372), 2.2 (#370), 2.6 (#374).
+
+| # | Issue / PR | Result |
+| --- | --- | --- |
+| 2.1 | #369 | `deploy/helm/geosound`: one Deployment and one ClusterIP Service per entry of `.Values.services` (8 apps; the Service name is the app name, so the default URLs such as `http://auth:3001` work), one ConfigMap `geosound-config`. Each app's settings are merged over `.Values.defaults` (`geosound.app` helper; a key left empty in a values file keeps the default). One image tag for the whole stack, `global.image.tag`, with no default: rendering without it fails with a message naming the file to edit. Probes: startup and liveness on `/healthz`, readiness on `/readyz` (client: `/healthz` for both, nginx has no dependencies). Startup budget 120 s by default, 180 s for `ai` (measured about 30 s to the first `/healthz` at 1 CPU). Pods run with a numeric `runAsUser` (Node images: `USER node` is a name the kubelet cannot check, so 1000; AI 10001; client 101), read-only root file system with an `emptyDir` on `/tmp`, all capabilities dropped, `seccompProfile: RuntimeDefault`, no service account token, and `enableServiceLinks: false` (otherwise Kubernetes injects `AUTH_PORT=tcp://...`, which clashes with the app settings of the same name). The client gets a native `preStop` sleep of 5 s instead of `SHUTDOWN_DELAY_MS`. Deviation from 8.3: the secrets per app follow the code, not the excerpt. Each app reads only its own `DATABASE_URL` through `secretKeyRef` (AI: `DATABASE_URL_AI` and `DATABASE_URL_DIRECT_AI`) instead of mounting the whole `geosound-db`; gateway gets only `geosound-infra` (it does not verify JWTs); moderation gets no `geosound-ai` (it never calls an LLM); tour gets `geosound-ai` (translation) and no storage. `geosound-smtp` is optional in staging only: without it the auth service prints OTP codes to its log, which must not happen in prod. The `migrate`, `hpa`, `public` keys of 8.3 come with tasks 2.4 and 2.2. CI job `chart` runs `scripts/deploy/check-chart.sh`: `helm lint --strict`, `helm template` and `kubeconform -strict` (Kubernetes 1.31) for every `deploy/envs/*/values.yaml`, and checks that a release without a tag fails. Checked: 17 of 17 objects valid for staging and prod; on a local k3s in Docker (v1.31.4) with stand-in Postgres, RabbitMQ and Redis, all 8 app pods became Ready with no restart, a values change rolled `ai` with no downtime, and gateway `/readyz`, client `/` and ai `/readyz` answered 200 inside the cluster. |
+
 ## 9. Phase 3: continuous delivery with Argo CD
 
 ### 9.1 Flow

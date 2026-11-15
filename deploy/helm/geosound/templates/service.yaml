@@ -1,0 +1,23 @@
+{{- /* One ClusterIP Service per app, named after it: http://<app>:<port> inside the namespace. */ -}}
+{{- $root := . }}
+{{- range $name, $raw := .Values.services }}
+{{- if ne (toString (dig "enabled" true ($raw | default dict))) "false" }}
+{{- $app := include "geosound.app" (dict "root" $root "app" $raw) | fromYaml }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "geosound.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "geosound.selector" (dict "root" $root "name" $name) | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ $app.port }}
+      targetPort: http
+{{- end }}
+{{- end }}
