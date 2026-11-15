@@ -21,3 +21,15 @@ export function mergeVerdicts(results = []) {
   }
   return { verdict, severity, reasons, warning: verdict === VERDICT.WARNING };
 }
+
+/**
+ * Source ('ai' | 'geo') of the signal that set the merged verdict: the first signal, in input order, whose
+ * verdict is the final (worst) one. Callers pass the AI signal first, so when AI and geo give the same
+ * verdict the source is 'ai'. A signal without `source` gives null. Pure; used for metrics (task 4.4).
+ */
+export function verdictSourceOf(results = []) {
+  const signals = results.filter((r) => r != null);
+  const rankOf = (r) => RANK[Object.hasOwn(RANK, r.verdict) ? r.verdict : VERDICT.WARNING];
+  const worst = Math.max(RANK[VERDICT.PASS], ...signals.map(rankOf));
+  return signals.find((r) => rankOf(r) === worst)?.source ?? null;
+}

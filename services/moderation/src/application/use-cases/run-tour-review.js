@@ -22,7 +22,7 @@
 //   message so Tour can map them to a place; the domain messages stay unchanged.
 import { MODERATION_EVENTS as EVENTS } from '../events.js';
 import { SUBJECT, VERDICT } from '../../domain/entities/moderation-case.js';
-import { mergeVerdicts } from '../../domain/moderation/merge-verdicts.js';
+import { mergeVerdicts, verdictSourceOf } from '../../domain/moderation/merge-verdicts.js';
 import { evaluateTourGeo, sortBySequence, DEFAULT_GEO_LIMITS } from '../../domain/geo/tour-geo-rules.js';
 import {
   ReviewCaseFlow, toEventReasons, joinReasons, PERMANENT_ERROR_SEVERITY,
@@ -137,12 +137,17 @@ export class RunTourReview extends ReviewCaseFlow {
     }
     const geo = this.#geo(payload); // first: pure, no I/O
     const ai = await this.aiReviewer.reviewTour(payload);
-    return { ...mergeVerdicts([{ ...ai, source: 'ai' }, geo]), model: ai.model ?? null };
+    const signals = [{ ...ai, source: 'ai' }, geo];
+    return { ...mergeVerdicts(signals), model: ai.model ?? null, verdictSource: verdictSourceOf(signals) };
   }
 
+  // The human-review Warning counts as the AI signal (its reason has source 'ai'); a G1 Reject still wins.
   permanentResult(payload) {
-    const human = { verdict: VERDICT.WARNING, severity: PERMANENT_ERROR_SEVERITY, reasons: [{ ...TOUR_PERMANENT_ERROR_REASON }] };
-    return mergeVerdicts([human, this.#geo(payload)]);
+    const human = {
+      verdict: VERDICT.WARNING, severity: PERMANENT_ERROR_SEVERITY, reasons: [{ ...TOUR_PERMANENT_ERROR_REASON }], source: 'ai',
+    };
+    const signals = [human, this.#geo(payload)];
+    return { ...mergeVerdicts(signals), verdictSource: verdictSourceOf(signals) };
   }
 
   buildResultEvent(moderationCase, at) {
