@@ -218,6 +218,84 @@ Check the key name only: `kubectl -n argocd get secret argocd-notifications-secr
 
 **Go back to the compose stack** (both use the same Supabase and must not consume events at the same time): pause auto-sync **first**, else self-heal scales the apps back up, then `kubectl -n geosound-staging scale deploy --all --replicas=0`. To return to the cluster, apply the Application again: self-heal brings the replicas back.
 
+### B6. Monitoring
+
+Phase 4 (`docs/02-design/deployment-phase4-implementation.md`, task 4.1, issue #398). Argo CD installs the monitoring stack into the namespace `monitoring` from four Applications in `deploy/argocd/apps/monitoring.yaml`. Each chart comes from its Helm repository at a pinned version; its values come from `deploy/monitoring/values/` on branch `staging`, so a values change is deployed by merging into `staging`, like the app chart.
+
+| Application | Chart (pinned) | What runs |
+| --- | --- | --- |
+| `kube-prometheus-stack` | `prometheus-community/kube-prometheus-stack` 93.3.0 (Operator v0.95.2, Grafana 13.3) | Prometheus Operator, Prometheus, Alertmanager, Grafana, node-exporter, kube-state-metrics |
+| `loki` | `grafana/loki` 7.6.0 (Loki 3.6) | one Loki pod (SingleBinary), Service `loki:3100` |
+| `alloy` | `grafana/alloy` 1.16.0 (Alloy v1.22.0) | one log collector per node (DaemonSet) |
+| `monitoring-config` | kustomize directory `deploy/monitoring` | dashboards (task 4.6) and alert rules (task 4.7); empty at first |
+
+Laptop sizing (decision P4-3): Prometheus keeps 2 days (at most 2 GB) on a 3 Gi `local-path` volume, Loki keeps 48 hours on a 3 Gi volume, Grafana has no volume (dashboards and datasources come from ConfigMaps). A real cluster should follow deployment plan section 10.1 (7 days, 10 Gi). Other choices, explained in the values files:
+
+- etcd, scheduler, controller manager and kube-proxy are not scraped: k3s runs them inside its own process, so their targets would always be down.
+- The Prometheus Operator admission webhook is off. Its certificate Jobs patch the webhook configuration after the sync, and Argo CD self-heal would revert that patch. Rules are checked with `promtool` instead (task 4.7).
+- node-exporter mounts the node's `/` without mount propagation: the k3s container's root is not a shared mount, and `HostToContainer` would stop the pod from starting.
+- Prometheus picks up every ServiceMonitor, PodMonitor and PrometheusRule with the label `release: kube-prometheus-stack`, in any namespace.
+- Grafana datasources have fixed uids: `prometheus` (default) and `loki`. The dashboard sidecar loads every ConfigMap with the label `grafana_dashboard: "1"` in any namespace, in the folder named by its annotation `grafana_folder`.
+
+**Prerequisites.** The namespace `monitoring` (`kubectl create namespace monitoring` if `kubectl get ns monitoring` finds none; the Applications do not create it). Then the Grafana admin Secret, made by hand and never in Git (decision P4-2). The password goes straight into a file, without a trailing newline, and is never printed (Git Bash):
+
+```sh
+openssl rand -base64 24 | tr -d '\n' > ~/.kube/geosound-grafana-admin.txt
+kubectl -n monitoring create secret generic grafana-admin \
+  --from-literal=admin-user=admin \
+  --from-file=admin-password="$HOME/.kube/geosound-grafana-admin.txt"
+```
+
+Check the key names only: `kubectl -n monitoring get secret grafana-admin -o jsonpath='{.data}' | grep -o 'admin-[a-z]*'`. To log in, copy the password to the clipboard without showing it: `clip < ~/.kube/geosound-grafana-admin.txt` (Git Bash or cmd) or `Get-Content -Raw $HOME\.kube\geosound-grafana-admin.txt | Set-Clipboard` (PowerShell). To change it: recreate the Secret from a new file, then `kubectl -n monitoring rollout restart deploy kube-prometheus-stack-grafana`.
+
+**Install:**
+
+```sh
+kubectl apply -f deploy/argocd/apps/monitoring.yaml
+kubectl -n argocd get app kube-prometheus-stack loki alloy monitoring-config
+kubectl -n monitoring get pods
+```
+
+Wait until the four Applications are `Synced` and `Healthy` (the first sync pulls the images, a few minutes). `monitoring-config` has no object until tasks 4.6 and 4.7 and is `Synced` and `Healthy` empty.
+
+**UIs** (port-forward only, decision P4-4; no Ingress, anonymous access off). Run each in its own terminal or as a background task:
+
+```sh
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 4468:80 --address 127.0.0.1
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 4469:9090 --address 127.0.0.1
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-alertmanager 4470:9093 --address 127.0.0.1
+```
+
+Grafana `http://127.0.0.1:4468` (user `admin`, password from the file above), Prometheus `http://127.0.0.1:4469`, Alertmanager `http://127.0.0.1:4470`.
+
+**Logs.** Alloy tails the pods of its node through the Kubernetes API (no host path) in the namespaces `geosound-staging`, `monitoring` and `argocd`, and pushes them to Loki. Labels: `namespace`, `pod`, `container`, `app` (`app.kubernetes.io/name`), `service` (the JSON field `service`, else the container name) and `level` (the JSON or logfmt field `level`, in lower case; absent when the line has none). `reqId` is structured metadata, not a label: filter on it after the selector. In Grafana, Explore → Loki:
+
+```logql
+{namespace="geosound-staging", service="tour", level="error"}
+{namespace="geosound-staging"} | reqId="<id>"
+```
+
+**Resources.** The memory requests add up to about 1.13 GiB (limit for phase 4: 1.5 GiB). Measured with `kubectl top node` and `kubectl -n monitoring top pod` after 15 minutes:
+
+| Component | Memory request | Memory limit | Measured |
+| --- | --- | --- | --- |
+| Prometheus (+ config-reloader) | 300Mi + 24Mi | 900Mi + 48Mi | TBD |
+| Alertmanager (+ config-reloader) | 32Mi + 24Mi | 64Mi + 48Mi | TBD |
+| Prometheus Operator | 48Mi | 128Mi | TBD |
+| Grafana (+ 2 sidecars) | 192Mi + 2 × 48Mi | 512Mi + 2 × 128Mi | TBD |
+| kube-state-metrics | 48Mi | 128Mi | TBD |
+| node-exporter | 24Mi | 64Mi | TBD |
+| Loki | 256Mi | 768Mi | TBD |
+| Alloy (+ config-reloader) | 96Mi + 20Mi | 256Mi + 40Mi | TBD |
+| **Total** | **1160Mi** | | TBD |
+| Node memory before / after install | | | TBD / TBD |
+
+**The Discord webhook URL never reaches Loki.** The Argo CD notifications controller logs `[DEBUG] POST <webhook URL>` for every message (B5, "Known limit"). That line comes from the default logger of go-retryablehttp, which ignores the controller's log level: the line appears at the default level `info`, so changing the level in `deploy/argocd/values-local.yaml` would not remove it, and that file is not changed. The filter is in Alloy instead (`deploy/monitoring/values/alloy.yaml`): it drops every `[DEBUG] <method> http(s)://...` line of the namespace `argocd`, and rewrites any Discord webhook URL left in any line of any namespace to `<redacted-webhook>`. Check in Explore that `{namespace="argocd"} |= "discord.com/api/webhooks"` returns nothing. The controller's own log still holds the URL: keep reading it through the `sed` of B5.
+
+**Try a branch without merging** (values files only; the chart versions are in the Application): `kubectl -n argocd patch app <name> --type json -p '[{"op":"replace","path":"/spec/sources/1/targetRevision","value":"<branch>"}]'` for `kube-prometheus-stack`, `loki` or `alloy` (source 1 is the values repository), `--type merge -p '{"spec":{"source":{"targetRevision":"<branch>"}}}'` for `monitoring-config`. `kubectl apply -f deploy/argocd/apps/monitoring.yaml` goes back to `staging`.
+
+**Never run `helm upgrade` or `helm uninstall` on these releases**: Argo CD owns them, an upgrade fights self-heal and an uninstall deletes the Prometheus and Loki volumes. To remove the stack, delete the Applications (`kubectl delete -f deploy/argocd/apps/monitoring.yaml`); the Secret `grafana-admin` and the namespace stay.
+
 ## Troubleshooting
 
 **`ai` is not ready for a few minutes after a fresh install** (`/readyz` answers 503 with `"rabbitmq":"down"`). Expected: on a new cluster the RabbitMQ StatefulSet takes a while (volume, first boot), and the chatbot indexer waits for it in the background (since #375: retry after 3 s, doubling, at most 30 s apart, no limit). The logs show `RabbitMQ not ready ... retry <n>`, then `RabbitMQ connected after <n> attempts`, and the pod turns ready by itself. Nothing to restart. If it never connects, check `kubectl -n <ns> get pods rabbitmq-0` and the `geosound-infra` / `geosound-broker` secrets.
