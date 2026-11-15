@@ -25,6 +25,14 @@ test('A desktop filters call the supported endpoints and preserve URLs', async (
   await expect(page).toHaveURL(/lang=en/);
   await filters.getByLabel('Loại tour').selectOption('walking');
   await expect(page).toHaveURL(/type=walking/);
+
+  const search = page.getByRole('searchbox', { name: 'Tìm kiếm' });
+  await search.click();
+  await search.pressSequentially('Hà ');
+  await expect(page).toHaveURL(/q=H/);
+  await search.pressSequentially('Nội');
+  await expect(search).toHaveValue('Hà Nội');
+
   await noOverflow(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(filters).toBeHidden();

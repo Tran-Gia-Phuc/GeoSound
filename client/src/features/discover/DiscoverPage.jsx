@@ -117,7 +117,9 @@ export default function DiscoverPage() {
     if (qDebounced.trim() !== q) setParams({ q: qDebounced.trim() });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qDebounced]);
-  useEffect(() => setQInput(q), [q]); // URL đổi (back/forward) → đồng bộ ô tìm
+  useEffect(() => {
+    setQInput((prev) => (prev.trim() === q ? prev : q));
+  }, [q]); // URL đổi (back/forward) → đồng bộ ô tìm nhưng giữ dấu cách đang gõ
 
   const { coords, state: geoState, locate } = useCoords();
   const [filtersOpen, setFiltersOpen] = useState(false);
