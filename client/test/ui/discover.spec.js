@@ -19,6 +19,9 @@ test('A desktop filters call the supported endpoints and preserve URLs', async (
   await fixtures(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/');
+  const pager = page.locator('.discover-pager').first();
+  await expect(pager).toBeVisible();
+  await expect(pager.getByRole('button', { name: '1', exact: true })).toBeVisible();
   const filters = page.getByRole('region', { name: 'Bộ lọc khám phá' });
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Khám phá thế giới');
   await filters.getByLabel('Ngôn ngữ').selectOption('en');
