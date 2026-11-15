@@ -5,7 +5,8 @@
 
 global:
   image:
-    # Set by the promote job on every merge to staging (phase 3); by hand until then.
+    # Written on branch staging by the CI job promote after every build (task 3.2). Do not edit it
+    # on develop: the develop -> staging pull request would then conflict with the bot commits.
     tag: sha-ba8649d
 
 # Staging may run without a mail server: OTP codes then go to the pod log (test accounts only).
