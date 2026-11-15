@@ -174,9 +174,13 @@ ingress:
   enabled: true
   className: traefik # the k3s ingress controller
   host: ""
-  # cert-manager ClusterIssuer (cluster runbook); empty = plain HTTP, no certificate.
+  # cert-manager ClusterIssuer (deploy/cluster/cluster-issuers.yaml, task 2.6): letsencrypt-staging
+  # while testing, then letsencrypt-prod. Empty = plain HTTP, no certificate.
   clusterIssuer: ""
   tlsSecret: geosound-tls
+  # With a certificate, plain HTTP answers 301 to HTTPS (Traefik Middleware redirect-https).
+  # The ACME challenge path keeps working: cert-manager's solver Ingress has no middleware.
+  redirectHttps: true
 
 # Network policies (task 2.2): deny incoming traffic, then allow per app (public, allowFrom).
 networkPolicy:

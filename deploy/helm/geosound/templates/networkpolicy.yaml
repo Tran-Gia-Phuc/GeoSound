@@ -98,5 +98,31 @@ spec:
     {{- end }}
 {{- end }}
 {{- end }}
+{{- with $root.Values.ingress }}
+{{- if and .enabled .clusterIssuer }}
+---
+# cert-manager's HTTP-01 solver: a short-lived pod in this namespace that Let's Encrypt reaches
+# through the ingress controller. Without this rule the default deny blocks every renewal.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: acme-http01-solver
+  labels:
+    {{- include "geosound.labels" $root | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: { acme.cert-manager.io/http01-solver: "true" }
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - { port: 8089, protocol: TCP }
+      from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: {{ $np.ingressController.namespace }} }
+          podSelector:
+            matchLabels:
+              {{- toYaml $np.ingressController.podLabels | nindent 14 }}
+{{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
