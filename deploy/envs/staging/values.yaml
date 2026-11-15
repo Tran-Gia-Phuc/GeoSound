@@ -18,6 +18,10 @@ ingress:
   host: staging.geosound.example.com
   clusterIssuer: letsencrypt-prod
 
+# Read-only smoke test after every Argo CD sync (task 3.3): a failure marks the sync failed.
+smoke:
+  enabled: true
+
 services:
   media:
     env:
