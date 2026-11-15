@@ -1,0 +1,102 @@
+{{- /*
+Network policies (deployment plan task 2.2, issue #370). Ingress only: every pod of the namespace
+denies incoming traffic, then each app accepts its port from
+  - the ingress controller, when `public: true` (client, gateway);
+  - the apps in its `allowFrom` (the HTTP call graph: gateway to the services, moderation and tour
+    to ai, notification to auth);
+  - the monitoring namespace (Prometheus scraping, phase 4).
+RabbitMQ and Redis accept the apps that load geosound-infra (where RABBITMQ_URL and REDIS_URL
+live). Egress stays open: Supabase, Gemini, Groq and SMTP are outside the cluster. A rule never
+has an empty `from` (that would allow every source). k3s enforces these policies.
+*/ -}}
+{{- $root := . }}
+{{- with .Values.networkPolicy }}
+{{- if .enabled }}
+{{- $np := . }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  labels:
+    {{- include "geosound.labels" $root | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+{{- $brokerClients := list }}
+{{- range $name, $raw := $root.Values.services }}
+{{- if ne (toString (dig "enabled" true ($raw | default dict))) "false" }}
+{{- $app := include "geosound.app" (dict "root" $root "app" $raw) | fromYaml }}
+{{- if has "geosound-infra" ($app.secrets | default list) }}
+{{- $brokerClients = append $brokerClients $name }}
+{{- end }}
+{{- if or $app.public $app.allowFrom $np.monitoringNamespace }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "geosound.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "geosound.selector" (dict "root" $root "name" $name) | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - { port: http, protocol: TCP }
+      from:
+        {{- if $app.public }}
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: {{ $np.ingressController.namespace }} }
+          podSelector:
+            matchLabels:
+              {{- toYaml $np.ingressController.podLabels | nindent 14 }}
+        {{- end }}
+        {{- range $app.allowFrom }}
+        - podSelector:
+            matchLabels:
+              {{- include "geosound.selector" (dict "root" $root "name" .) | nindent 14 }}
+        {{- end }}
+        {{- with $np.monitoringNamespace }}
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: {{ . }} }
+        {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- range $broker, $port := dict "rabbitmq" "amqp" "redis" "redis" }}
+{{- if and (index $root.Values $broker).enabled $brokerClients }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $broker }}
+  labels:
+    {{- include "geosound.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: {{ $broker }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "geosound.selector" (dict "root" $root "name" $broker) | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - ports:
+        - { port: {{ $port }}, protocol: TCP }
+      from:
+        - podSelector:
+            matchLabels: { app.kubernetes.io/instance: {{ $root.Release.Name }} }
+            matchExpressions:
+              - { key: app.kubernetes.io/name, operator: In, values: [{{ join ", " $brokerClients }}] }
+    {{- if and (eq $broker "rabbitmq") $np.monitoringNamespace }}
+    - ports:
+        - { port: metrics, protocol: TCP }
+      from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: {{ $np.monitoringNamespace }} }
+    {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

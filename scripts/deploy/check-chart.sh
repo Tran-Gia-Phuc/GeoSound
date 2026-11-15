@@ -37,4 +37,18 @@ if [ "$n" != "0" ]; then
   fail=1
 fi
 
+echo "[chart] an app with no caller and no scraping gets no NetworkPolicy (default deny), never an allow-all rule"
+if helm template geosound "$CHART" -f deploy/envs/staging/values.yaml -s templates/networkpolicy.yaml \
+  --set services.tour.allowFrom=null --set networkPolicy.monitoringNamespace= | grep -q "^  name: tour$"; then
+  echo "[chart] FAIL: a NetworkPolicy was rendered for tour without any allowed source"
+  fail=1
+fi
+
+echo "[chart] one-pod apps get no PodDisruptionBudget (it would block node drains)"
+n=$(helm template geosound "$CHART" -f deploy/envs/staging/values.yaml | grep -c "^kind: PodDisruptionBudget" || true)
+if [ "$n" != "0" ]; then
+  echo "[chart] FAIL: $n PodDisruptionBudget(s) in staging, where every app runs one pod"
+  fail=1
+fi
+
 exit "$fail"

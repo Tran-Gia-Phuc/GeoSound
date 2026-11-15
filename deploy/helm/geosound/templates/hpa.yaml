@@ -1,0 +1,42 @@
+{{- /*
+CPU autoscaling (deployment plan task 2.2, issue #370) for the apps with `hpa: { min, max, cpu }`.
+`cpu` is the target average use in percent of the CPU request. The Deployment then has no
+replicas field, so a helm upgrade never resets what the autoscaler chose. Needs metrics-server
+(part of k3s).
+*/ -}}
+{{- $root := . }}
+{{- range $name, $raw := .Values.services }}
+{{- if ne (toString (dig "enabled" true ($raw | default dict))) "false" }}
+{{- $app := include "geosound.app" (dict "root" $root "app" $raw) | fromYaml }}
+{{- with $app.hpa }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "geosound.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $name }}
+  minReplicas: {{ .min }}
+  maxReplicas: {{ .max }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: {{ .cpu }} }
+  behavior:
+    scaleUp:
+      # A Node pod uses far more than its request while it starts; without this window every
+      # rollout added a pod (seen on k3s). The lowest recommendation of the last minute wins.
+      stabilizationWindowSeconds: 60
+    scaleDown:
+      # Wait 5 minutes of low load before removing a pod: no flapping on bursty traffic.
+      stabilizationWindowSeconds: 300
+{{- end }}
+{{- end }}
+{{- end }}
