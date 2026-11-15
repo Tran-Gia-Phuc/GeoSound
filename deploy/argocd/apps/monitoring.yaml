@@ -1,0 +1,122 @@
+# The monitoring stack on the laptop k3s, managed by Argo CD (task 4.1, issue #398;
+# docs/04-guides/k3s-cluster.md, B6).
+#   kubectl apply -f deploy/argocd/apps/monitoring.yaml
+# Four Applications in the namespace monitoring (made by hand, never pruned):
+#   kube-prometheus-stack  Prometheus, Alertmanager, Grafana, node-exporter, kube-state-metrics
+#   loki                   log store (one pod)
+#   alloy                  log collector (one pod per node)
+#   monitoring-config      dashboards and alert rules of deploy/monitoring (kustomize, tasks 4.6 and 4.7)
+# Each chart comes from its Helm repository at a pinned version; its values come from this repository
+# (source `ref: values`, branch staging), so a values change is deployed by merging into staging.
+# The Secret grafana-admin is made by hand (runbook B6) and is not tracked, so it is never pruned.
+# Never `helm upgrade` or `helm uninstall` these releases: Argo CD owns them.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 93.3.0 # Prometheus Operator v0.95.2
+      helm:
+        # Required: the ServiceMonitor and PrometheusRule label `release: kube-prometheus-stack` and
+        # every object name depend on it.
+        releaseName: kube-prometheus-stack
+        valueFiles:
+          - $values/deploy/monitoring/values/kube-prometheus-stack.yaml
+    - repoURL: https://github.com/Tran-Gia-Phuc/GeoSound.git # public, no credentials
+      targetRevision: staging
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true # the Prometheus Operator CRDs are too big for client-side apply
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: loki
+      targetRevision: 7.6.0 # Loki 3.6
+      helm:
+        releaseName: loki # Service loki:3100, used by Alloy and by the Grafana datasource
+        valueFiles:
+          - $values/deploy/monitoring/values/loki.yaml
+    - repoURL: https://github.com/Tran-Gia-Phuc/GeoSound.git
+      targetRevision: staging
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: alloy
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: alloy
+      targetRevision: 1.16.0 # Alloy v1.22.0
+      helm:
+        releaseName: alloy
+        valueFiles:
+          - $values/deploy/monitoring/values/alloy.yaml
+    - repoURL: https://github.com/Tran-Gia-Phuc/GeoSound.git
+      targetRevision: staging
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-config
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Tran-Gia-Phuc/GeoSound.git
+    targetRevision: staging
+    path: deploy/monitoring # kustomization.yaml: dashboards (task 4.6) and alert rules (task 4.7)
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true

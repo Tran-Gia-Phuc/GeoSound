@@ -1,0 +1,5 @@
+# Grafana dashboards (task 4.6): a configMapGenerator with the label grafana_dashboard: "1" and the
+# annotation grafana_folder: GeoSound. Empty until then.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []

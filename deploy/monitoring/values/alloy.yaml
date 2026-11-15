@@ -1,0 +1,165 @@
+# Values of the grafana/alloy chart, pinned to 1.16.0 (Alloy v1.22.0) in deploy/argocd/apps/monitoring.yaml.
+# Installed by Argo CD (task 4.1, issue #398; runbook docs/04-guides/k3s-cluster.md section B6).
+# Never `helm upgrade` this release by hand.
+#
+# One Alloy pod per node (DaemonSet). It tails the logs of the pods on its own node through the
+# Kubernetes API (no hostPath), keeps the namespaces geosound-staging, monitoring and argocd, and pushes
+# them to Loki. Labels: namespace, pod, container, app, service, level. reqId goes to structured metadata.
+#
+# Secrets: the Argo CD notifications controller logs `[DEBUG] POST <Discord webhook URL>` through the
+# default logger of go-retryablehttp, whatever its log level (runbook B5 and B6). Those lines are dropped
+# here, and any Discord webhook URL left in any line is rewritten to <redacted-webhook> before it leaves
+# the node.
+
+controller:
+  type: daemonset
+
+crds:
+  create: false # the PodLogs CRD is not used (logs come from discovery.kubernetes)
+
+# Namespaced rules: only what log tailing needs (no Secrets, ConfigMaps or monitoring CRDs). The chart's
+# read-only node rules (clusterRules) stay: its template cannot render an empty list there.
+rbac:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["pods", "pods/log", "namespaces"]
+      verbs: ["get", "list", "watch"]
+
+configReloader:
+  resources:
+    requests: { cpu: 5m, memory: 20Mi }
+    limits: { cpu: 50m, memory: 40Mi }
+
+alloy:
+  enableReporting: false
+  resources:
+    requests: { cpu: 20m, memory: 96Mi }
+    limits: { cpu: 500m, memory: 256Mi }
+  configMap:
+    create: true
+    # The chart passes this text through Helm `tpl`: a Go template that Alloy must see as text is written
+    # as {{ "{{ ... }}" }} (stage.template below).
+    content: |
+      // Pods of this node only. The chart sets HOSTNAME to spec.nodeName in the DaemonSet.
+      discovery.kubernetes "pods" {
+        role = "pod"
+        namespaces {
+          names = ["geosound-staging", "monitoring", "argocd"]
+        }
+        selectors {
+          role  = "pod"
+          field = "spec.nodeName=" + coalesce(sys.env("HOSTNAME"), constants.hostname)
+        }
+      }
+
+      discovery.relabel "pods" {
+        targets = discovery.kubernetes.pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_phase"]
+          regex         = "Pending|Unknown"
+          action        = "drop"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+          target_label  = "app"
+        }
+        // Default service = container name; the JSON field "service" replaces it below.
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "service"
+        }
+      }
+
+      loki.source.kubernetes "pods" {
+        targets    = discovery.relabel.pods.output
+        forward_to = [loki.process.pods.receiver]
+      }
+
+      loki.process "pods" {
+        forward_to = [loki.write.loki.receiver]
+
+        // 1. Secret leak: the HTTP debug lines of the Argo CD notifications controller carry the
+        //    Discord webhook URL (with its token). Drop them.
+        stage.match {
+          selector = "{namespace=\"argocd\"}"
+
+          stage.drop {
+            expression          = `\[DEBUG\] (GET|POST|PUT|PATCH|DELETE) https?://`
+            drop_counter_reason = "argocd_http_debug"
+          }
+        }
+
+        // 2. Any Discord webhook URL left in any line, any namespace: discord.com, discordapp.com and
+        //    their subdomains, with or without an API version, JSON-escaped slashes included.
+        //    The match stops before a quote, so a JSON line stays valid JSON.
+        stage.replace {
+          expression = `(?i)(https?:(?:\\?/){2}(?:[a-z0-9-]+\.)?discord(?:app)?\.com(?:\\?/)+api(?:\\?/)+(?:v\d+(?:\\?/)+)?webhooks[^\s"'<>]*)`
+          replace    = "<redacted-webhook>"
+        }
+
+        // 3. JSON lines of the GeoSound services: {time, level, service, msg, reqId, ...}.
+        stage.json {
+          expressions = {
+            level   = "level",
+            service = "service",
+            reqId   = "reqId",
+          }
+        }
+
+        // 4. Argo CD and the monitoring stack log in logfmt (level=info).
+        stage.match {
+          selector = "{namespace=~\"argocd|monitoring\"}"
+
+          stage.logfmt {
+            mapping = { level = "" }
+          }
+        }
+
+        // 5. level in lower case (INFO, Info -> info); empty when the line has none.
+        stage.template {
+          source   = "level"
+          template = `{{ "{{ if .Value }}{{ ToLower .Value }}{{ end }}" }}`
+        }
+
+        // service is only replaced when the JSON line has the field.
+        stage.labels {
+          values = {
+            level   = "",
+            service = "",
+          }
+        }
+
+        // No empty level label on lines without a level.
+        stage.match {
+          selector = "{namespace=~\".+\", level=\"\"}"
+
+          stage.label_drop {
+            values = ["level"]
+          }
+        }
+
+        // A request id is unique per request: structured metadata, never a label (decision P4-6).
+        stage.structured_metadata {
+          values = { reqId = "" }
+        }
+      }
+
+      loki.write "loki" {
+        endpoint {
+          url = "http://loki:3100/loki/api/v1/push"
+        }
+      }
