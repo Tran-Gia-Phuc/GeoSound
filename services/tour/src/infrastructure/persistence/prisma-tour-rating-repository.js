@@ -86,6 +86,49 @@ export class PrismaTourRatingRepository {
     return { items: rows.map(toEntity), total };
   }
 
+  async listByUser(userId, { skip, take }) {
+    const [rows, total] = await Promise.all([
+      this.prisma.tourRating.findMany({
+        where: { userId },
+        include: {
+          tour: {
+            select: {
+              id: true,
+              title: true,
+              city: true,
+              coverImageUrl: true,
+              status: true,
+              averageRating: true,
+              ratingCount: true,
+            },
+          },
+        },
+        orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }, { id: 'asc' }],
+        skip,
+        take,
+      }),
+      this.prisma.tourRating.count({ where: { userId } }),
+    ]);
+    return {
+      items: rows.map((row) => ({
+        ...toEntity(row).toPublic(),
+        tourId: row.tourId,
+        tour: row.tour
+          ? {
+              id: row.tour.id,
+              title: row.tour.title,
+              city: row.tour.city,
+              coverImageUrl: row.tour.coverImageUrl,
+              status: row.tour.status,
+              averageRating: row.tour.averageRating,
+              ratingCount: row.tour.ratingCount,
+            }
+          : null,
+      })),
+      total,
+    };
+  }
+
   async distribution(tourId) {
     const groups = await this.prisma.tourRating.groupBy({ by: ['stars'], where: { tourId }, _count: { _all: true } });
     const out = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };

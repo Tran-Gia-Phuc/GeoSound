@@ -7,11 +7,17 @@
 import Icon from '../../components/Icon.jsx';
 import { formatDateTime, formatRelative } from '../../lib/format.js';
 
-const TYPE_ICON = {
-  'tour.approved': 'check-circle',
-  'tts.render.completed': 'volume',
-  'tour.reported': 'info',
+const TYPE_META = {
+  'tour.approved': { icon: 'check-circle', tone: 'success', badge: 'Đã duyệt' },
+  'tour.ai_rejected': { icon: 'alert-triangle', tone: 'danger', badge: 'Cần sửa AI' },
+  'tour.rejected': { icon: 'alert-triangle', tone: 'danger', badge: 'Bị từ chối' },
+  'tour.changes_requested': { icon: 'edit', tone: 'warn', badge: 'Cần chỉnh sửa' },
+  'tts.render.completed': { icon: 'volume', tone: 'primary', badge: 'Âm thanh AI' },
+  'tour.reported': { icon: 'info', tone: 'warn', badge: 'Báo cáo' },
+  'account.notice': { icon: 'bell', tone: 'info', badge: 'Hệ thống' },
 };
+
+const FALLBACK_META = { icon: 'bell', tone: 'neutral', badge: 'Thông báo' };
 
 /** AI reasons of `tour.ai_rejected` (`data.reasons[{ field, category, message }]`). */
 function reasonsOf(n) {
@@ -22,12 +28,20 @@ function reasonsOf(n) {
 export default function NotificationItem({ notification: n, onOpen, busy = false }) {
   const reasons = reasonsOf(n).filter((m) => m !== n.body?.trim());
   const unread = !n.read;
+  const meta = TYPE_META[n.type] || FALLBACK_META;
+
   const content = (
     <>
-      <span className="notif__icon" aria-hidden="true">
-        <Icon name={TYPE_ICON[n.type] || 'alert-triangle'} size={18} />
+      <span className={`notif__icon notif__icon--${meta.tone}`} aria-hidden="true">
+        <Icon name={meta.icon} size={18} />
       </span>
       <span className="notif__main">
+        <span className="notif__head">
+          <span className={`notif__tag notif__tag--${meta.tone}`}>{meta.badge}</span>
+          <time className="notif__time" dateTime={n.createdAt} title={formatDateTime(n.createdAt)}>
+            <Icon name="clock" size={12} /> {formatRelative(n.createdAt)}
+          </time>
+        </span>
         <span className="notif__title">
           {n.title}
           {unread ? <span className="sr-only"> — chưa đọc</span> : null}
@@ -40,11 +54,15 @@ export default function NotificationItem({ notification: n, onOpen, busy = false
             ))}
           </span>
         ) : null}
-        <time className="notif__time muted small" dateTime={n.createdAt} title={formatDateTime(n.createdAt)}>
-          {formatRelative(n.createdAt)}
-        </time>
       </span>
-      {unread ? <span className="notif__dot" aria-hidden="true" /> : null}
+      <span className="notif__trail" aria-hidden="true">
+        {unread ? <span className="notif__dot" /> : null}
+        {onOpen ? (
+          <span className="notif__chev">
+            <Icon name="chevron-left" size={16} />
+          </span>
+        ) : null}
+      </span>
     </>
   );
 

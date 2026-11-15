@@ -48,6 +48,21 @@ export class ListTourRatings {
   }
 }
 
+export class ListMyTourRatings {
+  /** @param {{ ratingRepo }} deps */
+  constructor({ ratingRepo }) {
+    this.ratingRepo = ratingRepo;
+  }
+
+  /** @param {{ userId: string, page?: number, limit?: number }} input */
+  async execute({ userId, page = 1, limit = RATINGS_PAGE_DEFAULT }) {
+    const take = Math.min(Math.max(1, limit), RATINGS_PAGE_MAX);
+    const current = Math.max(1, page);
+    const { items, total } = await this.ratingRepo.listByUser(userId, { skip: (current - 1) * take, take });
+    return { items, page: current, limit: take, total };
+  }
+}
+
 export class GetMyTourRating {
   /** @param {{ tourRepo, ratingRepo }} deps */
   constructor({ tourRepo, ratingRepo }) {

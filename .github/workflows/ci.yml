@@ -146,3 +146,78 @@ jobs:
     uses: ./.github/workflows/images.yml
     with:
       push: ${{ github.event_name == 'push' }}
+
+  # Deployment plan phase 3, task 3.2 (#386): every build of branch staging is deployed. The job
+  # writes the new tag into deploy/envs/staging/values.yaml on staging only (decision P3-5) and
+  # Argo CD applies it. It pushes with GITHUB_TOKEN, and commits pushed with GITHUB_TOKEN start no
+  # workflow, so the bot commit runs no CI and there is no loop (P3-4).
+  promote:
+    name: Promote to staging
+    needs: [images]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    concurrency: # one promotion at a time, none cancelled: the order guard keeps the newest tag
+      group: promote-staging
+      cancel-in-progress: false
+    env:
+      VALUES: deploy/envs/staging/values.yaml
+      YQ_VERSION: v4.44.3
+      YQ_SHA256: a2c097180dd884a8d50c956ee16a9cec070f30a7947cf4ebf87d5f36213e9ed7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: staging # the tip of the branch, which may be newer than this build
+          fetch-depth: 0 # the order guard compares commits
+
+      - name: Install yq
+        run: |
+          set -eu
+          curl -sSfL -o "$RUNNER_TEMP/yq" "https://github.com/mikefarah/yq/releases/download/$YQ_VERSION/yq_linux_amd64"
+          echo "$YQ_SHA256  $RUNNER_TEMP/yq" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/yq"
+
+      - name: Write the new tag
+        id: tag
+        run: |
+          set -eu
+          yq="$RUNNER_TEMP/yq"
+          tag="sha-$(git rev-parse --short=7 "$GITHUB_SHA")" # same tag as images.yml
+          current=$("$yq" '.global.image.tag' "$VALUES")
+          echo "staging runs $current, this build is $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          # Order guard: if the running tag was built from this commit or from a later one, a
+          # newer build was promoted first. Going back to this tag would deploy older code.
+          running="${current#sha-}"
+          if git rev-parse --verify --quiet "$running^{commit}" > /dev/null &&
+            git merge-base --is-ancestor "$GITHUB_SHA" "$running"; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "- Nothing to do: staging already runs \`$current\`, built from this commit or a later one." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # yq rewrites the whole file (drops blank lines, reformats { a: b }), so sed changes the
+          # one line and yq checks the result.
+          sed -i "s/^    tag: sha-[0-9a-f]\{7,40\}\$/    tag: $tag/" "$VALUES"
+          test "$("$yq" '.global.image.tag' "$VALUES")" = "$tag"
+          test "$(git diff --numstat -- "$VALUES")" = "$(printf '1\t1\t%s' "$VALUES")"
+          test -z "$(git status --porcelain | grep -v " $VALUES\$" || true)"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push to staging
+        if: steps.tag.outputs.skip == 'false'
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -eu
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898+github-actions[bot]@users.noreply.github.com'
+          git commit -q -m "chore: deploy $TAG to staging" -- "$VALUES"
+          if ! git push origin HEAD:staging; then
+            echo "staging moved during the job: rebase once and push again"
+            git pull --rebase origin staging
+            git push origin HEAD:staging
+          fi
+          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$(git rev-parse HEAD)"
+          echo "- Deployed \`$TAG\` to staging: $url (Argo CD applies it within about 3 minutes)." >> "$GITHUB_STEP_SUMMARY"

@@ -159,38 +159,64 @@ select.input {
 }
 .tour-card__cover {
   position: relative;
-  aspect-ratio: 16 / 9;
+  flex: none;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
   background: linear-gradient(135deg, var(--teal-700), var(--teal-500));
   display: grid;
   place-items: center;
   color: rgba(255, 255, 255, 0.85);
 }
+.tour-card__cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0) 45%, rgba(2, 6, 23, 0.68) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
 .tour-card__cover img {
+  display: block;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
   object-fit: cover;
+  transition: transform 320ms var(--ease);
+}
+.tour-card:hover .tour-card__cover img {
+  transform: scale(1.04);
 }
 /* Nhãn giọng trên ảnh — nền đặc để luôn đủ tương phản trên mọi ảnh bìa */
 .tour-card__voice {
   position: absolute;
   left: 10px;
   bottom: 10px;
-  background: rgba(2, 6, 23, 0.68);
+  z-index: 2;
+  background: rgba(9, 15, 28, 0.78);
   color: #fff;
-  border-color: transparent;
-  backdrop-filter: blur(2px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(6px);
 }
 .tour-card__body {
+  position: relative;
+  z-index: 2;
+  background: var(--surface);
   padding: var(--sp-3);
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
   flex: 1;
+  min-width: 0;
 }
 .tour-card__title {
+  color: var(--fg);
   font-weight: 700;
   font-size: 16px;
-  line-height: 1.3;
+  line-height: 1.35;
+  min-height: calc(2 * 1.35em);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;

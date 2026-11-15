@@ -1,0 +1,347 @@
+/* MyRatingsPage (/account/ratings) — review history, filtering, and inline edit/delete */
+.myratings {
+  max-width: 780px;
+}
+
+.myratings__hero {
+  padding: var(--sp-5);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-xl, 20px);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent-soft, rgba(245, 158, 11, 0.14)) 55%, var(--surface)) 0%,
+    var(--surface) 70%
+  );
+  box-shadow: var(--shadow-sm);
+}
+
+.myratings__hero-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.myratings__hero .appheader {
+  flex: 1 1 200px;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.myratings__hero .appheader__title {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.myratings__subtitle {
+  margin: var(--sp-2) 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--fg-muted);
+  max-width: 62ch;
+}
+
+.myratings__count-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--amber-500) 40%, transparent);
+  background: color-mix(in srgb, var(--amber-500) 14%, var(--surface-2));
+  color: var(--amber-400, #fbbf24);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+:root:not([data-theme='dark']) .myratings__count-pill {
+  color: var(--warning, #b45309);
+}
+
+.myratings__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.myratings__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
+}
+
+.myratings__chip:hover {
+  border-color: var(--border-strong);
+  color: var(--fg);
+}
+
+.myratings__chip.is-active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.myratings__loading {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-4) 0;
+}
+
+.myratings__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 36px var(--sp-5);
+  text-align: center;
+  border-style: dashed;
+  border-color: var(--border-strong);
+}
+
+.myratings__empty-orb {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--amber-500) 38%, transparent);
+  background: color-mix(in srgb, var(--amber-500) 14%, var(--surface-2));
+  color: var(--amber-500);
+}
+
+.myratings__empty-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.myratings__empty-desc {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--fg-muted);
+}
+
+.myratings__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.myrating-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.myrating-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.myrating-card__thumb {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--primary);
+}
+
+.myrating-card__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.myrating-card__tour {
+  flex: 1 1 180px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.myrating-card__title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--fg);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+a.myrating-card__title:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.myrating-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.myrating-card__tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 11.5px;
+}
+
+.myrating-card__score {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.myrating-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.myrating-star {
+  color: var(--border-strong);
+}
+
+.myrating-star--on {
+  color: var(--amber-500);
+}
+
+.myrating-card__badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--amber-500) 15%, var(--surface-2));
+  color: var(--amber-500);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.myrating-card__comment {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.myrating-card__nocomment {
+  margin: 0;
+  font-style: italic;
+}
+
+.myrating-card__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.myrating-card__time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.myrating-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.myrating-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.myrating-picker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.myrating-picker__star {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  color: var(--border-strong);
+  cursor: pointer;
+}
+
+.myrating-picker__star.is-on {
+  color: var(--amber-500);
+}
+
+.myrating-picker__star input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.myrating-edit__textarea {
+  min-height: 80px;
+  padding: var(--sp-2) var(--sp-3);
+  resize: vertical;
+  width: 100%;
+  font: inherit;
+}
+
+.myrating-edit__count {
+  align-self: flex-end;
+}
+
+.myrating-edit__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 500px) {
+  .myratings__hero {
+    padding: var(--sp-4);
+  }
+}

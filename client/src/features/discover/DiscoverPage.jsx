@@ -31,6 +31,15 @@ import './discover-a.css';
 const LIMIT = 12;
 const RECENT_KEY = 'geosound:recent-tours';
 
+function inferPageSize(data, list) {
+  const explicit = Number(data?.limit ?? data?.pageSize);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  const count = Array.isArray(list) ? list.length : 0;
+  const total = Number(data?.total) || 0;
+  if (count > 0 && count < total) return count;
+  return LIMIT;
+}
+
 function readRecent() {
   try {
     const saved = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
@@ -117,7 +126,9 @@ export default function DiscoverPage() {
     if (qDebounced.trim() !== q) setParams({ q: qDebounced.trim() });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qDebounced]);
-  useEffect(() => setQInput(q), [q]); // URL đổi (back/forward) → đồng bộ ô tìm
+  useEffect(() => {
+    setQInput((prev) => (prev.trim() === q ? prev : q));
+  }, [q]); // URL đổi (back/forward) → đồng bộ ô tìm nhưng giữ dấu cách đang gõ
 
   const { coords, state: geoState, locate } = useCoords();
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -149,7 +160,12 @@ export default function DiscoverPage() {
   useEffect(() => {
     let alive = true;
     searchTours({ sort: 'popular', limit: LIMIT })
-      .then((r) => { if (alive) { setPopular(r); if (toursLanding) setError(null); } })
+      .then((r) => {
+        if (alive) {
+          setPopular({ ...r, pageSize: inferPageSize(r, r.tours) });
+          if (toursLanding) setError(null);
+        }
+      })
       .catch((e) => { if (alive && toursLanding) setError({ message: e.offline ? 'Mất kết nối mạng' : e.message, offline: e.offline }); });
     return () => { alive = false; };
   }, [retryKey, toursLanding]);
@@ -213,7 +229,11 @@ export default function DiscoverPage() {
     setResultState(null);
     setError(null);
     query(1)
-      .then((r) => alive && setResultState({ key: resultKey, data: r }))
+      .then((r) => {
+        if (!alive) return;
+        const list = tab === 'places' ? r.items : r.tours;
+        setResultState({ key: resultKey, data: { ...r, pageSize: inferPageSize(r, list) } });
+      })
       .catch((e) => alive && setError({ message: e.offline ? 'Mất kết nối mạng' : e.message || 'Không tải được', offline: e.offline }))
       .finally(() => alive && setLoading(false));
     return () => {
@@ -233,17 +253,71 @@ export default function DiscoverPage() {
     try {
       if (which === 'popular') {
         const r = await searchTours({ sort: 'popular', page: popular.page + 1, limit: LIMIT });
-        if (generation === requestGeneration.current) setPopular((p) => ({ ...r, tours: [...p.tours, ...r.tours] }));
+        if (generation === requestGeneration.current) {
+          setPopular((p) => ({
+            ...r,
+            pageSize: p?.pageSize || inferPageSize(r, p?.tours),
+            tours: [...p.tours, ...r.tours],
+          }));
+        }
       } else {
         const r = await query(results.page + 1);
-        if (generation === requestGeneration.current) setResultState((current) => {
-          if (current?.key !== resultKey) return current;
-          const field = tab === 'places' ? 'items' : 'tours';
-          return { key: resultKey, data: { ...r, [field]: [...current.data[field], ...r[field]] } };
-        });
+        if (generation === requestGeneration.current) {
+          setResultState((current) => {
+            if (current?.key !== resultKey) return current;
+            const field = tab === 'places' ? 'items' : 'tours';
+            return {
+              key: resultKey,
+              data: {
+                ...r,
+                pageSize: current.data?.pageSize || inferPageSize(r, current.data?.[field]),
+                [field]: [...current.data[field], ...r[field]],
+              },
+            };
+          });
+        }
       }
     } catch (e) {
       if (generation === requestGeneration.current) setError({ message: e.message || 'Không tải thêm được', retryMore: which });
+    } finally {
+      if (moreRequest.current === request) moreRequest.current = null;
+      if (generation === requestGeneration.current) setLoadingMore(false);
+    }
+  };
+
+  const goToPage = async (which, targetPage) => {
+    const data = which === 'popular' ? popular : results;
+    if (moreRequest.current || !data || targetPage < 1 || targetPage === data.page) return;
+    const request = {};
+    moreRequest.current = request;
+    const generation = requestGeneration.current;
+    setLoadingMore(true);
+    setError(null);
+    try {
+      if (which === 'popular') {
+        const r = await searchTours({ sort: 'popular', page: targetPage, limit: LIMIT });
+        if (generation === requestGeneration.current) {
+          setPopular((p) => ({ ...r, pageSize: p?.pageSize || inferPageSize(r, r.tours) }));
+          document.getElementById('pop-h')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      } else {
+        const r = await query(targetPage);
+        if (generation === requestGeneration.current) {
+          setResultState((current) => {
+            if (current?.key !== resultKey) return current;
+            const field = tab === 'places' ? 'items' : 'tours';
+            return {
+              key: resultKey,
+              data: { ...r, pageSize: current.data?.pageSize || inferPageSize(r, r[field]) },
+            };
+          });
+          document.getElementById('discover-results-h')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    } catch (e) {
+      if (generation === requestGeneration.current) {
+        setError({ message: e.message || 'Không tải được trang', retryPage: { which, page: targetPage } });
+      }
     } finally {
       if (moreRequest.current === request) moreRequest.current = null;
       if (generation === requestGeneration.current) setLoadingMore(false);
@@ -372,11 +446,45 @@ export default function DiscoverPage() {
       </div>
 
       <section className="discover-a__filters" aria-label="Bộ lọc khám phá">
-        <label>Thành phố<input className="input" list="discover-a-cities" value={city} onChange={(e)=>setParams({city:e.target.value})} placeholder="Tất cả thành phố" /></label>
-        <datalist id="discover-a-cities">{cities.map((c)=><option value={c} key={c} />)}</datalist>
-        {tab === 'tours' ? <label>Ngôn ngữ<select className="input" value={lang} onChange={(e)=>setParams({lang:e.target.value})}><option value="">Tất cả ngôn ngữ</option>{LANGUAGE_OPTIONS.map((o)=><option value={o.value} key={o.value}>{o.label}</option>)}</select></label> : null}
-        <label>{tab === 'tours' ? 'Loại tour' : 'Loại địa điểm'}<select className="input" value={type} onChange={(e)=>setParams({type:e.target.value})}><option value="">Tất cả loại</option>{(tab === 'tours' ? TOUR_TYPE_OPTIONS : PLACE_TYPE_OPTIONS).map((o)=><option value={o.value} key={o.value}>{o.label}</option>)}</select></label>
-        <label>Sắp xếp<select className="input" value={sort} onChange={(e)=>setParams({sort:e.target.value})}>{sortOptions.map((o)=><option value={o.value} key={o.value}>{o.label}</option>)}</select></label>
+        <DiscoverCityField
+          value={city}
+          cities={cities}
+          onChange={(nextCity) => setParams({ city: nextCity })}
+        />
+        {tab === 'tours' ? (
+          <DiscoverSelectField
+            id="discover-filter-lang"
+            label="Ngôn ngữ"
+            icon="languages"
+            emptyLabel="Tất cả ngôn ngữ"
+            value={lang}
+            options={LANGUAGE_OPTIONS}
+            onChange={(nextLang) => setParams({ lang: nextLang })}
+          />
+        ) : null}
+        <DiscoverSelectField
+          id="discover-filter-type"
+          label={tab === 'tours' ? 'Loại tour' : 'Loại địa điểm'}
+          icon={tab === 'tours' ? 'route' : 'map-pin'}
+          emptyLabel="Tất cả loại"
+          value={type}
+          options={tab === 'tours' ? TOUR_TYPE_OPTIONS : PLACE_TYPE_OPTIONS}
+          onChange={(nextType) => setParams({ type: nextType })}
+        />
+        <DiscoverSelectField
+          id="discover-filter-sort"
+          label="Sắp xếp"
+          icon="sliders"
+          value={sort}
+          options={sortOptions}
+          defaultValue={tab === 'places' ? 'recent' : 'popular'}
+          onChange={(nextSort) => setParams({ sort: nextSort === (tab === 'places' ? 'recent' : 'popular') ? '' : nextSort })}
+        />
+        {filterCount > 0 || sort !== (tab === 'places' ? 'recent' : 'popular') ? (
+          <button type="button" className="discover-a__reset" onClick={resetFilters}>
+            <Icon name="x" size={14} /> Đặt lại
+          </button>
+        ) : null}
       </section>
 
       {cities.length ? (
@@ -399,7 +507,7 @@ export default function DiscoverPage() {
             <div className="alert__title">{error.message}</div>
             {error.offline ? 'Kiểm tra kết nối rồi thử lại.' : null}
           </div>
-          <button className="btn" onClick={() => { if (error.retryMore) loadMore(error.retryMore); else { setError(null); setRetryKey((n)=>n+1); } }}>Thử lại</button>
+          <button className="btn" onClick={() => { if (error.retryMore) loadMore(error.retryMore); else if (error.retryPage) goToPage(error.retryPage.which, error.retryPage.page); else { setError(null); setRetryKey((n)=>n+1); } }}>Thử lại</button>
         </div>
       ) : null}
 
@@ -474,11 +582,17 @@ export default function DiscoverPage() {
                 <ul className="tourlist tourlist--compact">
                   {popular.tours.map((t) => <TourCard key={t.id} tour={t} />)}
                 </ul>
-                {popular.tours.length < popular.total ? (
-                  <button className="btn loadmore" onClick={() => loadMore('popular')} disabled={loadingMore}>
-                    {loadingMore ? <Icon name="loader" size={16} className="spin" /> : null} Xem thêm
-                  </button>
-                ) : null}
+                <DiscoverPagination
+                  page={popular.page}
+                  pageSize={popular.pageSize || LIMIT}
+                  total={popular.total}
+                  loadedCount={popular.tours.length}
+                  unit="tour"
+                  ariaLabel="Phân trang tour phổ biến"
+                  busy={loadingMore}
+                  onPageChange={(p) => goToPage('popular', p)}
+                  onLoadMore={() => loadMore('popular')}
+                />
               </>
             ) : (
               <p className="muted">Chưa có tour công khai nào.</p>
@@ -486,7 +600,7 @@ export default function DiscoverPage() {
           </section>
         </>
       ) : (
-        <section className="discover__section" aria-live="polite">
+        <section id="discover-results-h" className="discover__section" aria-live="polite">
           <div className="sorts" role="group" aria-label="Sắp xếp">
             {sortOptions.map((o) => (
               <button
@@ -516,11 +630,17 @@ export default function DiscoverPage() {
                 <ul className="tourlist tourlist--compact">
                   {results.tours.map((t) => <TourCard key={t.id} tour={t} />)}
                 </ul>
-                {results.tours.length < results.total ? (
-                  <button className="btn loadmore" onClick={() => loadMore('results')} disabled={loadingMore}>
-                    {loadingMore ? <Icon name="loader" size={16} className="spin" /> : null} Xem thêm
-                  </button>
-                ) : null}
+                <DiscoverPagination
+                  page={results.page}
+                  pageSize={results.pageSize || LIMIT}
+                  total={results.total}
+                  loadedCount={results.tours.length}
+                  unit="tour"
+                  ariaLabel="Phân trang kết quả tour"
+                  busy={loadingMore}
+                  onPageChange={(p) => goToPage('results', p)}
+                  onLoadMore={() => loadMore('results')}
+                />
               </>
             ) : (
               <Empty what="tour" onReset={resetFilters} canReset={!!(q || filterCount)} />
@@ -560,11 +680,17 @@ export default function DiscoverPage() {
                   </li>
                 ))}
               </ul>
-              {results.items.length < results.total ? (
-                <button className="btn loadmore" onClick={() => loadMore('results')} disabled={loadingMore}>
-                  {loadingMore ? <Icon name="loader" size={16} className="spin" /> : null} Xem thêm
-                </button>
-              ) : null}
+              <DiscoverPagination
+                page={results.page}
+                pageSize={results.pageSize || LIMIT}
+                total={results.total}
+                loadedCount={results.items.length}
+                unit="địa điểm"
+                ariaLabel="Phân trang kết quả địa điểm"
+                busy={loadingMore}
+                onPageChange={(p) => goToPage('results', p)}
+                onLoadMore={() => loadMore('results')}
+              />
             </>
           ) : (
             <Empty what="địa điểm" onReset={resetFilters} canReset={!!(q || filterCount)} />
@@ -655,5 +781,317 @@ function FilterSheet({ open, onClose, tab, values, cities, onChange, onReset }) 
         </div>
       </div>
     </Modal>
+  );
+}
+
+function useDropdownDismiss(open, ref, onDismiss) {
+  useEffect(() => {
+    if (!open) return undefined;
+    const onPointerDown = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onDismiss();
+    };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onDismiss();
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open, ref, onDismiss]);
+}
+
+function normalizeSearchText(str) {
+  return String(str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'd')
+    .toLowerCase()
+    .trim();
+}
+
+function DiscoverCityField({ value, cities, onChange }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const close = useCallback(() => setOpen(false), []);
+  useDropdownDismiss(open, rootRef, close);
+
+  const normalizedValue = normalizeSearchText(value);
+  const matchesExactCity = cities.some((c) => normalizeSearchText(c) === normalizedValue);
+  const visibleCities = useMemo(() => {
+    if (!normalizedValue || matchesExactCity) return cities;
+    return cities.filter((c) => normalizeSearchText(c).includes(normalizedValue));
+  }, [cities, normalizedValue, matchesExactCity]);
+
+  const selectCity = (nextCity) => {
+    onChange(nextCity);
+    setOpen(false);
+  };
+
+  return (
+    <div ref={rootRef} className={`discover-field ${open ? 'is-open' : ''} ${value ? 'is-filled' : ''}`}>
+      <label className="discover-field__label" htmlFor="discover-city-input">
+        <Icon name="map-pin" size={14} /> Thành phố
+      </label>
+      <div className="discover-field__control">
+        <Icon name="map-pin" size={16} className="discover-field__lead" />
+        <input
+          id="discover-city-input"
+          className="discover-field__input"
+          value={value}
+          placeholder="Tất cả thành phố"
+          autoComplete="off"
+          onFocus={() => setOpen(true)}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setOpen(true);
+          }}
+        />
+        <span className="discover-field__actions">
+          {value ? (
+            <button
+              type="button"
+              className="discover-field__clear"
+              aria-label="Xoá lọc thành phố"
+              onClick={() => selectCity('')}
+            >
+              <Icon name="x" size={14} />
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="discover-field__toggle"
+            aria-label="Mở danh sách thành phố"
+            aria-expanded={open}
+            onClick={() => setOpen((prev) => !prev)}
+          >
+            <Icon name="chevron-down" size={16} />
+          </button>
+        </span>
+      </div>
+
+      {open ? (
+        <ul className="discover-dropdown" role="listbox" aria-label="Gợi ý thành phố">
+          <li className="discover-dropdown__group">Điểm đến nổi bật</li>
+          <li>
+            <button
+              type="button"
+              role="option"
+              aria-selected={!value}
+              className={`discover-dropdown__item ${!value ? 'is-selected' : ''}`}
+              onClick={() => selectCity('')}
+            >
+              <Icon name="crosshair" size={15} />
+              <span className="discover-dropdown__item-label">Tất cả thành phố</span>
+              {!value ? <Icon name="check-circle" size={15} /> : null}
+            </button>
+          </li>
+          {visibleCities.length ? (
+            visibleCities.map((c) => {
+              const selected = cityEquals(value, c);
+              return (
+                <li key={c}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    className={`discover-dropdown__item ${selected ? 'is-selected' : ''}`}
+                    onClick={() => selectCity(c)}
+                  >
+                    <Icon name="map-pin" size={15} />
+                    <span className="discover-dropdown__item-label">{c}</span>
+                    {selected ? <Icon name="check-circle" size={15} /> : null}
+                  </button>
+                </li>
+              );
+            })
+          ) : (
+            <li className="discover-dropdown__empty">Không có thành phố khớp "{value}"</li>
+          )}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function cityEquals(a, b) {
+  return Boolean(a && b) && normalizeSearchText(a) === normalizeSearchText(b);
+}
+
+function DiscoverSelectField({ id, label, icon, emptyLabel, value, options, defaultValue = '', onChange }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const close = useCallback(() => setOpen(false), []);
+  useDropdownDismiss(open, rootRef, close);
+
+  const selectedOption = options.find((o) => o.value === value);
+  const selectedLabel = selectedOption ? selectedOption.label : emptyLabel || options[0]?.label || '';
+  const isActive = value !== defaultValue;
+
+  const choose = (nextVal) => {
+    onChange(nextVal);
+    setOpen(false);
+  };
+
+  return (
+    <div ref={rootRef} className={`discover-field ${open ? 'is-open' : ''} ${isActive ? 'is-filled' : ''}`}>
+      <label className="discover-field__label" htmlFor={id}>
+        <Icon name={icon} size={14} /> {label}
+      </label>
+      <div className="discover-select">
+        <select
+          id={id}
+          className="discover-select__native"
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setOpen(false);
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.currentTarget.focus();
+            setOpen((prev) => !prev);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setOpen((prev) => !prev);
+            } else if (e.key === 'Escape') {
+              setOpen(false);
+            }
+          }}
+        >
+          {emptyLabel ? <option value="">{emptyLabel}</option> : null}
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <div className={`discover-select__trigger ${isActive ? 'discover-select__trigger--active' : ''}`} aria-hidden="true">
+          {isActive ? <span className="discover-select__dot" /> : null}
+          <span className="discover-select__value">{selectedLabel}</span>
+          <Icon name="chevron-down" size={16} className="discover-select__chev" />
+        </div>
+      </div>
+
+      {open ? (
+        <ul className="discover-dropdown" role="listbox" aria-label={label}>
+          {emptyLabel ? (
+            <li>
+              <button
+                type="button"
+                role="option"
+                aria-selected={value === ''}
+                className={`discover-dropdown__item ${value === '' ? 'is-selected' : ''}`}
+                onClick={() => choose('')}
+              >
+                <span className="discover-dropdown__item-label">{emptyLabel}</span>
+                {value === '' ? <Icon name="check-circle" size={15} /> : null}
+              </button>
+            </li>
+          ) : null}
+          {options.map((o) => {
+            const selected = value === o.value;
+            return (
+              <li key={o.value}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className={`discover-dropdown__item ${selected ? 'is-selected' : ''}`}
+                  onClick={() => choose(o.value)}
+                >
+                  <span className="discover-dropdown__item-label">{o.label}</span>
+                  {selected ? <Icon name="check-circle" size={15} /> : null}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function buildPageItems(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 3) return [1, 2, 3, 4, 'ellipsis-end', total];
+  if (current >= total - 2) return [1, 'ellipsis-start', total - 3, total - 2, total - 1, total];
+  return [1, 'ellipsis-start', current - 1, current, current + 1, 'ellipsis-end', total];
+}
+
+function DiscoverPagination({
+  page,
+  pageSize,
+  total,
+  loadedCount,
+  unit,
+  ariaLabel,
+  busy,
+  onPageChange,
+  onLoadMore,
+}) {
+  if (!total || total <= 0) return null;
+  const safeSize = pageSize > 0 ? pageSize : LIMIT;
+  const totalPages = Math.max(1, Math.ceil(total / safeSize));
+  const currentPage = Math.min(totalPages, Math.max(1, Number(page) || 1));
+  const pages = buildPageItems(currentPage, totalPages);
+  const canLoadMore = currentPage < totalPages && loadedCount < total;
+
+  return (
+    <nav className="discover-pager" aria-label={ariaLabel}>
+      <p className="discover-pager__info">
+        Trang <strong>{currentPage}</strong> / {totalPages} · {total} {unit}
+      </p>
+      <div className="discover-pager__controls">
+        <div className="discover-pager__nav">
+          <button
+            type="button"
+            className="discover-pager__btn discover-pager__btn--step"
+            aria-label="Trang trước"
+            disabled={busy || currentPage <= 1}
+            onClick={() => onPageChange(currentPage - 1)}
+          >
+            <Icon name="chevron-left" size={16} />
+          </button>
+          {pages.map((item) =>
+            typeof item === 'number' ? (
+              <button
+                key={item}
+                type="button"
+                className={`discover-pager__btn ${item === currentPage ? 'is-active' : ''}`}
+                aria-current={item === currentPage ? 'page' : undefined}
+                disabled={busy}
+                onClick={() => onPageChange(item)}
+              >
+                {item}
+              </button>
+            ) : (
+              <span key={item} className="discover-pager__ellipsis" aria-hidden="true">
+                …
+              </span>
+            ),
+          )}
+          <button
+            type="button"
+            className="discover-pager__btn discover-pager__btn--step"
+            aria-label="Trang sau"
+            disabled={busy || currentPage >= totalPages}
+            onClick={() => onPageChange(currentPage + 1)}
+          >
+            <Icon name="chevron-left" size={16} className="discover-pager__next-icon" />
+          </button>
+        </div>
+        {canLoadMore ? (
+          <button type="button" className="btn btn--ghost discover-pager__more" onClick={onLoadMore} disabled={busy}>
+            {busy ? <Icon name="loader" size={15} className="spin" /> : null}
+            Xem thêm
+          </button>
+        ) : null}
+      </div>
+    </nav>
   );
 }
