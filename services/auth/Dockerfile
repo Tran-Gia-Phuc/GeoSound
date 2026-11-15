@@ -12,6 +12,8 @@ COPY shared/package.json ./shared/
 # All dependencies (prisma CLI included) and the generated Prisma Client.
 FROM base AS deps
 RUN npm install --no-audit --no-fund --loglevel=error
+# Monorepo: shared has its own dependencies (jsonwebtoken, amqplib, zod, prom-client).
+RUN npm install --omit=dev --no-audit --no-fund --loglevel=error --prefix ./shared
 COPY services/auth/prisma ./prisma
 RUN npx prisma generate
 
@@ -46,6 +48,7 @@ RUN apk add --no-cache openssl
 ENV NODE_ENV=production
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=deps /app/shared/node_modules ./shared/node_modules
 COPY services/auth/package.json ./
 COPY services/auth/prisma ./prisma
 COPY services/auth/src ./src
