@@ -10,7 +10,9 @@ import { useMemo, useState } from 'react';
 import Icon from '../../components/Icon.jsx';
 import FileDrop from '../../components/media/FileDrop.jsx';
 import { useDirtyGuard } from '../../hooks/useDirtyGuard.jsx';
-import { TOUR_TYPE_OPTIONS, LANGUAGE_OPTIONS } from '../../lib/tours.js';
+import { TOUR_TYPE_OPTIONS } from '../../lib/tours.js';
+import { langLabel } from '../../lib/format.js';
+import { useSupportedLanguages } from '../../hooks/useSupportedLanguages.js';
 
 const isHttpUrl = (s) => {
   try {
@@ -38,6 +40,7 @@ const emptyForm = {
  * }} props
  */
 export default function TourForm({ initial, submitLabel, busy, serverError, onSubmit, onCancel, compact = false, renderPreview, secondarySubmit }) {
+  const { options: supportedOptions } = useSupportedLanguages();
   const start = useMemo(() => ({
     ...emptyForm,
     ...(initial
@@ -53,6 +56,10 @@ export default function TourForm({ initial, submitLabel, busy, serverError, onSu
       : {}),
   }), [initial]);
   const [f, setF] = useState(start);
+  // The deployment list (#425); a tour keeps its own language even if it was taken off the list.
+  const languageOptions = supportedOptions.some((o) => o.value === f.originalLanguage) || !f.originalLanguage
+    ? supportedOptions
+    : [...supportedOptions, { value: f.originalLanguage, label: langLabel(f.originalLanguage) }];
   const [errs, setErrs] = useState({});
   const dirty = Object.keys(start).some((k) => f[k] !== start[k]);
   const guard = useDirtyGuard(dirty && !busy);
@@ -125,7 +132,7 @@ export default function TourForm({ initial, submitLabel, busy, serverError, onSu
             onChange={set('originalLanguage')}
             aria-invalid={!!errs.originalLanguage}
           >
-            {LANGUAGE_OPTIONS.map((o) => (
+            {languageOptions.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>

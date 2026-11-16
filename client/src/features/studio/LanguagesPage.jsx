@@ -13,7 +13,7 @@ import { createLanguagePreview, audioReadiness } from './language-preview.js';
 import { Link, useParams } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import { langLabel } from '../../lib/format.js';
-import { LANGUAGE_OPTIONS } from '../../lib/tours.js';
+import { useSupportedLanguages } from '../../hooks/useSupportedLanguages.js';
 import {
   TTS_GENDER_OPTIONS,
   getLanguageConfig, setTourLanguages, previewTts, updateTranslation, setAutoTranslate,
@@ -21,6 +21,7 @@ import {
 
 export default function LanguagesPage() {
   const { id } = useParams();
+  const { languages: supported } = useSupportedLanguages();
   const player=useRef(null);
   if(!player.current)player.current=createLanguagePreview();
   const previewGeneration=useRef(0);
@@ -178,7 +179,10 @@ export default function LanguagesPage() {
   }
 
   const source = config.sourceLanguage;
-  const secondaryOptions = LANGUAGE_OPTIONS.filter((o) => o.value !== source);
+  // The deployment list (#425) plus the tour's own languages, in case one was taken off the list.
+  const secondaryOptions = [...new Set([...supported, ...config.languages.map((l) => l.languageCode)])]
+    .filter((code) => code !== source)
+    .map((value) => ({ value, label: langLabel(value) }));
   const hasTranslations = config.places.some((p) => p.translations.length > 0);
   const secLangs = config.languages.filter((l) => !l.isSource);
   const activeLang = secLangs.some((l) => l.languageCode === txTab) ? txTab : secLangs[0]?.languageCode;
