@@ -34,5 +34,3 @@ coverage/
 *.tmp
 *.bak
 
-# Phone QR for the sign-in page: encodes a personal ngrok domain (docs/04-guides/phone-demo.md)
-client/public/qr-mobile.png
