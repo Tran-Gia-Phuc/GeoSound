@@ -39,6 +39,7 @@ import { PrismaAdminInsightRepository } from './infrastructure/persistence/prism
 import { PrismaTourAccessRepository } from './infrastructure/persistence/prisma-tour-access-repository.js';
 import { ScryptPasscodeHasher } from './infrastructure/security/scrypt-passcode-hasher.js';
 import { isModerationEnabled, isChatbotEventsEnabled } from './config.js';
+import { parseLanguageList, configureSupportedLanguages } from './domain/value-objects/language.js';
 
 import { CreateTour } from './application/use-cases/create-tour.js';
 import { ListMyTours } from './application/use-cases/list-my-tours.js';
@@ -172,6 +173,12 @@ function selectTranslator(env) {
  *   publish / validateEvent are needed only when an event flag is on, verifyJwt guards the admin routes (UC19)
  */
 export function buildContainer(env = process.env, { publish = null, validateEvent = null, verifyJwt = null } = {}) {
+  // UC12 (#425) — listening languages, e.g. SUPPORTED_LANGUAGES=vi,en,fr,id. Empty = the default list.
+  const languageList = parseLanguageList(env.SUPPORTED_LANGUAGES);
+  if (languageList.invalid.length) {
+    console.warn(`[tour] SUPPORTED_LANGUAGES: ignored invalid codes ${languageList.invalid.join(', ')}`);
+  }
+  const supportedLanguages = configureSupportedLanguages(languageList.codes);
   // --- infrastructure (impl của domain/ports) ---
   // UC20 / UC22 — append-only admin action log (decision L14); UC19 decisions append to it too.
   const adminActionRepo = new PrismaAdminActionRepository(prisma);
@@ -385,7 +392,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     max: Number(env.TRANSLATE_RATE_MAX) || 10,
     windowMs: Number(env.TRANSLATE_RATE_WINDOW_MS) || 10 * 60 * 1000,
   });
-  const publicTourController = new PublicTourController(publicUseCases);
+  const publicTourController = new PublicTourController(publicUseCases, { supportedLanguages });
   const publicTourRouter = buildPublicTourRouter({ publicTourController, translateLimiter });
   const languageController = new LanguageController(languageUseCases);
   const languageRouter = buildLanguageRouter({ languageController });
