@@ -35,7 +35,8 @@ export default function LanguageNotice({ tour, canTranslate, busy = false, error
       action = { label: `Dịch sang ${langLabel(code)}`, run: () => onTranslate(code) };
     }
   } else if (suggestDevice) {
-    const device = deviceLanguage();
+    // Only languages this tour can play or translate (both come from the server list, #425).
+    const device = deviceLanguage(undefined, [...available, ...translatable]);
     if (device && device !== selected && dismissed !== device && !isOfferDismissed(tour.id, device)) {
       code = device;
       if (available.includes(device)) {
