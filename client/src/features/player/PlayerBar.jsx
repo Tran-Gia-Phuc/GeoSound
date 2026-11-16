@@ -10,8 +10,8 @@ import './player-transport-a.css';
 const ROLE_LABEL = { place: 'Đang nghe', hint: 'Gợi ý đi tiếp', nav: 'Chỉ đường' };
 
 export default function PlayerBar({ audio, engine, hideTitle = false }) {
-  const { state, toggle, seek, seekBy } = audio;
-  const { currentPlace, currentRole, prev, next, canPrev, canNext } = engine;
+  const { state, seek, seekBy } = audio;
+  const { currentPlace, currentRole, prev, next, canPrev, canNext, togglePlay } = engine;
 
   const playing = state.status === 'playing';
   const loading = state.status === 'loading';
@@ -92,7 +92,7 @@ export default function PlayerBar({ audio, engine, hideTitle = false }) {
 
         <button
           className="player__play"
-          onClick={toggle}
+          onClick={togglePlay}
           disabled={!hasTrack || loading || state.status === 'error'}
           aria-busy={loading}
           aria-label={playing ? 'Tạm dừng' : 'Phát'}

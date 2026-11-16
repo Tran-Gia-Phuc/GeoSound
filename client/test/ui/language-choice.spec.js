@@ -111,6 +111,39 @@ test('player: the menu offers automatic translation; the stop shows the label an
   await expect(page.locator('.langmenu__group').first()).toContainText('Tự động');
 });
 
+test('player: after a language change the play button plays the stop again in the new language', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__spoken = [];
+    window.SpeechSynthesisUtterance = class {
+      constructor(text) { this.text = text; this.lang = ''; this.voice = null; }
+    };
+    const synth = {
+      speaking: false, paused: false, pending: false,
+      getVoices: () => [{ lang: 'en-US', name: 'English' }, { lang: 'vi-VN', name: 'Tiếng Việt' }],
+      speak(u) { window.__spoken.push({ text: u.text, lang: u.lang }); this.speaking = true; },
+      cancel() { this.speaking = false; this.paused = false; },
+      pause() { this.paused = true; },
+      resume() { this.paused = false; },
+    };
+    Object.defineProperty(window, 'speechSynthesis', { value: synth, configurable: true });
+  });
+  await fixtures(page);
+  await tourApi(page);
+  await page.goto('/tour/' + id + '/play?mode=remote&stop=' + secondId);
+  await page.getByRole('button', { name: 'Đổi ngôn ngữ' }).click();
+  await page.locator('.langmenu__group').first().getByRole('button', { name: 'English' }).click();
+  await expect(page.locator('.sheet__text')).toContainText('[en]');
+  const before = await page.evaluate(() => window.__spoken.length);
+
+  const play = page.locator('.player__play');
+  await expect(play).toBeEnabled();
+  await play.click();
+  await expect.poll(() => page.evaluate(() => window.__spoken.length)).toBeGreaterThan(before);
+  const last = await page.evaluate(() => window.__spoken.at(-1));
+  expect(last.text.startsWith('[en]')).toBe(true);
+  expect(last.lang).toBe('en-US');
+});
+
 test('player: a failed translation keeps the language and says why', async ({ page }) => {
   await fixtures(page);
   await tourApi(page, { translateStatus: 429 });
