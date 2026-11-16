@@ -1,8 +1,10 @@
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './test/ui',
-  fullyParallel: false,
-  workers: 1,
+  // Every test mocks the API with page.route in its own browser context, so tests run in
+  // parallel. CI uses the 4 vCPUs of the GitHub runner; PW_WORKERS overrides it on a laptop.
+  fullyParallel: true,
+  workers: Number(process.env.PW_WORKERS) || (process.env.CI ? 4 : 1),
   reporter: 'list',
   outputDir: 'node_modules/.playwright-results',
   use: {
