@@ -20,7 +20,7 @@ The `global.image.tag` line of each environment file is written on one branch on
 
 1. Open a pull request `develop` → `staging` and merge it with a merge commit when CI is green.
 2. CI on `staging`: tests, then `images.yml` builds or retags the 9 images as `sha-<7>` and `staging`, then job `promote` commits `chore: deploy sha-<7> to staging`.
-3. Argo CD syncs `geosound-staging` within about 3 minutes; the PostSync Job `geosound-smoke` checks every app and `GET /api/tours`. Discord gets the result (task 3.4).
+3. Argo CD syncs `geosound-staging` within about 75 seconds; the PostSync Job `geosound-smoke` checks every app and `GET /api/tours`. Discord gets the result (task 3.4).
 4. Use staging for at least one day (checklist, section 4).
 
 ## 2. Merge into `main` and tag the release
