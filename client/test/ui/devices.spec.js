@@ -258,6 +258,36 @@ test('two tabs refreshing at once rotate the refresh token only once', async ({ 
   expect(server.calls).toBe(1);
 });
 
+test('a 401 that lands after another tab rotated retries with the new token, no refresh', async ({ page }) => {
+  // The slow path of the test above: the request left with the old token, then another tab
+  // rotated the tokens before the 401 came back.
+  let refreshCalls = 0;
+  await fixtures(page);
+  await page.route('**/api/auth/refresh', (route) => {
+    refreshCalls += 1;
+    return json(route, { accessToken: 'fresh-access-2', refreshToken: 'fresh-refresh-2' });
+  });
+  await page.route('**/api/auth/sessions', async (route) => {
+    const auth = route.request().headers().authorization ?? '';
+    if (auth === 'Bearer fresh-access-1') return json(route, { sessions: [current] });
+    await page.evaluate((id) => localStorage.setItem('geosound:auth', JSON.stringify({
+      user: { id, fullName: 'Test', email: 'test@example.test', role: 'tourist' },
+      accessToken: 'fresh-access-1',
+      refreshToken: 'fresh-refresh-1',
+    })), userId);
+    return json(route, { code: 'token_expired', error: 'Expired' }, 401);
+  });
+  await page.goto('/');
+  await page.evaluate((id) => localStorage.setItem('geosound:auth', JSON.stringify({
+    user: { id, fullName: 'Test', email: 'test@example.test', role: 'tourist' },
+    accessToken: 'test-access',
+    refreshToken: 'test-refresh',
+  })), userId);
+  await page.goto('/account/devices');
+  await expect(rows(page)).toHaveCount(1);
+  expect(refreshCalls).toBe(0);
+});
+
 test('revoked session sends the user to login with a notice', async ({ page }) => {
   await signIn(page, 'tourist');
   await fixtures(page);
