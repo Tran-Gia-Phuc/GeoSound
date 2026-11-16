@@ -15,7 +15,11 @@ const LANG_TAGS = {
 export function speechLang(code) {
   if (!code) return '';
   const value = String(code);
-  return LANG_TAGS[value.toLowerCase()] || value;
+  const tag = LANG_TAGS[value.toLowerCase()];
+  if (tag) return tag;
+  // A configured code with a region ('zh-tw', #425) -> 'zh-TW'.
+  const m = /^([a-z]{2,3})[-_]([a-z]{2})$/i.exec(value);
+  return m ? `${m[1].toLowerCase()}-${m[2].toUpperCase()}` : value;
 }
 
 /** Installed voice for the language: exact tag first, then same base language. Null when none. */
