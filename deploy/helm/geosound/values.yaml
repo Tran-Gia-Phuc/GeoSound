@@ -98,6 +98,10 @@ services:
     # geosound-ai: GEMINI_API_KEY of the translator (TRANSLATOR=gemini).
     secrets: [geosound-jwt, geosound-infra, geosound-ai]
     metrics: true
+    env:
+      # Listening languages (UC12, #425, #428): the client reads them from GET /api/tours/languages.
+      # Translation runs on demand per visitor language, so a longer list adds no AI call by itself.
+      SUPPORTED_LANGUAGES: "vi,en,fr,ja,ko,zh,zh-tw,es,de,th,ru,id,ms,it,pt,nl,pl,tr,hi,sv"
 
   moderation: # never calls an LLM itself: no geosound-ai
     port: 3003
