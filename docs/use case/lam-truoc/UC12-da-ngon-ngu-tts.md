@@ -65,7 +65,7 @@ Contributor muốn tour phục vụ khách quốc tế mà không phải tự th
 
 ## Reference: Business Rules
 
-- Ngôn ngữ hỗ trợ: `vi, en, fr, ja, ko, zh, es, de, th, ru` (cùng danh sách với AI service và client); tối đa 20 ngôn ngữ phụ; bản dịch 1–5000 ký tự.
+- Ngôn ngữ hỗ trợ: Tour service giữ danh sách (#425). Mặc định `vi, en, fr, ja, ko, zh, es, de, th, ru`; mỗi bản triển khai đổi bằng biến `SUPPORTED_LANGUAGES` của Tour (mã 2–3 chữ cái, có thể kèm vùng như `zh-tw`, phân tách bằng dấu phẩy; mã sai bị bỏ qua và ghi log; rỗng = mặc định). Client đọc danh sách qua `GET /api/tours/languages` (giữ trong `localStorage` để dùng khi mất mạng, lỗi thì dùng mặc định) và hiển thị tên bản ngữ bằng `Intl.DisplayNames`. AI service dịch mọi mã nó nhận. Tối đa 20 ngôn ngữ phụ; bản dịch 1–5000 ký tự.
 - Ba tầng bản dịch: `source` (bản gốc), `machine` / `edited` (ngôn ngữ tác giả bật), `auto` (khách yêu cầu, tác giả chưa xem). Bản `auto` luôn có nhãn "Bản dịch tự động" và nút "Xem bản gốc" ở trình phát (UC04); không được gửi trong `tour.published` (chatbot không index).
 - `tours.auto_translate` (mặc định bật) cho phép khách yêu cầu ngôn ngữ ngoài danh sách tác giả bật.
 - Ngôn ngữ gốc là nguồn: văn bản = mô tả điểm, không dịch.
@@ -84,6 +84,7 @@ Contributor muốn tour phục vụ khách quốc tế mà không phải tự th
   - `PATCH /api/tours/mine/:tourId/places/:placeId/translations/:lang`
   - `PUT /api/tours/mine/:tourId/languages/auto-translate { enabled }` (A6)
   - Khách (UC04, A5): `POST /api/tours/:id/translations/:lang` (công khai), `POST /api/tours/:id/restricted/translations/:lang` (tour hạn chế, người đã mở khoá); giới hạn theo IP (`TRANSLATE_RATE_MAX`, `TRANSLATE_RATE_WINDOW_MS`, mặc định 10 lần / 10 phút).
+  - Danh sách ngôn ngữ (công khai, #425): `GET /api/tours/languages` → `{ languages: ["vi", "en", ...] }` (`Cache-Control: max-age=300`).
   - Tour → AI (nội bộ, không qua gateway): `POST /translate` (snake_case: `source_lang`, `target_lang`, `texts`, `context`).
 - **Sự kiện (RabbitMQ):** `tour.published` khi tour công khai đổi bản dịch (cờ `CHATBOT_EVENTS_ENABLED`).
 - **Dữ liệu:** `tour.tour_languages` (`language_code, is_source, tts_voice_gender, tts_voice_region`); `tour.place_translations` (`language_code, text, text_source = source | machine | edited | auto, source_hash, tts_url, tts_prerendered`); `tour.tours.auto_translate`.
@@ -97,6 +98,8 @@ Contributor muốn tour phục vụ khách quốc tế mà không phải tự th
 | 2, 4, A1, A2 | `getLanguageConfig()`, `setTourLanguages()`, `previewTts()`, `updateTranslation()` | `client/src/lib/studio.js` |
 | A1, E3 | `createLanguagePreview()`, `audioReadiness()` | `client/src/features/studio/language-preview.js` |
 | UC04 (phát) | `makeUtterance()`, `pickVoice()` (giọng thiết bị theo ngôn ngữ, không theo nam / nữ) | `client/src/lib/speech.js` |
+| 1, 2 | `useSupportedLanguages()`, `loadSupportedLanguages()`, `languageOptions()`, `langLabel()` (danh sách ngôn ngữ, #425) | `client/src/hooks/useSupportedLanguages.js`, `client/src/lib/languages.js`, `client/src/lib/format.js` |
+| 1, 2 | `parseLanguageList()`, `configureSupportedLanguages()`, `PublicTourController.languages()` (`SUPPORTED_LANGUAGES`, `GET /languages`) | `services/tour/src/domain/value-objects/language.js`, `services/tour/src/interfaces/http/controllers/public-tour-controller.js` |
 | 2, 4, A1, A2 | `buildLanguageRouter()`, `LanguageController` | `services/tour/src/interfaces/http/routes/language-routes.js`, `controllers/language-controller.js` |
 | 4 | `setLanguagesSchema`, `previewTtsSchema`, `updateTranslationSchema` | `services/tour/src/application/dtos/language-schemas.js` |
 | 2 | `GetLanguageConfig.execute()`, `buildLanguageConfig()` | `services/tour/src/application/use-cases/get-language-config.js` |

@@ -24,22 +24,27 @@ export function formatMinutes(min) {
   return m ? `${h} giờ ${m} phút` : `${h} giờ`;
 }
 
-const LANG_LABELS = {
-  vi: 'Tiếng Việt',
-  en: 'English',
-  fr: 'Français',
-  ja: '日本語',
-  ko: '한국어',
-  zh: '中文',
-  es: 'Español',
-  de: 'Deutsch',
-  th: 'ไทย',
-  ru: 'Русский',
-};
+// Language names come from the browser (Intl.DisplayNames), in the language itself ('de' -> 'Deutsch'),
+// so a code added to SUPPORTED_LANGUAGES on the Tour service (#425) needs no client change.
+const nameCache = new Map();
 
-/** Mã ngôn ngữ -> tên bản ngữ (fallback: viết hoa mã). */
+/** Mã ngôn ngữ -> tên bản ngữ ('fr' -> 'Français', 'zh-tw' -> '中文（台灣）'); fallback: viết hoa mã. */
 export function langLabel(code) {
-  return LANG_LABELS[code] || (code ? code.toUpperCase() : '');
+  if (!code) return '';
+  const key = String(code);
+  if (!nameCache.has(key)) nameCache.set(key, nativeName(key));
+  return nameCache.get(key);
+}
+
+function nativeName(code) {
+  try {
+    const tag = Intl.getCanonicalLocales(code)[0];
+    const name = new Intl.DisplayNames([tag], { type: 'language', fallback: 'none' }).of(tag);
+    if (name) return name.charAt(0).toLocaleUpperCase(tag) + name.slice(1);
+  } catch {
+    /* invalid code or no Intl.DisplayNames */
+  }
+  return code.toUpperCase();
 }
 
 // API trả mã giọng (VOICE_LABEL ở tour service): 'human' | 'tts'.

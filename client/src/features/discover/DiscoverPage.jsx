@@ -20,7 +20,8 @@ import TourCard from '../tours/TourCard.jsx';
 import PlaceDetailSheet from './PlaceDetailSheet.jsx';
 import DiscoverMap from './DiscoverMap.jsx';
 import AddToItinerarySheet from '../itineraries/AddToItinerarySheet.jsx';
-import { searchTours, SORT_OPTIONS, LANGUAGE_OPTIONS, TOUR_TYPE_OPTIONS } from '../../lib/tours.js';
+import { searchTours, SORT_OPTIONS, TOUR_TYPE_OPTIONS } from '../../lib/tours.js';
+import { useSupportedLanguages } from '../../hooks/useSupportedLanguages.js';
 import { explorePlaces, addItem } from '../../lib/itineraries.js';
 import { PLACE_TYPE_OPTIONS, PLACE_TYPE_LABELS } from '../../lib/studio.js';
 import { formatDistance } from '../../lib/format.js';
@@ -90,6 +91,7 @@ function useCoords() {
 }
 
 export default function DiscoverPage() {
+  const { options: languageOptions } = useSupportedLanguages();
   const [sp, setSp] = useSearchParams();
   const location = useLocation();
   const toast = useToast();
@@ -458,7 +460,7 @@ export default function DiscoverPage() {
             icon="languages"
             emptyLabel="Tất cả ngôn ngữ"
             value={lang}
-            options={LANGUAGE_OPTIONS}
+            options={languageOptions}
             onChange={(nextLang) => setParams({ lang: nextLang })}
           />
         ) : null}
@@ -700,6 +702,7 @@ export default function DiscoverPage() {
 
       <FilterSheet
         open={filtersOpen}
+        languageOptions={languageOptions}
         onClose={() => setFiltersOpen(false)}
         tab={tab}
         values={{ city, lang, type }}
@@ -739,7 +742,7 @@ function Empty({ what, onReset, canReset }) {
 }
 
 // Bộ lọc chi tiết trong bottom sheet — áp ngay khi chọn (không cần bấm "Tìm").
-function FilterSheet({ open, onClose, tab, values, cities, onChange, onReset }) {
+function FilterSheet({ open, onClose, tab, values, cities, languageOptions, onChange, onReset }) {
   const typeOptions = tab === 'places' ? PLACE_TYPE_OPTIONS : TOUR_TYPE_OPTIONS;
   return (
     <Modal open={open} onClose={onClose} title="Bộ lọc" labelledBy="filters-title">
@@ -764,7 +767,7 @@ function FilterSheet({ open, onClose, tab, values, cities, onChange, onReset }) 
             <label className="field__label" htmlFor="f-lang">Ngôn ngữ gốc</label>
             <select id="f-lang" className="input" value={values.lang} onChange={(e) => onChange({ lang: e.target.value })}>
               <option value="">Mọi ngôn ngữ</option>
-              {LANGUAGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {languageOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
         ) : null}

@@ -1,6 +1,6 @@
 // =========================================================
 // Định tuyến HTTP công khai cho tour (UC02). KHÔNG yêu cầu đăng nhập.
-// Qua gateway: /api/tours  (tìm kiếm) và /api/tours/:id (chi tiết).
+// Qua gateway: /api/tours  (tìm kiếm), /api/tours/languages (ngôn ngữ nghe) và /api/tours/:id (chi tiết).
 //
 // MOUNT TRƯỚC router của contributor. Route chi tiết ràng buộc :id dạng UUID
 // để KHÔNG nuốt các path của contributor như /mine, /mine/:tourId/places...
@@ -25,6 +25,10 @@ export function buildPublicTourRouter({ publicTourController, translateLimiter =
 
   // Bước 1–5 — tìm kiếm công khai.
   r.get('/', validateQuery(searchQuerySchema), wrap(publicTourController.search));
+
+  // UC12 (#425) — supported listening languages. Before the contributor and language routers,
+  // which need a sign-in.
+  r.get('/languages', publicTourController.languages);
 
   // Bước 6–9 — chi tiết. Ràng buộc :id dạng UUID để /mine... rơi xuống router sau.
   r.get(

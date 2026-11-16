@@ -4,10 +4,20 @@
 // =========================================================
 
 export class PublicTourController {
-  /** @param {{ searchTours, getPublicTour, getTourPackage?, translateTourForVisitor? }} useCases */
-  constructor(useCases) {
+  /**
+   * @param {{ searchTours, getPublicTour, getTourPackage?, translateTourForVisitor? }} useCases
+   * @param {{ supportedLanguages?: readonly string[] }} [opts] listening languages (UC12, #425)
+   */
+  constructor(useCases, { supportedLanguages = [] } = {}) {
     this.uc = useCases;
-    for (const m of ['search', 'detail', 'package', 'translate']) this[m] = this[m].bind(this);
+    this.supportedLanguages = supportedLanguages;
+    for (const m of ['search', 'detail', 'package', 'translate', 'languages']) this[m] = this[m].bind(this);
+  }
+
+  // UC12 (#425) — the listening languages of this deployment (SUPPORTED_LANGUAGES), for the client.
+  languages(_req, res) {
+    res.set('Cache-Control', 'public, max-age=300');
+    res.json({ languages: this.supportedLanguages });
   }
 
   // Bước 1–5 — tìm tour công khai (rỗng = gợi ý phổ biến)

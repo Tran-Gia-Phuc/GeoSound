@@ -120,6 +120,8 @@ export async function signIn(page, role = 'contributor', identity = userId) {
     { role, identity },
   );
 }
+export const supportedLanguages = ['vi', 'en', 'fr', 'ja', 'ko', 'zh', 'es', 'de', 'th', 'ru'];
+
 export async function fixtures(page) {
   await page.route('**/api/**', async (route) => {
     const u = new URL(route.request().url()),
@@ -131,6 +133,8 @@ export async function fixtures(page) {
     if (method === 'POST' && path.startsWith('/api/auth/presence')) return route.fulfill({ status: 204 });
     // Chatbot off by default (gateway 404): the floating button stays hidden.
     if (path.startsWith('/api/chat')) return json(route, { error: 'Not found' }, 404);
+    // UC12 (#425): listening languages of the deployment (Tour SUPPORTED_LANGUAGES).
+    if (path === '/api/tours/languages') return json(route, { languages: supportedLanguages });
     if (path === '/api/tours') return json(route, { tours: [tour], total: 1, page: 1, limit: 12 });
     if (path === '/api/places') return json(route, { items: [], total: 0, page: 1, pageSize: 12 });
     if (path === '/api/tours/' + id + '/ratings')

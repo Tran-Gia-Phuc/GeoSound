@@ -15,20 +15,6 @@ export const TOUR_TYPE_OPTIONS = [
 ];
 export const TOUR_TYPE_LABELS = Object.fromEntries(TOUR_TYPE_OPTIONS.map((o) => [o.value, o.label]));
 
-// Ngôn ngữ hỗ trợ (khớp nhãn ở lib/format.js và danh sách của Tour / AI service).
-export const LANGUAGE_OPTIONS = [
-  { value: 'vi', label: 'Tiếng Việt' },
-  { value: 'en', label: 'English' },
-  { value: 'fr', label: 'Français' },
-  { value: 'ja', label: '日本語' },
-  { value: 'ko', label: '한국어' },
-  { value: 'zh', label: '中文' },
-  { value: 'es', label: 'Español' },
-  { value: 'de', label: 'Deutsch' },
-  { value: 'th', label: 'ไทย' },
-  { value: 'ru', label: 'Русский' },
-];
-
 // Tiêu chí sắp xếp (A1). "nearby" cần toạ độ người dùng.
 export const SORT_OPTIONS = [
   { value: 'popular', label: 'Phổ biến' },
