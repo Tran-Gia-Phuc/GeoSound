@@ -102,10 +102,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      # This job gates the images and the staging promotion, so its downloads are cached. There is
+      # no committed lockfile (setup-node's npm cache needs one): the key is the package.json files.
+      - name: Cache npm downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package.json', '*/package.json', 'services/*/package.json') }}
+          restore-keys: npm-${{ runner.os }}-
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-audit --no-fund
+      - name: Read the Playwright version
+        id: pw
+        run: echo "version=$(npx playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - name: Cache Chromium
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
       - name: Install Chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+      - name: Install Chromium system packages
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      # 4 workers (playwright.config.js, CI=true): ~300 mocked tests took 4+ minutes on 1 worker.
       - name: Run browser tests
         run: npm run test:ui --workspace client
 
@@ -220,4 +242,4 @@ jobs:
             git push origin HEAD:staging
           fi
           url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$(git rev-parse HEAD)"
-          echo "- Deployed \`$TAG\` to staging: $url (Argo CD applies it within about 3 minutes)." >> "$GITHUB_STEP_SUMMARY"
+          echo "- Deployed \`$TAG\` to staging: $url (Argo CD applies it within about 75 seconds)." >> "$GITHUB_STEP_SUMMARY"

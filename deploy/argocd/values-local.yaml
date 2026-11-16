@@ -10,6 +10,12 @@ configs:
     # Explicit on purpose: label tracking would overwrite app.kubernetes.io/instance, which is part
     # of the immutable Deployment selectors of the geosound chart.
     application.resourceTrackingMethod: annotation
+    # No GitHub webhook can reach a laptop, so Argo CD polls branch staging. The chart default
+    # (120s plus up to 60s jitter) left up to 3 minutes between "Promote to staging" and the
+    # sync; this keeps it under about 75s. The repo is public, so the extra polls cost nothing.
+    # The controller reads both keys at start; the chart's checksum/cm annotation restarts it.
+    timeout.reconciliation: 60s
+    timeout.reconciliation.jitter: 15s
   params:
     # The UI is reached through a port-forward only (127.0.0.1:4467), so no TLS in the server.
     server.insecure: true
