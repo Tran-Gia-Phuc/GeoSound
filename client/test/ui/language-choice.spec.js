@@ -5,6 +5,7 @@ import { test, expect } from '@playwright/test';
 import { id, secondId, places, tour, languages, json, signIn, fixtures, noOverflow } from './fixtures.js';
 
 const ALL = ['vi', 'en', 'fr', 'ja', 'ko', 'zh', 'es', 'de', 'th', 'ru'];
+const LANGUAGES_CACHE = 'geosound:languages';
 
 /** Tour view in `lang` as buildTourDetailView returns it (vi source, en by the author). */
 function view(lang, { asked, auto = [], reason = null } = {}) {
@@ -196,4 +197,29 @@ test('studio: automatic languages can be turned on, and the auto switch is saved
   await box.click();
   await expect(box).not.toBeChecked();
   expect(puts).toEqual([{ enabled: false }]);
+});
+
+test('languages: the list comes from the server, with native names, and is kept for offline use', async ({ page }) => {
+  await fixtures(page);
+  await signIn(page);
+  await page.route('**/api/tours/languages', (r) => json(r, { languages: ['vi', 'en', 'id', 'zh-tw'] }));
+  await page.goto('/studio/tours/new');
+  const select = page.locator('#tf-lang');
+  await expect(select.locator('option')).toHaveText(['Tiếng Việt', 'English', 'Indonesia', /^中文/]);
+  await expect(select.locator('option[value="zh-tw"]')).toHaveText(/台灣/);
+  expect(await page.evaluate((k) => localStorage.getItem(k), LANGUAGES_CACHE)).toBe('["vi","en","id","zh-tw"]');
+
+  // Server down: the cached list stays.
+  await page.route('**/api/tours/languages', (r) => r.abort());
+  await page.reload();
+  await expect(page.locator('#tf-lang option')).toHaveCount(4);
+});
+
+test('languages: a bad answer falls back to the default list', async ({ page }) => {
+  await fixtures(page);
+  await signIn(page);
+  await page.route('**/api/tours/languages', (r) => json(r, { languages: 'vi,en' }));
+  await page.goto('/studio/tours/new');
+  await expect(page.locator('#tf-lang option')).toHaveCount(ALL.length);
+  await expect(page.locator('#tf-lang option[value="de"]')).toHaveText('Deutsch');
 });
