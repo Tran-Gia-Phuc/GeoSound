@@ -117,8 +117,17 @@ async function send(method, path, { body, auth = false, signal, accept = 'applic
     }
   };
 
-  let res = await doFetch(auth ? getAccessToken() : null);
+  const sent = auth ? getAccessToken() : null;
+  let res = await doFetch(sent);
   if (res.status !== 401 || !auth || !refresh) return res;
+
+  // Another tab may have rotated the tokens while this request was in flight. Refreshing again
+  // would rotate them a second time for nothing: retry with the stored token first.
+  const stored = getAccessToken();
+  if (stored && stored !== sent) {
+    res = await doFetch(stored);
+    if (res.status !== 401) return res;
+  }
 
   // 401 trên request cần đăng nhập → thử refresh rồi gọi lại một lần.
   if (!refreshing) refreshing = refreshTokens().finally(() => (refreshing = null));
