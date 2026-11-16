@@ -65,7 +65,7 @@ Contributor muốn tour phục vụ khách quốc tế mà không phải tự th
 
 ## Reference: Business Rules
 
-- Ngôn ngữ hỗ trợ: Tour service giữ danh sách (#425). Mặc định `vi, en, fr, ja, ko, zh, es, de, th, ru`; mỗi bản triển khai đổi bằng biến `SUPPORTED_LANGUAGES` của Tour (mã 2–3 chữ cái, có thể kèm vùng như `zh-tw`, phân tách bằng dấu phẩy; mã sai bị bỏ qua và ghi log; rỗng = mặc định). Client đọc danh sách qua `GET /api/tours/languages` (giữ trong `localStorage` để dùng khi mất mạng, lỗi thì dùng mặc định) và hiển thị tên bản ngữ bằng `Intl.DisplayNames`. AI service dịch mọi mã nó nhận. Tối đa 20 ngôn ngữ phụ; bản dịch 1–5000 ký tự.
+- Ngôn ngữ hỗ trợ: Tour service giữ danh sách (#425). Mặc định `vi, en, fr, ja, ko, zh, es, de, th, ru`; mỗi bản triển khai đổi bằng biến `SUPPORTED_LANGUAGES` của Tour (mã 2–3 chữ cái, có thể kèm vùng như `zh-tw`, phân tách bằng dấu phẩy; mã sai bị bỏ qua và ghi log; rỗng = mặc định). Helm chart (`deploy/helm/geosound/values.yaml`, #428) đặt 20 ngôn ngữ: mặc định cộng `zh-tw, id, ms, it, pt, nl, pl, tr, hi, sv`. Client đọc danh sách qua `GET /api/tours/languages` (giữ trong `localStorage` để dùng khi mất mạng, lỗi thì dùng mặc định) và hiển thị tên bản ngữ bằng `Intl.DisplayNames`. AI service dịch mọi mã nó nhận. Tối đa 20 ngôn ngữ phụ; bản dịch 1–5000 ký tự.
 - Ba tầng bản dịch: `source` (bản gốc), `machine` / `edited` (ngôn ngữ tác giả bật), `auto` (khách yêu cầu, tác giả chưa xem). Bản `auto` luôn có nhãn "Bản dịch tự động" và nút "Xem bản gốc" ở trình phát (UC04); không được gửi trong `tour.published` (chatbot không index).
 - `tours.auto_translate` (mặc định bật) cho phép khách yêu cầu ngôn ngữ ngoài danh sách tác giả bật.
 - Ngôn ngữ gốc là nguồn: văn bản = mô tả điểm, không dịch.

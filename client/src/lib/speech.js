@@ -9,6 +9,9 @@
 const LANG_TAGS = {
   vi: 'vi-VN', en: 'en-US', fr: 'fr-FR', ja: 'ja-JP', ko: 'ko-KR',
   zh: 'zh-CN', es: 'es-ES', de: 'de-DE', th: 'th-TH', ru: 'ru-RU',
+  // Codes added through SUPPORTED_LANGUAGES (#428); 'zh-tw' needs no entry (region rule below).
+  id: 'id-ID', ms: 'ms-MY', it: 'it-IT', pt: 'pt-BR', nl: 'nl-NL',
+  pl: 'pl-PL', tr: 'tr-TR', hi: 'hi-IN', sv: 'sv-SE',
 };
 
 /** Full BCP 47 tag for a language code ('vi' -> 'vi-VN'); other values unchanged. */
