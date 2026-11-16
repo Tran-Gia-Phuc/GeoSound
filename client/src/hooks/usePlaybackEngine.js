@@ -236,6 +236,14 @@ export function usePlaybackEngine({ tour, mode, position, selectedLanguage, visi
     [ordered, currentPlaceId, selectPlace],
   );
 
+  // Play button: pause / resume the track; with no track (stopped by a language change, or the
+  // stop has ended) it plays the current stop again, in the language now selected.
+  const togglePlay = useCallback(() => {
+    const status = audio.state.status;
+    if (status === 'playing' || status === 'paused') audio.toggle();
+    else if (currentPlaceId && placeById.has(currentPlaceId)) selectPlace(currentPlaceId);
+  }, [audio, currentPlaceId, placeById, selectPlace]);
+
   const currentPlace = currentPlaceId ? placeById.get(currentPlaceId) : null;
   const canPrev = ordered.findIndex((p) => p.id === currentPlaceId) > 0;
   const canNext = (() => {
@@ -253,6 +261,7 @@ export function usePlaybackEngine({ tour, mode, position, selectedLanguage, visi
     start,
     stop,
     selectPlace,
+    togglePlay,
     next: () => step(1),
     prev: () => step(-1),
     canPrev,
