@@ -13,20 +13,22 @@ import { MAP_TILE_ATTRIBUTION, MAP_TILE_MAX_ZOOM, MAP_TILE_MAX_NATIVE_ZOOM, MAP_
 
 // ----- Icon pin số thứ tự (divIcon, né lỗi icon mặc định của Leaflet) -----
 function pinIcon(label, { active, visited }) {
-  const cls = ['gs-pin', active ? 'gs-pin--active' : '', visited ? 'gs-pin--visited' : ''].join(' ');
+  const cls = ['gs-pin', 'gs-pin--v2', active ? 'gs-pin--active' : '', visited ? 'gs-pin--visited' : '']
+    .filter(Boolean)
+    .join(' ');
   return L.divIcon({
     className: 'gs-pin-wrap',
-    html: `<div class="${cls}"><span>${label}</span></div>`,
-    iconSize: [34, 42],
-    iconAnchor: [17, 40],
+    html: `<div class="${cls}"><span class="gs-pin__badge"><span class="gs-pin__num">${label}</span></span><span class="gs-pin__tail" aria-hidden="true"></span></div>`,
+    iconSize: [36, 44],
+    iconAnchor: [18, 42],
   });
 }
 
 const editIcon = L.divIcon({
   className: 'gs-pin-wrap',
-  html: '<div class="gs-pin gs-pin--edit"><span>＋</span></div>',
-  iconSize: [34, 42],
-  iconAnchor: [17, 40],
+  html: '<div class="gs-pin gs-pin--v2 gs-pin--edit"><span class="gs-pin__badge"><span class="gs-pin__num">＋</span></span><span class="gs-pin__tail" aria-hidden="true"></span></div>',
+  iconSize: [36, 44],
+  iconAnchor: [18, 42],
 });
 
 function userIcon(stale) {
