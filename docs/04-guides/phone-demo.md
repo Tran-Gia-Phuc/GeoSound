@@ -52,7 +52,8 @@ when `NGROK_AUTHTOKEN` / `NGROK_DOMAIN` are empty: compose then stops with "set 
 ## How it works
 
 - `scripts/demo/docker-compose.ngrok.yml` is layered on `docker-compose.yml`. It adds the `ngrok`
-  service (`ngrok http client:5173 --url=$NGROK_DOMAIN`) and sets `VITE_ALLOWED_HOSTS` on the client.
+  service (`ngrok http client:5173 --url=$NGROK_DOMAIN`) and sets `VITE_ALLOWED_HOSTS` and `VITE_PUBLIC_URL`
+  (the sign-in page QR code) on the client.
 - `client/vite.config.js` reads `VITE_ALLOWED_HOSTS` (comma separated) into `server.allowedHosts`.
   Vite blocks unknown host names, so without it the tunnel answers **403 Blocked request**.
 - The client calls the API on the same origin (`/api`, Vite proxy to the gateway), so nothing else changes.
@@ -66,9 +67,13 @@ when `NGROK_AUTHTOKEN` / `NGROK_DOMAIN` are empty: compose then stops with "set 
 | `ERR_NGROK_...` page | The PC, Docker or the `ngrok` container is down: run the script; see `docker compose logs --tail 30 ngrok` |
 | `set NGROK_DOMAIN in .env` | The two keys are missing from the root `.env` |
 
-## Optional QR code on the sign-in page
+## QR code on the sign-in page
 
-On wide screens the sign-in page shows a QR code when `client/public/qr-mobile.png` exists, and hides
-it otherwise. The file is ignored by git because it encodes your own domain. To make one: open your
-ngrok URL in Chrome, Edge or Cốc Cốc on the PC, right click, "Create QR code for this page", download
-it and save it as `client/public/qr-mobile.png`.
+On wide screens (1000 px and more) the sign-in page shows a QR code that opens GeoSound on a phone.
+The client draws it in the browser (`client/src/features/auth/PhoneQr.jsx`, library
+`qrcode-generator`); there is no image file to make.
+
+- With the ngrok overlay, `VITE_PUBLIC_URL` is `https://$NGROK_DOMAIN/`, so the code opens the tunnel
+  even when the PC itself uses `http://localhost:5173`.
+- Without it, the code opens the current origin (for example the staging domain).
+- On `localhost` / `127.0.0.1` without `VITE_PUBLIC_URL` there is no code: a phone cannot open those.
