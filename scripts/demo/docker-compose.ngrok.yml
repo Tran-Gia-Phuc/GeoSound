@@ -6,6 +6,7 @@ services:
   client:
     environment:
       VITE_ALLOWED_HOSTS: ${NGROK_DOMAIN:?set NGROK_DOMAIN in .env}
+      VITE_PUBLIC_URL: https://${NGROK_DOMAIN}/ # sign-in page QR opens the tunnel, even on a PC at localhost
 
   ngrok:
     image: ngrok/ngrok:3
