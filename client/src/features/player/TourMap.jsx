@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Polyline, Circle, Polygon, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { stopNumbers } from '../../lib/format.js';
+import { MAP_TILE_ATTRIBUTION, MAP_TILE_MAX_ZOOM, MAP_TILE_MAX_NATIVE_ZOOM, MAP_TILE_URL } from '../../lib/map-tiles.js';
 
 // ----- Icon pin số thứ tự (divIcon, né lỗi icon mặc định của Leaflet) -----
 function pinIcon(label, { active, visited }) {
@@ -132,9 +133,10 @@ export default function TourMap({
       style={{ cursor: simulate ? 'crosshair' : '' }}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        maxZoom={19}
+        attribution={MAP_TILE_ATTRIBUTION}
+        url={MAP_TILE_URL}
+        maxNativeZoom={MAP_TILE_MAX_NATIVE_ZOOM}
+        maxZoom={MAP_TILE_MAX_ZOOM}
       />
       <MapController bounds={bounds} follow={follow} userPos={userPos} recenterNonce={recenterNonce} focus={focus} />
       {simulate ? <ClickToSimulate onPick={onSimPick} /> : null}

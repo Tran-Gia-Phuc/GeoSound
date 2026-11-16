@@ -10,6 +10,7 @@ import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import Icon from '../../components/Icon.jsx';
 import { formatDistance, formatMinutes, voiceLabel } from '../../lib/format.js';
+import { MAP_TILE_ATTRIBUTION, MAP_TILE_MAX_ZOOM, MAP_TILE_MAX_NATIVE_ZOOM, MAP_TILE_URL } from '../../lib/map-tiles.js';
 import { PLACE_TYPE_LABELS } from '../../lib/studio.js';
 
 const createPinIcon = (kind, active, num) =>
@@ -185,9 +186,10 @@ export default function DiscoverMap({ kind, items, me, onOpenPlace, onAddPlace }
       <div className="discovermap__stage">
         <MapContainer center={center} zoom={12} zoomControl={false} className="gs-map">
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            maxZoom={19}
+            attribution={MAP_TILE_ATTRIBUTION}
+            url={MAP_TILE_URL}
+            maxNativeZoom={MAP_TILE_MAX_NATIVE_ZOOM}
+            maxZoom={MAP_TILE_MAX_ZOOM}
           />
           <MapBridge points={points} me={me} onReady={setMap} railOpen={points.length > 0} />
           {points.map((p, index) => {
