@@ -266,6 +266,9 @@
   position: relative;
   flex: 1;
   min-height: 0;
+  /* Keeps the Leaflet controls (z-index 1000) and the map overlays under the top bar, so the
+     language menu opens above the map attribution. */
+  isolation: isolate;
 }
 .gs-map {
   width: 100%;
