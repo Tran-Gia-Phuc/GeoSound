@@ -336,13 +336,20 @@
           "y": 620,
           "w": 280,
           "h": 50
+        },
+        {
+          "id": "G4",
+          "kind": "ghost",
+          "label": "4.0 | Quản lý nội dung tour",
+          "x": 1440,
+          "y": 580
         }
       ],
       "flows": [
         {
           "from": "TOURIST",
           "to": "P21",
-          "label": "Từ khóa, bộ lọc, vị trí"
+          "label": "Từ khóa, bộ lọc (thành phố, ngôn ngữ,<br>loại), sắp xếp, trang, vị trí"
         },
         {
           "from": "D3",
@@ -352,7 +359,7 @@
         {
           "from": "P21",
           "to": "TOURIST",
-          "label": "Danh sách, bản đồ"
+          "label": "Danh sách phân trang, bản đồ ghim,<br>gần bạn, phổ biến"
         },
         {
           "from": "TOURIST",
@@ -448,6 +455,11 @@
           "from": "P25",
           "to": "G7",
           "label": "view / play / complete / download"
+        },
+        {
+          "from": "P22",
+          "to": "G4",
+          "label": "Yêu cầu dịch ngôn ngữ mới"
         }
       ]
     },
@@ -807,6 +819,13 @@
           "label": "Contributor *",
           "x": 1700,
           "y": 610
+        },
+        {
+          "id": "G2",
+          "kind": "ghost",
+          "label": "2.0 | Tìm, xem, nghe & tải tour",
+          "x": 850,
+          "y": 1250
         }
       ],
       "flows": [
@@ -880,7 +899,7 @@
         {
           "from": "CONTRIB",
           "to": "P44",
-          "label": "Ngôn ngữ, giọng, sửa bản dịch"
+          "label": "Ngôn ngữ, giọng, sửa bản dịch,<br>công tắc dịch tự động"
         },
         {
           "from": "P44",
@@ -951,6 +970,11 @@
           "from": "P47",
           "to": "G9",
           "label": "Tour công khai (khi tắt kiểm duyệt)"
+        },
+        {
+          "from": "G2",
+          "to": "P44",
+          "label": "Yêu cầu dịch của khách"
         }
       ]
     },
@@ -1489,7 +1513,7 @@
         {
           "from": "TOURIST",
           "to": "P71",
-          "label": "Số sao, nhận xét, sửa / xóa"
+          "label": "Số sao, nhận xét, sửa / xóa,<br>xem đánh giá của tôi"
         },
         {
           "from": "P71",
@@ -1499,7 +1523,7 @@
         {
           "from": "D6",
           "to": "P71",
-          "label": "Đánh giá của tour"
+          "label": "Đánh giá của tour / của tôi"
         },
         {
           "from": "P71",
@@ -1509,7 +1533,7 @@
         {
           "from": "P71",
           "to": "TOURIST",
-          "label": "Danh sách đánh giá"
+          "label": "Danh sách đánh giá,<br>đánh giá của tôi (lọc theo sao)"
         },
         {
           "from": "TOURIST",
@@ -1706,7 +1730,7 @@
         {
           "from": "P83",
           "to": "USER",
-          "label": "Danh sách, số chưa đọc"
+          "label": "Danh sách có nhãn loại,<br>số chưa đọc"
         }
       ]
     },

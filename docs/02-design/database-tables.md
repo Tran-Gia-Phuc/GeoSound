@@ -184,6 +184,7 @@ Unique `(follower_id, author_id)`; index `(author_id)`.
 | `passcode_hash` | text | yes | | scrypt hash, never returned (UC14) |
 | `passcode_version` | int | no | 0 | bumped on passcode change / off |
 | `passcode_set_at` | timestamp | yes | | |
+| `auto_translate` | bool | no | true | lets tourists ask for an automatic translation into a language the author did not turn on (UC04 A7, UC12 A6) |
 | `created_at`, `updated_at` | timestamp | no | now | `updated_at` = moderation and catalog revision |
 
 Indexes: `(author_id)`, `(status)`, `(status, city)`.
@@ -242,7 +243,8 @@ Unique `(tour_id, language_code)`.
 | `place_id` | uuid | no | | FK → `places.id`, cascade |
 | `language_code` | text | no | | |
 | `text` | text | no | | |
-| `text_source` | text | no | `machine` | `source` \| `machine` \| `edited` |
+| `text_source` | text | no | `machine` | `source` \| `machine` \| `edited` \| `auto` |
+| `source_hash` | text | yes | | hash of the place description a machine text was made from; a different hash means the text is stale |
 | `tts_url` | text | yes | | placeholder `tts://...` today (no server TTS) |
 | `tts_prerendered` | bool | no | false | |
 | `created_at`, `updated_at` | timestamp | no | now | |

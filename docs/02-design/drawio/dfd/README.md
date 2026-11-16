@@ -14,6 +14,8 @@ Processes of level 1 and the use cases they cover: 1.0 accounts and sessions (UC
 2.0 find, view, listen and download tours (UC02 to UC04), 3.0 itineraries (UC07, UC08), 4.0 tour content
 (UC09 to UC14), 5.0 AI moderation (UC15), 6.0 admin review, violations and monitoring (UC19 to UC22),
 7.0 ratings, reports and statistics (UC05, UC06, UC17), 8.0 notifications (UC16), 9.0 AI assistant (UC24).
+The flows follow the PRD use cases as of 2026-11-16 (Discover filters, on-demand translation into a new
+language and the auto-translate switch, "Đánh giá của tôi", notification category badges).
 
 Data stores: D1 accounts, sessions, follows (`auth`); D2 OTP and revoked sessions (Redis); D3 tours, places,
 routes, translations, forbidden zones, access grants (`tour`); D4 media files; D5 itineraries; D6 ratings,

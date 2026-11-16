@@ -1,20 +1,92 @@
 {
   "uc": "UC22",
   "steps": [
-    { "id": "s1", "text": "1. Admin mở “Dashboard”." },
-    { "id": "s2", "decision": true, "text": "2. Tour tính số liệu 7 ngày gần nhất: tour chờ duyệt, thời gian duyệt TB, tour bị báo cáo, top 5 contributor, hành động admin; hợp lệ? A1, A3, E1, E2/E4.", "alts": ["A1", "A3"], "exceptions": [
-      { "id": "E1", "text": "E1. Chưa có dữ liệu → các số bằng 0, danh sách rỗng, hiện “Chưa có dữ liệu”.", "back": "s3" },
-      { "id": "E2", "text": "E2/E4. Khoảng thời gian sai hoặc quá 366 ngày → 400 (client báo trước); không có token → 401, không phải admin → 403.", "back": "end" } ] },
-    { "id": "s3", "text": "3. Admin mở “Nhật ký hành động”." },
-    { "id": "s4", "decision": true, "text": "4. Tour trả các dòng log mới nhất trước (20 / trang): thời gian, hành động, đối tượng, admin, lý do; chỉ xem? E5.", "exceptions": [
-      { "id": "E5", "text": "E5. Gọi sửa / xóa / thêm → 405 “Chỉ được xem, không thể sửa hoặc xoá dữ liệu này”.", "back": "end" } ] },
-    { "id": "s5", "decision": true, "text": "5. Admin lọc log theo loại hành động, loại đối tượng, admin, khoảng ngày; bộ lọc hợp lệ? E3.", "exceptions": [
-      { "id": "E3", "text": "E3. Bộ lọc sai → 400; dòng log không tồn tại → 404 “Không tìm thấy bản ghi nhật ký”.", "back": "s5" } ] },
-    { "id": "s6", "decision": true, "text": "6. Hệ thống hiển thị các dòng khớp, có phân trang; xem chi tiết một dòng? A2.", "alts": ["A2"] }
+    {
+      "id": "s1",
+      "text": "1. Admin mở trang “Dashboard”."
+    },
+    {
+      "id": "s2",
+      "text": "2. Hệ thống tính số liệu 7 ngày gần nhất (mặc định): tour đang chờ duyệt (Chờ duyệt, Cảnh báo AI, tổng), thời gian duyệt trung bình (giờ), tour bị báo cáo trong kỳ, tour đang có báo cáo mở, top 5 contributor, số hành động Admin theo loại. A1, E1, E2.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Chưa có dữ liệu → các số bằng 0, hiện “Chưa có dữ liệu”.",
+          "back": "s1"
+        },
+        {
+          "id": "E2",
+          "text": "E2. Khoảng thời gian sai (từ ngày không trước đến ngày, quá 366 ngày, sai định dạng) → 400; client báo lỗi trước khi gọi API.",
+          "back": "s1"
+        }
+      ],
+      "alts": [
+        "A1"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. Hệ thống hiển thị các ô số liệu (có liên kết tới hàng chờ UC#19 / UC#20) và biểu đồ thanh số hành động. A3.",
+      "alts": [
+        "A3"
+      ]
+    },
+    {
+      "id": "s4",
+      "text": "4. Admin mở “Nhật ký hành động”."
+    },
+    {
+      "id": "s5",
+      "text": "5. Hệ thống trả các dòng log mới nhất trước (20 mỗi trang): thời gian, hành động, đối tượng (tour hoặc tài khoản, có liên kết), Admin thực hiện, lý do. E1."
+    },
+    {
+      "id": "s6",
+      "text": "6. Admin lọc theo loại hành động, loại đối tượng, Admin, khoảng ngày. A2, E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Bộ lọc sai → 400; dòng log không tồn tại → 404 “Không tìm thấy bản ghi nhật ký”.",
+          "back": "end"
+        },
+        {
+          "id": "E4",
+          "text": "E4. Không có token hợp lệ → 401; không phải Admin → 403.",
+          "back": "end"
+        },
+        {
+          "id": "E5",
+          "text": "E5. Gọi sửa / xóa dữ liệu → 405 “Chỉ được xem, không thể sửa hoặc xoá dữ liệu này”.",
+          "back": "s6"
+        }
+      ],
+      "alts": [
+        "A2"
+      ],
+      "decision": true
+    }
   ],
   "alts": [
-    { "id": "A1", "steps": ["A1.1. Admin chọn 7 ngày, 30 ngày hoặc “Tuỳ chọn” (từ ngày, đến ngày).", "A1.2. Hệ thống tính lại số liệu cho khoảng mới."], "to": "s2" },
-    { "id": "A3", "steps": ["A3.1. Admin bấm contributor trong top, hoặc ô chờ duyệt / báo cáo mở.", "A3.2. Mở trang tài khoản (UC21) hoặc hàng chờ UC19 / UC20."], "to": "end" },
-    { "id": "A2", "steps": ["A2.1. Admin mở một dòng log.", "A2.2. Hệ thống hiện đầy đủ dòng log, kể cả dữ liệu kèm theo."], "to": "end" }
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Đổi khoảng thời gian: 7 ngày, 30 ngày hoặc tùy chọn; hệ thống tính lại số liệu."
+      ],
+      "to": "s3"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Từ dashboard đi tiếp: chọn contributor trong top để mở trang tài khoản (UC#21), chọn ô chờ duyệt / báo cáo để mở hàng chờ UC#19 / UC#20."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Xem chi tiết một dòng log: hệ thống hiển thị đầy đủ dòng log, kể cả dữ liệu kèm theo."
+      ],
+      "to": "end"
+    }
   ]
 }

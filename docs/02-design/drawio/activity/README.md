@@ -12,7 +12,9 @@ Reading the diagrams:
 - Alternatives (A*) in columns on the left, with an arrow into the step where the main flow continues
   (or to the end).
 
-The content follows the UC files under `docs/use case/` (updated 2026-11-08 to match the system). The XML is
+The content follows the Focused use case specs of the PRD
+([../../../01-requirements/GeoSound-PRD.docx](../../../01-requirements/GeoSound-PRD.docx), section 2.3, as of
+2026-11-16): one main-flow box per Basic Course step, one box per alternative step, one box per exception. The XML is
 generated from small JSON specs in `specs/` by `scripts/diagrams/activity-xml.mjs`:
 
 ```

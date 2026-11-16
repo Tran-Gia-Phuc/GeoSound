@@ -1,26 +1,121 @@
 {
   "uc": "UC09",
   "steps": [
-    { "id": "s1", "text": "1. Contributor mở Studio." },
-    { "id": "s2", "decision": true, "text": "2. Hệ thống hiển thị “Tour của tôi”: trạng thái, số điểm, tiến độ n/4 bước, bộ lọc, tìm kiếm; tải được và có tour? E1, E5.", "exceptions": [
-      { "id": "E1", "text": "E1. Chưa có tour nào → ô trống “Chưa có tour nào” và nút “Tạo tour”.", "back": "s3" },
-      { "id": "E5", "text": "E5. Lỗi tải danh sách → cảnh báo và nút “Thử lại danh sách”.", "back": "s2" } ] },
-    { "id": "s3", "decision": true, "text": "3. Contributor chọn “Tạo tour” (không sửa / xóa / gửi duyệt tour có sẵn)? A1, A2, A3, E4, E6.", "alts": ["A1", "A2", "A3"], "exceptions": [
-      { "id": "E4", "text": "E4. Tour không tồn tại (404) hoặc là tour của người khác (403) → báo lỗi.", "back": "end" },
-      { "id": "E6", "text": "E6. Gửi duyệt khi chưa đủ điều kiện (422, kèm danh sách thiếu), trạng thái không cho phép hoặc tour hạn chế (409) → báo lỗi.", "back": "s3" } ] },
-    { "id": "s4", "text": "4. Hệ thống mở form: tên, ngôn ngữ gốc (bắt buộc), loại tour, thành phố, thời lượng, mô tả, ảnh bìa, khung xem trước." },
-    { "id": "s5", "text": "5. Contributor nhập thông tin; (tùy chọn) tải ảnh bìa lên." },
-    { "id": "s6", "decision": true, "text": "6. Hệ thống kiểm ảnh bìa và tải lên Media, nhận lại URL; ảnh hợp lệ? E3.", "exceptions": [
-      { "id": "E3", "text": "E3. Ảnh sai định dạng → “Chỉ nhận ảnh JPG, PNG, WebP hoặc GIF”; quá 8 MB; lưu trữ lỗi (503).", "back": "s5" } ] },
-    { "id": "s7", "text": "7. Contributor nhấn “Tạo & thêm điểm dừng”.", "alts": ["A4"] },
-    { "id": "s8", "decision": true, "text": "8. Hệ thống kiểm dữ liệu, tạo tour ở trạng thái Nháp với tác giả là người đăng nhập; hợp lệ? E2.", "exceptions": [
-      { "id": "E2", "text": "E2. Thiếu tên / ngôn ngữ gốc, ngôn ngữ không hỗ trợ, loại tour sai → “Vui lòng nhập tên tour”, “Vui lòng chọn ngôn ngữ gốc”…", "back": "s5" } ] },
-    { "id": "s9", "text": "9. Hệ thống chuyển tới bước Điểm dừng (UC10)." }
+    {
+      "id": "s1",
+      "text": "1. Contributor mở Studio."
+    },
+    {
+      "id": "s2",
+      "text": "2. Hệ thống hiển thị danh sách tour của Contributor kèm chip trạng thái (Nháp, Đang kiểm duyệt AI, Cảnh báo AI, Chờ duyệt, Công khai, Bị từ chối, Cần chỉnh sửa, Truy cập hạn chế, Đang ẩn). E1, E5.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Chưa có tour nào → “Chưa có tour nào” và nút “Tạo tour”.",
+          "back": "s1"
+        },
+        {
+          "id": "E5",
+          "text": "E5. Lỗi tải danh sách → cảnh báo và nút “Thử lại danh sách”.",
+          "back": "s1"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. Contributor nhấn “Tạo tour”. A1, A2, A3.",
+      "alts": [
+        "A1",
+        "A2",
+        "A3"
+      ]
+    },
+    {
+      "id": "s4",
+      "text": "4. Hệ thống hiển thị form: tên, mô tả, thành phố, loại tour, ngôn ngữ gốc, thời lượng, ảnh bìa."
+    },
+    {
+      "id": "s5",
+      "text": "5. Contributor nhập thông tin và chọn ảnh bìa."
+    },
+    {
+      "id": "s6",
+      "text": "6. Hệ thống (Media) kiểm tra định dạng thật của ảnh (magic bytes) và lưu ảnh lên Supabase Storage. E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Ảnh bìa sai định dạng → 415 “Chỉ nhận ảnh JPG, PNG, WebP hoặc GIF”; quá 8 MB → 413; lỗi lưu trữ → 503.",
+          "back": "s5"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s7",
+      "text": "7. Contributor nhấn “Tạo & thêm điểm dừng”. A4.",
+      "alts": [
+        "A4"
+      ]
+    },
+    {
+      "id": "s8",
+      "text": "8. Hệ thống (Tour) kiểm tra dữ liệu và tạo tour ở trạng thái Nháp. E2.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. Thiếu tên / ngôn ngữ gốc, ngôn ngữ hoặc loại tour không hợp lệ → 400 (“Vui lòng nhập tên tour”, “Vui lòng chọn ngôn ngữ gốc”, “Ngôn ngữ không hỗ trợ: xx”).",
+          "back": "s7"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s9",
+      "text": "9. Hệ thống chuyển sang bước thêm điểm dừng (UC#10).",
+      "exceptions": [
+        {
+          "id": "E4",
+          "text": "E4. Tour không tồn tại → 404; tour của người khác → 403.",
+          "back": "end"
+        },
+        {
+          "id": "E6",
+          "text": "E6. Chưa đủ điều kiện xuất bản → 422 kèm danh sách mục còn thiếu; trạng thái không cho phép → 409.",
+          "back": "s3"
+        }
+      ],
+      "decision": true
+    }
   ],
   "alts": [
-    { "id": "A1", "steps": ["A1.1. Contributor mở tour, sửa thông tin và lưu.", "A1.2. Hệ thống lưu trường thay đổi; tour Công khai hoặc đang kiểm duyệt (đổi nội dung AI đọc) → về Nháp, cần gửi duyệt lại."], "to": "end" },
-    { "id": "A2", "steps": ["A2.1. Contributor chọn “Xoá tour” và xác nhận.", "A2.2. Hệ thống xóa tour cùng điểm, route, ngôn ngữ, bản dịch; tour biến mất khỏi tìm kiếm; về Studio."], "to": "end" },
-    { "id": "A3", "steps": ["A3.1. Contributor mở bước Xuất bản, xem checklist và gửi duyệt.", "A3.2. Bật kiểm duyệt: tour sang “Đang kiểm duyệt AI” (UC15); tắt: công khai ngay. Có thể gỡ tour công khai về Nháp."], "to": "end" },
-    { "id": "A4", "steps": ["A4.1. Contributor chọn “Lưu nháp & thoát”.", "A4.2. Hệ thống tạo tour ở Nháp và quay về Studio."], "to": "end" }
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Sửa tour: mở tour, sửa thông tin và lưu; tour đang Công khai bị sửa sẽ về Nháp và phải gửi duyệt lại. E4."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Xóa tour: hệ thống hỏi xác nhận rồi xóa tour cùng các điểm, route, bản dịch liên quan. E4."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Xuất bản: hệ thống hiển thị checklist (tên, ngôn ngữ gốc, ít nhất 1 điểm, mọi điểm có mô tả); khi bật kiểm duyệt, nút này là “Gửi duyệt” (UC#15). E6."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. “Lưu nháp & thoát”: lưu tour Nháp và quay về danh sách."
+      ],
+      "to": "end"
+    }
   ]
 }

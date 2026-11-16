@@ -3961,6 +3961,11 @@
      "name": "updated_at",
      "nullable": false,
      "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "source_hash",
+     "nullable": true,
+     "type": "text"
     }
    ],
    "fks": [
@@ -4695,6 +4700,11 @@
      "name": "review_queued_at",
      "nullable": true,
      "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "auto_translate",
+     "nullable": false,
+     "type": "boolean"
     }
    ],
    "fks": [],

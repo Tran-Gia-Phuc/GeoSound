@@ -171,7 +171,7 @@ export async function fixtures(page) {
     if (path.endsWith('/preview')) return json(route, { tour });
     return json(route, { error: 'Unexpected fixture request: ' + method + ' ' + path }, 404);
   });
-  await page.route('**/tile.openstreetmap.org/**', (route) => route.abort());
+  await page.route('**/server.arcgisonline.com/**', (route) => route.abort());
 }
 export async function noOverflow(page) {
   expect(
