@@ -75,6 +75,7 @@ import OnlineDevicesPage from './features/admin/OnlineDevicesPage.jsx';
 import AdminHomePage from './features/admin/AdminHomePage.jsx';
 import ReportedToursPage from './features/admin/ReportedToursPage.jsx';
 import ReportDossierPage from './features/admin/ReportDossierPage.jsx';
+import AdminRatingReportsPage from './features/admin/AdminRatingReportsPage.jsx';
 import ReviewQueuePage from './features/admin/ReviewQueuePage.jsx';
 import ReviewDossierPage from './features/admin/ReviewDossierPage.jsx';
 import UsersPage from './features/admin/UsersPage.jsx';
@@ -199,6 +200,7 @@ const router = createBrowserRouter(
         <Route path="/admin/reviews" element={<RequireAuth><ReviewQueuePage /></RequireAuth>} />
         <Route path="/admin/reviews/:tourId" element={<RequireAuth><ReviewDossierPage /></RequireAuth>} />
         <Route path="/admin/reports" element={<RequireAuth><ReportedToursPage /></RequireAuth>} />
+        <Route path="/admin/reports/ratings" element={<RequireAuth><AdminRatingReportsPage /></RequireAuth>} />
         <Route path="/admin/reports/:tourId" element={<RequireAuth><ReportDossierPage /></RequireAuth>} />
         <Route path="/account/profile" element={<RequireAuth><ProfileEditPage /></RequireAuth>} />
         <Route path="/account/following" element={<RequireAuth><FollowingPage /></RequireAuth>} />
