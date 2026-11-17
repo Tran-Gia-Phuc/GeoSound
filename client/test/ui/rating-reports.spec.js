@@ -3,7 +3,7 @@ import { fixtures, id, json, signIn } from './fixtures.js';
 
 test('tourist can report another rating on tour detail', async ({ page }) => {
   await fixtures(page);
-  await signIn(page, 'tourist');
+  await signIn(page, 'tourist', '55555555-5555-4555-8555-555555555555');
   let reportedBody = null;
 
   await page.route('**/api/**', async (route) => {
