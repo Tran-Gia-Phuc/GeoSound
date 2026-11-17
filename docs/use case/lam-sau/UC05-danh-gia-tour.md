@@ -1,168 +1,147 @@
-# UC05 – Đánh giá và nhận xét tour
+# UC06 – Báo cáo và xử lý khiếu nại đánh giá tour
 
 | Trường | Nội dung |
 |---|---|
-| **Use Case Number** | UC05 |
-| **Use Case Name** | Đánh giá và nhận xét tour |
-| **Actor(s)** | Khách du lịch (Tourist, đã đăng nhập; mọi vai trò trừ tác giả của tour) |
-| **Priority** | P0 |
-| **Maturity** | Implemented |
-| **Summary** | Người dùng đã đăng nhập chấm 1–5 sao và viết nhận xét (không bắt buộc) cho một tour công khai, có thể sửa hoặc xóa đánh giá của mình. Mọi người (kể cả khách chưa đăng nhập) xem được điểm trung bình, số lượt, phân bố sao và danh sách nhận xét. Dữ liệu này dùng cho thống kê UC17. |
+| **Use Case Number** | UC06 |
+| **Use Case Name** | Báo cáo và xử lý khiếu nại đánh giá tour |
+| **Actor(s)** | • Người báo cáo: Khách du lịch (Tourist đã đăng nhập), Tác giả tour (Author)<br>• Người kiểm duyệt: Quản trị viên hệ thống (Admin) |
+| **Priority** | P1 |
+| **Maturity** | Proposed / Designed |
+| **Summary** | Người dùng đã đăng nhập (Tourist hoặc Author của tour) báo cáo một nhận xét/đánh giá vi phạm tiêu chuẩn cộng đồng (spam, ngôn từ xúc phạm, thông tin sai lệch). Báo cáo được đưa vào hàng đợi kiểm duyệt của Quản trị viên (Admin). Admin thẩm định và phán quyết gỡ bỏ nhận xét vi phạm hoặc bác bỏ báo cáo. Tác giả tour không có quyền tự xóa hoặc ẩn nhận xét của khách để đảm bảo tính khách quan. |
 
 ## Basic Course of Events
 
+### Giai đoạn 1: Actor gửi báo cáo vi phạm
+
 | # | Actor Action | System Response |
 |---|---|---|
-| 1 | Tourist mở mục **"Đánh giá"** trên chi tiết tour (`/tour/:tourId#ratings`), hoặc bấm nút đánh giá ở hộp thoại kết thúc của trình phát (UC04). | |
-| 2 | | Client gọi `GET /api/tours/:id/ratings` (công khai) để hiện tóm tắt (điểm trung bình, số lượt, phân bố 1–5 sao) và danh sách nhận xét mới nhất trước, 10 mục mỗi trang. *E3* `listRatings()` → `ListTourRatings.execute()` |
-| 3 | | Nếu đã đăng nhập, client gọi `GET /api/tours/:id/ratings/mine`: chưa có thì hiện form "Đánh giá tour", đã có thì hiện "Đánh giá của bạn". *E1, E4, A1* `getMyRating()` → `GetMyTourRating.execute()` |
-| 4 | Tourist chọn số sao và nhập nhận xét (không bắt buộc, tối đa 1000 ký tự). *E2* | |
-| 5 | Tourist nhấn **"Gửi đánh giá"**. | |
-| 6 | | Client gọi `PUT /api/tours/:id/ratings/mine`. Tour lưu dòng `tour_ratings` và cập nhật `tours.average_rating`, `tours.rating_count` trong cùng một transaction, trả 201 kèm tóm tắt mới. `saveMyRating()` → `SaveMyTourRating.execute()` → `PrismaTourRatingRepository.saveForUser()` |
-| 7 | | Client hiện thông báo *"Cảm ơn đánh giá của bạn"* và làm mới tóm tắt, danh sách. `RatingsSection` |
-| 8 | | Use case kết thúc tại đây. |
+| 1 | Tourist hoặc Author mở mục **"Đánh giá"** trên chi tiết tour (`/tour/:tourId#ratings`), bấm vào biểu tượng tùy chọn trên một nhận xét của người khác và chọn **"Báo cáo vi phạm"**. | Client mở hộp thoại modal "Báo cáo đánh giá vi phạm". |
+| 2 | Actor chọn lý do vi phạm từ danh mục có sẵn (Spam/Quảng cáo, Ngôn từ thù ghét/Xúc phạm, Thông tin sai lệch/Lạc đề, Khác) và nhập mô tả bổ sung (không bắt buộc, tối đa 500 ký tự). | |
+| 3 | Actor nhấn **"Gửi báo cáo"**. | Client kiểm tra hợp lệ và gọi `POST /api/tours/:tourId/ratings/:ratingUserId/reports`. |
+| 4 | | Server kiểm tra quyền: Actor đã đăng nhập, rating tồn tại, không tự báo cáo chính mình, chưa gửi báo cáo `PENDING` nào cho rating này trước đó. *E1, E2, E3, E4* |
+| 5 | | Server lưu bản ghi mới vào `tour_rating_reports` với trạng thái `PENDING`. Nếu tổng số lượt báo cáo `PENDING` của bài đánh giá đạt ngưỡng cảnh báo ($N \ge 3$), hệ thống tự động gắn cờ `is_flagged = true`. Trả về mã 201 Created. |
+| 6 | | Client đóng modal và hiển thị thông báo: *"Báo cáo của bạn đã được gửi và đang chờ quản trị viên xem xét."* |
+
+### Giai đoạn 2: Admin thẩm định và giải quyết khiếu nại
+
+| # | Actor Action | System Response |
+|---|---|---|
+| 7 | Admin đăng nhập vào trang Quản trị kiểm duyệt (`/admin/reports/ratings`). | Client gọi `GET /api/admin/rating-reports?status=pending` hiển thị danh sách các đánh giá bị báo cáo kèm số lượt report, lý do, nội dung đánh giá và thông tin tour. |
+| 8 | Admin chọn xem chi tiết một trường hợp khiếu nại và đưa ra quyết định: **"Gỡ bỏ đánh giá"** hoặc **"Bác bỏ báo cáo"**. | |
+| 9 | | Client gọi `POST /api/admin/rating-reports/:reportId/resolve` kèm hành động (`REMOVE_RATING` hoặc `DISMISS`) và ghi chú xử lý. |
+| 10 | | Server xử lý trong một Transaction:<br>• **Nếu `DISMISS` (Bác bỏ):** Cập nhật trạng thái các báo cáo liên quan sang `DISMISSED`, đặt lại `is_flagged = false`. Đánh giá vẫn giữ nguyên hiển thị.<br>• **Nếu `REMOVE_RATING` (Gỡ bỏ):** Đánh dấu `is_hidden = true` (hoặc xóa dòng `tour_ratings`); tính lại `tours.average_rating` và `tours.rating_count` bằng SQL atomic (giống luồng xóa A2 của UC05); cập nhật các báo cáo liên quan sang `RESOLVED`. |
+| 11 | | Client thông báo *"Đã xử lý báo cáo thành công"* và cập nhật lại danh sách hàng đợi. |
+| 12 | | Use case kết thúc tại đây. |
 
 ## Alternative Path
 
-**A1. Sửa đánh giá của mình.**
+**A1. Tác giả tour (Author) gửi khiếu nại đánh giá ác ý (Author Dispute).**
 
 | # | Actor Action | System Response |
 |---|---|---|
-| A1.1 | Tourist chọn Sửa trên "Đánh giá của bạn", đổi số sao hoặc nhận xét và nhấn **"Lưu thay đổi"**. | |
-| A1.2 | | `PUT /api/tours/:id/ratings/mine` trả 200 (cập nhật, không tạo dòng mới); điểm trung bình được tính lại; thông báo *"Đã cập nhật đánh giá"*. Nhận xét đã sửa hiện nhãn "đã sửa". `SaveMyTourRating.execute()` |
+| A1.1 | Author mở trang quản lý tour của mình (`/my-tours/:tourId`) hoặc mục Đánh giá của tour, thấy nhận xét có dấu hiệu bôi nhọ, sai sự thật và nhấn **"Khiếu nại đánh giá"**. | |
+| A1.2 | Author chọn lý do và nhập giải trình chi tiết. | Hệ thống gắn nhãn phân loại báo cáo ưu tiên (`reporter_role = 'AUTHOR'`) để Admin nhận diện và ưu tiên xử lý trên hàng đợi. Tiếp tục thực hiện theo các bước 3–11 của luồng chính. |
 
-**A2. Xóa đánh giá của mình.**
-
-| # | Actor Action | System Response |
-|---|---|---|
-| A2.1 | Tourist chọn Xóa trên "Đánh giá của bạn". | |
-| A2.2 | | `DELETE /api/tours/:id/ratings/mine` trả 204; số lượt và điểm trung bình được tính lại; thông báo *"Đã xoá đánh giá"*. `deleteMyRating()` → `DeleteMyTourRating.execute()` → `PrismaTourRatingRepository.deleteForUser()` |
-
-**A3. Xem thêm nhận xét.** Tourist cuộn danh sách và tải trang tiếp theo (`page`, `limit` tối đa 50). `listRatings()` → `ListTourRatings.execute()` → `PrismaTourRatingRepository.listByTour()`
+**A2. Admin lọc và xem lịch sử các báo cáo đã xử lý.**
+* Admin chuyển tab bộ lọc trạng thái (`PENDING`, `RESOLVED`, `DISMISSED`) trên `/admin/reports/ratings` để tra cứu lại các quyết định kiểm duyệt trước đó.
 
 ## Exception Path
 
-- **E1.** Chưa đăng nhập → thay form là nút *"Đăng nhập để đánh giá"*, dẫn tới `/login?next=...#ratings` (UC01) rồi quay lại đúng mục đánh giá. API trả 401 nếu gọi không có token.
-- **E2.** Gửi khi chưa chọn sao → *"Vui lòng chọn số sao"* (client chặn; server trả 400 `validation_error` cùng thông điệp). `saveRatingSchema`, `normalizeRatingInput()`
-- **E3.** Tour không ở trạng thái `public` (hoặc không tồn tại) → 404 `tour_not_found`, giống chi tiết công khai.
-- **E4.** Tác giả mở tour của chính mình → không có form, hiện *"Bạn là tác giả của tour này nên không thể tự đánh giá."*; API trả 403 `own_tour`.
-- **E5.** Mất mạng → *"Không thể kết nối, vui lòng thử lại"*; xóa khi chưa có đánh giá → 404 `rating_not_found`.
+- **E1. Chưa đăng nhập:** Khách vãng lai bấm "Báo cáo" → Client hiển thị thông báo *"Vui lòng đăng nhập để thực hiện báo cáo vi phạm"* và điều hướng tới `/login?next=...#ratings` (UC01). API trả về 401 Unauthorized nếu thiếu JWT.
+- **E2. Tự báo cáo đánh giá của chính mình:** Client ẩn nút Báo cáo trên bài đánh giá của chính user đang đăng nhập. Nếu cố tình gửi API trực tiếp, server trả 400 `cannot_report_own_rating` (*"Bạn không thể tự báo cáo đánh giá của chính mình"*).
+- **E3. Báo cáo trùng lặp (Duplicate Report):** Một tài khoản đã gửi báo cáo cho rating này và đang ở trạng thái chờ duyệt (`PENDING`), nếu cố gửi lại → Client chặn; Server trả 409 `report_already_submitted` (*"Bạn đã gửi báo cáo cho đánh giá này rồi"*).
+- **E4. Đánh giá không tồn tại hoặc đã bị gỡ bỏ:** Người dùng tự xóa đánh giá hoặc Admin khác đã xử lý trước đó → Server trả 404 `rating_not_found`.
+- **E5. Không đủ quyền quản trị:** Tài khoản không có role `ADMIN` gọi API xử lý báo cáo → Server trả 403 `forbidden`.
 
 ## Extension Points
 
-- UC01 – Xác thực tài khoản (đăng nhập để đánh giá).
-- UC04 – Nghe tour (nút đánh giá ở hộp thoại kết thúc).
-- UC17 – Thống kê tour (dùng điểm trung bình và phân bố sao).
+- UC01 – Xác thực tài khoản (đăng nhập để gửi báo cáo hoặc truy cập quyền Admin).
+- UC05 – Đánh giá và nhận xét tour (nút báo cáo tích hợp trên từng nhận xét; tính lại điểm trung bình khi gỡ bỏ đánh giá).
+- UC17 – Thống kê tour (loại trừ các nhận xét đã bị Admin gỡ bỏ).
 
 ## Triggers
 
-Tourist đã xem hoặc nghe tour và muốn để lại đánh giá.
+- Tourist hoặc Author phát hiện nhận xét có nội dung thô tục, spam quảng cáo, xúc phạm hoặc sai sự thật.
+- Admin định kỳ truy cập dashboard kiểm duyệt để xử lý hàng đợi báo cáo vi phạm.
 
 ## Assumptions
 
-- Không bắt buộc phải nghe hết tour trước khi đánh giá.
-- Token đăng nhập có claim `name` (tên hiển thị) do Auth thêm; token cũ chưa có claim này thì tên hiện là "Người dùng GeoSound" đến lần đăng nhập hoặc làm mới token sau.
+- Trong phạm vi đồ án môn học, hệ thống **không sử dụng các dịch vụ kiểm duyệt AI/LLM đám mây bên thứ ba**; việc lọc và quản lý nội dung dựa trên **Rule-based (khóa duy nhất, ngưỡng cảnh báo)** kết hợp quy trình kiểm duyệt thủ công của Admin.
+- Tác giả tour (Author) không có quyền tự xóa hay ẩn nhận xét của khách để đảm bảo tính minh bạch, khách quan của hệ thống đánh giá.
 
 ## Preconditions
 
-- Tour tồn tại và có `status = 'public'`.
-- Để gửi, sửa, xóa: Tourist đã đăng nhập (UC01) và không phải tác giả của tour.
+- Tour ở trạng thái `public` và bài đánh giá mục tiêu đang hiển thị công khai (`is_hidden = false`).
+- Người gửi báo cáo đã đăng nhập tài khoản hợp lệ (UC01).
 
 ## Post Conditions
 
-- Có đúng một dòng `tour_ratings` cho mỗi cặp (tour, tài khoản), hoặc dòng đã bị xóa (A2).
-- `tours.average_rating` và `tours.rating_count` luôn khớp với mọi thay đổi; `tours.updated_at` (revision cho kiểm duyệt và danh mục) không đổi.
-- Không phát sự kiện nào.
+- Bản ghi báo cáo `tour_rating_reports` được lưu trữ với trạng thái rõ ràng (`PENDING`, `RESOLVED`, hoặc `DISMISSED`).
+- Nếu Admin chọn gỡ bỏ: nhận xét bị ẩn/xóa khỏi danh sách hiển thị công khai; `tours.average_rating` và `tours.rating_count` khớp với dữ liệu còn lại.
+- Nếu Admin bác bỏ: nhận xét giữ nguyên hiển thị; trạng thái báo cáo đóng lại.
 
 ## Reference: Business Rules
 
 | # | Quy tắc |
 |---|---|
-| R1 | Đánh giá cần đăng nhập (mọi vai trò); đọc đánh giá là công khai |
-| R2 | Mỗi tài khoản một đánh giá mỗi tour (khóa duy nhất `tour_id, user_id`); gửi lần hai là sửa |
-| R3 | Số sao bắt buộc, số nguyên 1–5; nhận xét không bắt buộc, được cắt khoảng trắng, tối đa 1000 ký tự |
-| R4 | Chỉ tour `public` được đánh giá và liệt kê đánh giá; trạng thái khác trả 404 |
-| R5 | Tác giả không tự đánh giá tour của mình (403 `own_tour`) |
-| R6 | Không đính kèm ảnh; nhận xét không gửi qua kiểm duyệt AI, nội dung xấu xử lý bằng báo cáo (UC06) |
-| R7 | Điểm trung bình cập nhật nguyên tử bằng SQL thô trong cùng transaction với dòng đánh giá (khóa `SELECT ... FOR UPDATE`) |
-| R8 | Nhận xét hiện tên hiển thị chụp tại lúc đánh giá (`user_name`), không bao giờ hiện email hay user id |
-| R9 | Giá trị demo đã seed trong `average_rating` / `rating_count` được giữ làm điểm xuất phát; phân bố sao chỉ tính từ các dòng thật |
+| R1 | Báo cáo vi phạm bắt buộc phải đăng nhập tài khoản (Tourist hoặc Author). Khách vãng lai chỉ được xem đánh giá. |
+| R2 | Quyền phán quyết độc quyền của Admin: Author chỉ được gửi đơn khiếu nại, tuyệt đối không có quyền tự xóa hoặc ẩn nhận xét của khách trên tour của mình. |
+| R3 | Người dùng không được phép tự báo cáo bài đánh giá của chính mình. |
+| R4 | Chống spam report: Mỗi tài khoản chỉ được gửi tối đa 1 báo cáo cho mỗi bài đánh giá (khóa duy nhất `tour_id, rating_user_id, reporter_id`). |
+| R5 | Ngưỡng cảnh báo tự động (Soft-flag): Khi một bài nhận xét nhận từ 3 báo cáo `PENDING` trở lên từ các tài khoản khác nhau, hệ thống tự động đặt cờ `is_flagged = true` để Admin ưu tiên xử lý. |
+| R6 | Tính toàn vẹn dữ liệu: Khi Admin phê duyệt gỡ bỏ đánh giá vi phạm, điểm trung bình `average_rating` và số lượt `rating_count` của tour phải được cập nhật lại nguyên tử (atomic SQL transaction) giống cơ chế xóa trong UC05. |
 
-## Hiện thực trong hệ thống
+## Hiện thực trong hệ thống (Đề xuất)
 
 - **Dịch vụ:**
-  - Client: mục Đánh giá trên chi tiết tour, form, danh sách có phân trang.
-  - Gateway: chuyển `/api/tours` sang Tour.
-  - Tour: kiểm tra quy tắc, lưu đánh giá, cập nhật điểm trung bình.
-  - Auth: thêm claim `name` vào access token (bổ sung, các dịch vụ khác bỏ qua).
-- **Màn hình (client):** `/tour/:tourId` (mục `#ratings`, `client/src/features/tours/RatingsSection.jsx`); hộp thoại kết thúc của `/tour/:tourId/play` (`client/src/features/player/CompletionDialog.jsx`). API helper `client/src/lib/ratings.js`.
+  - Client: Nút/Menu báo cáo trong `RatingsSection.jsx`; Hộp thoại `ReportDialog.jsx`; Trang quản trị `AdminRatingReportsPage.jsx`.
+  - Gateway: Chuyển tiếp `/api/tours/:id/ratings/:userId/reports` và `/api/admin/rating-reports` sang dịch vụ Tour.
+  - Tour Service: Kiểm tra quy tắc, lưu báo cáo, cập nhật cờ cảnh báo và xử lý transaction gỡ bỏ/tính lại điểm số.
 - **API (qua gateway):**
-  - `GET /api/tours/:id/ratings?page=&limit=` (công khai)
-  - `GET /api/tours/:id/ratings/mine`
-  - `PUT /api/tours/:id/ratings/mine` (201 tạo / 200 sửa)
-  - `DELETE /api/tours/:id/ratings/mine` (204)
-- **Sự kiện (RabbitMQ):** không có. Đánh giá không đưa vào chỉ mục chatbot.
-- **Dữ liệu:** `tour.tour_ratings` (`tour_id`, `user_id`, `user_name`, `stars`, `comment`, `created_at`, `updated_at`); `tour.tours.average_rating`, `tour.tours.rating_count`.
-- **Mã nguồn chính:**
-
-| Bước | Hàm / lớp | File |
-|---|---|---|
-| 1–7 | `RatingsSection` | `client/src/features/tours/RatingsSection.jsx` |
-| 1 (từ trình phát) | `CompletionDialog` | `client/src/features/player/CompletionDialog.jsx` |
-| 2, A3 | `listRatings()` | `client/src/lib/ratings.js` |
-| 3 | `getMyRating()` | `client/src/lib/ratings.js` |
-| 6, A1 | `saveMyRating()` | `client/src/lib/ratings.js` |
-| A2 | `deleteMyRating()` | `client/src/lib/ratings.js` |
-| Route | `buildTourRatingRouter()` | `services/tour/src/interfaces/http/routes/tour-rating-routes.js` |
-| Controller | `TourRatingController` (`list`, `mine`, `save`, `remove`) | `services/tour/src/interfaces/http/controllers/tour-rating-controller.js` |
-| E2 | `saveRatingSchema`, `ratingListQuerySchema` | `services/tour/src/application/dtos/rating-schemas.js` |
-| 2 | `ListTourRatings.execute()` | `services/tour/src/application/use-cases/tour-ratings.js` |
-| 3 | `GetMyTourRating.execute()` | `services/tour/src/application/use-cases/tour-ratings.js` |
-| 6, A1 | `SaveMyTourRating.execute()` | `services/tour/src/application/use-cases/tour-ratings.js` |
-| A2 | `DeleteMyTourRating.execute()` | `services/tour/src/application/use-cases/tour-ratings.js` |
-| R3, R8 | `normalizeRatingInput()`, `reviewerName()`, `ratingDelta` | `services/tour/src/domain/entities/tour-rating.js` |
-| 6, A2, A3 | `PrismaTourRatingRepository` (`saveForUser`, `deleteForUser`, `listByTour`, `distribution`) | `services/tour/src/infrastructure/persistence/prisma-tour-rating-repository.js` |
-| Claim `name` | `User.toAuthPayload()` | `services/auth/src/domain/entities/user.js` |
-
-- **Tài liệu thiết kế:** [uc05-ratings.md](../../02-design/uc05-ratings.md).
-
-## Author(s)
-
-(điền sau)
-
-## Date
-
-Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
-
-## Activity Diagram
-
-[UC05-activity.xml](../../02-design/drawio/activity/UC05-activity.xml) (draw.io: File → Import from → Device). Nguồn: [specs/UC05.json](../../02-design/drawio/activity/specs/UC05.json).
+  - `POST /api/tours/:tourId/ratings/:ratingUserId/reports` (201 Created)
+  - `GET /api/admin/rating-reports?status=pending&page=1&limit=20` (Role: Admin)
+  - `POST /api/admin/rating-reports/:reportId/resolve` (Role: Admin; body: `{ action: "REMOVE_RATING" | "DISMISS", adminNote?: string }`)
+- **Dữ liệu (Prisma / PostgreSQL):**
+  - Bảng mới `tour.tour_rating_reports`: `id`, `tour_id`, `rating_user_id`, `reporter_id`, `reporter_role`, `reason_type`, `description`, `status`, `admin_note`, `resolved_by`, `created_at`, `updated_at` (Unique constraint: `[tour_id, rating_user_id, reporter_id]`).
+  - Bảng `tour.tour_ratings` (bổ sung): `is_flagged` (Boolean, default `false`), `is_hidden` (Boolean, default `false`).
 
 ## Sequence Diagram
 
 ```mermaid
 sequenceDiagram
-    actor U as Tourist
+    actor R as Tourist / Author
+    actor A as Admin
     participant C as Client
     participant G as Gateway
-    participant T as Tour
-    U->>C: Mở mục Đánh giá
-    C->>G: GET /api/tours/:id/ratings
-    G->>T: GET /tours/:id/ratings
-    T-->>C: summary + items
-    C->>G: GET /api/tours/:id/ratings/mine (JWT)
-    G->>T: chuyển tiếp
-    T-->>C: { rating: null }
-    U->>C: Chọn sao, nhập nhận xét, Gửi
-    C->>G: PUT /api/tours/:id/ratings/mine { stars, comment }
-    G->>T: chuyển tiếp
-    T->>T: Kiểm tra public, không phải tác giả; lưu tour_ratings + cập nhật average_rating (1 transaction)
-    T-->>C: 201 { rating, summary }
-    C-->>U: "Cảm ơn đánh giá của bạn"
+    participant T as Tour Service
+    participant DB as PostgreSQL
+
+    Note over R,DB: Giai đoạn 1: Gửi báo cáo vi phạm
+    R->>C: Bấm "Báo cáo", chọn lý do, Gửi
+    C->>G: POST /api/tours/:id/ratings/:ratingUserId/reports (JWT)
+    G->>T: Chuyển tiếp request
+    T->>DB: Kiểm tra hợp lệ & lưu tour_rating_reports (PENDING)
+    DB-->>T: Thành công
+    T-->>C: 201 Created
+    C-->>R: "Báo cáo của bạn đã được gửi"
+
+    Note over A,DB: Giai đoạn 2: Admin thẩm định & xử lý
+    A->>C: Mở trang quản lý báo cáo
+    C->>G: GET /api/admin/rating-reports?status=pending
+    G->>T: Chuyển tiếp request
+    T->>DB: Truy vấn danh sách báo cáo
+    DB-->>T: Danh sách reports
+    T-->>C: 200 OK
+    A->>C: Chọn "Gỡ bỏ đánh giá"
+    C->>G: POST /api/admin/rating-reports/:reportId/resolve { action: "REMOVE_RATING" }
+    G->>T: Chuyển tiếp request
+    T->>DB: Transaction: Ẩn/xóa rating + Tính lại avg_rating & rating_count + Đổi status sang RESOLVED
+    DB-->>T: Hoàn tất
+    T-->>C: 200 OK
+    C-->>A: "Đã gỡ bỏ đánh giá vi phạm"
 ```
 
 ## Boundary
 
-- Chi tiết tour `/tour/:tourId`, mục **Đánh giá** (`#ratings`): tóm tắt sao, form "Đánh giá tour" / "Đánh giá của bạn", danh sách nhận xét.
-- Hộp thoại kết thúc của trình phát `/tour/:tourId/play` (nút dẫn tới `/tour/:tourId#ratings`).
-- Đăng nhập `/login` (khi chưa đăng nhập).
+- Chi tiết tour `/tour/:tourId`, mục **Đánh giá** (`#ratings`): Nút báo cáo trên từng nhận xét và hộp thoại modal nhập lý do báo cáo.
+- Trang quản trị `/admin/reports/ratings`: Bảng danh sách hàng đợi báo cáo, bộ lọc trạng thái và nút thao tác phê duyệt/bác bỏ của Admin.
