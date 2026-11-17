@@ -14,7 +14,6 @@ import {
 } from '../../lib/rating-reports.js';
 import AdminGate from './AdminGate.jsx';
 import AdminNav from './AdminNav.jsx';
-import './admin.css';
 
 const STATUS_TABS = [
   { value: 'pending', label: 'Chờ duyệt' },
