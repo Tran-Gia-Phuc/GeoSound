@@ -29,6 +29,7 @@ import { EventTourCatalogPublisher } from './infrastructure/messaging/event-tour
 import { EventTourReviewPublisher } from './infrastructure/messaging/event-tour-review-publisher.js';
 import { PrismaTourReviewActionRepository } from './infrastructure/persistence/prisma-tour-review-action-repository.js';
 import { PrismaTourRatingRepository } from './infrastructure/persistence/prisma-tour-rating-repository.js';
+import { PrismaTourRatingReportRepository } from './infrastructure/persistence/prisma-tour-rating-report-repository.js';
 import { PrismaTourStatsRepository } from './infrastructure/persistence/prisma-tour-stats-repository.js';
 import { PrismaTourReportRepository } from './infrastructure/persistence/prisma-tour-report-repository.js';
 import { EventTourReportPublisher } from './infrastructure/messaging/event-tour-report-publisher.js';
@@ -65,6 +66,11 @@ import {
   SaveMyTourRating,
   DeleteMyTourRating,
 } from './application/use-cases/tour-ratings.js';
+import {
+  SubmitRatingReport,
+  ListAdminRatingReports,
+  ResolveRatingReport,
+} from './application/use-cases/tour-rating-reports.js';
 import { RecordTourActivity, GetTourStats, PurgeActivityMarks } from './application/use-cases/tour-stats.js';
 import { ReportTour, GetMyTourReport } from './application/use-cases/tour-reports.js';
 import {
@@ -148,6 +154,11 @@ import { AdminReviewController } from './interfaces/http/controllers/admin-revie
 import { buildAdminReviewRouter } from './interfaces/http/routes/admin-review-routes.js';
 import { TourRatingController } from './interfaces/http/controllers/tour-rating-controller.js';
 import { buildTourRatingRouter } from './interfaces/http/routes/tour-rating-routes.js';
+import { TourRatingReportController } from './interfaces/http/controllers/tour-rating-report-controller.js';
+import {
+  buildTourRatingReportRouter,
+  buildAdminRatingReportRouter,
+} from './interfaces/http/routes/tour-rating-report-routes.js';
 import { TourStatsController } from './interfaces/http/controllers/tour-stats-controller.js';
 import { buildTourStatsRouter } from './interfaces/http/routes/tour-stats-routes.js';
 import { optionalAuth } from './interfaces/http/middleware/optional-auth.js';
@@ -213,6 +224,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   const reviewEvents = publish ? new EventTourReviewPublisher({ publish }) : null;
   // UC05 — ratings; the aggregate SQL uses the schema of DATABASE_URL (?schema=tour).
   const ratingRepo = new PrismaTourRatingRepository(prisma);
+  const ratingReportRepo = new PrismaTourRatingReportRepository(prisma);
   // UC17 — statistics (raw SQL in the schema of DATABASE_URL, like the UC05 aggregate).
   const statsRepo = new PrismaTourStatsRepository(prisma);
   // UC06 — community reports; tour.reported only when the broker is loaded (an event flag is on).
@@ -417,6 +429,25 @@ export function buildContainer(env = process.env, { publish = null, validateEven
       })
     : null;
 
+  const ratingReportUseCases = {
+    submitRatingReport: new SubmitRatingReport({ tourRepo, reportRepo: ratingReportRepo }),
+    listAdminRatingReports: new ListAdminRatingReports({ reportRepo: ratingReportRepo }),
+    resolveRatingReport: new ResolveRatingReport({ reportRepo: ratingReportRepo }),
+  };
+  const ratingReportController = new TourRatingReportController(ratingReportUseCases);
+  const tourRatingReportRouter = verifyJwt
+    ? buildTourRatingReportRouter({
+        tourRatingReportController: ratingReportController,
+        requireAuth: verifyJwt(),
+      })
+    : null;
+  const adminRatingReportRouter = verifyJwt
+    ? buildAdminRatingReportRouter({
+        tourRatingReportController: ratingReportController,
+        requireAdmin: verifyJwt(['admin']),
+      })
+    : null;
+
   // UC17 — POST /:id/activity (optional sign-in) and GET /mine/:id/stats (contributor or admin).
   const tourStatsRouter = verifyJwt
     ? buildTourStatsRouter({
@@ -486,6 +517,8 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     publicItineraryRouter,
     adminReviewRouter,
     tourRatingRouter,
+    tourRatingReportRouter,
+    adminRatingReportRouter,
     tourStatsRouter,
     tourReportRouter,
     adminReportRouter,
