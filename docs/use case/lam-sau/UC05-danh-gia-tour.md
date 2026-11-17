@@ -1,8 +1,8 @@
-# UC06 – Báo cáo và xử lý khiếu nại đánh giá tour
+# UC05 – Báo cáo và xử lý khiếu nại đánh giá tour
 
 | Trường | Nội dung |
 |---|---|
-| **Use Case Number** | UC06 |
+| **Use Case Number** | UC05 |
 | **Use Case Name** | Báo cáo và xử lý khiếu nại đánh giá tour |
 | **Actor(s)** | • Người báo cáo: Khách du lịch (Tourist đã đăng nhập), Tác giả tour (Author)<br>• Người kiểm duyệt: Quản trị viên hệ thống (Admin) |
 | **Priority** | P1 |
@@ -145,3 +145,7 @@ sequenceDiagram
 
 - Chi tiết tour `/tour/:tourId`, mục **Đánh giá** (`#ratings`): Nút báo cáo trên từng nhận xét và hộp thoại modal nhập lý do báo cáo.
 - Trang quản trị `/admin/reports/ratings`: Bảng danh sách hàng đợi báo cáo, bộ lọc trạng thái và nút thao tác phê duyệt/bác bỏ của Admin.
+
+## Activity Diagram
+
+[UC05-activity.xml](../../02-design/drawio/activity/UC05-activity.xml) (draw.io: File → Import from → Device). Nguồn: [specs/UC05.json](../../02-design/drawio/activity/specs/UC05.json).
