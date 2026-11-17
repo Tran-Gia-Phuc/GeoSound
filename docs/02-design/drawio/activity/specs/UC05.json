@@ -3,44 +3,41 @@
   "steps": [
     {
       "id": "s1",
-      "text": "1. Tourist mở chi tiết tour công khai (UC#02) và kéo tới mục “Đánh giá”."
+      "text": "1. Tourist hoặc Author mở mục “Đánh giá” trên chi tiết tour, bấm biểu tượng tùy chọn trên nhận xét của người khác và chọn “Báo cáo vi phạm”.",
+      "alts": [
+        "A1"
+      ]
     },
     {
       "id": "s2",
-      "text": "2. Hệ thống hiển thị điểm trung bình, số lượt đánh giá và danh sách nhận xét mới nhất (10 mục mỗi trang, có “Xem thêm”); nếu Tourist đã đánh giá thì hiện đánh giá của mình ở đầu. E3.",
-      "exceptions": [
-        {
-          "id": "E3",
-          "text": "E3. Tour không công khai (nháp, hạn chế, bị ẩn…) hoặc không tồn tại → 404.",
-          "back": "end"
-        }
-      ],
-      "decision": true
+      "text": "2. Client mở hộp thoại “Báo cáo đánh giá vi phạm”; Actor chọn lý do (Spam/Quảng cáo, Ngôn từ thù ghét/Xúc phạm, Thông tin sai lệch/Lạc đề, Khác) và nhập mô tả bổ sung (tùy chọn, tối đa 500 ký tự)."
     },
     {
       "id": "s3",
-      "text": "3. Tourist chọn số sao (1–5), nhập nhận xét (tùy chọn, tối đa 1000 ký tự) và nhấn “Gửi đánh giá”. E1, E2.",
-      "exceptions": [
-        {
-          "id": "E1",
-          "text": "E1. Chưa đăng nhập → nút gửi đổi thành “Đăng nhập để đánh giá” và chuyển tới trang Đăng nhập (401).",
-          "back": "s3"
-        },
-        {
-          "id": "E2",
-          "text": "E2. Chưa chọn số sao → “Vui lòng chọn số sao” (400); nhận xét quá 1000 ký tự → 400.",
-          "back": "s3"
-        }
-      ],
-      "decision": true
+      "text": "3. Actor nhấn “Gửi báo cáo”; Client kiểm tra hợp lệ và gọi API gửi báo cáo."
     },
     {
       "id": "s4",
-      "text": "4. Hệ thống (Tour) kiểm tra tour đang công khai và Tourist không phải tác giả. E3, E4.",
+      "text": "4. Server kiểm tra quyền: đã đăng nhập, đánh giá tồn tại, không tự báo cáo chính mình, chưa gửi báo cáo PENDING trước đó; hợp lệ? E1–E4.",
       "exceptions": [
         {
+          "id": "E1",
+          "text": "E1. Chưa đăng nhập → báo “Vui lòng đăng nhập để thực hiện báo cáo vi phạm” và chuyển tới đăng nhập (UC#01) (401).",
+          "back": "s1"
+        },
+        {
+          "id": "E2",
+          "text": "E2. Tự báo cáo đánh giá của chính mình → ẩn nút trên UI; gọi API trực tiếp trả 400.",
+          "back": "end"
+        },
+        {
+          "id": "E3",
+          "text": "E3. Đã có báo cáo PENDING cho đánh giá này → chặn gửi lại (409).",
+          "back": "end"
+        },
+        {
           "id": "E4",
-          "text": "E4. Tourist là tác giả của tour → 403 “Bạn là tác giả của tour này nên không thể tự đánh giá.”",
+          "text": "E4. Đánh giá không tồn tại hoặc đã bị gỡ bỏ → trả 404.",
           "back": "end"
         }
       ],
@@ -48,50 +45,57 @@
     },
     {
       "id": "s5",
-      "text": "5. Hệ thống lưu đánh giá và cập nhật điểm trung bình, số lượt đánh giá của tour trong cùng một giao dịch."
+      "text": "5. Server lưu báo cáo vào tour_rating_reports (PENDING); nếu tổng lượt báo cáo PENDING đạt ngưỡng N ≥ 3 thì tự động đặt cờ is_flagged = true (201)."
     },
     {
       "id": "s6",
-      "text": "6. Hệ thống báo “Cảm ơn đánh giá của bạn” và hiển thị đánh giá mới trong danh sách. E5.",
+      "text": "6. Client đóng modal và thông báo “Báo cáo của bạn đã được gửi và đang chờ quản trị viên xem xét.”"
+    },
+    {
+      "id": "s7",
+      "text": "7. Admin mở trang Quản trị kiểm duyệt (/admin/reports/ratings); hệ thống kiểm tra quyền Admin và tải danh sách báo cáo (status=pending)? A2, E5.",
+      "alts": [
+        "A2"
+      ],
       "exceptions": [
         {
           "id": "E5",
-          "text": "E5. Mất mạng → “Không thể kết nối, vui lòng thử lại”; sửa / xóa đánh giá không còn tồn tại → 404.",
-          "back": "s3"
+          "text": "E5. Tài khoản không có quyền Admin → trả 403 forbidden.",
+          "back": "end"
         }
       ],
-      "alts": [
-        "A1",
-        "A2",
-        "A3"
-      ],
       "decision": true
+    },
+    {
+      "id": "s8",
+      "text": "8. Admin xem chi tiết khiếu nại và chọn quyết định: “Gỡ bỏ đánh giá” hoặc “Bác bỏ báo cáo”."
+    },
+    {
+      "id": "s9",
+      "text": "9. Client gọi API xử lý báo cáo kèm hành động (REMOVE_RATING hoặc DISMISS) và ghi chú xử lý."
+    },
+    {
+      "id": "s10",
+      "text": "10. Server xử lý trong một Transaction: DISMISS → chuyển báo cáo sang DISMISSED và đặt is_flagged = false; REMOVE_RATING → ẩn/xóa đánh giá, tính lại average_rating và rating_count bằng SQL atomic, chuyển báo cáo sang RESOLVED."
+    },
+    {
+      "id": "s11",
+      "text": "11. Client thông báo “Đã xử lý báo cáo thành công” và cập nhật lại danh sách hàng đợi."
     }
   ],
   "alts": [
     {
       "id": "A1",
       "steps": [
-        "A1.1. Tourist đã có đánh giá chọn “Sửa”, đổi số sao hoặc nhận xét rồi gửi.",
-        "A1.2. Hệ thống ghi đè đánh giá cũ (không tạo đánh giá thứ hai), tính lại điểm trung bình, hiện nhãn “đã sửa” và báo “Đã cập nhật đánh giá”."
+        "A1.1. Tác giả tour (Author) mở trang quản lý tour của mình (/my-tours/:tourId) hoặc mục Đánh giá, nhấn “Khiếu nại đánh giá”.",
+        "A1.2. Author chọn lý do và nhập giải trình chi tiết; hệ thống gắn nhãn ưu tiên (reporter_role = 'AUTHOR')."
       ],
-      "to": "end"
+      "to": "s3"
     },
     {
       "id": "A2",
       "steps": [
-        "A2.1. Tourist chọn “Xóa” và xác nhận.",
-        "A2.2. Hệ thống xóa đánh giá, tính lại điểm trung bình và số lượt, báo “Đã xoá đánh giá”. E5."
-      ],
-      "to": "end"
-    },
-    {
-      "id": "A3",
-      "steps": [
-        "A3.1. Tourist mở Tài khoản → “Đánh giá của tôi”.",
-        "A3.2. Hệ thống trả mọi đánh giá của tài khoản, mới nhất trước, kèm tour được đánh giá; có bộ lọc theo số sao và “Xem thêm”. Chưa có đánh giá → “Bạn chưa đánh giá tour nào”.",
-        "A3.3. Tourist chọn “Sửa” hoặc “Xoá” ở một đánh giá.",
-        "A3.4. Hệ thống xử lý như A1 / A2 ngay trên trang này."
+        "A2.1. Admin chuyển tab bộ lọc trạng thái (PENDING, RESOLVED, DISMISSED) trên /admin/reports/ratings để tra cứu lịch sử các báo cáo đã xử lý."
       ],
       "to": "end"
     }
