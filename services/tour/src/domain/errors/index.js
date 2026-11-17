@@ -233,3 +233,24 @@ export class TooManyAttemptsError extends AppError {
     super(message, { status: 429, code: 'too_many_attempts' });
   }
 }
+
+// UC05 — cannot report own rating (E2).
+export class CannotReportOwnRatingError extends AppError {
+  constructor(message = 'Bạn không thể tự báo cáo đánh giá của chính mình') {
+    super(message, { status: 400, code: 'cannot_report_own_rating' });
+  }
+}
+
+// UC05 — duplicate pending/existing report by the same account (E3).
+export class RatingReportAlreadySubmittedError extends AppError {
+  constructor(message = 'Bạn đã gửi báo cáo cho đánh giá này rồi') {
+    super(message, { status: 409, code: 'report_already_submitted' });
+  }
+}
+
+// UC05 — rating report not found.
+export class RatingReportNotFoundError extends AppError {
+  constructor(message = 'Không tìm thấy báo cáo đánh giá') {
+    super(message, { status: 404, code: 'rating_report_not_found' });
+  }
+}
