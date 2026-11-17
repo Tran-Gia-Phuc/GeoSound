@@ -1,7 +1,7 @@
 // =========================================================
 // UC05 — Modal dialog for reporting a tour rating (Tourist or Author dispute).
 // =========================================================
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Modal from '../../components/Modal.jsx';
 import Icon from '../../components/Icon.jsx';
 import {
@@ -9,12 +9,19 @@ import {
   RATING_REPORT_DESC_MAX,
   submitRatingReport,
 } from '../../lib/rating-reports.js';
+import './report.css';
 
 export default function ReportRatingDialog({ open, tourId, rating, isAuthor = false, onClose, onSubmitted }) {
   const [reasonType, setReasonType] = useState('SPAM');
   const [description, setDescription] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!open) {
+      setError('');
+    }
+  }, [open, rating?.id]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -40,54 +47,57 @@ export default function ReportRatingDialog({ open, tourId, rating, isAuthor = fa
       onClose={busy ? undefined : onClose}
       title={isAuthor ? 'Khiếu nại đánh giá' : 'Báo cáo đánh giá vi phạm'}
     >
-      <form className="rv-report-form" onSubmit={handleSubmit}>
+      <form className="report-form" onSubmit={handleSubmit}>
         {rating ? (
-          <p className="muted small" style={{ marginBottom: 12 }}>
+          <p className="muted small">
             Nhận xét của <b>{rating.userName || 'Người dùng GeoSound'}</b> ({rating.stars} sao)
           </p>
         ) : null}
 
-        <div className="field" style={{ marginBottom: 12 }}>
-          <span className="field__label">Lý do vi phạm</span>
-          <div style={{ display: 'grid', gap: 8 }}>
-            {RATING_REPORT_REASONS.map((r) => (
-              <label key={r.value} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+        <fieldset className="report-reasons">
+          <legend className="field__label">Lý do vi phạm</legend>
+          {RATING_REPORT_REASONS.map((r) => {
+            const active = reasonType === r.value;
+            return (
+              <label key={r.value} className={`report-reason${active ? ' report-reason--on' : ''}`}>
                 <input
                   type="radio"
                   name="rating-report-reason"
                   value={r.value}
-                  checked={reasonType === r.value}
+                  checked={active}
                   onChange={() => setReasonType(r.value)}
                 />
                 <span>{r.label}</span>
               </label>
-            ))}
-          </div>
-        </div>
+            );
+          })}
+        </fieldset>
 
-        <label className="field" style={{ marginBottom: 12 }}>
+        <label className="field">
           <span className="field__label">
             {isAuthor ? 'Giải trình chi tiết (không bắt buộc)' : 'Mô tả bổ sung (không bắt buộc)'}
           </span>
           <textarea
-            className="input"
+            className="input report-form__note"
             rows={3}
             maxLength={RATING_REPORT_DESC_MAX}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Nhập thông tin bổ sung giúp quản trị viên xem xét..."
           />
-          <span className="field__hint">{description.length}/{RATING_REPORT_DESC_MAX}</span>
+          <span className="field__hint report-form__count">
+            {description.length}/{RATING_REPORT_DESC_MAX}
+          </span>
         </label>
 
         {error ? (
-          <div className="alert alert--warn" role="alert" style={{ marginBottom: 12 }}>
+          <div className="alert alert--warn" role="alert">
             <Icon name="alert-triangle" size={18} className="alert__icon" />
             <div>{error}</div>
           </div>
         ) : null}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <div className="report-form__actions">
           <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
             Huỷ
           </button>

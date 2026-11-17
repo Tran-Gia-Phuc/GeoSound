@@ -20,7 +20,12 @@ export default function AdminNav() {
   return (
     <nav className="admin-nav" aria-label="Quản trị">
       {ADMIN_LINKS.map((l) => (
-        <NavLink key={l.to} to={l.to} className={({ isActive }) => `admin-nav__link${isActive ? ' is-active' : ''}`}>
+        <NavLink
+          key={l.to}
+          to={l.to}
+          end={l.to === '/admin/reports'}
+          className={({ isActive }) => `admin-nav__link${isActive ? ' is-active' : ''}`}
+        >
           {l.label}
         </NavLink>
       ))}
