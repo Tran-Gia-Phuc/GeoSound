@@ -70,6 +70,8 @@ const {
   publicItineraryRouter,
   adminReviewRouter,
   tourRatingRouter,
+  tourRatingReportRouter,
+  adminRatingReportRouter,
   tourStatsRouter,
   tourReportRouter,
   adminReportRouter,
@@ -108,6 +110,7 @@ app.use('/', publicTourRouter);
 // UC05 (#267): /:id/ratings (public) and /:id/ratings/mine (any signed-in role). BEFORE the
 // contributor routers below, whose verifyJwt(['contributor']) on '/' would answer 403 to a tourist.
 app.use('/', tourRatingRouter);
+app.use('/', tourRatingReportRouter);
 // UC17 (#271): POST /:id/activity (public, optional sign-in) and GET /mine/:id/stats (contributor or
 // admin, guard per route). BEFORE the contributor routers: their router-level verifyJwt(['contributor'])
 // on '/' would answer 401 to an anonymous visitor and 403 to an admin.
@@ -124,6 +127,7 @@ app.use('/', tourAccessRouter);
 app.use('/admin/reviews', adminReviewRouter);
 // UC20 (#273): admin handling of reported tours (role admin) — /admin/reports/*, same reason.
 app.use('/admin/reports', adminReportRouter);
+app.use('/admin/rating-reports', adminRatingReportRouter);
 // UC22 (#275) / UC21 (#274): /admin/dashboard, /admin/actions(/:id), /admin/users/:userId/violations
 // (role admin, guard per route), same reason.
 app.use('/admin', adminInsightRouter);
