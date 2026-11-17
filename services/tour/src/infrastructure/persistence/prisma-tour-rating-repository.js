@@ -46,7 +46,8 @@ export class PrismaTourRatingRepository {
   }
 
   async findByTourAndUser(tourId, userId) {
-    return toEntity(await this.prisma.tourRating.findUnique({ where: { tourId_userId: { tourId, userId } } }));
+    const row = await this.prisma.tourRating.findUnique({ where: { tourId_userId: { tourId, userId } } });
+    return row && !row.isHidden ? toEntity(row) : null;
   }
 
   async saveForUser({ tourId, userId, userName, stars, comment }) {
@@ -79,9 +80,10 @@ export class PrismaTourRatingRepository {
   }
 
   async listByTour(tourId, { skip, take }) {
+    const where = { tourId, isHidden: false };
     const [rows, total] = await Promise.all([
-      this.prisma.tourRating.findMany({ where: { tourId }, orderBy: [{ createdAt: 'desc' }, { id: 'asc' }], skip, take }),
-      this.prisma.tourRating.count({ where: { tourId } }),
+      this.prisma.tourRating.findMany({ where, orderBy: [{ createdAt: 'desc' }, { id: 'asc' }], skip, take }),
+      this.prisma.tourRating.count({ where }),
     ]);
     return { items: rows.map(toEntity), total };
   }
@@ -130,7 +132,11 @@ export class PrismaTourRatingRepository {
   }
 
   async distribution(tourId) {
-    const groups = await this.prisma.tourRating.groupBy({ by: ['stars'], where: { tourId }, _count: { _all: true } });
+    const groups = await this.prisma.tourRating.groupBy({
+      by: ['stars'],
+      where: { tourId, isHidden: false },
+      _count: { _all: true },
+    });
     const out = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     for (const g of groups) if (out[g.stars] !== undefined) out[g.stars] = g._count._all;
     return out;

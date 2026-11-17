@@ -128,15 +128,42 @@ model TourRating {
   userName  String   @map("user_name")
   stars     Int
   comment   String?
+  isFlagged Boolean  @default(false) @map("is_flagged")
+  isHidden  Boolean  @default(false) @map("is_hidden")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  tour    Tour               @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  reports TourRatingReport[]
 
   @@unique([tourId, userId])
   @@index([tourId, createdAt])
   @@index([userId])
   @@map("tour_ratings")
+}
+
+// UC05 — rating abuse reports & author disputes, reviewed by Admin.
+model TourRatingReport {
+  id           String   @id @default(uuid())
+  tourId       String   @map("tour_id")
+  ratingId     String   @map("rating_id")
+  ratingUserId String   @map("rating_user_id")
+  reporterId   String   @map("reporter_id")
+  reporterRole String   @map("reporter_role") // TOURIST | AUTHOR
+  reasonType   String   @map("reason_type") // SPAM | OFFENSIVE | MISLEADING | OTHER
+  description  String?
+  status       String   @default("PENDING") // PENDING | RESOLVED | DISMISSED
+  adminNote    String?  @map("admin_note")
+  resolvedBy   String?  @map("resolved_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  rating TourRating @relation(fields: [ratingId], references: [id], onDelete: Cascade)
+
+  @@unique([tourId, ratingUserId, reporterId])
+  @@index([status, createdAt])
+  @@index([ratingId])
+  @@map("tour_rating_reports")
 }
 
 // UC17 (#271) — daily counters of tourist activity per tour and language (docs/02-design/uc17-tour-stats.md).

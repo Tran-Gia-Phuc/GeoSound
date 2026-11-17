@@ -10,9 +10,10 @@
 //   - After a change the summary comes from the API response (no full reload).
 // =========================================================
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
+import ReportRatingDialog from './ReportRatingDialog.jsx';
 import { useToast } from '../../components/Toast.jsx';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { formatDateTime } from '../../lib/format.js';
@@ -186,6 +187,7 @@ export default function RatingsSection({ tour, onSummary }) {
   const tourId = tour.id;
   const toast = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
   const { authenticated, user } = useAuth();
   const isAuthor = !!(tour.authorId && user?.id && user.id === tour.authorId);
 
@@ -201,6 +203,7 @@ export default function RatingsSection({ tour, onSummary }) {
   const [submitError, setSubmitError] = useState(null);
   const [ownTour, setOwnTour] = useState(null); // 403 own_tour message
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [reportingRating, setReportingRating] = useState(null);
   const sectionRef = useRef(null);
   const onSummaryRef = useRef(onSummary);
   onSummaryRef.current = onSummary;
@@ -421,7 +424,27 @@ export default function RatingsSection({ tour, onSummary }) {
               <li key={r.id} className="rv-item" data-testid="rating-item">
                 <div className="rv-item__head">
                   <b className="rv-item__name">{r.userName || 'Người dùng GeoSound'}</b>
-                  <Stars value={r.stars} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Stars value={r.stars} />
+                    {mine?.id !== r.id ? (
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--sm"
+                        aria-label={isAuthor ? 'Khiếu nại đánh giá' : 'Báo cáo vi phạm'}
+                        onClick={() => {
+                          if (!authenticated) {
+                            toast.show('Vui lòng đăng nhập để thực hiện báo cáo vi phạm');
+                            navigate(loginHref);
+                            return;
+                          }
+                          setReportingRating(r);
+                        }}
+                      >
+                        <Icon name="flag" size={13} />
+                        {isAuthor ? 'Khiếu nại' : 'Báo cáo'}
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
                 <span className="muted small">
                   <time dateTime={r.createdAt}>{formatDateTime(r.createdAt)}</time>
@@ -453,6 +476,15 @@ export default function RatingsSection({ tour, onSummary }) {
         confirmLabel="Xoá"
         onConfirm={remove}
         onCancel={() => setConfirmDelete(false)}
+      />
+
+      <ReportRatingDialog
+        open={!!reportingRating}
+        tourId={tourId}
+        rating={reportingRating}
+        isAuthor={isAuthor}
+        onClose={() => setReportingRating(null)}
+        onSubmitted={() => toast.show('Báo cáo của bạn đã được gửi và đang chờ quản trị viên xem xét.')}
       />
     </section>
   );
