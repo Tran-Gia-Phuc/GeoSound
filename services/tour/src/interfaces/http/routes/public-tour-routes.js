@@ -17,10 +17,16 @@ const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).cat
 const UUID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
 
 /**
- * @param {{ publicTourController, translateLimiter?: import('express').RequestHandler }} deps
+ * @param {{ publicTourController, translateLimiter?: import('express').RequestHandler,
+ *           optionalAuth?: import('express').RequestHandler }} deps
  *   translateLimiter: rate limit of the automatic translation route (calls the AI service).
+ *   optionalAuth: UC25 — lenient sign-in on the package route (a paid tour needs the buyer).
  */
-export function buildPublicTourRouter({ publicTourController, translateLimiter = (_req, _res, next) => next() }) {
+export function buildPublicTourRouter({
+  publicTourController,
+  translateLimiter = (_req, _res, next) => next(),
+  optionalAuth = (_req, _res, next) => next(),
+}) {
   const r = Router();
 
   // Bước 1–5 — tìm kiếm công khai.
@@ -41,6 +47,7 @@ export function buildPublicTourRouter({ publicTourController, translateLimiter =
   // UC03 (#103) — offline package manifest of a public tour for one language.
   r.get(
     `/:id(${UUID})/package`,
+    optionalAuth,
     validateParams(detailParamSchema),
     validateQuery(detailQuerySchema),
     wrap(publicTourController.package)

@@ -170,6 +170,19 @@ import { AdminInsightController } from './interfaces/http/controllers/admin-insi
 import { buildAdminInsightRouter } from './interfaces/http/routes/admin-insight-routes.js';
 import { TourAccessController } from './interfaces/http/controllers/tour-access-controller.js';
 import { buildTourAccessRouter } from './interfaces/http/routes/tour-access-routes.js';
+// UC25 (#446) — buy a paid tour to download it offline (MoMo sandbox).
+import { PrismaTourPurchaseRepository } from './infrastructure/persistence/prisma-tour-purchase-repository.js';
+import { MomoClient } from './infrastructure/payment/momo-client.js';
+import {
+  GetTourPrice,
+  SetTourPrice,
+  StartTourPurchase,
+  GetMyPurchase,
+  GetPaymentStatus,
+  HandleMomoIpn,
+} from './application/use-cases/tour-payment.js';
+import { TourPaymentController } from './interfaces/http/controllers/tour-payment-controller.js';
+import { buildTourPaymentRouter } from './interfaces/http/routes/tour-payment-routes.js';
 
 // Dịch thật qua AI service khi có khoá Gemini (hoặc ép bằng TRANSLATOR=ai|echo).
 function selectTranslator(env) {
@@ -195,6 +208,9 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   const adminActionRepo = new PrismaAdminActionRepository(prisma);
   const tourRepo = new PrismaTourRepository(prisma, { actionLog: adminActionRepo });
   const placeRepo = new PrismaPlaceRepository(prisma);
+  // UC25 (#446) — purchases; momo = null without MOMO_* keys (purchase answers 503).
+  const purchaseRepo = new PrismaTourPurchaseRepository(prisma);
+  const momo = MomoClient.fromEnv(env);
   // Vùng cấm (E2): kiểm điểm trong polygon vùng cấm đang bật.
   const zoneRepo = new PrismaForbiddenZoneRepository(prisma);
   const zoneChecker = new PolygonZoneChecker({ zoneRepo });
@@ -278,6 +294,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
       routeConfigRepo,
       tourLanguageRepo,
       placeTranslationRepo,
+      purchaseRepo,
     }),
   };
   const previewUseCases = {
@@ -304,7 +321,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     createItinerary: new CreateItinerary({ itineraryRepo }),
     listMyItineraries: new ListMyItineraries({ itineraryRepo }),
     getItinerary: new GetItinerary({ itineraryRepo }),
-    getItineraryPackage: new GetItineraryPackage({ itineraryRepo }),
+    getItineraryPackage: new GetItineraryPackage({ itineraryRepo, purchaseRepo }),
     renameItinerary: new RenameItinerary({ itineraryRepo }),
     deleteItinerary: new DeleteItinerary({ itineraryRepo }),
     addItineraryItem: new AddItineraryItem({ itineraryRepo, placeRepo, tourRepo, tourLanguageRepo, placeTranslationRepo }),
@@ -405,7 +422,11 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     windowMs: Number(env.TRANSLATE_RATE_WINDOW_MS) || 10 * 60 * 1000,
   });
   const publicTourController = new PublicTourController(publicUseCases, { supportedLanguages });
-  const publicTourRouter = buildPublicTourRouter({ publicTourController, translateLimiter });
+  const publicTourRouter = buildPublicTourRouter({
+    publicTourController,
+    translateLimiter,
+    optionalAuth: verifyJwt ? optionalAuth(verifyJwt()) : undefined,
+  });
   const languageController = new LanguageController(languageUseCases);
   const languageRouter = buildLanguageRouter({ languageController });
   const previewController = new PreviewController(previewUseCases);
@@ -487,6 +508,22 @@ export function buildContainer(env = process.env, { publish = null, validateEven
       })
     : null;
 
+  // UC25 (#446) — tour price (Studio), purchase, MoMo IPN and status.
+  const tourPaymentRouter = verifyJwt
+    ? buildTourPaymentRouter({
+        tourPaymentController: new TourPaymentController({
+          getTourPrice: new GetTourPrice({ tourRepo, purchaseRepo }),
+          setTourPrice: new SetTourPrice({ tourRepo, purchaseRepo }),
+          startTourPurchase: new StartTourPurchase({ tourRepo, purchaseRepo, momo }),
+          getMyPurchase: new GetMyPurchase({ tourRepo, purchaseRepo }),
+          getPaymentStatus: new GetPaymentStatus({ purchaseRepo, momo }),
+          handleMomoIpn: new HandleMomoIpn({ purchaseRepo, momo }),
+        }),
+        requireAuth: verifyJwt(),
+        requireContributor: verifyJwt(['contributor']),
+      })
+    : null;
+
   // UC21 / UC22 (#275) — account.moderated -> admin log (queue tour.admin-log), whenever the broker is
   // loaded (publish and validateEvent come from ../shared only then).
   const accountModeratedHandler =
@@ -524,6 +561,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     adminReportRouter,
     adminInsightRouter,
     tourAccessRouter,
+    tourPaymentRouter,
     moderationResultHandler,
     accountModeratedHandler,
     purgeActivityMarks,
