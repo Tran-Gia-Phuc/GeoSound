@@ -11,9 +11,12 @@
 //                the library shows "Có bản mới" when the server revision is newer.
 // No sizes here: Tour does not know file sizes; the client measures the real bytes.
 // Not public (draft / hidden / restricted / deleted) -> 404. Language not ready -> 400.
+// UC25 (#446): a paid tour -> 401 login_required without a user, 402 payment_required unless the
+// caller is the author or bought it (assertPackageAccess).
 // =========================================================
 import { TourNotFoundError, AppError } from '../../domain/errors/index.js';
 import { buildTourDetailView } from './build-tour-detail.js';
+import { assertPackageAccess } from './tour-payment.js';
 
 export class LanguageNotAvailableError extends AppError {
   constructor(message = 'Ngôn ngữ này chưa sẵn sàng để tải') {
@@ -79,19 +82,21 @@ export function buildPackageAssets(view) {
 }
 
 export class GetTourPackage {
-  /** @param {{ tourRepo, placeRepo, routeConfigRepo, tourLanguageRepo?, placeTranslationRepo? }} deps */
-  constructor({ tourRepo, placeRepo, routeConfigRepo, tourLanguageRepo, placeTranslationRepo }) {
+  /** @param {{ tourRepo, placeRepo, routeConfigRepo, tourLanguageRepo?, placeTranslationRepo?, purchaseRepo? }} deps */
+  constructor({ tourRepo, placeRepo, routeConfigRepo, tourLanguageRepo, placeTranslationRepo, purchaseRepo = null }) {
     this.tourRepo = tourRepo;
+    this.purchaseRepo = purchaseRepo;
     this.placeRepo = placeRepo;
     this.routeConfigRepo = routeConfigRepo;
     this.tourLanguageRepo = tourLanguageRepo;
     this.placeTranslationRepo = placeTranslationRepo;
   }
 
-  /** @param {{ id: string, lang?: string }} input */
-  async execute({ id, lang }) {
+  /** @param {{ id: string, lang?: string, userId?: string|null }} input */
+  async execute({ id, lang, userId = null }) {
     const tour = await this.tourRepo.findPublicById(id);
     if (!tour) throw new TourNotFoundError('Tour không còn khả dụng');
+    await assertPackageAccess(this.purchaseRepo, tour, userId);
     return buildTourPackage(this, tour, lang);
   }
 }

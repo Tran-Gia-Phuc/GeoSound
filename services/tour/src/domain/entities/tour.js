@@ -103,6 +103,8 @@ export class Tour {
     this.passcodeSetAt = props.passcodeSetAt ?? null;
     // UC12: tourists may ask for an automatic translation into a language the author did not turn on.
     this.autoTranslate = props.autoTranslate ?? true;
+    // UC25 (#446): price of the offline package in VND, 0 = free.
+    this.price = props.price ?? 0;
     this.createdAt = props.createdAt ?? null;
     this.updatedAt = props.updatedAt ?? null;
   }
@@ -199,6 +201,7 @@ export class Tour {
       moderationReasons: this.moderationReasons,
       reviewReason: this.reviewReason,
       autoTranslate: this.autoTranslate,
+      price: this.price,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

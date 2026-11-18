@@ -40,6 +40,7 @@ export class PrismaTourRepository {
       passcodeVersion: row.passcodeVersion ?? 0,
       passcodeSetAt: row.passcodeSetAt ?? null,
       autoTranslate: row.autoTranslate ?? true,
+      price: row.price ?? 0,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
@@ -104,6 +105,15 @@ export class PrismaTourRepository {
     const row = await this.prisma.tour.update({
       where: { id: tour.id },
       data: { autoTranslate: enabled, updatedAt: tour.updatedAt },
+    });
+    return PrismaTourRepository.toEntity(row);
+  }
+
+  /** UC25 (#446) — sets the package price; like setAutoTranslate, updated_at stays as it was. */
+  async setPrice(tour, price) {
+    const row = await this.prisma.tour.update({
+      where: { id: tour.id },
+      data: { price, updatedAt: tour.updatedAt },
     });
     return PrismaTourRepository.toEntity(row);
   }
