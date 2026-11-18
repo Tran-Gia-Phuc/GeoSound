@@ -2,10 +2,12 @@
 // PublishStepPage — bước cuối của Studio: "Sẵn sàng xuất bản?" (UC09 A3 + UC13).
 // Checklist + Xem thử như khách + Xuất bản / Gỡ xuống (PublishPanel).
 // UC14: Truy cập hạn chế bằng mã (RestrictedAccessPanel).
+// UC25: giá tải về offline (TourPricePanel).
 // UC15: khi máy chủ bật kiểm duyệt, "Xuất bản" thành "Gửi duyệt" (AI rồi Admin duyệt).
 // =========================================================
 import PublishPanel from './PublishPanel.jsx';
 import RestrictedAccessPanel from './RestrictedAccessPanel.jsx';
+import TourPricePanel from './TourPricePanel.jsx';
 import { useStudioTour } from './StudioTourLayout.jsx';
 import { isModerationMode } from '../../lib/submission.js';
 
@@ -32,6 +34,7 @@ export default function PublishStepPage() {
           bạn chỉ cần xuất bản lại.
         </p>
       )}
+      <TourPricePanel tourId={tour.id} />
       <RestrictedAccessPanel
         tourId={tour.id}
         status={tour.status}
