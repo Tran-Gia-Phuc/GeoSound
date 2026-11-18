@@ -54,6 +54,7 @@
 - **E4.** Mất mạng giữa chừng → *"Mất kết nối mạng. Phần đã tải được giữ lại."*; gói tạm dừng, tiếp tục khi có mạng. `PackageProgress`
 - **E5.** Một tệp lỗi (ví dụ máy chủ ảnh không gửi CORS) → tệp đó hiện **"Thử lại"**; gói không được đánh dấu `ready`. `downloadOne()`
 - **E6.** Chưa tải tour nào → danh sách rỗng, nút **"Tìm tour"** (UC02). Lỗi đọc IndexedDB → thông báo kèm **"Thử lại"**. Gói thiếu tệp → thông báo tệp bị thiếu. `OfflineLibraryPage`
+- **E7.** Tour có phí (UC25) mà khách chưa mua → mục tải về được thay bằng khung **"Mua tour để tải về"**; gọi thẳng manifest: `401 login_required` (chưa đăng nhập) hoặc `402 payment_required` (chưa mua). `PurchaseGate`, `assertPackageAccess()`
 
 ## Extension Points
 
