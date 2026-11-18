@@ -4375,6 +4375,97 @@
     ]
    ]
   },
+  "tour_rating_reports": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "rating_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "rating_user_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "reporter_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "reporter_role",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "reason_type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "description",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "status",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "admin_note",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "resolved_by",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "rating_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "tour",
+     "refTable": "tour_ratings"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "tour_id",
+     "rating_user_id",
+     "reporter_id"
+    ]
+   ]
+  },
   "tour_ratings": {
    "columns": [
     {
@@ -4406,6 +4497,16 @@
      "name": "comment",
      "nullable": true,
      "type": "text"
+    },
+    {
+     "name": "is_flagged",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "is_hidden",
+     "nullable": false,
+     "type": "boolean"
     },
     {
      "name": "created_at",
