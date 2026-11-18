@@ -1163,7 +1163,7 @@
     },
     {
       "name": "6.0 Quản trị",
-      "title": "DFD cấp 2 – Tiến trình 6.0 Duyệt tour, xử lý vi phạm & giám sát (UC19, UC20, UC21, UC22)",
+      "title": "DFD cấp 2 – Tiến trình 6.0 Duyệt tour, xử lý vi phạm & giám sát (UC05, UC19, UC20, UC21, UC22)",
       "nodes": [
         {
           "id": "P61",
@@ -1175,7 +1175,7 @@
         {
           "id": "P62",
           "kind": "process",
-          "label": "6.2 | Xử lý báo cáo vi phạm tour",
+          "label": "6.2 | Xử lý báo cáo tour & đánh giá",
           "x": 920,
           "y": 560
         },
@@ -1257,6 +1257,7 @@
           "h": 78,
           "tables": [
             "tour.tour_ratings",
+            "tour.tour_rating_reports",
             "tour.tour_reports",
             "tour.tour_daily_stats",
             "tour.tour_activity_marks"
@@ -1315,17 +1316,17 @@
         {
           "from": "ADMIN",
           "to": "P62",
-          "label": "Ẩn / khôi phục / bỏ qua"
+          "label": "Ẩn / khôi phục / bỏ qua tour;<br>gỡ / bác bỏ báo cáo đánh giá"
         },
         {
           "from": "D6",
           "to": "P62",
-          "label": "Báo cáo đang mở"
+          "label": "Báo cáo tour & đánh giá đang mở"
         },
         {
           "from": "P62",
           "to": "D6",
-          "label": "Trạng thái báo cáo"
+          "label": "Trạng thái báo cáo, ẩn đánh giá"
         },
         {
           "from": "D3",
@@ -1335,7 +1336,7 @@
         {
           "from": "P62",
           "to": "D3",
-          "label": "Ẩn / khôi phục tour"
+          "label": "Ẩn / khôi phục tour,<br>cập nhật điểm trung bình"
         },
         {
           "from": "P62",
@@ -1428,7 +1429,7 @@
         {
           "id": "P72",
           "kind": "process",
-          "label": "7.2 | Báo cáo tour vi phạm",
+          "label": "7.2 | Báo cáo tour & đánh giá vi phạm",
           "x": 400,
           "y": 560
         },
@@ -1503,6 +1504,7 @@
           "h": 78,
           "tables": [
             "tour.tour_ratings",
+            "tour.tour_rating_reports",
             "tour.tour_reports",
             "tour.tour_daily_stats",
             "tour.tour_activity_marks"
@@ -1538,12 +1540,27 @@
         {
           "from": "TOURIST",
           "to": "P72",
-          "label": "Lý do, ghi chú"
+          "label": "Lý do, ghi chú (báo cáo tour / đánh giá)"
+        },
+        {
+          "from": "CONTRIB",
+          "to": "P72",
+          "label": "Khiếu nại đánh giá",
+          "via": [
+            [
+              1560,
+              820
+            ],
+            [
+              500,
+              820
+            ]
+          ]
         },
         {
           "from": "P72",
           "to": "D6",
-          "label": "Báo cáo"
+          "label": "Báo cáo tour / đánh giá, cờ đánh giá"
         },
         {
           "from": "P72",

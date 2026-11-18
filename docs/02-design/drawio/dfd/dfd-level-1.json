@@ -156,6 +156,7 @@
           "h": 78,
           "tables": [
             "tour.tour_ratings",
+            "tour.tour_rating_reports",
             "tour.tour_reports",
             "tour.tour_daily_stats",
             "tour.tour_activity_marks"
@@ -528,17 +529,17 @@
         {
           "from": "ADMIN",
           "to": "P6",
-          "label": "Duyệt / từ chối / yêu cầu sửa,<br>xử lý báo cáo, thao tác tài khoản"
+          "label": "Duyệt / từ chối / yêu cầu sửa,<br>xử lý báo cáo tour & đánh giá, thao tác tài khoản"
         },
         {
           "from": "P6",
           "to": "ADMIN",
-          "label": "Hàng chờ, hồ sơ,<br>dashboard, nhật ký"
+          "label": "Hàng chờ, hồ sơ báo cáo,<br>dashboard, nhật ký"
         },
         {
           "from": "P6",
           "to": "D3",
-          "label": "Trạng thái tour"
+          "label": "Trạng thái tour, điểm trung bình"
         },
         {
           "from": "D3",
@@ -559,6 +560,11 @@
           "from": "D6",
           "to": "P6",
           "label": "Báo cáo, số liệu thống kê"
+        },
+        {
+          "from": "P6",
+          "to": "D6",
+          "label": "Ẩn đánh giá, trạng thái báo cáo"
         },
         {
           "from": "P6",
@@ -588,7 +594,7 @@
         {
           "from": "TOURIST",
           "to": "P7",
-          "label": "Đánh giá (gửi / sửa / xoá),<br>báo cáo vi phạm"
+          "label": "Đánh giá (gửi / sửa / xoá),<br>báo cáo tour & đánh giá"
         },
         {
           "from": "P7",
@@ -614,6 +620,11 @@
           "from": "P7",
           "to": "CONTRIB2",
           "label": "Thống kê tour"
+        },
+        {
+          "from": "CONTRIB2",
+          "to": "P7",
+          "label": "Khiếu nại đánh giá"
         },
         {
           "from": "P7",
