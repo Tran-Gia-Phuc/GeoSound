@@ -60,7 +60,7 @@
         {
           "from": "TOURIST",
           "to": "SYS",
-          "label": "Đăng ký / đăng nhập, OTP<br>Từ khóa, bộ lọc, chọn tour, vị trí GPS, mã truy cập<br>Yêu cầu dịch sang ngôn ngữ mới<br>Lịch trình, đánh giá (gửi / sửa / xoá), báo cáo vi phạm<br>Câu hỏi cho trợ lý AI<br>Mở, đánh dấu thông báo đã đọc"
+          "label": "Đăng ký / đăng nhập, OTP<br>Từ khóa, bộ lọc, chọn tour, vị trí GPS, mã truy cập<br>Yêu cầu dịch sang ngôn ngữ mới<br>Lịch trình, đánh giá (gửi / sửa / xoá), báo cáo tour & đánh giá vi phạm<br>Câu hỏi cho trợ lý AI<br>Mở, đánh dấu thông báo đã đọc"
         },
         {
           "from": "SYS",
@@ -70,7 +70,7 @@
         {
           "from": "CONTRIB",
           "to": "SYS",
-          "label": "Tour, điểm dừng, ảnh, audio<br>Route, vùng kích hoạt, ngôn ngữ, công tắc dịch tự động, passcode<br>Yêu cầu gửi duyệt<br>Chọn tour, kỳ thống kê; đọc thông báo"
+          "label": "Tour, điểm dừng, ảnh, audio<br>Route, vùng kích hoạt, ngôn ngữ, công tắc dịch tự động, passcode<br>Yêu cầu gửi duyệt<br>Chọn tour, kỳ thống kê; khiếu nại đánh giá; đọc thông báo"
         },
         {
           "from": "SYS",
@@ -80,12 +80,12 @@
         {
           "from": "ADMIN",
           "to": "SYS",
-          "label": "Quyết định duyệt / từ chối / yêu cầu sửa<br>Xử lý báo cáo, cảnh cáo / tạm khóa / cấm tài khoản<br>Khoảng thời gian dashboard, bộ lọc nhật ký"
+          "label": "Quyết định duyệt / từ chối / yêu cầu sửa<br>Xử lý báo cáo tour & đánh giá, cảnh cáo / tạm khóa / cấm tài khoản<br>Khoảng thời gian dashboard, bộ lọc nhật ký"
         },
         {
           "from": "SYS",
           "to": "ADMIN",
-          "label": "Hàng chờ duyệt, hồ sơ báo cáo<br>Dashboard, nhật ký, thiết bị online"
+          "label": "Hàng chờ duyệt, hồ sơ báo cáo tour & đánh giá<br>Dashboard, nhật ký, thiết bị online"
         },
         {
           "from": "SYS",
