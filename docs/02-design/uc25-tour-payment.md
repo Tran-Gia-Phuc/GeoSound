@@ -80,6 +80,12 @@ number of pending orders per account.
   price, package 401 / 402 / author 200, own tour 400, purchase 503 with the order marked `failed`,
   IPN bad signature 400, wrong amount 400, late success 204 (`failed → paid`), duplicate IPN 204,
   buyer package 200, buy again 409, sales `{paidCount: 1, revenue: 25000}`, back to free and
-  `tour_free`. The shared Supabase stack was not touched: the `tour` schema needs
-  `migrate deploy tour` first.
-- Not checked: a real MoMo sandbox payment (needs the user's keys and a public IPN URL).
+  `tour_free`.
+- Real MoMo sandbox (public test keys, local stack on a local Postgres): create returns a `payUrl`,
+  the query answers `1000` while waiting, and a Napas test card payment ends `paid` with a `trans_id`
+  through the status query (R8). The production MoMo app cannot pay a sandbox QR (`1005`).
+- Supabase: the six schemas made by `db push` were baselined (`0_init`), `tour` also got
+  `20261117000000_rating_reports` resolved as applied (its tables already matched; a stray default on
+  `tour_rating_reports.updated_at` was dropped to match it), then `migrate deploy tour` applied
+  `20261118000000_tour_purchases`. `migrate status` is up to date and `migrate check` shows no drift.
+- Not checked: the IPN from the real MoMo servers (needs a public `MOMO_IPN_URL`).
