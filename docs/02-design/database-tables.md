@@ -39,6 +39,7 @@ and the LangGraph checkpointer. ERD: [`drawio/erd-geosound.xml`](drawio/erd-geos
 | tour | `tour_reports` | One community report per account and tour | UC06, UC20 |
 | tour | `tour_access_grants` | Unlocks of a restricted tour per tester | UC14 |
 | tour | `tour_unlock_attempts` | Wrong passcode attempts (rate limit) | UC14 |
+| tour | `tour_purchases` | MoMo orders of paid tours (added 2026-11-18, after the snapshot) | UC25 |
 | tour | `tour_daily_stats` | Daily counters per tour and language | UC17 |
 | tour | `tour_activity_marks` | Dedup marks for the counters | UC17 |
 | tour | `itineraries` | Personal itineraries | UC07 |
@@ -79,6 +80,7 @@ erDiagram
   tours ||--o{ tour_reports : "has"
   tours ||--o{ tour_access_grants : "has"
   tours ||--o{ tour_unlock_attempts : "has"
+  tours ||..o{ tour_purchases : "tour_id"
   tours ||--o{ tour_daily_stats : "has"
   tours ||--o{ tour_activity_marks : "has"
   itineraries ||--o{ itinerary_items : "has"
@@ -88,6 +90,7 @@ erDiagram
   users ||..o{ tour_ratings : "user_id"
   users ||..o{ tour_reports : "reporter_id"
   users ||..o{ tour_access_grants : "user_id"
+  users ||..o{ tour_purchases : "user_id"
   places ||..o{ itinerary_items : "place_id (snapshot)"
   tours ||..o{ tour_review_actions : "tour_id"
   users ||..o{ admin_actions : "admin_id / target_id"
@@ -185,6 +188,7 @@ Unique `(follower_id, author_id)`; index `(author_id)`.
 | `passcode_version` | int | no | 0 | bumped on passcode change / off |
 | `passcode_set_at` | timestamp | yes | | |
 | `auto_translate` | bool | no | true | lets tourists ask for an automatic translation into a language the author did not turn on (UC04 A7, UC12 A6) |
+| `price` | int | no | 0 | download price in VND, 0 = free, else 1 000 to 50 000 000 (UC25) |
 | `created_at`, `updated_at` | timestamp | no | now | `updated_at` = moderation and catalog revision |
 
 Indexes: `(author_id)`, `(status)`, `(status, city)`.
@@ -314,6 +318,23 @@ Unique `(tour_id, user_id)`; index `(user_id)`.
 | `created_at` | timestamp | no | 5 wrong attempts per 15 minutes |
 
 Index `(tour_id, user_id, created_at)`.
+
+### `tour_purchases` (UC25)
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| `id` | uuid | no | PK, also the MoMo `orderId` / `requestId` |
+| `tour_id` | uuid | no | soft ref → `tours.id` (no FK: orders stay as payment records) |
+| `user_id` | uuid | no | soft ref → `auth.users.id` (buyer) |
+| `amount` | int | no | VND, the tour price when the order was made |
+| `status` | text | no | `pending`, `paid`, `failed` (default `pending`) |
+| `provider` | text | no | `momo` |
+| `trans_id` | text | yes | MoMo transaction id |
+| `result_code` | int | yes | last MoMo `resultCode` |
+| `created_at` | timestamp | no | |
+| `paid_at` | timestamp | yes | |
+
+Indexes `(tour_id, user_id, status)`, `(user_id)`. Migration `20261118000000_tour_purchases`.
 
 ### `tour_daily_stats`
 

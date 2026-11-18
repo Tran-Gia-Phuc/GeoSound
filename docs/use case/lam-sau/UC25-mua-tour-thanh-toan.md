@@ -47,7 +47,7 @@
 - **E1.** Giá không hợp lệ (âm, lẻ, dưới 1 000 hoặc trên 50 000 000) → 400 `validation_error` (client kiểm cùng quy tắc trước khi gửi). Không phải tác giả → 403 `not_tour_owner`. `validatePrice()`, `normalizePrice()`
 - **E2.** Tour miễn phí → 400 `tour_free`; tác giả tự mua tour của mình → 400 `own_tour`; tour không còn công khai → 404.
 - **E3.** Đã mua rồi → 409 `already_purchased`; client tải lại trạng thái và hiện mục tải về.
-- **E4.** Máy chủ chưa cấu hình khóa MoMo, hoặc MoMo từ chối / không phản hồi → 503 `payment_unavailable` ("Thanh toán đang tạm ngưng, vui lòng thử lại sau"); đơn vừa tạo được đánh dấu `failed`.
+- **E4.** Máy chủ chưa cấu hình khóa MoMo, hoặc MoMo từ chối / không phản hồi → 503 "Thanh toán MoMo đang tạm thời không khả dụng, vui lòng thử lại sau" (lỗi 5xx chỉ trả message); đơn vừa tạo được đánh dấu `failed`. `PaymentUnavailableError`
 - **E5.** IPN sai chữ ký, sai `partnerCode` hoặc sai số tiền → 400 `invalid_signature`, đơn không đổi; đơn không tồn tại → 404.
 - **E6.** Tải gói tour có phí khi chưa đăng nhập → 401 `login_required`; đã đăng nhập nhưng chưa mua → 402 `payment_required`.
 

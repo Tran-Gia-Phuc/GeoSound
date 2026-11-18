@@ -23,12 +23,12 @@ package (UC03) of a paid tour is served only to the author and to accounts that 
 | R9 | `GET /:id/package` of a paid tour: anonymous 401 `login_required`, signed in without purchase 402 `payment_required`; the author and buyers pass |
 | R10 | The itinerary package (UC07/UC08) answers 402 while it holds places of paid tours the owner has not bought |
 | R11 | The UC14 restricted package is not charged: testers of a restricted tour never pay |
-| R12 | No MoMo keys: `MomoClient.fromEnv()` returns `null`, buying answers 503 `payment_unavailable`; every other flow keeps working. A MoMo error on create marks the new order `failed` and answers 503 |
+| R12 | No MoMo keys: `MomoClient.fromEnv()` returns `null`, buying answers 503 (`PaymentUnavailableError`, code `payment_unavailable` in the log; the shared `errorHandler` sends only the message for 5xx); every other flow keeps working. A MoMo error on create marks the new order `failed` and answers 503 |
 
 ## 3. Data (Tour schema, migration `20261118000000_tour_purchases`)
 
 - `tours.price int not null default 0`.
-- `tour_purchases`: `id uuid` (orderId), `tour_id` (FK, cascade), `user_id`, `amount`, `status`
+- `tour_purchases`: `id uuid` (orderId), `tour_id` (soft ref, no FK: orders stay as payment records if the tour is deleted), `user_id`, `amount`, `status`
   (`pending | paid | failed`), `provider` (`momo`), `trans_id`, `result_code`, `created_at`, `paid_at`.
   Indexes `(tour_id, user_id, status)` and `(user_id)`.
 
@@ -52,7 +52,7 @@ Keys in `.env` only: `MOMO_PARTNER_CODE`, `MOMO_ACCESS_KEY`, `MOMO_SECRET_KEY`, 
 - Use cases: `application/use-cases/tour-payment.js` (`GetTourPrice`, `SetTourPrice`, `StartTourPurchase`,
   `GetMyPurchase`, `GetPaymentStatus`, `HandleMomoIpn`, `assertPackageAccess`); guards in
   `get-tour-package.js` and `get-itinerary-package.js`.
-- Infrastructure: `infrastructure/payment/momo-client.js` (injected `fetch`, 10 s timeout),
+- Infrastructure: `infrastructure/payment/momo-client.js` (injected `fetch`, 15 s timeout),
   `persistence/prisma-tour-purchase-repository.js`, `PrismaTourRepository.setPrice()`.
 - HTTP: `payment-schemas.js`, `tour-payment-controller.js`, `tour-payment-routes.js` (mounted after the
   access routes; public routes match UUIDs only, so `/payments/...` and `/mine/...` are not captured).
@@ -72,3 +72,14 @@ Keys in `.env` only: `MOMO_PARTNER_CODE`, `MOMO_ACCESS_KEY`, `MOMO_SECRET_KEY`, 
 
 Refunds, payout to authors, a price badge on tour cards, sale events or notifications, limiting the
 number of pending orders per account.
+
+## 8. Checks (2026-11-18)
+
+- Real Tour image on a disposable Postgres (internal Docker network, fake MoMo keys, MoMo endpoint
+  unreachable on purpose, then removed): migrations applied; price get/set and validation, public
+  price, package 401 / 402 / author 200, own tour 400, purchase 503 with the order marked `failed`,
+  IPN bad signature 400, wrong amount 400, late success 204 (`failed → paid`), duplicate IPN 204,
+  buyer package 200, buy again 409, sales `{paidCount: 1, revenue: 25000}`, back to free and
+  `tour_free`. The shared Supabase stack was not touched: the `tour` schema needs
+  `migrate deploy tour` first.
+- Not checked: a real MoMo sandbox payment (needs the user's keys and a public IPN URL).
