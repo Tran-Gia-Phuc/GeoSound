@@ -3,9 +3,11 @@
 //   Author (role contributor, owner checked in the use case):
 //     GET  /mine/:tourId/price      -> { price, paidCount, revenue }
 //     PUT  /mine/:tourId/price      { price } (0 or 1 000..50 000 000 VND)
+//     GET  /mine/:tourId/sales      -> { items: [{ orderId, amount, paidAt, buyer }] } (paid only)
 //   Buyer (any signed-in role):
 //     POST /:id/purchase            -> 201 { orderId, payUrl } | 400 tour_free / own_tour | 409 | 503
 //     GET  /:id/purchase/mine       -> { price, purchased, owner }
+//     GET  /purchases/mine          -> { items: [{ orderId, tourId, tourTitle, status, amount, transId, createdAt, paidAt }] }
 //   Public:
 //     GET  /payments/:orderId       -> { orderId, tourId, status, amount } (asks MoMo while pending)
 //     POST /payments/momo/ipn       MoMo notification, signature checked -> 204
@@ -29,6 +31,9 @@ export function buildTourPaymentRouter({ tourPaymentController: c, requireAuth, 
 
   r.get('/mine/:tourId/price', ...owner, wrap(c.getPrice));
   r.put('/mine/:tourId/price', ...owner, validateBody(setPriceSchema), wrap(c.setPrice));
+  r.get('/mine/:tourId/sales', ...owner, wrap(c.sales));
+
+  r.get('/purchases/mine', requireAuth, wrap(c.history));
 
   r.post(`/:id(${UUID})/purchase`, ...buyer, wrap(c.purchase));
   r.get(`/:id(${UUID})/purchase/mine`, ...buyer, wrap(c.mine));

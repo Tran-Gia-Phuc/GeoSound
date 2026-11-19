@@ -51,6 +51,8 @@ async function applyResult(purchaseRepo, purchase, { resultCode, transId }, cloc
 
 const view = (p, status = p.status) => ({ orderId: p.id, tourId: p.tourId, status, amount: p.amount });
 
+export const HISTORY_LIMIT = 50;
+
 export class GetTourPrice {
   constructor({ tourRepo, purchaseRepo }) {
     Object.assign(this, { tourRepo, purchaseRepo });
@@ -152,5 +154,40 @@ export class HandleMomoIpn {
     if (Number(body.amount) !== purchase.amount) throw new InvalidPaymentNotificationError();
     const status = await applyResult(this.purchaseRepo, purchase, body, this.clock);
     return view(purchase, status);
+  }
+}
+
+/** Buyer: own purchase history (every attempt, newest first). */
+export class ListMyPurchases {
+  constructor({ purchaseRepo }) {
+    Object.assign(this, { purchaseRepo });
+  }
+
+  async execute({ userId }) {
+    const rows = await this.purchaseRepo.listByUser(userId, HISTORY_LIMIT);
+    return {
+      items: rows.map((p) => ({
+        ...view(p),
+        tourTitle: p.tourTitle ?? null,
+        transId: p.transId ?? null,
+        createdAt: p.createdAt,
+        paidAt: p.paidAt ?? null,
+      })),
+    };
+  }
+}
+
+/** Author: paid orders of an own tour. The buyer is shown as a short id only (no email or name). */
+export class ListTourSales {
+  constructor({ tourRepo, purchaseRepo }) {
+    Object.assign(this, { tourRepo, purchaseRepo });
+  }
+
+  async execute({ authorId, tourId }) {
+    const tour = await loadOwned(this.tourRepo, { authorId, tourId });
+    const rows = await this.purchaseRepo.paidOfTour(tour.id, HISTORY_LIMIT);
+    return {
+      items: rows.map((p) => ({ orderId: p.id, amount: p.amount, paidAt: p.paidAt, buyer: String(p.userId).slice(-6) })),
+    };
   }
 }

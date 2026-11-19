@@ -66,4 +66,20 @@ export class PrismaTourPurchaseRepository {
     });
     return { paidCount: r._count._all, revenue: r._sum.amount ?? 0 };
   }
+
+  /** Purchase history of one account, newest first, with the tour title (null if the tour is gone). */
+  async listByUser(userId, limit) {
+    const rows = await this.prisma.tourPurchase.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: limit });
+    const tourIds = [...new Set(rows.map((r) => r.tourId))];
+    const tours = tourIds.length
+      ? await this.prisma.tour.findMany({ where: { id: { in: tourIds } }, select: { id: true, title: true } })
+      : [];
+    const titles = new Map(tours.map((t) => [t.id, t.title]));
+    return rows.map((r) => ({ ...r, tourTitle: titles.get(r.tourId) ?? null }));
+  }
+
+  /** Studio: paid orders of a tour, newest first. */
+  async paidOfTour(tourId, limit) {
+    return this.prisma.tourPurchase.findMany({ where: { tourId, status: PAID }, orderBy: { paidAt: 'desc' }, take: limit });
+  }
 }
