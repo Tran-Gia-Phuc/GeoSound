@@ -21,6 +21,8 @@ import {
   GetMyPurchase,
   GetPaymentStatus,
   HandleMomoIpn,
+  ListMyPurchases,
+  ListTourSales,
 } from '../src/application/use-cases/tour-payment.js';
 import { GetTourPackage } from '../src/application/use-cases/get-tour-package.js';
 import { GetItineraryPackage } from '../src/application/use-cases/get-itinerary-package.js';
@@ -64,7 +66,9 @@ class FakePurchaseRepo {
     this.rows = new Map();
   }
   async create({ tourId, userId, amount }) {
-    const row = { id: crypto.randomUUID(), tourId, userId, amount, status: 'pending', transId: null, resultCode: null, paidAt: null };
+    // createdAt grows with each row so "newest first" is deterministic.
+    const createdAt = new Date(Date.parse('2026-11-18T07:00:00Z') + this.rows.size * 1000);
+    const row = { id: crypto.randomUUID(), tourId, userId, amount, status: 'pending', transId: null, resultCode: null, createdAt, paidAt: null };
     this.rows.set(row.id, row);
     return { ...row };
   }
@@ -98,6 +102,20 @@ class FakePurchaseRepo {
   async salesOf(tourId) {
     const paid = [...this.rows.values()].filter((r) => r.tourId === tourId && r.status === 'paid');
     return { paidCount: paid.length, revenue: paid.reduce((s, r) => s + r.amount, 0) };
+  }
+  async listByUser(userId, limit) {
+    return [...this.rows.values()]
+      .filter((r) => r.userId === userId)
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, limit)
+      .map((r) => ({ ...r, tourTitle: this.tourRepo.rows.get(r.tourId)?.title ?? null }));
+  }
+  async paidOfTour(tourId, limit) {
+    return [...this.rows.values()]
+      .filter((r) => r.tourId === tourId && r.status === 'paid')
+      .sort((a, b) => b.paidAt - a.paidAt)
+      .slice(0, limit)
+      .map((r) => ({ ...r }));
   }
 }
 
@@ -150,6 +168,8 @@ function kit({ momo = {} } = {}) {
     mine: new GetMyPurchase({ tourRepo, purchaseRepo }),
     status: new GetPaymentStatus({ purchaseRepo, momo: client, clock }),
     ipn: new HandleMomoIpn({ purchaseRepo, momo: client, clock }),
+    history: new ListMyPurchases({ purchaseRepo }),
+    sales: new ListTourSales({ tourRepo, purchaseRepo }),
   };
 }
 
@@ -309,6 +329,35 @@ test('itinerary package: 402 while it holds places of a paid tour not bought; ok
   assert.equal((await pack.execute({ ownerId: BUYER, itineraryId: 'it-1' })).kind, 'itinerary');
 });
 
+test('history: buyer sees every own attempt newest first; author sees paid orders with a short buyer id only', async () => {
+  const k = kit();
+  const first = await k.start.execute({ tourId: T_PAID, userId: BUYER });
+  await k.ipn.execute(signedIpn(first.orderId, 25000, 1006)); // failed
+  const second = await k.start.execute({ tourId: T_PAID, userId: BUYER });
+  await k.ipn.execute(signedIpn(second.orderId, 25000, 0)); // paid
+  await k.start.execute({ tourId: T_PAID, userId: 'other-user-abc123' }); // pending, not BUYER's
+
+  const { items } = await k.history.execute({ userId: BUYER });
+  assert.deepEqual(items.map((i) => [i.orderId, i.status]), [[second.orderId, 'paid'], [first.orderId, 'failed']]);
+  assert.equal(items[0].tourTitle, k.tourRepo.rows.get(T_PAID).title);
+  assert.equal(items[0].transId, '4088878653');
+  assert.ok(items[0].paidAt && items[0].createdAt);
+  assert.equal(items[1].paidAt, null);
+
+  k.tourRepo.rows.delete(T_PAID); // soft ref: the order stays, the title is gone
+  assert.equal((await k.history.execute({ userId: BUYER })).items[0].tourTitle, null);
+  assert.deepEqual((await k.history.execute({ userId: 'nobody' })).items, []);
+
+  const kk = kit();
+  const o = await kk.start.execute({ tourId: T_PAID, userId: 'buyer-xyz789' });
+  await kk.ipn.execute(signedIpn(o.orderId, 25000, 0));
+  await kk.start.execute({ tourId: T_PAID, userId: BUYER }); // pending: not a sale
+  const sales = await kk.sales.execute({ authorId: AUTHOR, tourId: T_PAID });
+  assert.deepEqual(sales.items, [{ orderId: o.orderId, amount: 25000, paidAt: new Date('2026-11-18T08:00:00Z'), buyer: 'xyz789' }]);
+  await assert.rejects(kk.sales.execute({ authorId: 'someone', tourId: T_PAID }), { status: 403 });
+  await assert.rejects(kk.sales.execute({ authorId: AUTHOR, tourId: UNKNOWN }), { status: 404 });
+});
+
 // ---------- HTTP ----------
 // Same rules as shared verifyJwt: 401 without a token, 403 for another role. Token = "<role>:<sub>".
 const fakeGuard = (roles) => (req, res, next) => {
@@ -324,6 +373,7 @@ async function withServer(k, fn) {
   const controller = new TourPaymentController({
     getTourPrice: k.getPrice, setTourPrice: k.setPrice, startTourPurchase: k.start,
     getMyPurchase: k.mine, getPaymentStatus: k.status, handleMomoIpn: k.ipn,
+    listMyPurchases: k.history, listTourSales: k.sales,
   });
   const app = express();
   app.use(express.json());
@@ -374,5 +424,12 @@ test('router: guards, validation, purchase, IPN 204, public status', async () =>
     const mine = await call(`/${T_PAID}/purchase/mine`, { token: buyer });
     assert.equal(mine.body.purchased, true);
     assert.equal((await call(`/${T_PAID}/purchase`, { method: 'POST', token: buyer })).status, 409);
+
+    assert.equal((await call('/purchases/mine')).status, 401);
+    const hist = await call('/purchases/mine', { token: buyer });
+    assert.deepEqual([hist.status, hist.body.items.length, hist.body.items[0].status], [200, 1, 'paid']);
+    assert.equal((await call(`/mine/${T_PAID}/sales`, { token: buyer })).status, 403);
+    const sales = await call(`/mine/${T_PAID}/sales`, { token: author });
+    assert.deepEqual([sales.status, sales.body.items.length, sales.body.items[0].buyer], [200, 1, 'uyer-1']);
   });
 });
