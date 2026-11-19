@@ -4,6 +4,8 @@
 //   Buyer : POST /api/tours/:id/purchase -> { orderId, payUrl } (then the browser goes to MoMo)
 //           GET  /api/tours/:id/purchase/mine -> { price, purchased, owner }
 //   Return: GET  /api/tours/payments/:orderId -> { orderId, tourId, status, amount }
+//   History: GET /api/tours/purchases/mine -> { items } (buyer, newest first, at most 50)
+//            GET /api/tours/mine/:tourId/sales -> { items } (author, paid orders only)
 // Listening online stays free; only the offline package of a paid tour needs a purchase.
 // =========================================================
 import { api } from './api.js';
@@ -20,6 +22,9 @@ export const startPurchase = (tourId) => api.post(`/api/tours/${encodeURICompone
 export const getMyPurchase = (tourId, opts) =>
   api.get(`/api/tours/${encodeURIComponent(tourId)}/purchase/mine`, { ...opts, auth: true });
 export const getPaymentStatus = (orderId, opts) => api.get(`/api/tours/payments/${encodeURIComponent(orderId)}`, opts);
+export const listMyPurchases = (opts) => api.get('/api/tours/purchases/mine', { ...opts, auth: true });
+export const listTourSales = (tourId, opts) =>
+  api.get(`/api/tours/mine/${encodeURIComponent(tourId)}/sales`, { ...opts, auth: true });
 
 /** Same rules as the server: '' (free) or an integer 1 000..50 000 000. Returns an error text or ''. */
 export function validatePrice(value) {

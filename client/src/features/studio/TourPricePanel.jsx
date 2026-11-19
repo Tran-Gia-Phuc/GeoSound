@@ -2,12 +2,14 @@
 // TourPricePanel (UC25, #446) — Studio, publish step: "Giá tải về offline".
 // 0 = free (default). A price (1 000..50 000 000 VND) means a tourist buys the tour once
 // with MoMo before downloading it; listening online stays free. Saving a price does not
-// change the tour status or send it to moderation again. Shows copies sold and revenue.
+// change the tour status or send it to moderation again. Shows copies sold, revenue and the
+// paid orders (buyer as a short id only).
 // =========================================================
 import { useCallback, useEffect, useState } from 'react';
 import Icon from '../../components/Icon.jsx';
 import { useToast } from '../../components/Toast.jsx';
-import { formatVnd, getTourPrice, setTourPrice, validatePrice } from '../../lib/payment.js';
+import { formatDateTime } from '../../lib/format.js';
+import { formatVnd, getTourPrice, listTourSales, setTourPrice, validatePrice } from '../../lib/payment.js';
 
 const OFFLINE_MESSAGE = 'Không thể kết nối, vui lòng thử lại';
 const errorMessage = (e, fallback) => (e?.offline ? OFFLINE_MESSAGE : e?.message || fallback);
@@ -20,6 +22,7 @@ export default function TourPricePanel({ tourId }) {
   const [loadError, setLoadError] = useState('');
   const [fieldError, setFieldError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [sales, setSales] = useState([]);
 
   const load = useCallback(async () => {
     setLoadError('');
@@ -27,6 +30,8 @@ export default function TourPricePanel({ tourId }) {
       const r = await getTourPrice(tourId);
       setInfo(r);
       setValue(String(r.price ?? 0));
+      // The order list is extra: the panel still works if it fails.
+      if (r.paidCount) listTourSales(tourId).then((s) => setSales(s?.items ?? []), () => setSales([]));
     } catch (e) {
       setLoadError(errorMessage(e, 'Chưa tải được giá của tour'));
     }
@@ -100,6 +105,17 @@ export default function TourPricePanel({ tourId }) {
           <p className="muted small">
             Đã bán {info.paidCount ?? 0} lượt · Doanh thu {formatVnd(info.revenue)}
           </p>
+          {sales.length ? (
+            <ul className="sales-list" aria-label="Đơn đã bán">
+              {sales.map((s) => (
+                <li key={s.orderId} className="sales-list__row small">
+                  <span>Người mua …{s.buyer}</span>
+                  <time className="muted" dateTime={s.paidAt}>{formatDateTime(s.paidAt)}</time>
+                  <strong>{formatVnd(s.amount)}</strong>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </>
       )}
     </section>

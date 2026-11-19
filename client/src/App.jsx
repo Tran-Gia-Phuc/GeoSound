@@ -92,6 +92,7 @@ import SessionWatcher from './auth/SessionWatcher.jsx';
 import AppLayout from './components/shell/AppLayout.jsx';
 import OfflineLibraryPage from './features/offline/OfflineLibraryPage.jsx';
 import PaymentReturnPage from './features/payment/PaymentReturnPage.jsx';
+import PurchaseHistoryPage from './features/payment/PurchaseHistoryPage.jsx';
 import ChatPage from './features/chat/ChatPage.jsx';
 import { loadOfflineDetail } from './lib/offline-store.js';
 import { previewTour } from './lib/studio.js';
@@ -206,6 +207,7 @@ const router = createBrowserRouter(
         <Route path="/account/profile" element={<RequireAuth><ProfileEditPage /></RequireAuth>} />
         <Route path="/account/following" element={<RequireAuth><FollowingPage /></RequireAuth>} />
         <Route path="/account/ratings" element={<RequireAuth><MyRatingsPage /></RequireAuth>} />
+        <Route path="/account/purchases" element={<RequireAuth><PurchaseHistoryPage /></RequireAuth>} />
         <Route path="/authors/:id" element={<AuthorPage />} />
         <Route path="/offline" element={<OfflineLibraryPage />} />
         <Route path="/payment/momo" element={<PaymentReturnPage />} />
