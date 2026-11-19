@@ -121,11 +121,22 @@ test('Studio: the author sets a price (validation, PUT body) and sees the sales'
     }
     return json(route, { price: 0, paidCount: 2, revenue: 50000 });
   });
+  await page.route(`**/api/tours/mine/${id}/sales`, (route) =>
+    json(route, {
+      items: [
+        { orderId: ORDER, amount: 25000, paidAt: '2026-11-18T08:00:00.000Z', buyer: 'a1b2c3' },
+        { orderId: AUTHOR, amount: 25000, paidAt: '2026-11-17T08:00:00.000Z', buyer: 'd4e5f6' },
+      ],
+    }),
+  );
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/studio/tours/${id}/publish`);
   const panel = page.getByRole('region', { name: 'Giá tải về offline' });
   await expect(panel).toContainText('Miễn phí');
   await expect(panel).toContainText('Đã bán 2 lượt · Doanh thu 50.000 ₫');
+  const sales = panel.getByRole('list', { name: 'Đơn đã bán' });
+  await expect(sales.getByRole('listitem')).toHaveCount(2);
+  await expect(sales.getByRole('listitem').first()).toContainText('Người mua …a1b2c3');
 
   const field = panel.getByLabel('Giá (VND, 0 = miễn phí)');
   await field.fill('500');
@@ -139,4 +150,44 @@ test('Studio: the author sets a price (validation, PUT body) and sees the sales'
   expect(bodies).toEqual([{ price: 25000 }]);
   await expect(panel.locator('.chip')).toHaveText('25.000 ₫');
   await noOverflow(page);
+});
+
+test('purchase history: every order with its status; paid links to the tour, pending to the return page (390 px)', async ({ page }) => {
+  await signIn(page, 'tourist');
+  await fixtures(page);
+  const PENDING = '66666666-6666-4666-8666-666666666666';
+  await page.route('**/api/tours/purchases/mine', (route) =>
+    json(route, {
+      items: [
+        { orderId: PENDING, tourId: id, tourTitle: 'Tour đang chờ', status: 'pending', amount: 35000, transId: null, createdAt: '2026-11-19T08:00:00.000Z', paidAt: null },
+        { orderId: ORDER, tourId: id, tourTitle: 'Hà Nội ngàn năm văn hiến', status: 'paid', amount: 49000, transId: '4088878653', createdAt: '2026-11-18T07:59:00.000Z', paidAt: '2026-11-18T08:00:00.000Z' },
+        { orderId: AUTHOR, tourId: id, tourTitle: null, status: 'failed', amount: 25000, transId: null, createdAt: '2026-11-17T08:00:00.000Z', paidAt: null },
+      ],
+    }),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/account');
+  await page.getByRole('link', { name: /Lịch sử giao dịch/ }).click();
+  await expect(page).toHaveURL(/\/account\/purchases$/);
+
+  const rows = page.getByTestId('purchase-row');
+  await expect(rows).toHaveCount(3);
+  await expect(rows.nth(0)).toContainText('Đang chờ');
+  await expect(rows.nth(0).getByRole('link', { name: 'Kiểm tra lại' })).toHaveAttribute('href', `/payment/momo?orderId=${PENDING}`);
+  await expect(rows.nth(1)).toContainText('Đã thanh toán');
+  await expect(rows.nth(1)).toContainText('49.000 ₫');
+  await expect(rows.nth(1)).toContainText('Mã MoMo 4088878653');
+  await expect(rows.nth(1).getByRole('link', { name: 'Hà Nội ngàn năm văn hiến' })).toHaveAttribute('href', `/tour/${id}`);
+  await expect(rows.nth(2)).toContainText('Thất bại');
+  await expect(rows.nth(2)).toContainText('Tour không còn khả dụng');
+  await noOverflow(page);
+});
+
+test('purchase history: empty state', async ({ page }) => {
+  await signIn(page, 'tourist');
+  await fixtures(page);
+  await page.route('**/api/tours/purchases/mine', (route) => json(route, { items: [] }));
+  await page.goto('/account/purchases');
+  await expect(page.getByText('Bạn chưa mua tour nào.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Khám phá tour' })).toBeVisible();
 });
