@@ -63,7 +63,7 @@ Chi tiết: [moderation-architecture.md](../02-design/moderation-architecture.md
 | UC21 | [Quản lý tài khoản vi phạm](lam-sau/UC21-quan-ly-tai-khoan-vi-pham.md) | Admin | P2 | Auth, Tour, Notification | UC27 |
 | UC22 | [Dashboard thống kê & log](lam-sau/UC22-dashboard-thong-ke-log.md) | Admin | P2 | Tour, Auth | UC28 |
 | UC24 | [Hỏi đáp với trợ lý du lịch AI (chatbot)](lam-sau/UC24-hoi-dap-tro-ly-ai.md) | Tourist + AI | P1 | AI, Gateway | mới (2026-11-08) |
-| UC25 | [Mua tour có phí để tải về (thanh toán MoMo)](lam-sau/UC25-mua-tour-thanh-toan.md) | Tourist + Contributor + MoMo | P2 | Tour | mới (2026-11-18) |
+| UC25 | [Mua tour có phí để tải về (thanh toán MoMo)](lam-sau/UC25-mua-tour-thanh-toan.md) | Tourist + Contributor + Admin + MoMo | P2 | Tour | mới (2026-11-18) |
 
 ## 6 nhóm đã gộp
 
@@ -86,3 +86,4 @@ Chi tiết: [moderation-architecture.md](../02-design/moderation-architecture.md
 - **Vùng cấm:** không dùng turf.js; Tour kiểm tra polygon khi lưu điểm. Luật route G1–G6 chạy ở Moderation.
 - **TTS:** chưa có render TTS phía server. Điểm không có audio ghi âm được đọc bằng giọng của thiết bị (Web Speech). Gói offline chỉ chứa text, ảnh và audio ghi âm.
 - **Chatbot:** thêm UC24.
+- **Thanh toán:** thêm UC25 (MoMo sandbox, chỉ thu phí gói tải về offline). Lịch sử giao dịch của khách (`/account/purchases`), đơn đã bán của tác giả (Studio) và trang **"Giao dịch"** của Admin (`/admin/payments`) nằm trong UC25, không tách UC riêng.

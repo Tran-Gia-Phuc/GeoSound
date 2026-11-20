@@ -42,6 +42,8 @@
 
 **A3. Gửi duyệt / xuất bản.** Contributor mở bước Xuất bản (`/studio/tours/:id/publish`) → xem checklist `GET .../readiness` (`GetPublishReadiness.execute()`, `checkPublishReadiness()`) → `POST .../publish` (`PublishTour.execute()`). Khi `MODERATION_EVENTS_ENABLED=true`: tour sang `ai_checking` và phát `tour.submitted` (`submitTourForModeration()` → `EventModerationGateway.submitTour()`, **UC15**). Khi cờ tắt: xuất bản thẳng sang `public` (quyết định D1, `Tour.publish()`, `notifyTourPublished()`). `POST .../unpublish` gỡ tour công khai về `draft` (`UnpublishTour.execute()`).
 
+**A3.1. Đặt giá tải về (UC25).** Cũng ở bước Xuất bản, khung **"Giá tải về offline"** cho tác giả đặt giá (0 = miễn phí, hoặc 1 000 đến 50 000 000 VND) bằng `PUT /api/tours/mine/:id/price`. Đổi giá chỉ ghi cột `price`, không đưa tour về Nháp và không gửi kiểm duyệt lại. Khung hiện số lượt bán, doanh thu và danh sách **"Đơn đã bán"**. `TourPricePanel` → `SetTourPrice.execute()`, `ListTourSales.execute()`
+
 **A4. Lưu nháp & thoát** → tour được tạo ở `draft`, client quay về `/studio` (`TourCreatePage`, nút "Lưu nháp & thoát").
 
 ## Exception Path
@@ -55,7 +57,7 @@
 
 ## Extension Points
 
-- UC10 – Thêm & quản lý địa điểm; UC11 – Route & kích hoạt; UC12 – Đa ngôn ngữ & TTS; UC13 – Xem thử; UC14 – Truy cập hạn chế; UC15 – Gửi tour đi duyệt; UC17 – Thống kê tour (`/studio/tours/:id/stats`).
+- UC10 – Thêm & quản lý địa điểm; UC11 – Route & kích hoạt; UC12 – Đa ngôn ngữ & TTS; UC13 – Xem thử; UC14 – Truy cập hạn chế; UC15 – Gửi tour đi duyệt; UC17 – Thống kê tour (`/studio/tours/:id/stats`); UC25 – Mua tour có phí (giá tải về, đơn đã bán).
 
 ## Triggers
 

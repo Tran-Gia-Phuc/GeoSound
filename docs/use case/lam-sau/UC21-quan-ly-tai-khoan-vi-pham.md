@@ -43,7 +43,7 @@
 
 ## Extension Points
 
-- UC01 – Xác thực tài khoản (đăng nhập bị chặn); UC20 – Xử lý báo cáo & vi phạm (A3); UC22 – Dashboard thống kê & log; UC23 – Thiết bị đang đăng nhập (thu hồi phiên).
+- UC01 – Xác thực tài khoản (đăng nhập bị chặn); UC20 – Xử lý báo cáo & vi phạm (A3); UC22 – Dashboard thống kê & log; UC23 – Thiết bị đang đăng nhập (thu hồi phiên); UC25 – trang **"Giao dịch"** (`/admin/payments`) mở chi tiết tài khoản người mua.
 
 ## Triggers
 

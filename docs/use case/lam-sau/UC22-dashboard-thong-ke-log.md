@@ -40,6 +40,7 @@
 ## Extension Points
 
 - UC19 – Duyệt / từ chối tour; UC20 – Xử lý báo cáo & vi phạm; UC21 – Quản lý tài khoản vi phạm (các nguồn sinh log).
+- UC25 – doanh thu và giao dịch MoMo xem ở trang **"Giao dịch"** (`/admin/payments`), không nằm trong Dashboard; xem giao dịch không ghi nhật ký hành động.
 
 ## Triggers
 
