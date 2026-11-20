@@ -158,7 +158,8 @@
             "tour.tour_ratings",
             "tour.tour_reports",
             "tour.tour_daily_stats",
-            "tour.tour_activity_marks"
+            "tour.tour_activity_marks",
+            "tour.tour_rating_reports"
           ]
         },
         {
@@ -311,6 +312,39 @@
           "label": "Người dùng (nhận thông báo) *",
           "x": 2120,
           "y": 890
+        },
+        {
+          "id": "P10",
+          "kind": "process",
+          "label": "10.0 | Thanh toán tour trả phí (UC25)",
+          "x": 340,
+          "y": 420
+        },
+        {
+          "id": "D13",
+          "kind": "store",
+          "label": "D13 | Giao dịch mua tour",
+          "x": 340,
+          "y": 590,
+          "w": 200,
+          "h": 64,
+          "tables": [
+            "tour.tour_purchases"
+          ]
+        },
+        {
+          "id": "MOMO",
+          "kind": "entity",
+          "label": "Cổng thanh toán MoMo (sandbox)",
+          "x": -360,
+          "y": 400
+        },
+        {
+          "id": "ADMIN2",
+          "kind": "entity",
+          "label": "Quản trị viên (Admin) *",
+          "x": -360,
+          "y": 540
         }
       ],
       "flows": [
@@ -443,7 +477,7 @@
         {
           "from": "CONTRIB",
           "to": "P4",
-          "label": "Tour, điểm, ảnh, audio, route,<br>ngôn ngữ, passcode, gửi duyệt"
+          "label": "Tour, điểm, ảnh, audio, route,<br>ngôn ngữ, passcode, giá tải, gửi duyệt"
         },
         {
           "from": "P4",
@@ -588,12 +622,24 @@
         {
           "from": "TOURIST",
           "to": "P7",
-          "label": "Đánh giá (gửi / sửa / xoá),<br>báo cáo vi phạm"
+          "label": "Đánh giá (gửi / sửa / xoá),<br>báo cáo tour / đánh giá",
+          "via": [
+            [
+              600,
+              375
+            ]
+          ]
         },
         {
           "from": "P7",
           "to": "TOURIST",
-          "label": "Đánh giá của tour,<br>đánh giá của tôi"
+          "label": "Đánh giá của tour,<br>đánh giá của tôi",
+          "via": [
+            [
+              625,
+              350
+            ]
+          ]
         },
         {
           "from": "P7",
@@ -689,6 +735,87 @@
           "from": "CONTRIB2",
           "to": "P7",
           "label": "Chọn tour, khoảng thời gian"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P10",
+          "label": "Mua tour, mã đơn,<br>xem lịch sử"
+        },
+        {
+          "from": "P10",
+          "to": "TOURIST",
+          "label": "Link thanh toán, trạng thái đơn,<br>lịch sử giao dịch"
+        },
+        {
+          "from": "P10",
+          "to": "MOMO",
+          "label": "Tạo / tra cứu đơn (HMAC)"
+        },
+        {
+          "from": "MOMO",
+          "to": "P10",
+          "label": "payUrl, kết quả (IPN / truy vấn)"
+        },
+        {
+          "from": "P10",
+          "to": "D13",
+          "label": "Đơn, trạng thái"
+        },
+        {
+          "from": "D13",
+          "to": "P10",
+          "label": "Đơn đã có"
+        },
+        {
+          "from": "D3",
+          "to": "P10",
+          "label": "Tour, giá, tác giả",
+          "via": [
+            [
+              960,
+              600
+            ]
+          ]
+        },
+        {
+          "from": "P2",
+          "to": "P10",
+          "label": "Tải gói tour trả phí"
+        },
+        {
+          "from": "P10",
+          "to": "P2",
+          "label": "Cho tải / cần mua"
+        },
+        {
+          "from": "P3",
+          "to": "P10",
+          "label": "Gói lịch trình có tour trả phí"
+        },
+        {
+          "from": "P10",
+          "to": "P3",
+          "label": "Cho tải / cần mua"
+        },
+        {
+          "from": "CONTRIB2",
+          "to": "P10",
+          "label": "Chọn tour của mình"
+        },
+        {
+          "from": "P10",
+          "to": "CONTRIB2",
+          "label": "Đơn đã bán"
+        },
+        {
+          "from": "ADMIN2",
+          "to": "P10",
+          "label": "Lọc trạng thái, trang"
+        },
+        {
+          "from": "P10",
+          "to": "ADMIN2",
+          "label": "Mọi giao dịch, doanh thu"
         }
       ],
       "checkTables": true

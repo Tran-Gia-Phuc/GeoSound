@@ -182,7 +182,7 @@
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="13" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=28;fontStyle=1;" value="DFD cấp 2 – Tiến trình 2.0 Tìm, xem, nghe &amp; tải tour offline (UC02, UC03, UC04, UC14 người thử)" vertex="1">
+        <mxCell id="14" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=28;fontStyle=1;" value="DFD cấp 2 – Tiến trình 2.0 Tìm, xem, nghe &amp; tải tour offline (UC02, UC03, UC04, UC14 người thử)" vertex="1">
           <mxGeometry x="-60" y="-60" width="900" height="50" as="geometry" />
         </mxCell>
         <mxCell id="2" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;2.1&lt;/b&gt;&lt;br&gt;Tìm kiếm &amp; lọc tour, địa điểm" vertex="1">
@@ -218,108 +218,121 @@
         <mxCell id="12" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontColor=#333333;" value="&lt;b&gt;4.0&lt;/b&gt;&lt;br&gt;Quản lý nội dung tour" vertex="1">
           <mxGeometry x="1440" y="580" width="140" height="140" as="geometry" />
         </mxCell>
-        <mxCell id="14" edge="1" parent="1" source="7" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Từ khóa, bộ lọc (thành phố, ngôn ngữ,&lt;br&gt;loại), sắp xếp, trang, vị trí">
+        <mxCell id="13" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontColor=#333333;" value="&lt;b&gt;10.0&lt;/b&gt;&lt;br&gt;Thanh toán tour trả phí" vertex="1">
+          <mxGeometry x="410" y="900" width="140" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="15" edge="1" parent="1" source="7" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Từ khóa, bộ lọc (thành phố, ngôn ngữ,&lt;br&gt;loại), sắp xếp, trang, vị trí">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="278" y="275" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="15" edge="1" parent="1" source="9" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tour công khai, địa điểm">
+        <mxCell id="16" edge="1" parent="1" source="9" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tour công khai, địa điểm">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="16" edge="1" parent="1" source="2" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Danh sách phân trang, bản đồ ghim,&lt;br&gt;gần bạn, phổ biến">
+        <mxCell id="17" edge="1" parent="1" source="2" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Danh sách phân trang, bản đồ ghim,&lt;br&gt;gần bạn, phổ biến">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="237" y="195" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="17" edge="1" parent="1" source="7" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Chọn tour, ngôn ngữ, mã truy cập">
+        <mxCell id="18" edge="1" parent="1" source="7" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Chọn tour, ngôn ngữ, mã truy cập">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="528" y="279" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="18" edge="1" parent="1" source="9" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Chi tiết, bản dịch, quyền truy cập">
+        <mxCell id="19" edge="1" parent="1" source="9" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Chi tiết, bản dịch, quyền truy cập">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="898" y="257" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="19" edge="1" parent="1" source="3" target="9" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Lượt mở khóa, lần nhập sai">
+        <mxCell id="20" edge="1" parent="1" source="3" target="9" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Lượt mở khóa, lần nhập sai">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="842" y="186" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="20" edge="1" parent="1" source="3" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Chi tiết tour">
+        <mxCell id="21" edge="1" parent="1" source="3" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Chi tiết tour, giá tải offline">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="507" y="191" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="21" edge="1" parent="1" source="7" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Vị trí GPS, thao tác phát">
+        <mxCell id="22" edge="1" parent="1" source="7" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Vị trí GPS, thao tác phát">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="505" y="538" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="22" edge="1" parent="1" source="9" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Route, vùng kích hoạt, thuyết minh">
+        <mxCell id="23" edge="1" parent="1" source="9" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Route, vùng kích hoạt, thuyết minh">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="23" edge="1" parent="1" source="10" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Audio, ảnh">
+        <mxCell id="24" edge="1" parent="1" source="10" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Audio, ảnh">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="24" edge="1" parent="1" source="11" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Gói đã tải (khi offline)">
+        <mxCell id="25" edge="1" parent="1" source="11" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Gói đã tải (khi offline)">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="25" edge="1" parent="1" source="4" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Thuyết minh, audio, gợi ý điểm tiếp">
+        <mxCell id="26" edge="1" parent="1" source="4" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Thuyết minh, audio, gợi ý điểm tiếp">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="530" y="452" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="26" edge="1" parent="1" source="7" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Ngôn ngữ cần tải, xóa gói">
+        <mxCell id="27" edge="1" parent="1" source="7" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Ngôn ngữ cần tải, xóa gói">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="233" y="533" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="27" edge="1" parent="1" source="9" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Gói tour (manifest)">
+        <mxCell id="28" edge="1" parent="1" source="9" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Gói tour (manifest)">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="28" edge="1" parent="1" source="10" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tệp ảnh, audio">
+        <mxCell id="29" edge="1" parent="1" source="10" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tệp ảnh, audio">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="29" edge="1" parent="1" source="5" target="11" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Gói tour">
+        <mxCell id="30" edge="1" parent="1" source="5" target="11" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Gói tour">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="609" y="687" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="30" edge="1" parent="1" source="11" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Gói đã tải, dung lượng">
+        <mxCell id="31" edge="1" parent="1" source="11" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Gói đã tải, dung lượng">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="611" y="598" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="31" edge="1" parent="1" source="5" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour đã tải, tiến trình">
+        <mxCell id="32" edge="1" parent="1" source="5" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour đã tải, tiến trình">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="282" y="457" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="32" edge="1" parent="1" source="3" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Lượt xem">
+        <mxCell id="33" edge="1" parent="1" source="3" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Lượt xem">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="33" edge="1" parent="1" source="4" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Lượt nghe, hoàn thành">
+        <mxCell id="34" edge="1" parent="1" source="4" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Lượt nghe, hoàn thành">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="34" edge="1" parent="1" source="5" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Lượt tải">
+        <mxCell id="35" edge="1" parent="1" source="5" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Lượt tải">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="35" edge="1" parent="1" source="6" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="view / play / complete / download">
+        <mxCell id="36" edge="1" parent="1" source="6" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="view / play / complete / download">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="36" edge="1" parent="1" source="3" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Yêu cầu dịch ngôn ngữ mới">
+        <mxCell id="37" edge="1" parent="1" source="3" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Yêu cầu dịch ngôn ngữ mới">
           <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="38" edge="1" parent="1" source="5" target="13" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Yêu cầu tải gói tour trả phí">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="435" y="805" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="39" edge="1" parent="1" source="13" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Cho tải / cần đăng nhập / cần mua">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="525" y="805" /></Array>
           </mxGeometry>
         </mxCell>
       </root>
@@ -330,8 +343,8 @@
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="13" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=28;fontStyle=1;" value="DFD cấp 2 – Tiến trình 3.0 Lịch trình cá nhân (UC07, UC08)" vertex="1">
-          <mxGeometry x="-60" y="-80" width="900" height="50" as="geometry" />
+        <mxCell id="14" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=28;fontStyle=1;" value="DFD cấp 2 – Tiến trình 3.0 Lịch trình cá nhân (UC07, UC08)" vertex="1">
+          <mxGeometry x="-60" y="-340" width="900" height="50" as="geometry" />
         </mxCell>
         <mxCell id="2" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;3.1&lt;/b&gt;&lt;br&gt;Tạo, đổi tên, xóa lịch trình" vertex="1">
           <mxGeometry x="920" y="560" width="160" height="160" as="geometry" />
@@ -366,110 +379,123 @@
         <mxCell id="12" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D12&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Gói offline trên thiết bị (IndexedDB, không phải bảng)" vertex="1">
           <mxGeometry x="600" y="110" width="280" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="14" edge="1" parent="1" source="7" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tên lịch trình, xóa">
+        <mxCell id="13" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontColor=#333333;" value="&lt;b&gt;10.0&lt;/b&gt;&lt;br&gt;Thanh toán tour trả phí" vertex="1">
+          <mxGeometry x="930" y="-250" width="140" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="15" edge="1" parent="1" source="7" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tên lịch trình, xóa">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="507" y="564" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="15" edge="1" parent="1" source="2" target="11" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Lịch trình">
+        <mxCell id="16" edge="1" parent="1" source="2" target="11" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Lịch trình">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="902" y="475" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="16" edge="1" parent="1" source="11" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Danh sách lịch trình">
+        <mxCell id="17" edge="1" parent="1" source="11" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Danh sách lịch trình">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="838" y="537" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="17" edge="1" parent="1" source="2" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Lịch trình của tôi">
+        <mxCell id="18" edge="1" parent="1" source="2" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Lịch trình của tôi">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="528" y="476" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="18" edge="1" parent="1" source="7" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Chọn điểm, thứ tự">
+        <mxCell id="19" edge="1" parent="1" source="7" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Chọn điểm, thứ tự">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="236" y="560" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="19" edge="1" parent="1" source="9" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Điểm của tour công khai">
+        <mxCell id="20" edge="1" parent="1" source="9" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Điểm của tour công khai">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="20" edge="1" parent="1" source="3" target="11" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Điểm (snapshot), thứ tự">
+        <mxCell id="21" edge="1" parent="1" source="3" target="11" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Điểm (snapshot), thứ tự">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="21" edge="1" parent="1" source="3" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Quãng đường, thời gian đi bộ">
+        <mxCell id="22" edge="1" parent="1" source="3" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Quãng đường, thời gian đi bộ">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="279" y="480" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="22" edge="1" parent="1" source="7" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Bật / thu hồi chia sẻ">
+        <mxCell id="23" edge="1" parent="1" source="7" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Bật / thu hồi chia sẻ">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="786" y="304" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="23" edge="1" parent="1" source="4" target="11" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Mã chia sẻ">
+        <mxCell id="24" edge="1" parent="1" source="4" target="11" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Mã chia sẻ">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="1116" y="203" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="24" edge="1" parent="1" source="11" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Lịch trình theo mã">
+        <mxCell id="25" edge="1" parent="1" source="11" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Lịch trình theo mã">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="1144" y="289" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="25" edge="1" parent="1" source="4" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Link chia sẻ">
+        <mxCell id="26" edge="1" parent="1" source="4" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Link chia sẻ">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="769" y="216" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="26" edge="1" parent="1" source="8" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Mã chia sẻ">
+        <mxCell id="27" edge="1" parent="1" source="8" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Mã chia sẻ">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="1844" y="50" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="27" edge="1" parent="1" source="4" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Lịch trình chỉ xem">
+        <mxCell id="28" edge="1" parent="1" source="4" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Lịch trình chỉ xem">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="1851" y="140" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="28" edge="1" parent="1" source="7" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Vị trí GPS, thao tác phát">
+        <mxCell id="29" edge="1" parent="1" source="7" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Vị trí GPS, thao tác phát">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="281" y="298" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="29" edge="1" parent="1" source="11" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Điểm, vùng kích hoạt">
+        <mxCell id="30" edge="1" parent="1" source="11" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Điểm, vùng kích hoạt">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="30" edge="1" parent="1" source="10" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Audio, ảnh">
+        <mxCell id="31" edge="1" parent="1" source="10" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Audio, ảnh">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="31" edge="1" parent="1" source="12" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Gói lịch trình (khi offline)">
+        <mxCell id="32" edge="1" parent="1" source="12" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Gói lịch trình (khi offline)">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="32" edge="1" parent="1" source="5" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Thuyết minh, audio">
+        <mxCell id="33" edge="1" parent="1" source="5" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Thuyết minh, audio">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="234" y="222" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="33" edge="1" parent="1" source="7" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Yêu cầu tải">
+        <mxCell id="34" edge="1" parent="1" source="7" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Yêu cầu tải">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="34" edge="1" parent="1" source="11" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Lịch trình (gói)">
+        <mxCell id="35" edge="1" parent="1" source="11" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Lịch trình (gói)">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="35" edge="1" parent="1" source="10" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tệp ảnh, audio">
+        <mxCell id="36" edge="1" parent="1" source="10" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tệp ảnh, audio">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="36" edge="1" parent="1" source="6" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Gói lịch trình">
+        <mxCell id="37" edge="1" parent="1" source="6" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Gói lịch trình">
           <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="38" edge="1" parent="1" source="6" target="13" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Lịch trình có tour trả phí">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1045" y="-30" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="39" edge="1" parent="1" source="13" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Cho tải / cần mua">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="955" y="-30" /></Array>
           </mxGeometry>
         </mxCell>
       </root>
@@ -480,7 +506,7 @@
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="18" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=28;fontStyle=1;" value="DFD cấp 2 – Tiến trình 4.0 Quản lý nội dung tour (UC09–UC15)" vertex="1">
+        <mxCell id="20" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=28;fontStyle=1;" value="DFD cấp 2 – Tiến trình 4.0 Quản lý nội dung tour (UC09–UC15)" vertex="1">
           <mxGeometry x="0" y="-90" width="900" height="50" as="geometry" />
         </mxCell>
         <mxCell id="2" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;4.1&lt;/b&gt;&lt;br&gt;Tạo, sửa, xóa tour (UC09)" vertex="1">
@@ -531,131 +557,151 @@
         <mxCell id="17" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontColor=#333333;" value="&lt;b&gt;2.0&lt;/b&gt;&lt;br&gt;Tìm, xem, nghe &amp; tải tour" vertex="1">
           <mxGeometry x="850" y="1250" width="140" height="140" as="geometry" />
         </mxCell>
-        <mxCell id="19" edge="1" parent="1" source="9" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tiêu đề, mô tả, thành phố, ảnh bìa">
+        <mxCell id="18" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;4.8&lt;/b&gt;&lt;br&gt;Đặt giá tải offline (UC25)" vertex="1">
+          <mxGeometry x="1200" y="1320" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="19" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Contributor *" vertex="1">
+          <mxGeometry x="1650" y="1360" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="21" edge="1" parent="1" source="9" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tiêu đề, mô tả, thành phố, ảnh bìa">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="20" edge="1" parent="1" source="2" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tour (Nháp), xóa tour">
+        <mxCell id="22" edge="1" parent="1" source="2" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tour (Nháp), xóa tour">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="21" edge="1" parent="1" source="2" target="13" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Ảnh bìa">
+        <mxCell id="23" edge="1" parent="1" source="2" target="13" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Ảnh bìa">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="22" edge="1" parent="1" source="2" target="15" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tour bị gỡ (sửa / xóa tour công khai)">
+        <mxCell id="24" edge="1" parent="1" source="2" target="15" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tour bị gỡ (sửa / xóa tour công khai)">
           <mxGeometry x="0.55" relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="23" edge="1" parent="1" source="9" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Điểm: tên, mô tả, ảnh, audio, vị trí">
+        <mxCell id="25" edge="1" parent="1" source="9" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Điểm: tên, mô tả, ảnh, audio, vị trí">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="24" edge="1" parent="1" source="3" target="10" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Địa chỉ">
+        <mxCell id="26" edge="1" parent="1" source="3" target="10" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Địa chỉ">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="331" y="70" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="25" edge="1" parent="1" source="10" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tọa độ">
+        <mxCell id="27" edge="1" parent="1" source="10" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tọa độ">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="344" y="160" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="26" edge="1" parent="1" source="12" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Vùng cấm">
+        <mxCell id="28" edge="1" parent="1" source="12" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Vùng cấm">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="819" y="292" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="27" edge="1" parent="1" source="3" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Điểm dừng, trạng thái checking">
+        <mxCell id="29" edge="1" parent="1" source="3" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Điểm dừng, trạng thái checking">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="751" y="351" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="28" edge="1" parent="1" source="3" target="13" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Ảnh, audio người thật">
+        <mxCell id="30" edge="1" parent="1" source="3" target="13" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Ảnh, audio người thật">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="29" edge="1" parent="1" source="3" target="14" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Điểm gửi kiểm duyệt">
+        <mxCell id="31" edge="1" parent="1" source="3" target="14" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Điểm gửi kiểm duyệt">
           <mxGeometry x="-0.55" relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="30" edge="1" parent="1" source="9" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Bán kính, ưu tiên, audio chỉ đường">
+        <mxCell id="32" edge="1" parent="1" source="9" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Bán kính, ưu tiên, audio chỉ đường">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="31" edge="1" parent="1" source="4" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Route, vùng kích hoạt">
+        <mxCell id="33" edge="1" parent="1" source="4" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Route, vùng kích hoạt">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="32" edge="1" parent="1" source="9" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Ngôn ngữ, giọng, sửa bản dịch,&lt;br&gt;công tắc dịch tự động">
+        <mxCell id="34" edge="1" parent="1" source="9" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Ngôn ngữ, giọng, sửa bản dịch,&lt;br&gt;công tắc dịch tự động">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="33" edge="1" parent="1" source="5" target="11" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Văn bản cần dịch">
+        <mxCell id="35" edge="1" parent="1" source="5" target="11" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Văn bản cần dịch">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="342" y="1000" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="34" edge="1" parent="1" source="11" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Bản dịch">
+        <mxCell id="36" edge="1" parent="1" source="11" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Bản dịch">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="333" y="1090" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="35" edge="1" parent="1" source="5" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Ngôn ngữ, bản dịch">
+        <mxCell id="37" edge="1" parent="1" source="5" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Ngôn ngữ, bản dịch">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="36" edge="1" parent="1" source="12" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tour mọi trạng thái">
+        <mxCell id="38" edge="1" parent="1" source="12" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tour mọi trạng thái">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="37" edge="1" parent="1" source="6" target="16" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Bản xem thử (GPS mô phỏng)">
+        <mxCell id="39" edge="1" parent="1" source="6" target="16" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Bản xem thử (GPS mô phỏng)">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="38" edge="1" parent="1" source="16" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Passcode, bật / tắt">
+        <mxCell id="40" edge="1" parent="1" source="16" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Passcode, bật / tắt">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="39" edge="1" parent="1" source="7" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Hash passcode, phiên bản">
+        <mxCell id="41" edge="1" parent="1" source="7" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Hash passcode, phiên bản">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="40" edge="1" parent="1" source="16" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Yêu cầu gửi duyệt">
+        <mxCell id="42" edge="1" parent="1" source="16" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Yêu cầu gửi duyệt">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="1557" y="489" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="41" edge="1" parent="1" source="12" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Checklist (đủ điều kiện?)">
+        <mxCell id="43" edge="1" parent="1" source="12" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Checklist (đủ điều kiện?)">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="1156" y="526" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="42" edge="1" parent="1" source="8" target="14" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour gửi kiểm duyệt">
+        <mxCell id="44" edge="1" parent="1" source="8" target="14" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour gửi kiểm duyệt">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="1509" y="409" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="43" edge="1" parent="1" source="14" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Kết quả kiểm duyệt (tour, điểm)">
+        <mxCell id="45" edge="1" parent="1" source="14" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Kết quả kiểm duyệt (tour, điểm)">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="1491" y="321" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="44" edge="1" parent="1" source="8" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Trạng thái, lý do">
+        <mxCell id="46" edge="1" parent="1" source="8" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Trạng thái, lý do">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="1114" y="447" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="45" edge="1" parent="1" source="8" target="16" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Trạng thái gửi duyệt">
+        <mxCell id="47" edge="1" parent="1" source="8" target="16" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Trạng thái gửi duyệt">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="1518" y="571" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="46" edge="1" parent="1" source="8" target="15" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tour công khai (khi tắt kiểm duyệt)">
+        <mxCell id="48" edge="1" parent="1" source="8" target="15" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tour công khai (khi tắt kiểm duyệt)">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="47" edge="1" parent="1" source="17" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Yêu cầu dịch của khách">
+        <mxCell id="49" edge="1" parent="1" source="17" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Yêu cầu dịch của khách">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="50" edge="1" parent="1" source="19" target="18" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Giá: 0 (miễn phí) hoặc&lt;br&gt;1 000–50 000 000 ₫">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1513" y="1355" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="51" edge="1" parent="1" source="18" target="19" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Giá hiện tại">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1513" y="1445" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="52" edge="1" parent="1" source="18" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Giá tour (không đổi trạng thái)">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -816,7 +862,7 @@
         <mxCell id="11" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D3&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Tour &amp; nội dung tour&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;tour.tours, tour.places, tour.route_configs, tour.tour_languages, tour.place_translations, tour.forbidden_zones, tour.tour_access_grants, tour.tour_unlock_attempts&lt;/font&gt;" vertex="1">
           <mxGeometry x="600" y="630" width="280" height="106" as="geometry" />
         </mxCell>
-        <mxCell id="12" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D6&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Đánh giá, báo cáo, thống kê&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;tour.tour_ratings, tour.tour_reports, tour.tour_daily_stats, tour.tour_activity_marks&lt;/font&gt;" vertex="1">
+        <mxCell id="12" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D6&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Đánh giá, báo cáo, thống kê&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;tour.tour_ratings, tour.tour_reports, tour.tour_daily_stats, tour.tour_activity_marks, tour.tour_rating_reports&lt;/font&gt;" vertex="1">
           <mxGeometry x="600" y="870" width="280" height="78" as="geometry" />
         </mxCell>
         <mxCell id="13" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D7&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Nhật ký quản trị&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;tour.admin_actions, tour.tour_review_actions&lt;/font&gt;" vertex="1">
@@ -982,15 +1028,15 @@
         <mxCell id="10" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D3&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Tour &amp; nội dung tour&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;tour.tours, tour.places, tour.route_configs, tour.tour_languages, tour.place_translations, tour.forbidden_zones, tour.tour_access_grants, tour.tour_unlock_attempts&lt;/font&gt;" vertex="1">
           <mxGeometry x="600" y="510" width="280" height="106" as="geometry" />
         </mxCell>
-        <mxCell id="11" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D6&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Đánh giá, báo cáo, thống kê&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;tour.tour_ratings, tour.tour_reports, tour.tour_daily_stats, tour.tour_activity_marks&lt;/font&gt;" vertex="1">
+        <mxCell id="11" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D6&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Đánh giá, báo cáo, thống kê&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;tour.tour_ratings, tour.tour_reports, tour.tour_daily_stats, tour.tour_activity_marks, tour.tour_rating_reports&lt;/font&gt;" vertex="1">
           <mxGeometry x="600" y="220" width="280" height="78" as="geometry" />
         </mxCell>
-        <mxCell id="13" edge="1" parent="1" source="6" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Số sao, nhận xét, sửa / xóa,&lt;br&gt;xem đánh giá của tôi">
+        <mxCell id="13" edge="1" parent="1" source="6" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Số sao, nhận xét, sửa / xóa, báo cáo đánh giá,&lt;br&gt;xem đánh giá của tôi">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="286" y="335" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="14" edge="1" parent="1" source="2" target="11" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Đánh giá">
+        <mxCell id="14" edge="1" parent="1" source="2" target="11" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Đánh giá, báo cáo đánh giá">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="589" y="229" /></Array>
           </mxGeometry>
@@ -1262,6 +1308,186 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="31" edge="1" parent="1" source="4" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Ngoài phạm vi → trả lời mẫu, không gọi LLM">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="10.0 Thanh toán" id="dfd-9">
+    <mxGraphModel dx="2400" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="15" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=28;fontStyle=1;" value="DFD cấp 2 – 10.0 Thanh toán tour trả phí (UC25)" vertex="1">
+          <mxGeometry x="-60" y="-290" width="900" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="2" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;10.1&lt;/b&gt;&lt;br&gt;Tạo đơn thanh toán MoMo" vertex="1">
+          <mxGeometry x="400" y="40" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="3" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;10.2&lt;/b&gt;&lt;br&gt;Nhận kết quả (IPN / truy vấn MoMo)" vertex="1">
+          <mxGeometry x="920" y="40" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="4" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;10.3&lt;/b&gt;&lt;br&gt;Kiểm tra quyền tải gói trả phí" vertex="1">
+          <mxGeometry x="920" y="560" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="5" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;10.4&lt;/b&gt;&lt;br&gt;Lịch sử giao dịch (người mua, tác giả, admin)" vertex="1">
+          <mxGeometry x="400" y="560" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="6" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Khách du lịch (đã đăng nhập)" vertex="1">
+          <mxGeometry x="-60" y="300" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="7" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Khách du lịch *" vertex="1">
+          <mxGeometry x="1440" y="80" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="8" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Người đăng nội dung (Contributor)" vertex="1">
+          <mxGeometry x="-60" y="620" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="9" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Quản trị viên (Admin)" vertex="1">
+          <mxGeometry x="-60" y="860" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="10" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Cổng thanh toán MoMo (sandbox)" vertex="1">
+          <mxGeometry x="650" y="-200" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="11" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontColor=#333333;" value="&lt;b&gt;2.0&lt;/b&gt;&lt;br&gt;Tìm, xem, nghe &amp; tải tour" vertex="1">
+          <mxGeometry x="1440" y="520" width="140" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="12" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontColor=#333333;" value="&lt;b&gt;3.0&lt;/b&gt;&lt;br&gt;Lịch trình" vertex="1">
+          <mxGeometry x="1440" y="760" width="140" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="13" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D13&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Giao dịch mua tour&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;tour.tour_purchases&lt;/font&gt;" vertex="1">
+          <mxGeometry x="600" y="330" width="280" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="14" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D3&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Tour &amp; nội dung tour&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;tour.tours, tour.places, tour.route_configs, tour.tour_languages, tour.place_translations, tour.forbidden_zones, tour.tour_access_grants, tour.tour_unlock_attempts&lt;/font&gt;" vertex="1">
+          <mxGeometry x="1120" y="330" width="280" height="106" as="geometry" />
+        </mxCell>
+        <mxCell id="16" edge="1" parent="1" source="6" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Chọn mua tour">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="277" y="270" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="17" edge="1" parent="1" source="14" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tour công khai, giá, tác giả">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="18" edge="1" parent="1" source="13" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Đơn đã thanh toán (chặn mua lại)">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="641" y="208" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="19" edge="1" parent="1" source="2" target="13" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Đơn mới (pending, số tiền)">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="579" y="274" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="20" edge="1" parent="1" source="2" target="10" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Yêu cầu tạo đơn (ký HMAC SHA256)">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="645" y="11" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="21" edge="1" parent="1" source="10" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="payUrl">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="580" y="-51" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="22" edge="1" parent="1" source="2" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Chuyển sang trang MoMo">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="238" y="190" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="23" edge="1" parent="1" source="10" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="IPN kết quả (ký HMAC)">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="839" y="10" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="24" edge="1" parent="1" source="3" target="10" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Truy vấn trạng thái đơn">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="906" y="-50" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="25" edge="1" parent="1" source="7" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Mã đơn (trang trả về)">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1268" y="75" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="26" edge="1" parent="1" source="3" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Chờ / đã thanh toán / thất bại">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1268" y="165" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="27" edge="1" parent="1" source="13" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Đơn đang chờ">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="901" y="274" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="28" edge="1" parent="1" source="3" target="13" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="paid / failed, mã giao dịch MoMo">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="839" y="208" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="29" edge="1" parent="1" source="11" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Yêu cầu tải gói tour trả phí">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1251" y="570" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="30" edge="1" parent="1" source="4" target="11" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Cho tải / 401 / 402">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1259" y="660" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="31" edge="1" parent="1" source="12" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Gói lịch trình có tour trả phí">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1271" y="693" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="32" edge="1" parent="1" source="4" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Cho tải / 402">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1239" y="777" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="33" edge="1" parent="1" source="13" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Đơn đã thanh toán">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="34" edge="1" parent="1" source="14" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Giá, tác giả">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="35" edge="1" parent="1" source="6" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Xem lịch sử giao dịch">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="232" y="527" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="36" edge="1" parent="1" source="5" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Đơn của tôi (mọi trạng thái)">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="283" y="453" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="37" edge="1" parent="1" source="8" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Chọn tour của mình">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="260" y="695" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="38" edge="1" parent="1" source="5" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Đơn đã bán (người mua ẩn danh)">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="255" y="605" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="39" edge="1" parent="1" source="9" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Lọc trạng thái, trang">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="280" y="809" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="40" edge="1" parent="1" source="5" target="9" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Mọi giao dịch, số đơn đã thu, doanh thu">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="235" y="731" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="41" edge="1" parent="1" source="13" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Đơn hàng">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="42" edge="1" parent="1" source="14" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tên tour">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
