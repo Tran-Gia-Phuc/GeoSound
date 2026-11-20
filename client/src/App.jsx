@@ -26,7 +26,8 @@
 //   /admin              — khu quản trị (chỉ quản trị viên): /admin/reviews, /admin/reviews/:tourId (UC19),
 //                         /admin/reports (UC20), /admin/reports/:tourId,
 //                         /admin/users (UC21), /admin/users/:id, /admin/devices (UC23),
-//                         /admin/dashboard, /admin/actions, /admin/actions/:id (UC22)
+//                         /admin/dashboard, /admin/actions, /admin/actions/:id (UC22),
+//                         /admin/payments (UC25)
 //   /studio             — tour của tôi (UC09, chỉ người đóng góp)
 //   /studio/tours/new   — tạo tour (UC09)
 //   /studio/tours/:id   — soạn tour theo các bước (StudioTourLayout + stepper):
@@ -93,6 +94,7 @@ import AppLayout from './components/shell/AppLayout.jsx';
 import OfflineLibraryPage from './features/offline/OfflineLibraryPage.jsx';
 import PaymentReturnPage from './features/payment/PaymentReturnPage.jsx';
 import PurchaseHistoryPage from './features/payment/PurchaseHistoryPage.jsx';
+import AdminPaymentsPage from './features/admin/AdminPaymentsPage.jsx';
 import ChatPage from './features/chat/ChatPage.jsx';
 import { loadOfflineDetail } from './lib/offline-store.js';
 import { previewTour } from './lib/studio.js';
@@ -216,6 +218,7 @@ const router = createBrowserRouter(
         <Route path="/admin/users/:id" element={<RequireAuth><UserDetailPage /></RequireAuth>} />
         <Route path="/admin/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
         <Route path="/admin/actions" element={<RequireAuth><ActionLogPage /></RequireAuth>} />
+        <Route path="/admin/payments" element={<RequireAuth><AdminPaymentsPage /></RequireAuth>} />
         <Route path="/admin/actions/:id" element={<RequireAuth><ActionDetailPage /></RequireAuth>} />
         <Route path="/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
         <Route path="/admin/devices" element={<RequireAuth><OnlineDevicesPage /></RequireAuth>} />

@@ -8,14 +8,9 @@ import { Link } from 'react-router-dom';
 import Icon from '../../components/Icon.jsx';
 import AppHeader from '../../components/shell/AppHeader.jsx';
 import { formatDateTime } from '../../lib/format.js';
-import { formatVnd, listMyPurchases } from '../../lib/payment.js';
+import { PURCHASE_STATUS, formatVnd, listMyPurchases } from '../../lib/payment.js';
 
 const OFFLINE_MESSAGE = 'Không thể kết nối, vui lòng thử lại';
-const STATUS = {
-  paid: { label: 'Đã thanh toán', chip: 'chip chip--ok' },
-  pending: { label: 'Đang chờ', chip: 'chip' },
-  failed: { label: 'Thất bại', chip: 'chip chip--warn' },
-};
 
 export default function PurchaseHistoryPage() {
   const [items, setItems] = useState(null);
@@ -57,7 +52,7 @@ export default function PurchaseHistoryPage() {
     body = (
       <ul className="purchases" aria-label="Lịch sử giao dịch">
         {items.map((p) => {
-          const st = STATUS[p.status] ?? STATUS.pending;
+          const st = PURCHASE_STATUS[p.status] ?? PURCHASE_STATUS.pending;
           const title = p.tourTitle || 'Tour không còn khả dụng';
           return (
             <li key={p.orderId} className="card purchase" data-testid="purchase-row">

@@ -12,6 +12,7 @@ export const ADMIN_LINKS = [
   { to: '/admin/reports', label: 'Tour bị báo cáo', icon: 'alert-triangle', hint: 'Xử lý báo cáo vi phạm của du khách' },
   { to: '/admin/reports/ratings', label: 'Khiếu nại đánh giá', icon: 'flag', hint: 'Xử lý báo cáo và khiếu nại đánh giá vi phạm (UC05)' },
   { to: '/admin/users', label: 'Tài khoản', icon: 'user', hint: 'Tìm tài khoản, cảnh báo, tạm khoá, cấm hoặc khôi phục' },
+  { to: '/admin/payments', label: 'Giao dịch', icon: 'clock', hint: 'Mọi đơn mua tour qua MoMo, doanh thu, lọc theo trạng thái' },
   { to: '/admin/actions', label: 'Nhật ký hành động', icon: 'list', hint: 'Ai đã duyệt, ẩn, cấm gì và khi nào (chỉ đọc)' },
   { to: '/admin/devices', label: 'Thiết bị đang online', icon: 'eye', hint: 'Số thiết bị và tài khoản đang hoạt động' },
 ];

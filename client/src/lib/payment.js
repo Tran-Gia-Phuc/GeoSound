@@ -6,6 +6,7 @@
 //   Return: GET  /api/tours/payments/:orderId -> { orderId, tourId, status, amount }
 //   History: GET /api/tours/purchases/mine -> { items } (buyer, newest first, at most 50)
 //            GET /api/tours/mine/:tourId/sales -> { items } (author, paid orders only)
+//            GET /api/tours/admin/payments?status&page&limit -> { items, total, page, limit, paidCount, revenue }
 // Listening online stays free; only the offline package of a paid tour needs a purchase.
 // =========================================================
 import { api } from './api.js';
@@ -25,6 +26,20 @@ export const getPaymentStatus = (orderId, opts) => api.get(`/api/tours/payments/
 export const listMyPurchases = (opts) => api.get('/api/tours/purchases/mine', { ...opts, auth: true });
 export const listTourSales = (tourId, opts) =>
   api.get(`/api/tours/mine/${encodeURIComponent(tourId)}/sales`, { ...opts, auth: true });
+
+export const ADMIN_PAYMENTS_LIMIT = 20;
+export function listAllPurchases({ status, page = 1, limit = ADMIN_PAYMENTS_LIMIT } = {}, opts) {
+  const q = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (status) q.set('status', status);
+  return api.get(`/api/tours/admin/payments?${q}`, { ...opts, auth: true });
+}
+
+/** Order status -> label and chip class (history and admin pages). */
+export const PURCHASE_STATUS = {
+  paid: { label: 'Đã thanh toán', chip: 'chip chip--ok' },
+  pending: { label: 'Đang chờ', chip: 'chip' },
+  failed: { label: 'Thất bại', chip: 'chip chip--warn' },
+};
 
 /** Same rules as the server: '' (free) or an integer 1 000..50 000 000. Returns an error text or ''. */
 export function validatePrice(value) {
