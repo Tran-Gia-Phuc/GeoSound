@@ -191,3 +191,59 @@ test('purchase history: empty state', async ({ page }) => {
   await expect(page.getByText('Bạn chưa mua tour nào.')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Khám phá tour' })).toBeVisible();
 });
+
+test('admin payments: totals, every order with buyer link, status filter and paging (390 px)', async ({ page }) => {
+  await signIn(page, 'admin');
+  await fixtures(page);
+  const BUYER = '77777777-7777-4777-8777-777777777777';
+  const urls = [];
+  await page.route('**/api/tours/admin/payments?**', (route) => {
+    const u = new URL(route.request().url());
+    urls.push(u.search);
+    const failed = u.searchParams.get('status') === 'failed';
+    return json(route, {
+      items: failed
+        ? [{ orderId: AUTHOR, tourId: id, tourTitle: null, userId: BUYER, status: 'failed', amount: 25000, transId: null, resultCode: 1006, createdAt: '2026-11-17T08:00:00.000Z', paidAt: null }]
+        : [{ orderId: ORDER, tourId: id, tourTitle: 'Hà Nội ngàn năm văn hiến', userId: BUYER, status: 'paid', amount: 49000, transId: '4088878653', resultCode: 0, createdAt: '2026-11-18T07:59:00.000Z', paidAt: '2026-11-18T08:00:00.000Z' }],
+      total: failed ? 1 : 25,
+      page: Number(u.searchParams.get('page')),
+      limit: 20,
+      paidCount: 3,
+      revenue: 123000,
+    });
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/admin');
+  await page.getByRole('link', { name: /Giao dịch/ }).first().click();
+  await expect(page).toHaveURL(/\/admin\/payments$/);
+
+  await expect(page.getByTestId('payments-summary')).toContainText('Đã thu 123.000 ₫ từ 3 đơn');
+  const row = page.getByTestId('admin-payment-row');
+  await expect(row).toHaveCount(1);
+  await expect(row).toContainText('Đã thanh toán');
+  await expect(row).toContainText('Mã MoMo 4088878653');
+  await expect(row.getByRole('link', { name: 'Người mua …777777' })).toHaveAttribute('href', `/admin/users/${BUYER}`);
+  await noOverflow(page);
+
+  await page.getByRole('button', { name: 'Trang sau' }).click();
+  await expect(page).toHaveURL(/page=2/);
+  await page.getByRole('group', { name: 'Lọc theo trạng thái' }).getByRole('button', { name: 'Thất bại' }).click();
+  await expect(page).toHaveURL(/\/admin\/payments\?status=failed$/);
+  await expect(row).toContainText('Tour không còn khả dụng');
+  await expect(row).toContainText('Mã kết quả 1006');
+  // dev StrictMode runs the first effect twice: compare the distinct requests.
+  expect([...new Set(urls)]).toEqual(['?page=1&limit=20', '?page=2&limit=20', '?page=1&limit=20&status=failed']);
+});
+
+test('admin payments: a tourist gets the admin-only message and no call', async ({ page }) => {
+  await signIn(page, 'tourist');
+  await fixtures(page);
+  let calls = 0;
+  await page.route('**/api/tours/admin/payments?**', (route) => {
+    calls += 1;
+    return json(route, { items: [], total: 0, page: 1, limit: 20, paidCount: 0, revenue: 0 });
+  });
+  await page.goto('/admin/payments');
+  await expect(page.getByRole('alert')).toContainText('Chỉ quản trị viên');
+  expect(calls).toBe(0);
+});
