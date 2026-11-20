@@ -1693,6 +1693,11 @@
      "name": "expires_at",
      "nullable": true,
      "type": "timestamp with time zone"
+    },
+    {
+     "name": "link_token_hash",
+     "nullable": true,
+     "type": "text"
     }
    ],
    "fks": [
@@ -1832,6 +1837,11 @@
      "name": "name_id_format",
      "nullable": true,
      "type": "text"
+    },
+    {
+     "name": "dedicated_scope",
+     "nullable": true,
+     "type": "boolean"
     }
    ],
    "fks": [
@@ -4375,6 +4385,156 @@
     ]
    ]
   },
+  "tour_purchases": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "user_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "amount",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "status",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "provider",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "trans_id",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "result_code",
+     "nullable": true,
+     "type": "integer"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "paid_at",
+     "nullable": true,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": []
+  },
+  "tour_rating_reports": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "tour_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "rating_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "rating_user_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "reporter_id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "reporter_role",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "reason_type",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "description",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "status",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "admin_note",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "resolved_by",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "updated_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [
+    {
+     "columns": [
+      "rating_id"
+     ],
+     "refColumns": [
+      "id"
+     ],
+     "refSchema": "tour",
+     "refTable": "tour_ratings"
+    }
+   ],
+   "pk": [
+    "id"
+   ],
+   "unique": [
+    [
+     "tour_id",
+     "rating_user_id",
+     "reporter_id"
+    ]
+   ]
+  },
   "tour_ratings": {
    "columns": [
     {
@@ -4416,6 +4576,16 @@
      "name": "updated_at",
      "nullable": false,
      "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "is_flagged",
+     "nullable": false,
+     "type": "boolean"
+    },
+    {
+     "name": "is_hidden",
+     "nullable": false,
+     "type": "boolean"
     }
    ],
    "fks": [
@@ -4705,6 +4875,11 @@
      "name": "auto_translate",
      "nullable": false,
      "type": "boolean"
+    },
+    {
+     "name": "price",
+     "nullable": false,
+     "type": "integer"
     }
    ],
    "fks": [],

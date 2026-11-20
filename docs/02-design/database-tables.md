@@ -1,13 +1,13 @@
 # GeoSound database tables (for the ERD)
 
-Every table of the database as it is on Supabase (snapshot of 2026-11-09,
+Every table of the database as it is on Supabase (snapshot of 2026-11-20,
 [`drawio/erd/supabase-schema.json`](drawio/erd/supabase-schema.json), made by `scripts/diagrams/db-snapshot.py`).
 The tables come from `services/<svc>/prisma/schema.prisma`, the chat memory tables of `services/ai/app/chatbot/memory.py`
 and the LangGraph checkpointer. ERD: [`drawio/erd-geosound.xml`](drawio/erd-geosound.xml).
 
-**The database has 75 tables:**
+**The database has 77 tables:**
 
-- **34 GeoSound tables**, in the schemas of the services (section 1): `app_auth` 3, `tour` 16, `notification` 2,
+- **36 GeoSound tables**, in the schemas of the services (section 1): `app_auth` 3, `tour` 18, `notification` 2,
   `moderation` 1, `media` 1, `ai` 5, `ai_chat` 6. They are on page 1 of the ERD.
 - **41 Supabase platform tables**, made and managed by Supabase itself: `auth` 27 (Supabase Auth), `storage` 10,
   `realtime` 3, `vault` 1. GeoSound never reads or writes them. They are on page 2 of the ERD. Do not mix up Supabase's
@@ -35,11 +35,12 @@ and the LangGraph checkpointer. ERD: [`drawio/erd-geosound.xml`](drawio/erd-geos
 | tour | `tour_languages` | Languages of a tour and TTS voice | UC12 |
 | tour | `place_translations` | Text (and TTS URL) of a stop per language | UC12 |
 | tour | `forbidden_zones` | Polygons where a stop may not be placed (seed data) | UC10 |
-| tour | `tour_ratings` | One rating per account and tour | UC05 |
+| tour | `tour_ratings` | One rating per account and tour, with moderation flags | UC05 |
+| tour | `tour_rating_reports` | Abuse reports and author disputes of a rating, reviewed by an admin | UC05 |
 | tour | `tour_reports` | One community report per account and tour | UC06, UC20 |
 | tour | `tour_access_grants` | Unlocks of a restricted tour per tester | UC14 |
 | tour | `tour_unlock_attempts` | Wrong passcode attempts (rate limit) | UC14 |
-| tour | `tour_purchases` | MoMo orders of paid tours (added 2026-11-18, after the snapshot) | UC25 |
+| tour | `tour_purchases` | MoMo orders of paid tours (added 2026-11-18) | UC25 |
 | tour | `tour_daily_stats` | Daily counters per tour and language | UC17 |
 | tour | `tour_activity_marks` | Dedup marks for the counters | UC17 |
 | tour | `itineraries` | Personal itineraries | UC07 |
@@ -77,6 +78,7 @@ erDiagram
   tours ||--o{ tour_languages : "has"
   places ||--o{ place_translations : "has"
   tours ||--o{ tour_ratings : "has"
+  tour_ratings ||--o{ tour_rating_reports : "has"
   tours ||--o{ tour_reports : "has"
   tours ||--o{ tour_access_grants : "has"
   tours ||--o{ tour_unlock_attempts : "has"
@@ -88,6 +90,8 @@ erDiagram
   users ||..o{ tours : "author_id"
   users ||..o{ itineraries : "owner_id"
   users ||..o{ tour_ratings : "user_id"
+  users ||..o{ tour_rating_reports : "reporter_id"
+  tours ||..o{ tour_rating_reports : "tour_id"
   users ||..o{ tour_reports : "reporter_id"
   users ||..o{ tour_access_grants : "user_id"
   users ||..o{ tour_purchases : "user_id"
@@ -278,9 +282,29 @@ Index `(active)`. No relation: checked against every saved stop.
 | `user_name` | text | no | reviewer name at rating time |
 | `stars` | int | no | 1..5 |
 | `comment` | text | yes | max 1000 |
+| `is_flagged` | boolean | no | default false; has an open abuse report |
+| `is_hidden` | boolean | no | default false; hidden by an admin |
 | `created_at`, `updated_at` | timestamp | no | |
 
 Unique `(tour_id, user_id)`; indexes `(tour_id, created_at)`, `(user_id)`.
+
+### `tour_rating_reports`
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | uuid | PK |
+| `tour_id` | uuid | no | | soft ref → `tours.id` |
+| `rating_id` | uuid | no | | FK → `tour_ratings.id`, cascade |
+| `rating_user_id` | uuid | no | | author of the reported rating |
+| `reporter_id` | uuid | no | | soft ref → `app_auth.users.id` |
+| `reporter_role` | text | no | | `TOURIST` \| `AUTHOR` (author dispute) |
+| `reason_type` | text | no | | `SPAM`, `OFFENSIVE`, `MISLEADING`, `OTHER` |
+| `description` | text | yes | | |
+| `status` | text | no | `PENDING` | `PENDING` \| `RESOLVED` \| `DISMISSED` |
+| `admin_note`, `resolved_by` | text | yes | | set by the admin who handles it |
+| `created_at`, `updated_at` | timestamp | no | now | |
+
+Unique `(tour_id, rating_user_id, reporter_id)`; indexes `(status, created_at)`, `(rating_id)`. Migration `20261117000000_rating_reports`.
 
 ### `tour_reports`
 
