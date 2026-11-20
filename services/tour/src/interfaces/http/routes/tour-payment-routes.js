@@ -8,22 +8,24 @@
 //     POST /:id/purchase            -> 201 { orderId, payUrl } | 400 tour_free / own_tour | 409 | 503
 //     GET  /:id/purchase/mine       -> { price, purchased, owner }
 //     GET  /purchases/mine          -> { items: [{ orderId, tourId, tourTitle, status, amount, transId, createdAt, paidAt }] }
+//   Admin:
+//     GET  /admin/payments?status=&page=&limit= -> { items, total, page, limit, paidCount, revenue }
 //   Public:
 //     GET  /payments/:orderId       -> { orderId, tourId, status, amount } (asks MoMo while pending)
 //     POST /payments/momo/ipn       MoMo notification, signature checked -> 204
 // Guards are injected (no ../shared import). Mount BEFORE the contributor routers.
 // =========================================================
 import { Router } from 'express';
-import { validateBody, validateParams } from '../middleware/validate.js';
-import { priceTourParamSchema, buyTourParamSchema, orderParamSchema, setPriceSchema } from '../../../application/dtos/payment-schemas.js';
+import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
+import { priceTourParamSchema, buyTourParamSchema, orderParamSchema, setPriceSchema, adminPaymentsQuerySchema } from '../../../application/dtos/payment-schemas.js';
 import { UUID } from './public-tour-routes.js';
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-/** @param {{ tourPaymentController, requireAuth: import('express').RequestHandler, requireContributor: import('express').RequestHandler }} deps */
-export function buildTourPaymentRouter({ tourPaymentController: c, requireAuth, requireContributor }) {
-  if (typeof requireAuth !== 'function' || typeof requireContributor !== 'function') {
-    throw new Error('buildTourPaymentRouter: requireAuth and requireContributor are required');
+/** @param {{ tourPaymentController, requireAuth, requireContributor, requireAdmin: import('express').RequestHandler }} deps */
+export function buildTourPaymentRouter({ tourPaymentController: c, requireAuth, requireContributor, requireAdmin }) {
+  if ([requireAuth, requireContributor, requireAdmin].some((g) => typeof g !== 'function')) {
+    throw new Error('buildTourPaymentRouter: requireAuth, requireContributor and requireAdmin are required');
   }
   const r = Router();
   const owner = [requireContributor, validateParams(priceTourParamSchema)];
@@ -34,6 +36,7 @@ export function buildTourPaymentRouter({ tourPaymentController: c, requireAuth, 
   r.get('/mine/:tourId/sales', ...owner, wrap(c.sales));
 
   r.get('/purchases/mine', requireAuth, wrap(c.history));
+  r.get('/admin/payments', requireAdmin, validateQuery(adminPaymentsQuerySchema), wrap(c.adminList));
 
   r.post(`/:id(${UUID})/purchase`, ...buyer, wrap(c.purchase));
   r.get(`/:id(${UUID})/purchase/mine`, ...buyer, wrap(c.mine));

@@ -164,15 +164,33 @@ export class ListMyPurchases {
   }
 
   async execute({ userId }) {
-    const rows = await this.purchaseRepo.listByUser(userId, HISTORY_LIMIT);
+    return { items: (await this.purchaseRepo.listByUser(userId, HISTORY_LIMIT)).map(historyItem) };
+  }
+}
+
+const historyItem = (p) => ({
+  ...view(p),
+  tourTitle: p.tourTitle ?? null,
+  transId: p.transId ?? null,
+  createdAt: p.createdAt,
+  paidAt: p.paidAt ?? null,
+});
+
+/** Admin: every MoMo order with the buyer id and result code, paged, plus all-time paid totals. */
+export class ListAllPurchases {
+  constructor({ purchaseRepo }) {
+    Object.assign(this, { purchaseRepo });
+  }
+
+  async execute({ status, page = 1, limit = 20 } = {}) {
+    const { rows, total, paidCount, revenue } = await this.purchaseRepo.listAll({ status, page, limit });
     return {
-      items: rows.map((p) => ({
-        ...view(p),
-        tourTitle: p.tourTitle ?? null,
-        transId: p.transId ?? null,
-        createdAt: p.createdAt,
-        paidAt: p.paidAt ?? null,
-      })),
+      items: rows.map((p) => ({ ...historyItem(p), userId: p.userId, resultCode: p.resultCode ?? null })),
+      total,
+      page,
+      limit,
+      paidCount,
+      revenue,
     };
   }
 }

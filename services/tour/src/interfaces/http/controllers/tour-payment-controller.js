@@ -3,10 +3,10 @@
 // =========================================================
 
 export class TourPaymentController {
-  /** @param {{ getTourPrice, setTourPrice, startTourPurchase, getMyPurchase, getPaymentStatus, handleMomoIpn, listMyPurchases, listTourSales }} useCases */
+  /** @param {{ getTourPrice, setTourPrice, startTourPurchase, getMyPurchase, getPaymentStatus, handleMomoIpn, listMyPurchases, listTourSales, listAllPurchases }} useCases */
   constructor(useCases) {
     this.uc = useCases;
-    for (const m of ['getPrice', 'setPrice', 'purchase', 'mine', 'status', 'ipn', 'history', 'sales']) this[m] = this[m].bind(this);
+    for (const m of ['getPrice', 'setPrice', 'purchase', 'mine', 'status', 'ipn', 'history', 'sales', 'adminList']) this[m] = this[m].bind(this);
   }
 
   async getPrice(req, res) {
@@ -21,6 +21,10 @@ export class TourPaymentController {
 
   async sales(req, res) {
     res.json(await this.uc.listTourSales.execute({ authorId: req.user.sub, tourId: req.validatedParams.tourId }));
+  }
+
+  async adminList(req, res) {
+    res.json(await this.uc.listAllPurchases.execute(req.validatedQuery ?? {}));
   }
 
   async history(req, res) {

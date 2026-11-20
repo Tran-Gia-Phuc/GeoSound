@@ -182,6 +182,7 @@ import {
   HandleMomoIpn,
   ListMyPurchases,
   ListTourSales,
+  ListAllPurchases,
 } from './application/use-cases/tour-payment.js';
 import { TourPaymentController } from './interfaces/http/controllers/tour-payment-controller.js';
 import { buildTourPaymentRouter } from './interfaces/http/routes/tour-payment-routes.js';
@@ -522,9 +523,11 @@ export function buildContainer(env = process.env, { publish = null, validateEven
           handleMomoIpn: new HandleMomoIpn({ purchaseRepo, momo }),
           listMyPurchases: new ListMyPurchases({ purchaseRepo }),
           listTourSales: new ListTourSales({ tourRepo, purchaseRepo }),
+          listAllPurchases: new ListAllPurchases({ purchaseRepo }),
         }),
         requireAuth: verifyJwt(),
         requireContributor: verifyJwt(['contributor']),
+        requireAdmin: verifyJwt(['admin']),
       })
     : null;
 

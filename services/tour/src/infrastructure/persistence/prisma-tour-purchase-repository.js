@@ -69,7 +69,22 @@ export class PrismaTourPurchaseRepository {
 
   /** Purchase history of one account, newest first, with the tour title (null if the tour is gone). */
   async listByUser(userId, limit) {
-    const rows = await this.prisma.tourPurchase.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: limit });
+    return this.#withTitles(await this.prisma.tourPurchase.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: limit }));
+  }
+
+  /** Admin: every order (optional status filter), newest first, one page, plus paid totals of all time. */
+  async listAll({ status, page, limit }) {
+    const where = status ? { status } : {};
+    const [rows, total, sales] = await Promise.all([
+      this.prisma.tourPurchase.findMany({ where, orderBy: { createdAt: 'desc' }, skip: (page - 1) * limit, take: limit }),
+      this.prisma.tourPurchase.count({ where }),
+      this.prisma.tourPurchase.aggregate({ where: { status: PAID }, _count: { _all: true }, _sum: { amount: true } }),
+    ]);
+    return { rows: await this.#withTitles(rows), total, paidCount: sales._count._all, revenue: sales._sum.amount ?? 0 };
+  }
+
+  // tour_id is a soft ref: the title is null once the tour is deleted.
+  async #withTitles(rows) {
     const tourIds = [...new Set(rows.map((r) => r.tourId))];
     const tours = tourIds.length
       ? await this.prisma.tour.findMany({ where: { id: { in: tourIds } }, select: { id: true, title: true } })

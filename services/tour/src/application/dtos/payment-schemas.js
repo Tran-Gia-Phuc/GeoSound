@@ -16,6 +16,12 @@ export const orderParamSchema = z.object({
   orderId: z.string().uuid('Mã đơn thanh toán không hợp lệ'),
 });
 
+export const adminPaymentsQuerySchema = z.object({
+  status: z.enum(['pending', 'paid', 'failed'], { errorMap: () => ({ message: 'Trạng thái không hợp lệ' }) }).optional(),
+  page: z.coerce.number({ invalid_type_error: 'Trang không hợp lệ' }).int().min(1, 'Trang không hợp lệ').default(1),
+  limit: z.coerce.number({ invalid_type_error: 'Số dòng không hợp lệ' }).int().min(1).max(50, 'Tối đa 50 dòng').default(20),
+});
+
 export const setPriceSchema = z.object({
   price: z.number({ required_error: 'Vui lòng nhập giá', invalid_type_error: 'Giá phải là số' }),
 });
