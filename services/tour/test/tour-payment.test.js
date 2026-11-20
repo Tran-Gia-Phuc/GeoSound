@@ -23,6 +23,7 @@ import {
   HandleMomoIpn,
   ListMyPurchases,
   ListTourSales,
+  ListAllPurchases,
 } from '../src/application/use-cases/tour-payment.js';
 import { GetTourPackage } from '../src/application/use-cases/get-tour-package.js';
 import { GetItineraryPackage } from '../src/application/use-cases/get-itinerary-package.js';
@@ -110,6 +111,12 @@ class FakePurchaseRepo {
       .slice(0, limit)
       .map((r) => ({ ...r, tourTitle: this.tourRepo.rows.get(r.tourId)?.title ?? null }));
   }
+  async listAll({ status, page, limit }) {
+    const all = [...this.rows.values()].filter((r) => !status || r.status === status).sort((a, b) => b.createdAt - a.createdAt);
+    const sales = await this.salesOf(T_PAID);
+    const rows = all.slice((page - 1) * limit, page * limit).map((r) => ({ ...r, tourTitle: this.tourRepo.rows.get(r.tourId)?.title ?? null }));
+    return { rows, total: all.length, ...sales };
+  }
   async paidOfTour(tourId, limit) {
     return [...this.rows.values()]
       .filter((r) => r.tourId === tourId && r.status === 'paid')
@@ -170,6 +177,7 @@ function kit({ momo = {} } = {}) {
     ipn: new HandleMomoIpn({ purchaseRepo, momo: client, clock }),
     history: new ListMyPurchases({ purchaseRepo }),
     sales: new ListTourSales({ tourRepo, purchaseRepo }),
+    adminList: new ListAllPurchases({ purchaseRepo }),
   };
 }
 
@@ -358,6 +366,27 @@ test('history: buyer sees every own attempt newest first; author sees paid order
   await assert.rejects(kk.sales.execute({ authorId: AUTHOR, tourId: UNKNOWN }), { status: 404 });
 });
 
+test('admin list: every order newest first with buyer id, status filter, paging, all-time paid totals', async () => {
+  const k = kit();
+  const a = await k.start.execute({ tourId: T_PAID, userId: BUYER });
+  await k.ipn.execute(signedIpn(a.orderId, 25000, 0));
+  const b = await k.start.execute({ tourId: T_PAID, userId: 'buyer-2' });
+  await k.ipn.execute(signedIpn(b.orderId, 25000, 1006));
+  const c = await k.start.execute({ tourId: T_PAID, userId: 'buyer-3' });
+
+  const all = await k.adminList.execute({ page: 1, limit: 20 });
+  assert.deepEqual(all.items.map((i) => [i.orderId, i.userId, i.status]), [
+    [c.orderId, 'buyer-3', 'pending'],
+    [b.orderId, 'buyer-2', 'failed'],
+    [a.orderId, BUYER, 'paid'],
+  ]);
+  assert.deepEqual([all.total, all.paidCount, all.revenue, all.items[1].resultCode], [3, 1, 25000, 1006]);
+  const failed = await k.adminList.execute({ status: 'failed', page: 1, limit: 20 });
+  assert.deepEqual([failed.total, failed.items[0].orderId], [1, b.orderId]);
+  const p2 = await k.adminList.execute({ page: 2, limit: 2 });
+  assert.deepEqual([p2.items.length, p2.items[0].orderId, p2.page, p2.limit], [1, a.orderId, 2, 2]);
+});
+
 // ---------- HTTP ----------
 // Same rules as shared verifyJwt: 401 without a token, 403 for another role. Token = "<role>:<sub>".
 const fakeGuard = (roles) => (req, res, next) => {
@@ -373,11 +402,11 @@ async function withServer(k, fn) {
   const controller = new TourPaymentController({
     getTourPrice: k.getPrice, setTourPrice: k.setPrice, startTourPurchase: k.start,
     getMyPurchase: k.mine, getPaymentStatus: k.status, handleMomoIpn: k.ipn,
-    listMyPurchases: k.history, listTourSales: k.sales,
+    listMyPurchases: k.history, listTourSales: k.sales, listAllPurchases: k.adminList,
   });
   const app = express();
   app.use(express.json());
-  app.use('/', buildTourPaymentRouter({ tourPaymentController: controller, requireAuth: fakeGuard(null), requireContributor: fakeGuard(['contributor']) }));
+  app.use('/', buildTourPaymentRouter({ tourPaymentController: controller, requireAuth: fakeGuard(null), requireContributor: fakeGuard(['contributor']), requireAdmin: fakeGuard(['admin']) }));
   // eslint-disable-next-line no-unused-vars
   app.use((err, _req, res, _next) => res.status(err.status || 500).json({ error: err.message, code: err.code }));
   const server = http.createServer(app);
@@ -431,5 +460,12 @@ test('router: guards, validation, purchase, IPN 204, public status', async () =>
     assert.equal((await call(`/mine/${T_PAID}/sales`, { token: buyer })).status, 403);
     const sales = await call(`/mine/${T_PAID}/sales`, { token: author });
     assert.deepEqual([sales.status, sales.body.items.length, sales.body.items[0].buyer], [200, 1, 'uyer-1']);
+
+    assert.equal((await call('/admin/payments')).status, 401);
+    assert.equal((await call('/admin/payments', { token: buyer })).status, 403);
+    assert.equal((await call('/admin/payments?status=refunded', { token: 'admin:a1' })).status, 400);
+    assert.equal((await call('/admin/payments?limit=51', { token: 'admin:a1' })).status, 400);
+    const adm = await call('/admin/payments?status=paid&page=1&limit=10', { token: 'admin:a1' });
+    assert.deepEqual([adm.status, adm.body.total, adm.body.items[0].userId, adm.body.limit], [200, 1, BUYER, 10]);
   });
 });
