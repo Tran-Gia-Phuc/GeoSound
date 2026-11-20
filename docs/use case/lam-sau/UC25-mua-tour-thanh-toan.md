@@ -4,10 +4,10 @@
 |---|---|
 | **Use Case Number** | UC25 |
 | **Use Case Name** | Mua tour có phí để tải về nghe offline |
-| **Actor(s)** | Khách du lịch (Tourist, bất kỳ tài khoản đã đăng nhập); Người đăng nội dung (Contributor, tác giả tour); Cổng thanh toán MoMo (môi trường sandbox cho nhà phát triển) |
+| **Actor(s)** | Khách du lịch (Tourist, bất kỳ tài khoản đã đăng nhập); Người đăng nội dung (Contributor, tác giả tour); Quản trị viên (Admin, xem mọi giao dịch); Cổng thanh toán MoMo (môi trường sandbox cho nhà phát triển) |
 | **Priority** | P2 |
 | **Maturity** | Implemented |
-| **Summary** | Tác giả đặt giá tải về cho tour (0 = miễn phí). Nghe trực tuyến luôn miễn phí; muốn tải tour có phí về máy, khách đăng nhập và trả một lần qua MoMo. Sau khi MoMo xác nhận, khách tải tour như UC03. Tác giả xem số lượt bán và doanh thu ở Studio. |
+| **Summary** | Tác giả đặt giá tải về cho tour (0 = miễn phí). Nghe trực tuyến luôn miễn phí; muốn tải tour có phí về máy, khách đăng nhập và trả một lần qua MoMo. Sau khi MoMo xác nhận, khách tải tour như UC03. Tác giả xem số lượt bán, doanh thu và danh sách đơn đã bán ở Studio. Khách xem lịch sử giao dịch của mình; quản trị viên xem mọi giao dịch. |
 
 ## Basic Course of Events
 
@@ -42,6 +42,12 @@
 
 **A6. Lịch trình (UC07, UC08) có điểm thuộc tour có phí** → tải gói lịch trình bị từ chối 402 cho tới khi chủ lịch trình mua các tour đó. `GetItineraryPackage.execute()` → `PrismaTourPurchaseRepository.lockedTourIds()`
 
+**A7. Khách xem lịch sử giao dịch** → Tài khoản (`/account`) → **"Lịch sử giao dịch"** (`/account/purchases`). `GET /api/tours/purchases/mine` trả mọi đơn của tài khoản (mọi lần thử, mới nhất trước, tối đa 50): tên tour, số tiền, trạng thái (Đã thanh toán / Đang chờ / Thất bại), thời gian, mã đơn, mã giao dịch MoMo. Đơn `paid` dẫn về trang tour; đơn `pending` có nút **"Kiểm tra lại"** về `/payment/momo?orderId=` (bước 10); tour đã bị xóa hiện "Tour không còn khả dụng"; chưa có đơn → "Bạn chưa mua tour nào." và nút **"Khám phá tour"**. `PurchaseHistoryPage`, `listMyPurchases()` → `ListMyPurchases.execute()` → `PrismaTourPurchaseRepository.listByUser()`
+
+**A8. Tác giả xem đơn đã bán** → khi tour đã có lượt bán, khung **"Giá tải về offline"** hiện thêm danh sách **"Đơn đã bán"** (tối đa 50 đơn `paid` mới nhất): "Người mua …" (6 ký tự cuối của mã tài khoản, không lộ email), ngày thanh toán, số tiền. `GET /api/tours/mine/:tourId/sales`; không phải tác giả → 403 `not_tour_owner`. `listTourSales()` → `ListTourSales.execute()` → `PrismaTourPurchaseRepository.paidOfTour()`
+
+**A9. Quản trị viên xem mọi giao dịch** → khu quản trị, mục **"Giao dịch"** (`/admin/payments`). `GET /api/tours/admin/payments?status=&page=&limit=` (chỉ `admin`): tổng "Đã thu X từ N đơn thanh toán thành công" (mọi thời gian), lọc theo trạng thái, 20 đơn mỗi trang, mới nhất trước. Mỗi dòng: tour, số tiền, trạng thái, thời gian, người mua (liên kết `/admin/users/:id`, UC21), mã đơn, mã MoMo, mã kết quả khi chưa thanh toán. `AdminPaymentsPage`, `listAllPurchases()` → `ListAllPurchases.execute()` → `PrismaTourPurchaseRepository.listAll()`
+
 ## Exception Path
 
 - **E1.** Giá không hợp lệ (âm, lẻ, dưới 1 000 hoặc trên 50 000 000) → 400 `validation_error` (client kiểm cùng quy tắc trước khi gửi). Không phải tác giả → 403 `not_tour_owner`. `validatePrice()`, `normalizePrice()`
@@ -50,10 +56,11 @@
 - **E4.** Máy chủ chưa cấu hình khóa MoMo, hoặc MoMo từ chối / không phản hồi → 503 "Thanh toán MoMo đang tạm thời không khả dụng, vui lòng thử lại sau" (lỗi 5xx chỉ trả message); đơn vừa tạo được đánh dấu `failed`. `PaymentUnavailableError`
 - **E5.** IPN sai chữ ký, sai `partnerCode` hoặc sai số tiền → 400 `invalid_signature`, đơn không đổi; đơn không tồn tại → 404.
 - **E6.** Tải gói tour có phí khi chưa đăng nhập → 401 `login_required`; đã đăng nhập nhưng chưa mua → 402 `payment_required`.
+- **E7.** Lịch sử giao dịch khi chưa đăng nhập → 401; trang giao dịch quản trị với tài khoản không phải `admin` → 403 (client hiện màn hình chặn của `AdminGate`); `status`, `page` hoặc `limit` sai → 400 `validation_error`. Mất mạng → "Không thể kết nối, vui lòng thử lại" và nút **"Thử lại"**.
 
 ## Extension Points
 
-- UC03 – Tải tour về nghe offline (sau khi mua); UC09 – Quản lý tour (đặt giá ở Studio); UC07/UC08 – Lịch trình (gói offline kiểm quyền mua).
+- UC03 – Tải tour về nghe offline (sau khi mua); UC09 – Quản lý tour (đặt giá ở Studio); UC07/UC08 – Lịch trình (gói offline kiểm quyền mua); UC21 – Quản lý tài khoản (từ người mua trong trang giao dịch quản trị).
 
 ## Triggers
 
@@ -70,7 +77,7 @@ Khách muốn nghe một tour có phí khi không có mạng.
 
 ## Post Conditions
 
-- Một dòng `tour.tour_purchases` ở `paid` cho cặp (tour, khách); khách tải được gói offline của tour. Tác giả thấy thêm một lượt bán và doanh thu ở Studio.
+- Một dòng `tour.tour_purchases` ở `paid` cho cặp (tour, khách); khách tải được gói offline của tour. Tác giả thấy thêm một lượt bán, doanh thu và đơn trong "Đơn đã bán" ở Studio; đơn hiện trong lịch sử giao dịch của khách và trang giao dịch quản trị.
 
 ## Reference: Business Rules
 
@@ -79,15 +86,17 @@ Khách muốn nghe một tour có phí khi không có mạng.
 - Tác giả luôn tải được tour của mình; bản thử truy cập hạn chế (UC14) không cần mua.
 - Số tiền của đơn là giá tại lúc mua; IPN và kết quả hỏi MoMo phải khớp số tiền này.
 - Trạng thái đơn chỉ đi `pending → paid | failed` và `failed → paid` (thành công muộn); `paid` không bao giờ quay lại.
+- Lịch sử chỉ đọc: khách chỉ thấy đơn của mình, tác giả chỉ thấy đơn `paid` của tour mình (mã người mua rút gọn), quản trị viên thấy mọi đơn. Doanh thu chỉ tính đơn `paid`.
 - Không có hoàn tiền, chi trả cho tác giả hay sự kiện / thông báo khi bán (ngoài phạm vi đợt này).
 
 ## Hiện thực trong hệ thống
 
-- **Dịch vụ:** Client (khung mua, trang kết quả, khung giá Studio); Tour (giá, đơn mua, chữ ký MoMo, kiểm quyền gói offline; `verifyJwt` dùng chung từ `shared/middleware`); MoMo sandbox (bên ngoài).
-- **Màn hình (client):** khung **"Mua tour để tải về"** trong `/tour/:tourId` (`features/payment/PurchaseGate.jsx`); `/payment/momo` (`features/payment/PaymentReturnPage.jsx`); khung **"Giá tải về offline"** ở `/studio/tours/:id/publish` (`features/studio/TourPricePanel.jsx`); API `client/src/lib/payment.js`.
+- **Dịch vụ:** Client (khung mua, trang kết quả, khung giá Studio, lịch sử giao dịch, trang giao dịch quản trị); Tour (giá, đơn mua, chữ ký MoMo, kiểm quyền gói offline; `verifyJwt` dùng chung từ `shared/middleware`); MoMo sandbox (bên ngoài).
+- **Màn hình (client):** khung **"Mua tour để tải về"** trong `/tour/:tourId` (`features/payment/PurchaseGate.jsx`); `/payment/momo` (`features/payment/PaymentReturnPage.jsx`); khung **"Giá tải về offline"** và danh sách **"Đơn đã bán"** ở `/studio/tours/:id/publish` (`features/studio/TourPricePanel.jsx`); **"Lịch sử giao dịch"** `/account/purchases` (`features/payment/PurchaseHistoryPage.jsx`, liên kết trong menu `/account`); **"Giao dịch"** `/admin/payments` (`features/admin/AdminPaymentsPage.jsx`, mục trong `AdminNav`); API `client/src/lib/payment.js`.
 - **API (qua gateway):**
-  - Tác giả: `GET|PUT /api/tours/mine/:tourId/price`
-  - Khách: `POST /api/tours/:id/purchase`, `GET /api/tours/:id/purchase/mine`, `GET /api/tours/:id/package?lang=` (kèm token khi đã đăng nhập)
+  - Tác giả: `GET|PUT /api/tours/mine/:tourId/price`, `GET /api/tours/mine/:tourId/sales`
+  - Khách: `POST /api/tours/:id/purchase`, `GET /api/tours/:id/purchase/mine`, `GET /api/tours/:id/package?lang=` (kèm token khi đã đăng nhập), `GET /api/tours/purchases/mine`
+  - Quản trị viên: `GET /api/tours/admin/payments?status=&page=&limit=`
   - Công khai: `GET /api/tours/payments/:orderId`, `POST /api/tours/payments/momo/ipn` (MoMo gọi, kiểm chữ ký)
 - **Sự kiện:** không có.
 - **Dữ liệu:** `tour.tours.price` (int, mặc định 0); `tour.tour_purchases` (`id` = orderId, `tour_id`, `user_id`, `amount`, `status`, `provider`, `trans_id`, `result_code`, `created_at`, `paid_at`; index `tour_id, user_id, status` và `user_id`). Migration `services/tour/prisma/migrations/20261118000000_tour_purchases`.
@@ -99,16 +108,18 @@ Khách muốn nghe một tour có phí khi không có mạng.
 | 1–2 | `TourPricePanel` | `client/src/features/studio/TourPricePanel.jsx` |
 | 3–7, A1–A3 | `PurchaseGate` | `client/src/features/payment/PurchaseGate.jsx` |
 | 10–11, A4, A5 | `PaymentReturnPage` | `client/src/features/payment/PaymentReturnPage.jsx` |
-| 2–10 | `getTourPrice()`, `setTourPrice()`, `startPurchase()`, `getMyPurchase()`, `getPaymentStatus()`, `validatePrice()`, `formatVnd()` | `client/src/lib/payment.js` |
+| A7 | `PurchaseHistoryPage` | `client/src/features/payment/PurchaseHistoryPage.jsx` |
+| A9 | `AdminPaymentsPage`, `AdminNav` | `client/src/features/admin/AdminPaymentsPage.jsx`, `AdminNav.jsx` |
+| 2–10 | `getTourPrice()`, `setTourPrice()`, `startPurchase()`, `getMyPurchase()`, `getPaymentStatus()`, `validatePrice()`, `formatVnd()`, `listMyPurchases()`, `listTourSales()`, `listAllPurchases()`, `PURCHASE_STATUS` | `client/src/lib/payment.js` |
 | 13 | `fetchTourPackage()` | `client/src/lib/offline-download.js` |
 | 2–10 | `buildTourPaymentRouter()`, `TourPaymentController` | `services/tour/src/interfaces/http/routes/tour-payment-routes.js`, `controllers/tour-payment-controller.js` |
-| 2, 6, 10 | `setPriceSchema`, `buyTourParamSchema`, `orderParamSchema` | `services/tour/src/application/dtos/payment-schemas.js` |
-| 2–13 | `GetTourPrice`, `SetTourPrice`, `StartTourPurchase`, `GetMyPurchase`, `GetPaymentStatus`, `HandleMomoIpn`, `assertPackageAccess()` | `services/tour/src/application/use-cases/tour-payment.js` |
+| 2, 6, 10, A9 | `setPriceSchema`, `buyTourParamSchema`, `orderParamSchema`, `adminPaymentsQuerySchema` | `services/tour/src/application/dtos/payment-schemas.js` |
+| 2–13 | `GetTourPrice`, `SetTourPrice`, `StartTourPurchase`, `GetMyPurchase`, `GetPaymentStatus`, `HandleMomoIpn`, `ListMyPurchases`, `ListTourSales`, `ListAllPurchases`, `assertPackageAccess()` | `services/tour/src/application/use-cases/tour-payment.js` |
 | 13, E6 | `GetTourPackage.execute()` | `services/tour/src/application/use-cases/get-tour-package.js` |
 | A6 | `GetItineraryPackage.execute()` | `services/tour/src/application/use-cases/get-itinerary-package.js` |
 | 2, 9 | `normalizePrice()`, `momoResultStatus()`, `PURCHASE_STATUS` | `services/tour/src/domain/tour/tour-price.js` |
 | 6, 9, 10 | `MomoClient` (`createPayment`, `queryPayment`, `verifyIpn`, `fromEnv`) | `services/tour/src/infrastructure/payment/momo-client.js` |
-| 2–13 | `PrismaTourPurchaseRepository` (`create`, `hasPaid`, `markPaidIf`, `markFailedIf`, `lockedTourIds`, `salesOf`), `PrismaTourRepository.setPrice()` | `services/tour/src/infrastructure/persistence/prisma-tour-purchase-repository.js`, `prisma-tour-repository.js` |
+| 2–13, A7–A9 | `PrismaTourPurchaseRepository` (`create`, `hasPaid`, `markPaidIf`, `markFailedIf`, `lockedTourIds`, `salesOf`, `listByUser`, `paidOfTour`, `listAll`), `PrismaTourRepository.setPrice()` | `services/tour/src/infrastructure/persistence/prisma-tour-purchase-repository.js`, `prisma-tour-repository.js` |
 
 ## Author(s)
 
@@ -116,7 +127,7 @@ Khách muốn nghe một tour có phí khi không có mạng.
 
 ## Date
 
-Tạo: 2026-11-18
+Tạo: 2026-11-18. Cập nhật: 2026-11-20 (lịch sử giao dịch A7–A9).
 
 ## Sequence Diagram
 
@@ -149,8 +160,12 @@ sequenceDiagram
     Gateway->>Tour: GET /:id/package
     Tour->>Tour: assertPackageAccess (tác giả hoặc đã mua)
     Tour-->>Client: gói offline (UC03)
+    K->>Client: Tài khoản → "Lịch sử giao dịch"
+    Client->>Gateway: GET /api/tours/purchases/mine
+    Gateway->>Tour: GET /purchases/mine
+    Tour-->>Client: { items } (đơn của tài khoản)
 ```
 
 ## Boundary
 
-Khung "Mua tour để tải về" trong chi tiết tour (`/tour/:tourId`); Trang thanh toán của MoMo (bên ngoài); Trang kết quả (`/payment/momo`); Khung "Giá tải về offline" ở bước Xuất bản (`/studio/tours/:id/publish`).
+Khung "Mua tour để tải về" trong chi tiết tour (`/tour/:tourId`); Trang thanh toán của MoMo (bên ngoài); Trang kết quả (`/payment/momo`); Khung "Giá tải về offline" và "Đơn đã bán" ở bước Xuất bản (`/studio/tours/:id/publish`); Trang "Lịch sử giao dịch" (`/account/purchases`); Trang "Giao dịch" của quản trị (`/admin/payments`).

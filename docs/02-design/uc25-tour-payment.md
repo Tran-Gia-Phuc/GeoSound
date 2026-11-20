@@ -24,6 +24,7 @@ package (UC03) of a paid tour is served only to the author and to accounts that 
 | R10 | The itinerary package (UC07/UC08) answers 402 while it holds places of paid tours the owner has not bought |
 | R11 | The UC14 restricted package is not charged: testers of a restricted tour never pay |
 | R12 | No MoMo keys: `MomoClient.fromEnv()` returns `null`, buying answers 503 (`PaymentUnavailableError`, code `payment_unavailable` in the log; the shared `errorHandler` sends only the message for 5xx); every other flow keeps working. A MoMo error on create marks the new order `failed` and answers 503 |
+| R13 | History is read-only and scoped (2026-11-20): `GET /purchases/mine` lists the caller's own orders (all statuses, newest first, at most 50); `GET /mine/:tourId/sales` lists the paid orders of an own tour (at most 50, buyer shown as the last 6 characters of the user id, no email); `GET /admin/payments` (`admin` only, 403 otherwise) lists every order, 20 per page (`limit` 1 to 50), optional `status`, with the all-time paid count and revenue. The tour title is joined in; a deleted tour gives `tourTitle: null` |
 
 ## 3. Data (Tour schema, migration `20261118000000_tour_purchases`)
 
@@ -37,6 +38,9 @@ package (UC03) of a paid tour is served only to the author and to accounts that 
 | Who | Route | Answer |
 | --- | --- | --- |
 | Author | `GET /mine/:tourId/price`, `PUT /mine/:tourId/price {price}` | `{price, paidCount, revenue}` |
+| Author | `GET /mine/:tourId/sales` | `{items:[{orderId, amount, paidAt, buyer}]}`, 403 |
+| Buyer | `GET /purchases/mine` | `{items:[{orderId, tourId, tourTitle, status, amount, transId, createdAt, paidAt}]}`, 401 |
+| Admin | `GET /admin/payments?status=&page=&limit=` | `{items:[... + userId, resultCode], total, page, limit, paidCount, revenue}`, 401, 403, 400 |
 | Buyer | `POST /:id/purchase` | 201 `{orderId, payUrl}` |
 | Buyer | `GET /:id/purchase/mine` | `{price, purchased, owner}` |
 | Public | `GET /payments/:orderId` | `{orderId, tourId, status, amount}` |
@@ -50,23 +54,29 @@ Keys in `.env` only: `MOMO_PARTNER_CODE`, `MOMO_ACCESS_KEY`, `MOMO_SECRET_KEY`, 
 
 - Domain: `domain/tour/tour-price.js` (`normalizePrice`, `momoResultStatus`, `PURCHASE_STATUS`).
 - Use cases: `application/use-cases/tour-payment.js` (`GetTourPrice`, `SetTourPrice`, `StartTourPurchase`,
-  `GetMyPurchase`, `GetPaymentStatus`, `HandleMomoIpn`, `assertPackageAccess`); guards in
+  `GetMyPurchase`, `GetPaymentStatus`, `HandleMomoIpn`, `ListMyPurchases`, `ListTourSales`,
+  `ListAllPurchases`, `assertPackageAccess`); guards in
   `get-tour-package.js` and `get-itinerary-package.js`.
 - Infrastructure: `infrastructure/payment/momo-client.js` (injected `fetch`, 15 s timeout),
-  `persistence/prisma-tour-purchase-repository.js`, `PrismaTourRepository.setPrice()`.
+  `persistence/prisma-tour-purchase-repository.js` (history: `listByUser`, `paidOfTour`, `listAll`),
+  `PrismaTourRepository.setPrice()`.
 - HTTP: `payment-schemas.js`, `tour-payment-controller.js`, `tour-payment-routes.js` (mounted after the
   access routes; public routes match UUIDs only, so `/payments/...` and `/mine/...` are not captured).
 - Client: `lib/payment.js`, `features/payment/PurchaseGate.jsx`, `features/payment/PaymentReturnPage.jsx`
-  (route `/payment/momo`), `features/studio/TourPricePanel.jsx`; `fetchTourPackage()` sends the token when
-  signed in.
+  (route `/payment/momo`), `features/payment/PurchaseHistoryPage.jsx` (route `/account/purchases`, link in
+  the account menu), `features/admin/AdminPaymentsPage.jsx` (route `/admin/payments`, "Giao dịch" in
+  `AdminNav`), `features/studio/TourPricePanel.jsx` (price and "Đơn đã bán" list); `fetchTourPackage()`
+  sends the token when signed in.
 
 ## 6. Tests
 
 - `services/tour/test/tour-payment.test.js`: price rules, signatures (create, query, IPN), purchase
-  flow, status transitions, package and itinerary guards, routes. MoMo is a fake `fetch`; nothing calls
+  flow, status transitions, package and itinerary guards, history, sales and admin list, routes
+  (401 / 403 / 400 / 200). MoMo is a fake `fetch`; nothing calls
   the network.
 - `client/test/ui/payment.spec.js`: anonymous gate, buy redirect, 503, buyer, free tour, return page
-  (pending → paid, failed), Studio price.
+  (pending → paid, failed), Studio price and sales list, purchase history (rows, empty state), admin
+  payments page (summary, filter, paging) and the tourist blocked from it.
 
 ## 7. Out of scope
 
@@ -88,4 +98,7 @@ number of pending orders per account.
   `20261117000000_rating_reports` resolved as applied (its tables already matched; a stray default on
   `tour_rating_reports.updated_at` was dropped to match it), then `migrate deploy tour` applied
   `20261118000000_tour_purchases`. `migrate status` is up to date and `migrate check` shows no drift.
+- 2026-11-20 (history): Tour tests 307 passed in the image and repo layouts, Playwright 307 passed;
+  the rebuilt Tour answers 401 without a token on the three new routes through the gateway. Not
+  clicked through with real accounts (that would add Supabase session rows).
 - Not checked: the IPN from the real MoMo servers (needs a public `MOMO_IPN_URL`).
