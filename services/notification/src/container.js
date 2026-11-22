@@ -4,15 +4,18 @@
 // =========================================================
 import { PrismaInAppNotificationRepository } from './infrastructure/prisma-in-app-notification-repository.js';
 import { createStoreInAppNotification } from './application/store-in-app-notification.js';
+import { PrismaPendingEmailRepository } from './infrastructure/prisma-pending-email-repository.js';
+import { createEmailOutbox } from './application/email-outbox.js';
 import { ListNotifications, CountUnread, MarkRead, MarkAllRead } from './application/notification-use-cases.js';
 import { NotificationController } from './interfaces/http/notification-controller.js';
 import { buildNotificationRouter } from './interfaces/http/notification-routes.js';
 
 /**
  * @param {{ prisma: import('@prisma/client').PrismaClient, requireAuth: import('express').RequestHandler,
- *           logger?: Console, repository?: object }} deps  `repository` overrides Prisma (tests)
+ *           mailer: { send: Function }, logger?: Console, repository?: object, pendingEmails?: object }} deps
+ *   `repository` / `pendingEmails` override Prisma (tests)
  */
-export function buildContainer({ prisma, requireAuth, logger = console, repository }) {
+export function buildContainer({ prisma, requireAuth, mailer, logger = console, repository, pendingEmails }) {
   const repo = repository ?? new PrismaInAppNotificationRepository(prisma);
   const controller = new NotificationController({
     listNotifications: new ListNotifications({ repository: repo }),
@@ -23,6 +26,7 @@ export function buildContainer({ prisma, requireAuth, logger = console, reposito
   return {
     repository: repo,
     storeInApp: createStoreInAppNotification({ repository: repo, logger }),
+    emailOutbox: createEmailOutbox({ repository: pendingEmails ?? new PrismaPendingEmailRepository(prisma), mailer, logger }),
     notificationRouter: buildNotificationRouter({ controller, requireAuth }),
   };
 }
