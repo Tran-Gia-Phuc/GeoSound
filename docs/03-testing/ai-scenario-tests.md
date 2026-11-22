@@ -16,13 +16,16 @@ Two additions to the AI service tests (`services/ai`), on top of the unit tests 
 | `test_chatbot_scenarios.py` | 19 realistic chat messages (accents or not, injection, off-topic, unknown city, location) through the real `ChatAgent` graph: intent, finish reason, language, LLM call or not, and for every message: citations only from retrieved items, invented ids removed, coordinates never stored |
 | `test_moderation_eval.py` | The evaluation dataset is valid for the API schema and balanced; the runner and its metrics (fake model) |
 
-Known gaps are written as `xfail(strict=True)` tests in `test_chatbot_scenarios.py`; a fix makes them fail,
-then the mark is removed:
+Two gaps found by these tests are fixed in `app/chatbot/graph/rules.py` and kept as regression tests in
+`test_chatbot_scenarios.py`:
 
-- a short Vietnamese message typed without accents ("tour an uong o hoi an") is detected as English, and the
-  client sends no `language`, so the answer is in English;
-- weather questions without the words "thời tiết" / "weather" ("Hội An có mưa không?") are not refused and
-  reach the retrieval and the model.
+- a short Vietnamese message typed without accents ("tour an uong o hoi an") was detected as English (the
+  client sends no `language`); one folded Vietnamese phrase ("an uong", "tham quan", "dia diem"...) is now
+  enough;
+- weather questions without the words "thời tiết" / "weather" ("Hội An có mưa không?") reached the retrieval
+  and the model; "mưa", "nắng", "bão", "rain", "storm" are now out of scope, while a travel question about the
+  weather ("Đi đâu khi trời mưa ở Hà Nội?", "where to go ... when it rains") stays in scope. "mưa" and "nắng"
+  match only with accents, since unaccented "mua" also means "buy".
 
 ## Moderation evaluation
 
