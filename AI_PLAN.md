@@ -185,3 +185,13 @@ the UC docs; write new ones with the `uc-test-writer` agent.
 | UC15 (Moderation) | `*.submitted` → consumer → fake AI HTTP server → `*.ai_passed` / `*.ai_rejected`; 422 = Warning, 503 = retry then `ai_failed` + sweeper, 401 = nothing, duplicate revision, geo + AI merge | `services/moderation/test/uc15-moderation-scenarios.test.js` |
 | UC01, UC23, UC21 | register → OTP → login → reset password; two devices, refresh rotation, reuse detection, revoke; admin suspend / ban revokes all sessions | `services/auth/test/uc-scenarios.test.js` |
 | UC15, UC24 (AI) | provider answers through the real LLM clients, moderation wiring, chatbot replies, labelled moderation dataset | `services/ai/tests/scenarios/` (`docs/03-testing/ai-scenario-tests.md`) |
+| UC14 | restrict with passcode → absent from search, nearby, explore, catalog events → wrong code 403, rate limit 429 → unlock: detail + package for that account only → new passcode drops unlocks → off → UC15 / UC19 → public | `services/tour/test/uc14-restricted-scenarios.test.js` |
+| UC16 | review, report and account events → one in-app row per event (+ email, Auth lookup) → HTTP list, `tourId` filter, unread count, mark read, other users refused | `services/notification/test/uc16-scenarios.test.js` |
+| UC05, UC17 | seeded aggregate → rate, edit, delete → rating reports → admin remove / dismiss → stats beacons once per device / day, author-only stats | `services/tour/test/uc05-uc17-scenarios.test.js` |
+| UC07, UC08 | create itinerary → add places of public tours only → reorder, remove → share link read-only → other users refused → tour unpublished / hidden later (stops kept as snapshot) → follow view with zones, path, language | `services/tour/test/uc07-uc08-scenarios.test.js` |
+
+Found by these tests, not fixed yet (kept as `test.todo` in `uc05-uc17-scenarios.test.js`):
+1. `prisma-tour-rating-repository.js` `#lockOwn` does not filter `is_hidden`: an owner re-rating a rating the admin removed edits the hidden row and moves the aggregate (average drifts).
+2. Same cause: deleting a removed rating subtracts its stars a second time (`rating_count` too low).
+3. `prisma-tour-stats-repository.js` `latestComments` does not filter `isHidden`: removed comments stay in the author's stats (confirm the wanted behaviour).
+Also noted: `itinerary-routes.js` imports `../shared` directly (CI rule, section 5 notes); Notification re-sends the email on a redelivered event (in-app row is deduplicated); the shared itinerary view returns `ownerId` to anonymous viewers.
