@@ -166,6 +166,9 @@ class GeminiClient:
             raise LLMResponseError(
                 "Response body is not JSON", provider=self.provider
             ) from exc
+        if not isinstance(data, dict):
+            # Otherwise _extract_text raises AttributeError and the route answers 500, not 503.
+            raise LLMResponseError("Response body is not a JSON object", provider=self.provider)
 
         text = self._extract_text(data)
         logger.info(

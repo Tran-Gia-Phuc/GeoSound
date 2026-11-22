@@ -7,6 +7,7 @@ Automated tests follow **microservices + monolith per service**. Strategy and fo
 | [strategy.md](strategy.md) | Layers, locations, what not to do |
 | [moderation-e2e.md](moderation-e2e.md) | Moderation end-to-end test (RabbitMQ + Moderation + AI stub): commands, scenarios, expected output |
 | [chatbot-eval.md](chatbot-eval.md) | Chatbot offline evaluation (#189): dataset, command, metrics, fake-model baseline, LangSmith upload |
+| [ai-scenario-tests.md](ai-scenario-tests.md) | AI scenario tests (`services/ai/tests/scenarios/`: provider clients, moderation wiring, chatbot replies), moderation evaluation with a labelled dataset, known gaps |
 
 Expected later (not written in init):
 
