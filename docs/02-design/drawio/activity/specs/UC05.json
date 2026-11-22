@@ -3,7 +3,7 @@
   "steps": [
     {
       "id": "s1",
-      "text": "1. Tourist hoặc Author mở mục “Đánh giá” trên chi tiết tour, bấm biểu tượng tùy chọn trên nhận xét của người khác và chọn “Báo cáo vi phạm”.",
+      "text": "1. Tourist mở mục “Đánh giá” trên chi tiết tour và nhấn nút “Báo cáo” (biểu tượng cờ) trên nhận xét của người khác.",
       "alts": [
         "A1"
       ]
@@ -18,7 +18,7 @@
     },
     {
       "id": "s4",
-      "text": "4. Server kiểm tra quyền: đã đăng nhập, đánh giá tồn tại, không tự báo cáo chính mình, chưa gửi báo cáo PENDING trước đó; hợp lệ? E1–E4.",
+      "text": "4. Server kiểm tra: đã đăng nhập, tour công khai, đánh giá còn hiển thị, không tự báo cáo chính mình, chưa từng báo cáo đánh giá này; hợp lệ? E1–E4.",
       "exceptions": [
         {
           "id": "E1",
@@ -32,12 +32,12 @@
         },
         {
           "id": "E3",
-          "text": "E3. Đã có báo cáo PENDING cho đánh giá này → chặn gửi lại (409).",
+          "text": "E3. Đã từng báo cáo đánh giá này (bất kỳ trạng thái nào) → 409, hộp thoại hiện “Bạn đã gửi báo cáo cho đánh giá này rồi”.",
           "back": "end"
         },
         {
           "id": "E4",
-          "text": "E4. Đánh giá không tồn tại hoặc đã bị gỡ bỏ → trả 404.",
+          "text": "E4. Tour không công khai, đánh giá đã bị xóa hoặc gỡ, hoặc reportId không tồn tại → 404.",
           "back": "end"
         }
       ],
@@ -53,14 +53,14 @@
     },
     {
       "id": "s7",
-      "text": "7. Admin mở trang Quản trị kiểm duyệt (/admin/reports/ratings); hệ thống kiểm tra quyền Admin và tải danh sách báo cáo (status=pending)? A2, E5.",
+      "text": "7. Admin mở trang “Khiếu nại đánh giá” (/admin/reports/ratings); hệ thống kiểm tra quyền Admin và tải hàng đợi status=pending (bị gắn cờ trước, rồi khiếu nại của tác giả, rồi mới nhất)? A2, E5.",
       "alts": [
         "A2"
       ],
       "exceptions": [
         {
           "id": "E5",
-          "text": "E5. Tài khoản không có quyền Admin → trả 403 forbidden.",
+          "text": "E5. Tài khoản không có quyền Admin → 403; không có token → 401.",
           "back": "end"
         }
       ],
@@ -68,7 +68,7 @@
     },
     {
       "id": "s8",
-      "text": "8. Admin xem chi tiết khiếu nại và chọn quyết định: “Gỡ bỏ đánh giá” hoặc “Bác bỏ báo cáo”."
+      "text": "8. Admin chọn “Gỡ bỏ đánh giá” hoặc “Bác bỏ báo cáo”, nhập ghi chú xử lý (tùy chọn) trong hộp thoại xác nhận và nhấn “Xác nhận”."
     },
     {
       "id": "s9",
@@ -76,7 +76,7 @@
     },
     {
       "id": "s10",
-      "text": "10. Server xử lý trong một Transaction: DISMISS → chuyển báo cáo sang DISMISSED và đặt is_flagged = false; REMOVE_RATING → ẩn/xóa đánh giá, tính lại average_rating và rating_count bằng SQL atomic, chuyển báo cáo sang RESOLVED."
+      "text": "10. Server xử lý trong một Transaction: mọi báo cáo PENDING của đánh giá đổi trạng thái; DISMISS → DISMISSED và is_flagged = false; REMOVE_RATING → RESOLVED, đặt is_hidden = true và tính lại average_rating, rating_count bằng SQL atomic (chỉ một lần)."
     },
     {
       "id": "s11",
@@ -87,15 +87,15 @@
     {
       "id": "A1",
       "steps": [
-        "A1.1. Tác giả tour (Author) mở trang quản lý tour của mình (/my-tours/:tourId) hoặc mục Đánh giá, nhấn “Khiếu nại đánh giá”.",
-        "A1.2. Author chọn lý do và nhập giải trình chi tiết; hệ thống gắn nhãn ưu tiên (reporter_role = 'AUTHOR')."
+        "A1.1. Tác giả tour (Author) mở mục “Đánh giá” trên chi tiết tour của mình và nhấn nút “Khiếu nại” trên nhận xét; Client mở hộp thoại “Khiếu nại đánh giá”.",
+        "A1.2. Author chọn lý do và nhập giải trình chi tiết (tùy chọn); server lưu reporter_role = 'AUTHOR', hàng đợi Admin hiện nhãn “Khiếu nại từ Tác giả”."
       ],
       "to": "s3"
     },
     {
       "id": "A2",
       "steps": [
-        "A2.1. Admin chuyển tab bộ lọc trạng thái (PENDING, RESOLVED, DISMISSED) trên /admin/reports/ratings để tra cứu lịch sử các báo cáo đã xử lý."
+        "A2.1. Admin chuyển tab “Chờ duyệt”, “Đã gỡ bỏ”, “Đã bác bỏ” trên /admin/reports/ratings để tra cứu các báo cáo đã xử lý."
       ],
       "to": "end"
     }

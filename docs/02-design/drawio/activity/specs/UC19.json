@@ -3,20 +3,20 @@
   "steps": [
     {
       "id": "s1",
-      "text": "1. Admin mở trang “Hàng chờ kiểm duyệt”."
+      "text": "1. Admin mở trang “Duyệt tour” (hàng chờ)."
     },
     {
       "id": "s2",
-      "text": "2. Hệ thống trả các tour ở “Cảnh báo AI” hoặc “Chờ duyệt”: Cảnh báo AI lên đầu, sau đó tour chờ lâu nhất trước; mỗi dòng có tên, trạng thái, thành phố, số lý do, thời điểm gửi. E1, E2.",
+      "text": "2. Hệ thống trả các tour ở “Cảnh báo AI” hoặc “Chờ duyệt”: Cảnh báo AI lên đầu, sau đó tour chờ lâu nhất trước; mỗi dòng có tên, trạng thái, số lý do AI / vị trí, thành phố · loại tour, thời điểm gửi. E1, E2.",
       "exceptions": [
         {
           "id": "E1",
-          "text": "E1. Không có tour chờ duyệt → danh sách trống.",
+          "text": "E1. Không có tour chờ duyệt → “Không có tour nào chờ duyệt”.",
           "back": "s1"
         },
         {
           "id": "E2",
-          "text": "E2. Không có token hợp lệ → 401; không phải Admin → 403.",
+          "text": "E2. Không có token hợp lệ → 401; không phải Admin → 403, client hiện “Chỉ quản trị viên được xem trang này”.",
           "back": "end"
         }
       ],
@@ -32,7 +32,7 @@
       "exceptions": [
         {
           "id": "E3",
-          "text": "E3. Mã tour sai định dạng → 400; tour không tồn tại → 404.",
+          "text": "E3. Mã tour sai định dạng → 400; tour không tồn tại → 404, client hiện “Không tìm thấy tour này”.",
           "back": "end"
         }
       ],
@@ -47,7 +47,7 @@
       "exceptions": [
         {
           "id": "E5",
-          "text": "E5. Từ chối / yêu cầu chỉnh sửa thiếu lý do hoặc quá 1000 ký tự → 422, lỗi hiện trong hộp thoại.",
+          "text": "E5. Từ chối / yêu cầu chỉnh sửa thiếu lý do hoặc quá 1000 ký tự → 422 (“Vui lòng nhập lý do” / “Lý do tối đa 1000 ký tự”), lỗi hiện trong hộp thoại.",
           "back": "s5"
         }
       ],
@@ -80,6 +80,10 @@
         }
       ],
       "decision": true
+    },
+    {
+      "id": "s8",
+      "text": "8. Client hiện “Đã duyệt tour, tour đã công khai” và quay về hàng chờ; tour xuất hiện trong tìm kiếm và tải được."
     }
   ],
   "alts": [
@@ -93,16 +97,16 @@
     {
       "id": "A2",
       "steps": [
-        "A2.1. Admin chọn “Từ chối” và nhập lý do (bắt buộc, 1–1000 ký tự). E5.",
-        "A2.2. Hệ thống chuyển tour sang “Bị từ chối”, lưu lý do, ghi log và phát tour.rejected; tác giả nhận thông báo và email kèm lý do, có thể sửa và gửi lại (UC#15)."
+        "A2.1. Admin chọn “Từ chối”, nhập lý do (bắt buộc, 1–1000 ký tự) và bấm “Từ chối tour”. E5.",
+        "A2.2. Hệ thống chuyển tour sang “Bị từ chối”, lưu lý do, ghi log và phát tour.rejected; tác giả nhận thông báo và email kèm lý do; client hiện “Đã từ chối tour” và quay về hàng chờ."
       ],
       "to": "end"
     },
     {
       "id": "A3",
       "steps": [
-        "A3.1. Admin nhập ghi chú chung và ghi chú cho từng điểm. E5.",
-        "A3.2. Hệ thống ghép thành một lý do (“Điểm 2 – <tên>: <ghi chú>”), chuyển tour sang “Cần chỉnh sửa”, ghi log và phát tour.changes_requested; tác giả nhận “Tour cần chỉnh sửa”, sửa rồi gửi lại."
+        "A3.1. Admin chọn “Yêu cầu chỉnh sửa”, nhập lý do chung và/hoặc ghi chú từng điểm (ít nhất một ô) rồi bấm “Gửi yêu cầu chỉnh sửa”. E5.",
+        "A3.2. Hệ thống ghép thành một lý do (“Điểm 2 – <tên>: <ghi chú>”), chuyển tour sang “Cần chỉnh sửa”, ghi log và phát tour.changes_requested; tác giả nhận “Tour cần chỉnh sửa”; client hiện “Đã yêu cầu tác giả chỉnh sửa tour” và quay về hàng chờ."
       ],
       "to": "end"
     }

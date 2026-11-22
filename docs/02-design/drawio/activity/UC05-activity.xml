@@ -11,65 +11,65 @@
         <mxCell id="3" parent="1" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#ff0000;" value="" vertex="1">
           <mxGeometry height="40" width="40" x="-20" y="0" as="geometry" />
         </mxCell>
-        <mxCell id="4" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="1. Tourist hoặc Author mở mục “Đánh giá” trên chi tiết tour, bấm biểu tượng tùy chọn trên nhận xét của người khác và chọn “Báo cáo vi phạm”." vertex="1">
-          <mxGeometry height="105" width="220" x="-110" y="90" as="geometry" />
+        <mxCell id="4" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="1. Tourist mở mục “Đánh giá” trên chi tiết tour và nhấn nút “Báo cáo” (biểu tượng cờ) trên nhận xét của người khác." vertex="1">
+          <mxGeometry height="90" width="220" x="-110" y="90" as="geometry" />
         </mxCell>
         <mxCell id="5" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="2. Client mở hộp thoại “Báo cáo đánh giá vi phạm”; Actor chọn lý do (Spam/Quảng cáo, Ngôn từ thù ghét/Xúc phạm, Thông tin sai lệch/Lạc đề, Khác) và nhập mô tả bổ sung (tùy chọn, tối đa 500 ký tự)." vertex="1">
-          <mxGeometry height="135" width="220" x="-110" y="255" as="geometry" />
+          <mxGeometry height="135" width="220" x="-110" y="240" as="geometry" />
         </mxCell>
         <mxCell id="6" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="3. Actor nhấn “Gửi báo cáo”; Client kiểm tra hợp lệ và gọi API gửi báo cáo." vertex="1">
-          <mxGeometry height="75" width="220" x="-110" y="450" as="geometry" />
+          <mxGeometry height="75" width="220" x="-110" y="435" as="geometry" />
         </mxCell>
-        <mxCell id="7" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="4. Server kiểm tra quyền: đã đăng nhập, đánh giá tồn tại, không tự báo cáo chính mình, chưa gửi báo cáo PENDING trước đó; hợp lệ? E1–E4." vertex="1">
-          <mxGeometry height="160" width="320" x="-160" y="585" as="geometry" />
+        <mxCell id="7" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="4. Server kiểm tra: đã đăng nhập, tour công khai, đánh giá còn hiển thị, không tự báo cáo chính mình, chưa từng báo cáo đánh giá này; hợp lệ? E1–E4." vertex="1">
+          <mxGeometry height="160" width="320" x="-160" y="570" as="geometry" />
         </mxCell>
         <mxCell id="8" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="5. Server lưu báo cáo vào tour_rating_reports (PENDING); nếu tổng lượt báo cáo PENDING đạt ngưỡng N ≥ 3 thì tự động đặt cờ is_flagged = true (201)." vertex="1">
-          <mxGeometry height="105" width="220" x="-110" y="805" as="geometry" />
+          <mxGeometry height="105" width="220" x="-110" y="790" as="geometry" />
         </mxCell>
         <mxCell id="9" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="6. Client đóng modal và thông báo “Báo cáo của bạn đã được gửi và đang chờ quản trị viên xem xét.”" vertex="1">
-          <mxGeometry height="90" width="220" x="-110" y="970" as="geometry" />
+          <mxGeometry height="90" width="220" x="-110" y="955" as="geometry" />
         </mxCell>
-        <mxCell id="10" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="7. Admin mở trang Quản trị kiểm duyệt (/admin/reports/ratings); hệ thống kiểm tra quyền Admin và tải danh sách báo cáo (status=pending)? A2, E5." vertex="1">
-          <mxGeometry height="160" width="320" x="-160" y="1120" as="geometry" />
+        <mxCell id="10" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="7. Admin mở trang “Khiếu nại đánh giá” (/admin/reports/ratings); hệ thống kiểm tra quyền Admin và tải hàng đợi status=pending (bị gắn cờ trước, rồi khiếu nại của tác giả, rồi mới nhất)? A2, E5." vertex="1">
+          <mxGeometry height="190" width="320" x="-160" y="1105" as="geometry" />
         </mxCell>
-        <mxCell id="11" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="8. Admin xem chi tiết khiếu nại và chọn quyết định: “Gỡ bỏ đánh giá” hoặc “Bác bỏ báo cáo”." vertex="1">
-          <mxGeometry height="90" width="220" x="-110" y="1340" as="geometry" />
+        <mxCell id="11" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="8. Admin chọn “Gỡ bỏ đánh giá” hoặc “Bác bỏ báo cáo”, nhập ghi chú xử lý (tùy chọn) trong hộp thoại xác nhận và nhấn “Xác nhận”." vertex="1">
+          <mxGeometry height="105" width="220" x="-110" y="1355" as="geometry" />
         </mxCell>
         <mxCell id="12" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="9. Client gọi API xử lý báo cáo kèm hành động (REMOVE_RATING hoặc DISMISS) và ghi chú xử lý." vertex="1">
-          <mxGeometry height="90" width="220" x="-110" y="1490" as="geometry" />
+          <mxGeometry height="90" width="220" x="-110" y="1520" as="geometry" />
         </mxCell>
-        <mxCell id="13" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="10. Server xử lý trong một Transaction: DISMISS → chuyển báo cáo sang DISMISSED và đặt is_flagged = false; REMOVE_RATING → ẩn/xóa đánh giá, tính lại average_rating và rating_count bằng SQL atomic, chuyển báo cáo sang RESOLVED." vertex="1">
-          <mxGeometry height="150" width="220" x="-110" y="1640" as="geometry" />
+        <mxCell id="13" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="10. Server xử lý trong một Transaction: mọi báo cáo PENDING của đánh giá đổi trạng thái; DISMISS → DISMISSED và is_flagged = false; REMOVE_RATING → RESOLVED, đặt is_hidden = true và tính lại average_rating, rating_count bằng SQL atomic (chỉ một lần)." vertex="1">
+          <mxGeometry height="165" width="220" x="-110" y="1670" as="geometry" />
         </mxCell>
         <mxCell id="14" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="11. Client thông báo “Đã xử lý báo cáo thành công” và cập nhật lại danh sách hàng đợi." vertex="1">
-          <mxGeometry height="75" width="220" x="-110" y="1850" as="geometry" />
+          <mxGeometry height="75" width="220" x="-110" y="1895" as="geometry" />
         </mxCell>
         <mxCell id="15" parent="1" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#ff0000;" value="" vertex="1">
-          <mxGeometry height="40" width="40" x="-20" y="2015" as="geometry" />
+          <mxGeometry height="40" width="40" x="-20" y="2060" as="geometry" />
         </mxCell>
         <mxCell id="16" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E1. Chưa đăng nhập → báo “Vui lòng đăng nhập để thực hiện báo cáo vi phạm” và chuyển tới đăng nhập (UC#01) (401)." vertex="1">
-          <mxGeometry height="90" width="250" x="355" y="565" as="geometry" />
+          <mxGeometry height="90" width="250" x="355" y="550" as="geometry" />
         </mxCell>
         <mxCell id="17" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E2. Tự báo cáo đánh giá của chính mình → ẩn nút trên UI; gọi API trực tiếp trả 400." vertex="1">
-          <mxGeometry height="75" width="250" x="355" y="685" as="geometry" />
+          <mxGeometry height="75" width="250" x="355" y="670" as="geometry" />
         </mxCell>
-        <mxCell id="18" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E3. Đã có báo cáo PENDING cho đánh giá này → chặn gửi lại (409)." vertex="1">
-          <mxGeometry height="60" width="250" x="355" y="790" as="geometry" />
+        <mxCell id="18" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E3. Đã từng báo cáo đánh giá này (bất kỳ trạng thái nào) → 409, hộp thoại hiện “Bạn đã gửi báo cáo cho đánh giá này rồi”." vertex="1">
+          <mxGeometry height="90" width="250" x="355" y="775" as="geometry" />
         </mxCell>
-        <mxCell id="19" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E4. Đánh giá không tồn tại hoặc đã bị gỡ bỏ → trả 404." vertex="1">
-          <mxGeometry height="60" width="250" x="355" y="880" as="geometry" />
+        <mxCell id="19" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E4. Tour không công khai, đánh giá đã bị xóa hoặc gỡ, hoặc reportId không tồn tại → 404." vertex="1">
+          <mxGeometry height="75" width="250" x="355" y="895" as="geometry" />
         </mxCell>
-        <mxCell id="20" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E5. Tài khoản không có quyền Admin → trả 403 forbidden." vertex="1">
+        <mxCell id="20" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E5. Tài khoản không có quyền Admin → 403; không có token → 401." vertex="1">
           <mxGeometry height="60" width="250" x="355" y="1130" as="geometry" />
         </mxCell>
-        <mxCell id="21" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A1.1. Tác giả tour (Author) mở trang quản lý tour của mình (/my-tours/:tourId) hoặc mục Đánh giá, nhấn “Khiếu nại đánh giá”." vertex="1">
-          <mxGeometry height="105" width="220" x="-510" y="225" as="geometry" />
+        <mxCell id="21" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A1.1. Tác giả tour (Author) mở mục “Đánh giá” trên chi tiết tour của mình và nhấn nút “Khiếu nại” trên nhận xét; Client mở hộp thoại “Khiếu nại đánh giá”." vertex="1">
+          <mxGeometry height="120" width="220" x="-510" y="210" as="geometry" />
         </mxCell>
-        <mxCell id="22" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A1.2. Author chọn lý do và nhập giải trình chi tiết; hệ thống gắn nhãn ưu tiên (reporter_role = 'AUTHOR')." vertex="1">
-          <mxGeometry height="90" width="220" x="-510" y="380" as="geometry" />
+        <mxCell id="22" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A1.2. Author chọn lý do và nhập giải trình chi tiết (tùy chọn); server lưu reporter_role = 'AUTHOR', hàng đợi Admin hiện nhãn “Khiếu nại từ Tác giả”." vertex="1">
+          <mxGeometry height="105" width="220" x="-510" y="380" as="geometry" />
         </mxCell>
-        <mxCell id="23" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A2.1. Admin chuyển tab bộ lọc trạng thái (PENDING, RESOLVED, DISMISSED) trên /admin/reports/ratings để tra cứu lịch sử các báo cáo đã xử lý." vertex="1">
-          <mxGeometry height="105" width="220" x="-910" y="1310" as="geometry" />
+        <mxCell id="23" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A2.1. Admin chuyển tab “Chờ duyệt”, “Đã gỡ bỏ”, “Đã bác bỏ” trên /admin/reports/ratings để tra cứu các báo cáo đã xử lý." vertex="1">
+          <mxGeometry height="90" width="220" x="-910" y="1325" as="geometry" />
         </mxCell>
         <mxCell id="24" edge="1" parent="1" source="3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="4" value="">
           <mxGeometry relative="1" as="geometry" />

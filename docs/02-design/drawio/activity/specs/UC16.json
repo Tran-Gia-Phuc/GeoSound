@@ -27,11 +27,11 @@
     },
     {
       "id": "s5",
-      "text": "5. Hệ thống mở trang Thông báo: danh sách mới nhất trước, 20 mục mỗi lần, bộ lọc “Chưa đọc” và nút “Xem thêm”; mỗi thông báo có nhãn loại (Đã duyệt, Cần sửa AI, Bị từ chối, Cần chỉnh sửa, Báo cáo, Hệ thống). E1, E4.",
+      "text": "5. Hệ thống mở trang Thông báo: danh sách mới nhất trước, 20 mục mỗi lần, bộ lọc “Chưa đọc” và nút “Xem thêm”; mỗi thông báo có nhãn loại (Đã duyệt, Cần sửa AI, Bị từ chối, Cần chỉnh sửa, Báo cáo, Âm thanh AI; loại khác hiện “Thông báo”). E1, E4.",
       "exceptions": [
         {
           "id": "E1",
-          "text": "E1. Chưa có thông báo → “Chưa có thông báo nào”.",
+          "text": "E1. Chưa có thông báo → “Chưa có thông báo nào” (bộ lọc Chưa đọc: “Không có thông báo chưa đọc”).",
           "back": "s4"
         },
         {
@@ -55,8 +55,8 @@
       "exceptions": [
         {
           "id": "E3",
-          "text": "E3. Thông báo không tồn tại hoặc không phải của mình → 404 “Không tìm thấy thông báo”.",
-          "back": "end"
+          "text": "E3. Thông báo không tồn tại hoặc không phải của mình → 404; client bỏ qua lỗi và vẫn mở trang đích.",
+          "back": "s8"
         }
       ],
       "alts": [
@@ -84,7 +84,7 @@
     {
       "id": "A1",
       "steps": [
-        "A1. Đánh dấu tất cả đã đọc: Contributor nhấn “Đánh dấu tất cả đã đọc”; số trên chuông về 0."
+        "A1. Đánh dấu tất cả đã đọc: Contributor nhấn “Đánh dấu tất cả đã đọc”; số trên chuông về 0, hiện “Đã đánh dấu N thông báo là đã đọc”."
       ],
       "to": "end"
     },

@@ -20,7 +20,7 @@
         <mxCell id="6" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="3. Tourist chọn lý do, nhập ghi chú (bắt buộc khi chọn “Khác”, tối đa 500 ký tự) và nhấn “Gửi báo cáo”. E1, E2." vertex="1">
           <mxGeometry height="145" width="320" x="-160" y="375" as="geometry" />
         </mxCell>
-        <mxCell id="7" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="4. Hệ thống (Tour) kiểm tra tour đang công khai, Tourist không phải tác giả và chưa có báo cáo đang mở cho tour này. E3, E4, E5." vertex="1">
+        <mxCell id="7" parent="1" style="rhombus;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="4. Hệ thống (Tour) kiểm tra tour đang công khai, Tourist không phải tác giả và chưa từng báo cáo tour này. E3, E4, E5." vertex="1">
           <mxGeometry height="145" width="320" x="-160" y="580" as="geometry" />
         </mxCell>
         <mxCell id="8" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="5. Hệ thống lưu báo cáo, tăng số báo cáo đang mở của tour; nếu đủ 5 tài khoản khác nhau trong 7 ngày thì gắn cờ tour cho Admin." vertex="1">
@@ -38,14 +38,14 @@
         <mxCell id="12" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E2. Chưa chọn lý do → “Vui lòng chọn lý do báo cáo”; chọn “Khác” mà không có ghi chú → “Vui lòng mô tả lý do”." vertex="1">
           <mxGeometry height="90" width="250" x="355" y="468" as="geometry" />
         </mxCell>
-        <mxCell id="13" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E3. Tourist là tác giả → 403 “Bạn không thể báo cáo tour của chính mình”." vertex="1">
-          <mxGeometry height="75" width="250" x="355" y="588" as="geometry" />
+        <mxCell id="13" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E3. Tourist là tác giả → client ẩn nút “Báo cáo”; gọi API trực tiếp → 403 “Bạn không thể báo cáo tour của chính mình”." vertex="1">
+          <mxGeometry height="90" width="250" x="355" y="588" as="geometry" />
         </mxCell>
         <mxCell id="14" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E4. Tour không công khai hoặc không tồn tại → 404." vertex="1">
-          <mxGeometry height="60" width="250" x="355" y="693" as="geometry" />
+          <mxGeometry height="60" width="250" x="355" y="708" as="geometry" />
         </mxCell>
-        <mxCell id="15" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E5. Đã có báo cáo đang mở cho tour này → 409." vertex="1">
-          <mxGeometry height="60" width="250" x="355" y="783" as="geometry" />
+        <mxCell id="15" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E5. Đã báo cáo tour này (ví dụ gửi từ hai tab) → 409, client hiện trạng thái “đã báo cáo”." vertex="1">
+          <mxGeometry height="75" width="250" x="355" y="798" as="geometry" />
         </mxCell>
         <mxCell id="16" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E6. Mất mạng → “Không thể kết nối, vui lòng thử lại”; phát sự kiện thất bại chỉ được ghi log, báo cáo vẫn được lưu." vertex="1">
           <mxGeometry height="90" width="250" x="355" y="930" as="geometry" />
