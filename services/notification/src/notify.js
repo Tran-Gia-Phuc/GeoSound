@@ -16,18 +16,35 @@ export function securityAlertRecipient(payload = {}, env = process.env) {
   return override || payload.email || null;
 }
 
-async function handleNewDeviceLogin(mailer, payload, logger, env) {
+// The shared consume() drops a message whose handler throws, and a redelivery skips the email
+// (duplicate in-app row), so a short SMTP outage is retried here before giving up.
+// shortcut: in-process retries only, a longer outage still loses the email; add a retry queue if needed.
+export const EMAIL_RETRY_DELAYS_MS = [2000, 10000];
+
+async function sendWithRetry(mailer, mail, logger, delays = EMAIL_RETRY_DELAYS_MS) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await mailer.send(mail);
+    } catch (err) {
+      if (attempt >= delays.length) throw err;
+      logger.warn(`[notification] email to ${mail.to} failed (${err.message}), retry in ${delays[attempt]} ms`);
+      await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
+    }
+  }
+}
+
+async function handleNewDeviceLogin(mailer, payload, logger, env, deps) {
   const to = securityAlertRecipient(payload, env);
   if (!to) {
     logger.warn(`[notification] ${NEW_DEVICE_LOGIN} thiếu email (userId=${payload.userId}) -> không gửi được email.`);
     return { skipped: 'no_recipient' };
   }
-  const result = await mailer.send({ to, ...buildNewDeviceEmail(payload) });
+  const result = await sendWithRetry(mailer, { to, ...buildNewDeviceEmail(payload) }, logger, deps.retryDelaysMs);
   logger.log(`[notification] email "${NEW_DEVICE_LOGIN}" (userId=${payload.userId}): ${result.status}`);
   return { sent: result };
 }
 
-// UC21 — in-app first (never throws), then the email; SMTP errors propagate like the tour emails.
+// UC21 — in-app first (never throws), then the email; SMTP errors propagate (after retries) like the tour emails.
 async function handleAccountModerated(mailer, payload, logger, deps) {
   if (await isDuplicate(deps.storeInApp, ACCOUNT_MODERATED, payload, logger)) return { skipped: 'duplicate' };
   const email = buildAccountActionEmail(payload);
@@ -39,7 +56,7 @@ async function handleAccountModerated(mailer, payload, logger, deps) {
     logger.warn(`[notification] ${ACCOUNT_MODERATED} thiếu email (userId=${payload.userId}) -> không gửi được email.`);
     return { skipped: 'no_recipient' };
   }
-  const result = await mailer.send({ to: payload.email, ...email });
+  const result = await sendWithRetry(mailer, { to: payload.email, ...email }, logger, deps.retryDelaysMs);
   logger.log(`[notification] email "${ACCOUNT_MODERATED}" (${payload.action}, userId=${payload.userId}): ${result.status}`);
   return { sent: result };
 }
@@ -72,9 +89,10 @@ async function contributorEmailOf(payload, lookupEmail, logger) {
  *   lookupEmail = contributor email lookup in Auth (services/contributor-lookup.js)
  *   storeInApp  = UC16 in-app notification (application/store-in-app-notification.js). It never
  *                 throws and runs before the email, so an SMTP failure does not lose the in-app row.
+ *   retryDelaysMs = waits between email attempts (default EMAIL_RETRY_DELAYS_MS; tests pass [] or [0]).
  */
 export async function handleEvent(mailer, event, payload = {}, logger = console, env = process.env, deps = {}) {
-  if (event === NEW_DEVICE_LOGIN) return handleNewDeviceLogin(mailer, payload, logger, env);
+  if (event === NEW_DEVICE_LOGIN) return handleNewDeviceLogin(mailer, payload, logger, env, deps);
   if (event === ACCOUNT_MODERATED) return handleAccountModerated(mailer, payload, logger, deps);
   if (await isDuplicate(deps.storeInApp, event, payload, logger)) return { skipped: 'duplicate' };
 
@@ -88,7 +106,7 @@ export async function handleEvent(mailer, event, payload = {}, logger = console,
     logger.warn(`[notification] ${event} thiếu contributorEmail (tourId=${payload.tourId}) -> không gửi được email.`);
     return { skipped: 'no_recipient' };
   }
-  const result = await mailer.send({ to, ...email });
+  const result = await sendWithRetry(mailer, { to, ...email }, logger, deps.retryDelaysMs);
   logger.log(`[notification] email "${event}" -> ${to}: ${result.status}`);
   return { sent: result };
 }
