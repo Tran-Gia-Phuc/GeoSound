@@ -31,11 +31,11 @@
     },
     {
       "id": "s4",
-      "text": "4. Hệ thống (Tour) kiểm tra tour đang công khai, Tourist không phải tác giả và chưa có báo cáo đang mở cho tour này. E3, E4, E5.",
+      "text": "4. Hệ thống (Tour) kiểm tra tour đang công khai, Tourist không phải tác giả và chưa từng báo cáo tour này. E3, E4, E5.",
       "exceptions": [
         {
           "id": "E3",
-          "text": "E3. Tourist là tác giả → 403 “Bạn không thể báo cáo tour của chính mình”.",
+          "text": "E3. Tourist là tác giả → client ẩn nút “Báo cáo”; gọi API trực tiếp → 403 “Bạn không thể báo cáo tour của chính mình”.",
           "back": "end"
         },
         {
@@ -45,7 +45,7 @@
         },
         {
           "id": "E5",
-          "text": "E5. Đã có báo cáo đang mở cho tour này → 409.",
+          "text": "E5. Đã báo cáo tour này (ví dụ gửi từ hai tab) → 409, client hiện trạng thái “đã báo cáo”.",
           "back": "end"
         }
       ],

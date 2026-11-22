@@ -13,10 +13,10 @@
 
 | # | Actor Action | System Response |
 |---|---|---|
-| 1 | Tourist mở lịch trình (`/itineraries/:id`) và chọn **"Đi theo lịch trình"**, hoặc người nhận mở `/shared/:token` và chọn đi theo. *A2* | |
-| 2 | | Client mở trình phát `/itinerary/:id/go` và gọi `GET /api/itineraries/:id?lang=`. Tour trả view cùng dạng chi tiết tour: các điểm theo thứ tự, `route.path` nối các điểm, mỗi điểm một vùng kích hoạt hình tròn (bán kính snapshot, mặc định 50 m). *E3* `ItineraryPlayerPage` → `getItinerary()` → `GetItinerary.execute()` → `buildItineraryView()` |
-| 3 | Tourist chọn chế độ **"Đi theo lịch trình"** (GPS). *A1* | |
-| 4 | | Client xin quyền vị trí, hiện bản đồ với vị trí hiện tại, các điểm và điểm tiếp theo chưa nghe kèm khoảng cách. *E1, E2* `TourPlayerPage`, `useGeolocation()` |
+| 1 | Tourist mở lịch trình (`/itineraries/:id`) và chọn **"Đi theo lịch trình"** ở thanh dưới. *A1, A2* | |
+| 2 | | Nếu chưa có quyền vị trí, client hiện hộp thoại *"Nghe tự động theo vị trí"* (chỉ lần đầu). *E1* `ModePicker` |
+| 3 | Tourist chọn **"Cho phép & bắt đầu"**. *A1* | |
+| 4 | | Client mở trình phát `/itinerary/:id/go?mode=gps` và gọi `GET /api/itineraries/:id?lang=`. Tour trả view cùng dạng chi tiết tour: các điểm theo thứ tự, `route.path` nối các điểm, mỗi điểm một vùng kích hoạt hình tròn (bán kính snapshot, mặc định 50 m). Client xin quyền vị trí, hiện bản đồ với vị trí hiện tại, các điểm và điểm tiếp theo chưa nghe kèm khoảng cách. *E1, E2, E3* `ItineraryPlayerPage` → `getItinerary()` → `GetItinerary.execute()` → `buildItineraryView()`; `TourPlayerPage`, `useGeolocation()` |
 | 5 | Tourist di chuyển ngoài thực địa. | |
 | 6 | | Khi vào vùng của một điểm mới, client tự mở nội dung điểm và phát audio người thật; nếu không có audio (hoặc audio lỗi), đọc văn bản bằng giọng thiết bị. `usePlaybackEngine()`, `useAudioController()` |
 | 7 | Tourist tạm dừng, tua, chuyển điểm hoặc đổi ngôn ngữ (trong các ngôn ngữ có ở lịch trình). | |
@@ -29,19 +29,19 @@
 
 | # | Actor Action | System Response |
 |---|---|---|
-| A1.1 | Tourist chọn chế độ **"Nghe thử từng điểm"** hoặc bấm một điểm trên danh sách / bản đồ. | |
-| A1.2 | | Client phát nội dung điểm đó mà không cần đến gần, không dùng GPS. `usePlaybackEngine()` (mode `remote`) |
+| A1.1 | Tourist chọn **"Nghe thử"** ở thanh dưới (hoặc **"Nghe thử từng điểm"** trong hộp thoại, hoặc bấm một điểm trên danh sách / bản đồ trong trình phát). | |
+| A1.2 | | Client mở trình phát với `?mode=remote` và phát nội dung điểm được chọn mà không cần đến gần, không dùng GPS. `usePlaybackEngine()` (mode `remote`) |
 
 **A2. Đi theo lịch trình được chia sẻ.**
 
 | # | Actor Action | System Response |
 |---|---|---|
-| A2.1 | Người nhận mở `/shared/:token/go`. | |
+| A2.1 | Người nhận mở `/shared/:token` và chọn **"Đi theo lịch trình"** hoặc **"Nghe thử"** (mở `/shared/:token/go?mode=`). | |
 | A2.2 | | Client gọi `GET /api/itineraries/shared/:token?lang=` (công khai) và dùng cùng trình phát; người nhận không sửa được lịch trình. *E4* `SharedItineraryPlayerPage` → `getSharedItinerary()` → `GetSharedItinerary.execute()` |
 
 ## Exception Path
 
-- **E1.** Chưa cấp quyền vị trí hoặc thiết bị không hỗ trợ → băng cảnh báo *"Chưa có quyền vị trí"* / *"Thiết bị không hỗ trợ GPS"*: *"Hãy cấp quyền vị trí, hoặc chuyển sang nghe thử từ xa."* (A1). `useGeolocation()`
+- **E1.** Trình duyệt chặn quyền vị trí hoặc thiết bị không hỗ trợ → trước khi mở trình phát, hộp thoại *"Chưa dùng được vị trí"* (*"Trình duyệt đang chặn quyền vị trí cho GeoSound…"* / *"Thiết bị này không hỗ trợ định vị."*) chỉ còn nút **"Nghe thử từng điểm"** (A1). Trong trình phát → băng cảnh báo *"Chưa có quyền vị trí"* / *"Thiết bị không hỗ trợ GPS"*: *"Hãy cấp quyền vị trí, hoặc chuyển sang nghe thử từ xa."* (A1). `useGeolocation()`
 - **E2.** GPS yếu → *"GPS yếu (±… m). Bạn có thể chọn điểm thủ công."*; vị trí không cập nhật → *"Tín hiệu vị trí chưa cập nhật. Đang chờ GPS…"*.
 - **E3.** Lịch trình không tồn tại → 404 `itinerary_not_found`; không phải chủ sở hữu → 403 `not_itinerary_owner`; chưa đăng nhập ở `/itinerary/:id/go` → chuyển tới `/login`. `loadOwnedItinerary()`, `RequireAuth`
 - **E4.** Liên kết chia sẻ đã bị thu hồi hoặc sai → 404, client hiện lỗi tải.
@@ -99,19 +99,20 @@ Tourist bắt đầu đi theo lịch trình đã lập, hoặc mở liên kết 
 | Bước | Hàm / lớp | File |
 |---|---|---|
 | 1 | `ItineraryEditorPage` (nút "Đi theo lịch trình") | `client/src/features/itineraries/ItineraryEditorPage.jsx` |
-| 2 | `ItineraryPlayerPage` | `client/src/features/itineraries/ItineraryPlayerPage.jsx` |
+| 1–3, A1, E1 | `ModePicker` (hộp thoại quyền vị trí) | `client/src/features/player/ModePicker.jsx` |
+| 4 | `ItineraryPlayerPage` | `client/src/features/itineraries/ItineraryPlayerPage.jsx` |
 | A2 | `SharedItineraryPlayerPage` | `client/src/features/itineraries/SharedItineraryPlayerPage.jsx` |
-| 2, A2 | `getItinerary()`, `getSharedItinerary()` | `client/src/lib/itineraries.js` |
-| 3–8 | `TourPlayerPage` | `client/src/features/player/TourPlayerPage.jsx` |
+| 4, A2 | `getItinerary()`, `getSharedItinerary()` | `client/src/lib/itineraries.js` |
+| 4–8 | `TourPlayerPage` | `client/src/features/player/TourPlayerPage.jsx` |
 | 4, E1, E2 | `useGeolocation()` | `client/src/hooks/useGeolocation.js` |
 | 6, A1 | `usePlaybackEngine()` | `client/src/hooks/usePlaybackEngine.js` |
 | 6, R3 | `useAudioController()` (audio + `speechSynthesis`) | `client/src/hooks/useAudioController.js` |
 | 8 | `useTourProgress()`, `CompletionDialog` | `client/src/hooks/useTourProgress.js`, `client/src/features/player/CompletionDialog.jsx` |
 | Route | `buildItineraryRouter()`, `buildPublicItineraryRouter()` | `services/tour/src/interfaces/http/routes/itinerary-routes.js`, `public-itinerary-routes.js` |
 | Controller | `ItineraryController.getOne()`, `ExploreController.shared()` | `services/tour/src/interfaces/http/controllers/itinerary-controller.js`, `explore-controller.js` |
-| 2 | `GetItinerary.execute()`, `loadOwnedItinerary()` | `services/tour/src/application/use-cases/get-itinerary.js`, `load-owned-itinerary.js` |
+| 4 | `GetItinerary.execute()`, `loadOwnedItinerary()` | `services/tour/src/application/use-cases/get-itinerary.js`, `load-owned-itinerary.js` |
 | A2 | `GetSharedItinerary.execute()` | `services/tour/src/application/use-cases/get-shared-itinerary.js` |
-| 2, R2 | `buildItineraryView()` (vùng tròn, `route.path`) | `services/tour/src/application/use-cases/build-itinerary-view.js` |
+| 4, R2 | `buildItineraryView()` (vùng tròn, `route.path`) | `services/tour/src/application/use-cases/build-itinerary-view.js` |
 | R2 | `ItineraryItem`, `DEFAULT_RADIUS_METERS` | `services/tour/src/domain/entities/itinerary-item.js` |
 | Lưu trữ | `PrismaItineraryRepository.findById()`, `findByShareToken()` | `services/tour/src/infrastructure/persistence/prisma-itinerary-repository.js` |
 
@@ -122,7 +123,7 @@ Tourist bắt đầu đi theo lịch trình đã lập, hoặc mở liên kết 
 
 ## Date
 
-Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-22
 
 ## Activity Diagram
 
@@ -136,12 +137,13 @@ sequenceDiagram
     participant C as Client
     participant G as Gateway
     participant T as Tour
-    U->>C: "Đi theo lịch trình" (/itinerary/:id/go)
+    U->>C: "Đi theo lịch trình", "Cho phép & bắt đầu"
+    C->>C: Mở /itinerary/:id/go?mode=gps
     C->>G: GET /api/itineraries/:id?lang=vi (JWT)
     G->>T: GET /itineraries/:id
     T->>T: Kiểm tra chủ sở hữu, dựng places + route (vùng tròn)
     T-->>C: view { places, route, availableLanguages }
-    U->>C: Chọn chế độ GPS, cấp quyền vị trí
+    U->>C: Cấp quyền vị trí
     loop Mỗi lần cập nhật vị trí
         C->>C: Kiểm tra vào vùng tròn của điểm mới
         C-->>U: Mở nội dung, phát audio người thật hoặc giọng thiết bị
@@ -151,5 +153,5 @@ sequenceDiagram
 
 ## Boundary
 
-- Trình sửa lịch trình `/itineraries/:id` (nút "Đi theo lịch trình"); màn chia sẻ `/shared/:token`.
-- Trình phát lịch trình `/itinerary/:id/go` và `/shared/:token/go`: chọn chế độ ("Đi theo lịch trình" / "Nghe thử từng điểm"), bản đồ GPS, sheet nội dung điểm, điều khiển audio, băng cảnh báo GPS, hộp thoại hoàn thành.
+- Trình sửa lịch trình `/itineraries/:id` và màn chia sẻ `/shared/:token`: thanh dưới "Nghe thử" / "Đi theo lịch trình", hộp thoại quyền vị trí.
+- Trình phát lịch trình `/itinerary/:id/go` và `/shared/:token/go`: chọn chế độ khi mở không có `?mode` ("Đi theo lịch trình" / "Nghe thử từng điểm"), bản đồ GPS, sheet nội dung điểm, điều khiển audio, băng cảnh báo GPS, hộp thoại hoàn thành.

@@ -14,26 +14,26 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | 1 | Admin mở **"Dashboard"** (`/admin/dashboard`). | |
-| 2 | | Tour tính số liệu cho 7 ngày gần nhất (mặc định): số tour đang chờ duyệt (`pending_review`, `ai_warning`, tổng), thời gian duyệt trung bình (giờ), số tour bị báo cáo trong kỳ, số tour đang có báo cáo mở, top 5 contributor, số hành động admin theo loại. Client hiện các ô số liệu (có liên kết tới hàng chờ UC19 / UC20) và thanh ngang cho số hành động. *A1, E1, E2* `GetAdminDashboard.execute()`, `resolveDashboardPeriod()`, `PrismaAdminInsightRepository.countReviewQueue/averageReviewSeconds/countReportedTours/countOpenReportTours/topContributors/countActionsByType()` |
+| 2 | | Tour tính số liệu cho 7 ngày gần nhất (mặc định): số tour đang chờ duyệt (`pending_review`, `ai_warning`, tổng), thời gian duyệt trung bình (giờ), số tour bị báo cáo trong kỳ, số tour đang có báo cáo mở, top 5 contributor, số hành động admin theo loại. Client hiện các ô "Tour chờ duyệt (hiện tại)", "Thời gian duyệt trung bình", "Tour bị báo cáo trong kỳ", "Tour đang có báo cáo" (ô thứ nhất và thứ tư liên kết tới hàng chờ UC19 / UC20), mục "Tác giả nổi bật" và mục "Hành động quản trị theo loại" dạng thanh ngang (có liên kết tới nhật ký). *A1, A3, E1, E2* `GetAdminDashboard.execute()`, `resolveDashboardPeriod()`, `PrismaAdminInsightRepository.countReviewQueue/averageReviewSeconds/countReportedTours/countOpenReportTours/topContributors/countActionsByType()` |
 | 3 | Admin mở **"Nhật ký hành động"** (`/admin/actions`). | |
 | 4 | | Tour trả về các dòng log mới nhất trước (mặc định 20 mỗi trang): thời gian, hành động, đối tượng (liên kết hồ sơ UC20 cho tour, trang tài khoản UC21 cho người dùng), admin, lý do. *E1* `ListAdminActions.execute()`, `PrismaAdminActionRepository.listRecent()` |
-| 5 | Admin lọc log theo loại hành động, loại đối tượng, admin, khoảng ngày. *A2, A3* | |
+| 5 | Admin lọc log theo "Loại hành động", "Đối tượng", "Mã quản trị viên", "Từ ngày" / "Đến ngày" và bấm "Lọc" ("Xoá bộ lọc" để bỏ lọc). *A2* | |
 | 6 | | Hệ thống hiển thị các dòng khớp, có phân trang. Use case kết thúc. *E3* `resolveLogPeriod()`, `ListAdminActions.execute()` |
 
 ## Alternative Path
 
-**A1. Đổi khoảng thời gian dashboard** → chọn 7 ngày, 30 ngày hoặc "Tuỳ chọn" (từ ngày, đến ngày); khoảng nằm trên URL, hệ thống tính lại số liệu. `presetPeriod()`, `periodError()` (client), `GetAdminDashboard.execute()`
+**A1. Đổi khoảng thời gian dashboard** → chọn "7 ngày", "30 ngày" hoặc "Tuỳ chọn" ("Từ ngày", "Đến ngày", bấm "Áp dụng"); khoảng nằm trên URL, hệ thống tính lại số liệu. `presetPeriod()`, `periodError()` (client), `GetAdminDashboard.execute()`
 
-**A2. Xem chi tiết một dòng log** → `/admin/actions/:id` hiện đầy đủ dòng log (kể cả `data`). `GetAdminAction.execute()`, `PrismaAdminActionRepository.findById()`
+**A2. Xem chi tiết một dòng log** → `/admin/actions/:id` (trang "Chi tiết hành động") hiện đầy đủ dòng log (kể cả `data`). `GetAdminAction.execute()`, `PrismaAdminActionRepository.findById()`
 
 **A3. Từ dashboard đi tiếp** → bấm contributor trong top để mở trang tài khoản (UC21), bấm ô chờ duyệt / báo cáo mở để mở hàng chờ UC19 / UC20.
 
 ## Exception Path
 
-- **E1.** Chưa có dữ liệu → các số bằng 0, danh sách rỗng, hiện "Chưa có dữ liệu" (không vẽ biểu đồ rỗng).
-- **E2.** Khoảng thời gian sai (`from` không trước `to`, quá 366 ngày, định dạng sai) → 400; client báo lỗi trước khi gọi API.
-- **E3.** Bộ lọc sai (`action` không thuộc danh sách, `targetType` khác `tour` / `user`, `limit` ngoài 1..100) → 400; dòng log không tồn tại → 404 `admin_action_not_found` *"Không tìm thấy bản ghi nhật ký"* (`AdminActionNotFoundError`).
-- **E4.** Không có token hợp lệ → 401; không phải admin → 403.
+- **E1.** Chưa có dữ liệu → các số bằng 0, danh sách rỗng, hiện "Chưa có dữ liệu" (không vẽ biểu đồ rỗng). Nhật ký rỗng hiện "Chưa có hành động nào" (không lọc) hoặc "Không có hành động phù hợp" (có lọc).
+- **E2.** Khoảng thời gian sai (`from` không trước `to`, quá 366 ngày, định dạng sai) → 400; client báo lỗi trước khi gọi API ("Vui lòng chọn đủ ngày bắt đầu và ngày kết thúc", "Ngày bắt đầu phải trước ngày kết thúc", "Khoảng thời gian tối đa 366 ngày").
+- **E3.** Bộ lọc sai (`action` không thuộc danh sách, `targetType` khác `tour` / `user`, `limit` ngoài 1..100) → 400; mã dòng log không phải UUID → 400 "Mã bản ghi không hợp lệ"; dòng log không tồn tại → 404 `admin_action_not_found` *"Không tìm thấy bản ghi nhật ký"* (`AdminActionNotFoundError`), client hiện "Không tìm thấy bản ghi".
+- **E4.** Không có token hợp lệ → 401; không phải admin → 403 (client chỉ hiện "Chỉ quản trị viên được xem trang này").
 - **E5.** Gọi PUT / PATCH / DELETE / POST lên các đường dẫn này → 405 `method_not_allowed` *"Chỉ được xem, không thể sửa hoặc xoá dữ liệu này"* (`methodNotAllowed` trong `buildAdminInsightRouter()`).
 - **E6.** Sự kiện `account.moderated` sai định dạng hoặc lỗi khi ghi → handler chỉ ghi log và ack, không ném lỗi; sự kiện gửi lại không thêm dòng (`buildAccountModeratedHandler()`, `PrismaAdminActionRepository.appendOnce()`).
 
@@ -106,7 +106,7 @@ Admin muốn theo dõi vận hành và kiểm tra nhật ký hành động.
 
 ## Date
 
-Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-22
 
 ## Activity Diagram
 

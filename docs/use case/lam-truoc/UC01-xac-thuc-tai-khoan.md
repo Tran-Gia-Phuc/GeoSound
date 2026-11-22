@@ -29,7 +29,7 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | A1.1 | Người dùng chọn **"Đăng ký"** (`/register` hoặc tab Đăng ký ở `/login`). | |
-| A1.2 | | Client hỏi vai trò (Khách du lịch / Tác giả), rồi hiện form: Họ tên, Email, Mật khẩu. `RegisterPage` |
+| A1.2 | | Client hỏi vai trò (`/register`: "Khám phá & nghe tour" / "Tạo tour audio"; tab Đăng ký ở `/login`: "Tôi đi du lịch" / "Tôi tạo tour audio"), rồi hiện form: Họ tên, Email, Mật khẩu (ở `/register` thêm ô "Xác nhận mật khẩu", sai thì báo *"Mật khẩu xác nhận không khớp"*). `RegisterPage`, `LoginPage` |
 | A1.3 | Người dùng nhập thông tin và nhấn tiếp tục. *E5, E6, E7* | |
 | A1.4 | | Auth (`POST /api/auth/register`) kiểm tra email chưa tồn tại, băm mật khẩu, giữ thông tin đăng ký tạm trong Redis (TTL = thời hạn OTP) và gửi OTP 6 số qua email. **Chưa tạo tài khoản ở bước này.** `RegisterUser.execute()`, `RedisChallengeStore.save()`, `NodemailerMailer.sendOtp()` |
 | A1.5 | Người dùng nhập OTP (client đếm ngược thời hạn còn lại). *A3* | |
@@ -42,10 +42,10 @@
 |---|---|---|
 | A2.1 | Người dùng chọn "Quên mật khẩu" (`/forgot-password`), nhập email. | |
 | A2.2 | | Auth (`POST /api/auth/forgot-password`) luôn trả cùng một câu trả lời (không lộ email có tồn tại hay không); chỉ gửi OTP khi tài khoản có thật và chưa bị cấm. `ForgotPassword.execute()` |
-| A2.3 | Người dùng nhập OTP và mật khẩu mới. *E6, E8, E9* | |
-| A2.4 | | Auth (`POST /api/auth/reset-password`) đổi mật khẩu, gỡ tạm khoá đăng nhập và **đăng xuất mọi thiết bị** của tài khoản (lý do `password_reset`, UC23). Client quay về `/login` (endpoint không cấp token). `ResetPassword.execute()`, `SessionManager.revokeAll()` |
+| A2.3 | Người dùng nhập OTP, mật khẩu mới và xác nhận mật khẩu (sai thì báo *"Mật khẩu xác nhận không khớp"*). *E6, E8, E9* | |
+| A2.4 | | Auth (`POST /api/auth/reset-password`) đổi mật khẩu, gỡ tạm khoá đăng nhập và **đăng xuất mọi thiết bị** của tài khoản (lý do `password_reset`, UC23). Client hiện *"Đã đặt lại mật khẩu"* và nút **Về đăng nhập** (`/login`; endpoint không cấp token). `ResetPassword.execute()`, `SessionManager.revokeAll()` |
 
-**A3. Gửi lại OTP.** Người dùng nhấn "Gửi lại mã OTP" (client chờ 30 giây giữa hai lần). Auth (`POST /api/auth/resend-otp`, `purpose` = `register` hoặc `reset`) sinh mã mới và gia hạn thêm 120 giây, chỉ khi phiên xác thực còn tồn tại (*E9*). `resendOtp()` → `ResendOtp.execute()`
+**A3. Gửi lại OTP.** Người dùng nhấn "Gửi lại mã OTP" (client chờ 30 giây giữa hai lần). Auth (`POST /api/auth/resend-otp`, `purpose` = `register` hoặc `reset`) sinh mã mới và đặt lại thời hạn 120 giây, chỉ khi phiên xác thực còn tồn tại (*E9*). `resendOtp()` → `ResendOtp.execute()`
 
 **A4. Làm mới phiên (ngầm).** Khi một request cần đăng nhập nhận 401, client gọi `POST /api/auth/refresh` một lần (khoá giữa các tab), nhận cặp token mới rồi gọi lại request. Refresh token cũ hết giá trị (xoay vòng). Phiên đã kết thúc → `401 session_revoked`, client xoá token và đưa về `/login` với thông báo *"Phiên đăng nhập đã kết thúc trên thiết bị này"*. `refreshTokens()` (`lib/api.js`) → `RefreshToken.execute()`; `onSessionEnded()` → `SessionWatcher`
 
@@ -56,8 +56,8 @@
 ## Exception Path
 
 - **E1.** Bỏ trống trường → `400 validation_error` với thông báo theo trường (*"Vui lòng nhập email"*, *"Vui lòng nhập mật khẩu"*). `loginSchema`, `registerSchema` (zod)
-- **E2.** Email hoặc mật khẩu sai → `401 invalid_credentials` *"Email hoặc mật khẩu không đúng"* (không cho biết email có tồn tại không). Sai 5 lần liên tiếp → `423 account_locked` *"Tài khoản tạm khóa do đăng nhập sai nhiều lần, vui lòng thử lại sau"* trong 15 phút; client gợi ý "Đặt lại mật khẩu". `InvalidCredentialsError`, `AccountLockedError`
-- **E3.** Tài khoản bị cấm (UC21) → `403 account_banned` *"Tài khoản đã bị khóa, vui lòng liên hệ Admin"*. `AccountBannedError`
+- **E2.** Email hoặc mật khẩu sai → `401 invalid_credentials` *"Email hoặc mật khẩu không đúng"* (không cho biết email có tồn tại không). Sai 5 lần liên tiếp → `423 account_locked` *"Tài khoản tạm khóa do đăng nhập sai nhiều lần, vui lòng thử lại sau"* trong 15 phút; client gợi ý "Đặt lại mật khẩu". Màn hình đăng nhập hiện câu riêng: *"Email hoặc mật khẩu không đúng. Hãy kiểm tra và thử lại."* / *"Tài khoản tạm khóa do đăng nhập sai nhiều lần. Hãy thử lại sau hoặc đặt lại mật khẩu."* `InvalidCredentialsError`, `AccountLockedError`
+- **E3.** Tài khoản bị cấm (UC21) → `403 account_banned` *"Tài khoản đã bị khóa, vui lòng liên hệ Admin"* (màn hình đăng nhập hiện *"Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên của dự án để được hỗ trợ."*). `AccountBannedError`
 - **E4.** Tài khoản bị tạm khoá có thời hạn (UC21) → `403 account_suspended` *"Tài khoản đang bị tạm khoá đến <giờ ngày>"*. `AccountSuspendedError`
 - **E5.** Email sai định dạng → `400` *"Email không hợp lệ"*. `Email` (value object)
 - **E6.** Mật khẩu dưới 8 ký tự hoặc thiếu chữ/số → `400` *"Mật khẩu phải có tối thiểu 8 ký tự"* / *"Mật khẩu phải gồm cả chữ và số"*. `Password` (value object)
