@@ -68,6 +68,16 @@ kubectl -n geosound-staging rollout restart deploy
 
 The sealed files are bound to the cluster key and to the namespace: sealing for a new cluster means fetching its certificate again. A Secret made by hand with `kubectl create secret` is not taken over by the controller: delete it first.
 
+To add one secret to a running environment without resealing the others, name it in `SEAL_ONLY`. Example, the MoMo keys of the tour payment (UC25, secret `geosound-payment`, read by `tour` only, optional in staging):
+
+```sh
+SEAL_ONLY=geosound-payment sh scripts/deploy/seal-secrets.sh staging /path/to/staging.env
+kubectl apply -f deploy/envs/staging/sealed/geosound-payment.yaml
+kubectl -n geosound-staging rollout restart deploy/tour
+```
+
+The return URL MoMo sends the buyer to is the `tour` env `PAYMENT_RETURN_URL` of each environment's values (plan section 8.4).
+
 ## Check an environment
 
 ```sh

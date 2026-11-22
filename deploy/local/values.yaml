@@ -11,6 +11,11 @@ services:
   moderation:
     env:
       AI_SERVICE_URL: http://ai-stub:3004 # deploy/local/ai-stub.yaml, no LLM key needed
+  tour:
+    env:
+      # UC25: MoMo cannot reach a laptop, so no IPN arrives; the return page asks MoMo for the
+      # status instead. For a real IPN set MOMO_IPN_URL to a public tunnel (ngrok).
+      PAYMENT_RETURN_URL: http://localhost/payment/momo
   media:
     env:
       MEDIA_PUBLIC_BASE_URL: http://localhost/api/media/files

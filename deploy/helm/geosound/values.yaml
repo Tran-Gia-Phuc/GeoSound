@@ -96,9 +96,15 @@ services:
     allowFrom: [gateway]
     database: { key: DATABASE_URL_TOUR }
     # geosound-ai: GEMINI_API_KEY of the translator (TRANSLATOR=gemini).
-    secrets: [geosound-jwt, geosound-infra, geosound-ai]
+    # geosound-payment: the MoMo keys of the tour payment (UC25). Without them a purchase answers
+    # 503 and the rest of Tour works.
+    secrets: [geosound-jwt, geosound-infra, geosound-ai, geosound-payment]
     metrics: true
     env:
+      # UC25: the client page MoMo sends the buyer back to. The IPN URL defaults to
+      # <its origin>/api/tours/payments/momo/ipn (set MOMO_IPN_URL to change it). MOMO_ENDPOINT
+      # defaults to the sandbox https://test-payment.momo.vn; production sets the live endpoint.
+      # Each environment sets its own PAYMENT_RETURN_URL.
       # Listening languages (UC12, #425, #428): the client reads them from GET /api/tours/languages.
       # Translation runs on demand per visitor language, so a longer list adds no AI call by itself.
       SUPPORTED_LANGUAGES: "vi,en,fr,ja,ko,zh,zh-tw,es,de,th,ru,id,ms,it,pt,nl,pl,tr,hi,sv"
