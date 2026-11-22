@@ -4,7 +4,7 @@
 // Mọi route yêu cầu JWT role=contributor.
 // =========================================================
 import { Router } from 'express';
-import { verifyJwt } from '../../../../shared/middleware/index.js';
+// The contributor guard is injected (container passes shared verifyJwt(['contributor'])): no ../shared import (CI repo layout).
 import { validateBody, validateParams } from '../middleware/validate.js';
 import {
   saveRouteConfigSchema,
@@ -13,11 +13,11 @@ import {
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-/** @param {{ routeConfigController }} deps */
-export function buildRouteConfigRouter({ routeConfigController }) {
+/** @param {{ routeConfigController, requireContributor }} deps */
+export function buildRouteConfigRouter({ routeConfigController, requireContributor }) {
   const r = Router();
 
-  r.use(verifyJwt(['contributor']));
+  r.use(requireContributor);
 
   r.get(
     '/mine/:tourId/route-config',

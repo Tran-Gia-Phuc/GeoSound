@@ -5,7 +5,7 @@
 // đều có thể tự lập lịch trình).
 // =========================================================
 import { Router } from 'express';
-import { verifyJwt } from '../../../../shared/middleware/index.js';
+// The sign-in guard is injected (container passes shared verifyJwt()): no ../shared import (CI repo layout).
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
 import {
   createItinerarySchema,
@@ -20,11 +20,11 @@ import {
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-/** @param {{ itineraryController }} deps */
-export function buildItineraryRouter({ itineraryController }) {
+/** @param {{ itineraryController, requireAuth }} deps */
+export function buildItineraryRouter({ itineraryController, requireAuth }) {
   const r = Router();
 
-  r.use(verifyJwt()); // bất kỳ người dùng đã đăng nhập
+  r.use(requireAuth); // bất kỳ người dùng đã đăng nhập
 
   r.post('/', validateBody(createItinerarySchema), wrap(itineraryController.create));
   r.get('/', wrap(itineraryController.listMine));
