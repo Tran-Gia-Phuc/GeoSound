@@ -109,7 +109,7 @@ test('handleEvent: no email -> in-app only; unknown action -> nothing; SMTP fail
 
   const failure = new Error('SMTP down');
   await assert.rejects(
-    handleEvent({ send: async () => { throw failure; } }, ACCOUNT_MODERATED, { ...base, action: 'warn', reason: 'y' }, silent, {}, { storeInApp }),
+    handleEvent({ send: async () => { throw failure; } }, ACCOUNT_MODERATED, { ...base, action: 'warn', reason: 'y' }, silent, {}, { storeInApp, retryDelaysMs: [] }),
     (err) => err === failure,
   );
   assert.equal(repo.rows.length, 2);

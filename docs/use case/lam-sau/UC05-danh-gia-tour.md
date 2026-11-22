@@ -50,7 +50,7 @@
 - **E1. Chưa đăng nhập:** Khách vãng lai bấm "Báo cáo" → Client hiển thị thông báo *"Vui lòng đăng nhập để thực hiện báo cáo vi phạm"* và điều hướng tới `/login?next=...#ratings` (UC01). API trả về 401 Unauthorized nếu thiếu JWT.
 - **E2. Tự báo cáo đánh giá của chính mình:** Client ẩn nút "Báo cáo" trên bài đánh giá của chính user đang đăng nhập. Nếu cố tình gửi API trực tiếp, server trả 400 `cannot_report_own_rating` (*"Bạn không thể tự báo cáo đánh giá của chính mình"*).
 - **E3. Báo cáo trùng lặp (Duplicate Report):** Tài khoản đã từng báo cáo đánh giá này (ở bất kỳ trạng thái nào) mà gửi lại → Server trả 409 `report_already_submitted`; client hiện *"Bạn đã gửi báo cáo cho đánh giá này rồi"* trong hộp thoại.
-- **E4. Đánh giá hoặc báo cáo không tồn tại:** Tour không còn `public` → 404 `tour_not_found`; đánh giá đã bị chủ xóa hoặc đã bị Admin gỡ → 404 `rating_not_found`; Admin xử lý một `reportId` không tồn tại → 404 `rating_report_not_found`. Xử lý lại một báo cáo của đánh giá đã bị gỡ vẫn trả 200 và không trừ điểm lần nữa.
+- **E4. Đánh giá hoặc báo cáo không tồn tại:** Tour không còn `public` → 404 `tour_not_found`; đánh giá đã bị chủ xóa hoặc đã bị Admin gỡ → 404 `rating_not_found` (*"Không tìm thấy đánh giá này"*); Admin xử lý một `reportId` không tồn tại → 404 `rating_report_not_found`. Xử lý lại một báo cáo của đánh giá đã bị gỡ vẫn trả 200 và không trừ điểm lần nữa.
 - **E5. Không đủ quyền quản trị:** Tài khoản không có role `admin` gọi API danh sách hoặc xử lý báo cáo → Server trả 403 (`{ error: "Forbidden" }`); không có token → 401.
 
 ## Extension Points

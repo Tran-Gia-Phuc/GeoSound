@@ -67,13 +67,23 @@ test('handleEvent skips events without a contributor template', async () => {
   assert.deepEqual(res, { skipped: 'no_template' });
 });
 
-test('handleEvent lets SMTP errors propagate so the broker can nack the message', async () => {
+test('handleEvent retries the email, then lets the SMTP error propagate so the broker can nack the message', async () => {
   const failure = new Error('SMTP down');
-  const mailer = { send: async () => { throw failure; } };
+  let calls = 0;
+  const mailer = { send: async () => { calls += 1; throw failure; } };
   await assert.rejects(
-    handleEvent(mailer, 'tour.rejected', { tourId: 't1', contributorEmail: 'c@example.com', reason: 'x' }, silent),
+    handleEvent(mailer, 'tour.rejected', { tourId: 't1', contributorEmail: 'c@example.com', reason: 'x' }, silent, {}, { retryDelaysMs: [0, 0] }),
     (err) => err === failure,
   );
+  assert.equal(calls, 3);
+});
+
+test('handleEvent sends the email once when SMTP recovers on a retry', async () => {
+  let calls = 0;
+  const mailer = { send: async () => { calls += 1; if (calls === 1) throw new Error('SMTP busy'); return { status: 'sent' }; } };
+  const res = await handleEvent(mailer, 'tour.rejected', { tourId: 't1', contributorEmail: 'c@example.com', reason: 'x' }, silent, {}, { retryDelaysMs: [0] });
+  assert.deepEqual(res, { sent: { status: 'sent' } });
+  assert.equal(calls, 2);
 });
 
 test('createMailer falls back to a console mailer when SMTP is not configured', async () => {

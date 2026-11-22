@@ -32,7 +32,7 @@ export class SubmitRatingReport {
     if (!tour) throw new TourNotFoundError();
 
     const rating = await this.reportRepo.findVisibleRating(tourId, ratingUserId);
-    if (!rating) throw new RatingNotFoundError();
+    if (!rating) throw new RatingNotFoundError('Không tìm thấy đánh giá này');
     if (rating.userId === reporterId) throw new CannotReportOwnRatingError();
 
     const reporterRole = tour.isOwnedBy(reporterId) ? 'AUTHOR' : 'TOURIST';

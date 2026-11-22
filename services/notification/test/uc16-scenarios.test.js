@@ -65,7 +65,8 @@ function world({ directory = { [AUTHOR]: 'author@mail.test', [OTHER]: 'other@mai
   const lookupEmail = createContributorLookup({ baseUrl: 'http://auth:3001', token: INTERNAL_TOKEN, fetchImpl });
 
   const sent = [];
-  const mailer = { failNext: null, async send(m) {
+  const mailer = { failNext: null, failAlways: null, async send(m) {
+    if (this.failAlways) throw this.failAlways;
     if (this.failNext) { const e = this.failNext; this.failNext = null; throw e; }
     sent.push(m);
     return { status: 'sent' };
@@ -74,7 +75,7 @@ function world({ directory = { [AUTHOR]: 'author@mail.test', [OTHER]: 'other@mai
   // Like shared consume(): the publisher validated the payload, the worker gets the raw JSON.
   async function deliver(event, payload) {
     assert.doesNotThrow(() => validateEvent(event, payload), `${event} must match the shared contract`);
-    return handleEvent(mailer, event, JSON.parse(JSON.stringify(payload)), silent, {}, { lookupEmail, storeInApp });
+    return handleEvent(mailer, event, JSON.parse(JSON.stringify(payload)), silent, {}, { lookupEmail, storeInApp, retryDelaysMs: [0, 0] });
   }
   return { repo, revoked, notificationRouter, authCalls, sent, mailer, deliver };
 }
@@ -195,9 +196,17 @@ test('Auth lookup finds nobody (404) or fails (500): in-app row kept, no email, 
   }
 });
 
-test('SMTP failure: the in-app row is already stored and the error reaches the broker (nack)', async () => {
+test('short SMTP failure: the email is retried and sent once, one in-app row', async () => {
   const w = world();
-  w.mailer.failNext = new Error('SMTP down');
+  w.mailer.failNext = new Error('SMTP busy');
+  await w.deliver(EVENTS.TOUR_HIDDEN, { tourId: crypto.randomUUID(), contributorId: AUTHOR, reason: 'x', at: at(0) });
+  assert.equal(w.sent.length, 1);
+  assert.equal(w.repo.rows.length, 1);
+});
+
+test('SMTP still down after the retries: the in-app row is already stored and the error reaches the broker (nack)', async () => {
+  const w = world();
+  w.mailer.failAlways = new Error('SMTP down');
   await assert.rejects(w.deliver(EVENTS.TOUR_HIDDEN, { tourId: crypto.randomUUID(), contributorId: AUTHOR, reason: 'x', at: at(0) }), /SMTP down/);
   assert.equal(w.repo.rows.length, 1);
 });

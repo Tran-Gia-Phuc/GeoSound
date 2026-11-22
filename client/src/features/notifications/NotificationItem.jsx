@@ -14,7 +14,7 @@ const TYPE_META = {
   'tour.changes_requested': { icon: 'edit', tone: 'warn', badge: 'Cần chỉnh sửa' },
   'tts.render.completed': { icon: 'volume', tone: 'primary', badge: 'Âm thanh AI' },
   'tour.reported': { icon: 'info', tone: 'warn', badge: 'Báo cáo' },
-  'account.notice': { icon: 'bell', tone: 'info', badge: 'Hệ thống' },
+  'account.moderated': { icon: 'bell', tone: 'info', badge: 'Hệ thống' },
 };
 
 const FALLBACK_META = { icon: 'bell', tone: 'neutral', badge: 'Thông báo' };

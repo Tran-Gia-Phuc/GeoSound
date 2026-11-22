@@ -149,7 +149,7 @@ test('handleEvent: storage failure does not stop the email; SMTP failure keeps t
   const failure = new Error('SMTP down');
   const badMailer = { send: async () => { throw failure; } };
   await assert.rejects(
-    handleEvent(badMailer, 'tour.changes_requested', { ...base, contributorEmail: 'c@example.com', reason: 'Sửa' }, silent, {}, { storeInApp }),
+    handleEvent(badMailer, 'tour.changes_requested', { ...base, contributorEmail: 'c@example.com', reason: 'Sửa' }, silent, {}, { storeInApp, retryDelaysMs: [] }),
     (err) => err === failure,
   );
   assert.equal(repo.rows.length, 1);

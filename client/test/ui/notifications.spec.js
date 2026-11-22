@@ -36,7 +36,7 @@ const changes = {
 };
 const account = {
   id: 'n-acc',
-  type: 'account.notice',
+  type: 'account.moderated',
   tourId: null,
   title: 'Tài khoản của bạn vừa được cập nhật',
   body: null,
