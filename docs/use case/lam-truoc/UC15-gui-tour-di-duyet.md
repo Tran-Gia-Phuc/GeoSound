@@ -44,8 +44,8 @@
 - **E2.** Còn điểm đang kiểm duyệt hoặc bị AI từ chối → mục `placesModeration` không đạt: *"Điểm đang được AI kiểm duyệt: …"* / *"Điểm bị AI từ chối, cần sửa: …"*. Quá 50 điểm → mục `placesLimit`: *"Tour có N điểm dừng, tối đa 50 để gửi duyệt"*. `checkPublishReadiness()`
 - **E3.** Tour đang ở chế độ truy cập hạn chế (UC14) → 409 `tour_restricted`; tour bị Admin ẩn → 409 `invalid_status_transition`. `TourRestrictedError`, `TourStatusTransitionError`
 - **E4.** Không phải tác giả → 403 `not_tour_owner`; tour không tồn tại → 404. `NotTourOwnerError`, `TourNotFoundError`
-- **E5.** Không phát được `tour.submitted` (RabbitMQ lỗi) → lỗi chỉ được ghi log, tour vẫn `ai_checking`; contributor có thể gửi lại. `submitTourForModeration()`
-- **E6.** AI lỗi tạm thời (timeout, 429, 503, mạng) sau 3 lần thử, hoặc 401 (lỗi cấu hình) → case `ai_failed`, **không phát kết quả**; tour vẫn `ai_checking`, sweeper của Moderation thử lại mỗi 60 giây. `withRetry()`, `classifyStatus()`, `startRetrySweeper()` → `RetryFailedCases.execute()` → `ReviewCaseFlow.retry()`
+- **E5.** Không phát được `tour.submitted` (RabbitMQ lỗi) → lỗi chỉ được ghi log, tour vẫn `ai_checking`. Studio ẩn nút gửi khi tour đang duyệt; contributor sửa tour (A4, về `draft`) rồi gửi lại. `submitTourForModeration()`, `PublishPanel`
+- **E6.** AI lỗi tạm thời (timeout, 429, 503, mạng) sau 3 lần thử, hoặc 401 (lỗi cấu hình) → case `ai_failed`, **không phát kết quả**; tour vẫn `ai_checking`, sweeper của Moderation thử lại mỗi 60 giây. Sau 2 phút chờ, client báo *"AI đang bận, hệ thống sẽ tự thử lại. Bạn có thể rời trang, kết quả sẽ có trong Thông báo."* (`SubmissionStatus`). `withRetry()`, `classifyStatus()`, `startRetrySweeper()` → `RetryFailedCases.execute()` → `ReviewCaseFlow.retry()`
 - **E7.** AI trả 422 (đầu vào không hợp lệ, lỗi vĩnh viễn) hoặc sự kiện thiếu nội dung → Moderation phát Warning "cần người xem" (tour vào `ai_warning`); nếu G1 đã Reject thì Reject vẫn thắng. Văn bản bị nhà cung cấp chặn (`LLMBlockedError`) → Reject, loại `other`. `RunTourReview.permanentResult()`, `isTourComplete()`
 - **E8.** Client hỏi trạng thái thất bại → *"Chưa cập nhật được trạng thái: …"* kèm nút "Thử lại"; không bao giờ báo kết quả sớm. `SubmissionStatus`
 
@@ -82,7 +82,7 @@ Contributor hoàn tất nội dung tour và muốn công khai.
 - Luật vị trí G1–G6 trong Moderation (G1 toạ độ sai, G2 điểm trùng < 10 m, G3 chặng quá dài, G4 quá phân tán, G5 thời lượng, G6 lộ trình zig-zag; giới hạn theo `type`). **Chỉ G1 Reject**, còn lại Warning. Tour `indoor` chỉ chạy G1, G2.
 - Vùng cấm do Tour kiểm tra khi lưu điểm (UC10), không phải ở UC15.
 - Ảnh điểm: tối đa 5 ảnh, mỗi ảnh 3 MB, jpeg/png/webp, chỉ https và host cho phép; chỉ Gemini kiểm ảnh (Groq chỉ dùng cho văn bản). Điểm có ảnh không kiểm được không bao giờ Pass.
-- Giới hạn: tên tour 200, mô tả tour 5000, tên điểm 200, mô tả điểm 2000 ký tự, tối đa 50 điểm.
+- Giới hạn: tên tour 200, mô tả tour 2000 (Tour nhận tối đa 2000; AI chấp nhận 5000), tên điểm 200, mô tả điểm 2000 ký tự khi gửi kiểm duyệt (Tour nhận tối đa 5000 và cắt còn 2000 trong `place.submitted`), tối đa 50 điểm.
 - Kết quả có `revision` cũ hoặc đến khi tour không còn `ai_checking` bị bỏ qua.
 
 ## Hiện thực trong hệ thống
@@ -142,7 +142,7 @@ Contributor hoàn tất nội dung tour và muốn công khai.
 
 ## Date
 
-Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-22
 
 ## Activity Diagram
 

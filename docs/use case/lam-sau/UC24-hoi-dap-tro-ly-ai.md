@@ -33,19 +33,19 @@
 
 | # | Actor Action | System Response |
 |---|---|---|
-| A3.1 | | Câu hỏi mà bộ phân loại (luật từ khóa) xếp là ngoài phạm vi (ví dụ đặt chỗ, giá, dữ liệu cá nhân) → câu trả lời soạn sẵn theo ngôn ngữ, `finish_reason = refused`, không gọi LLM. |
+| A3.1 | | Câu hỏi mà bộ phân loại (luật từ khóa, có dấu hoặc không dấu) xếp là ngoài phạm vi (thời tiết, lập trình / toán, tài chính, chính trị, tin tức, đặt chỗ, giá, thanh toán, dữ liệu cá nhân) và không có từ về du lịch (ví dụ "đi đâu khi trời mưa" vẫn trong phạm vi) → câu trả lời soạn sẵn theo ngôn ngữ, `finish_reason = refused`, không gọi LLM. |
 | A3.2 | | Không tìm thấy tour / địa điểm phù hợp → câu trả lời soạn sẵn, `finish_reason = no_data`, không gọi LLM. |
 | A3.3 | | Câu chào hỏi xã giao → trả lời bằng một lần gọi LLM, không truy vấn chỉ mục. |
 
-**A4. Dừng câu trả lời.** Tourist bấm "Dừng" khi đang nhận → client hủy luồng (gateway hủy luôn yêu cầu tới AI); phần đã nhận được giữ, ghi nhãn "Đã dừng". `useChat()` `stop()`, `mountChat()` (`proxyReq.destroy()`)
+**A4. Dừng câu trả lời.** Tourist bấm "Dừng" khi đang nhận → client hủy luồng (gateway hủy luôn yêu cầu tới AI); phần đã nhận được giữ, ghi nhãn "Đã dừng". Lượt đã chạy xong ở AI trước khi phát luồng (R8), nên lịch sử phiên vẫn có câu trả lời đầy đủ. `useChat()` `stop()`, `mountChat()` (`proxyReq.destroy()`)
 
 ## Exception Path
 
 - **E1.** Chatbot tắt (`CHATBOT_ENABLED=false`) → `/api/chat` trả 404: nút nổi bị ẩn; trang `/chat` hiện *"Chatbot đang tắt"* và *"Trợ lý tạm thời không hoạt động. Bạn vẫn có thể tìm tour ở màn Khám phá."*. Phiên hết hạn hoặc không tồn tại (404 `unknown session`) → client xóa phiên và bắt đầu trống. `require_chat_enabled()`, `probeChat()`, `ChatLauncher`
 - **E2.** Câu hỏi rỗng hoặc quá 1000 ký tự → 422, *"Câu hỏi không hợp lệ. Vui lòng nhập từ 1 đến 1000 ký tự."* (client có bộ đếm ký tự). `ChatRequest._message_limits()`, `errorFromResponse()`
 - **E3.** Vượt giới hạn của gateway (5 lượt / phút, 100 lượt / ngày mỗi IP) → 429 kèm `Retry-After`: *"Bạn đã hỏi quá nhiều trong thời gian ngắn, vui lòng thử lại sau …"*. `createChatRateLimit()`, `formatWait()`
-- **E4.** AI bận (semaphore dùng chung với kiểm duyệt không còn chỗ hoặc kiểm duyệt đang chờ; hoặc vượt giới hạn Gemini toàn hệ thống mà không có Groq) → 429 kèm `Retry-After`: *"Trợ lý đang bận, vui lòng thử lại sau …"*. Mọi nhà cung cấp LLM đều lỗi → 503: *"Trợ lý tạm thời không phản hồi, vui lòng thử lại sau."*. Nội dung bị nhà cung cấp chặn → câu từ chối lịch sự (`refused`). `GuardedChatModel.ainvoke()` → `ChatBusyError`, `SlidingWindowLimiter.try_acquire()`
-- **E5.** Lỗi giữa luồng → sự kiện `error`: *"Trợ lý gặp lỗi khi trả lời, vui lòng thử lại."*; mất kết nối giữa chừng → *"Mất kết nối, câu trả lời chưa đầy đủ."*; không có mạng → *"Không thể kết nối, vui lòng thử lại"*. Có nút "Thử lại". `stream_turn()`, `streamErrorMessage()`
+- **E4.** AI bận (semaphore dùng chung với kiểm duyệt không còn chỗ hoặc kiểm duyệt đang chờ; hoặc vượt giới hạn Gemini toàn hệ thống mà không có Groq) → 429 kèm `Retry-After`: *"Trợ lý đang bận, vui lòng thử lại sau …"*. Mọi nhà cung cấp LLM đều lỗi, hoặc gateway không gọi được AI → 503: *"Trợ lý tạm thời không phản hồi, vui lòng thử lại sau."*. Nội dung bị nhà cung cấp chặn → câu từ chối lịch sự (`refused`). `GuardedChatModel.ainvoke()` → `ChatBusyError`, `SlidingWindowLimiter.try_acquire()`
+- **E5.** Lỗi giữa luồng → sự kiện `error`: *"Trợ lý gặp lỗi khi trả lời, vui lòng thử lại."*; mất kết nối giữa chừng → *"Mất kết nối, câu trả lời chưa đầy đủ."*; luồng đóng mà chưa có chữ nào → *"Trợ lý chưa trả lời, vui lòng thử lại."*. Các lỗi này hiện ngay trong câu trả lời, không có nút "Thử lại". Lỗi trước khi có luồng (không có mạng *"Không thể kết nối, vui lòng thử lại"*, 429 ở E3 / E4, 503) → câu hỏi ghi *"Chưa gửi được"* và có nút "Thử lại". `stream_turn()`, `streamErrorMessage()`, `useChat()` `retry()`
 
 ## Extension Points
 
@@ -76,15 +76,15 @@ Tourist muốn được gợi ý hoặc giải thích về tour, địa điểm 
 | # | Quy tắc |
 |---|---|
 | R1 | Chỉ mục chỉ chứa tour `public` và các địa điểm của chúng; không có id tác giả, email, đánh giá, lịch trình hay ảnh |
-| R2 | Bộ đánh chỉ mục tiêu thụ `tour.published` (bỏ qua nếu `status` khác `public` hoặc `revision` cũ hơn) và `tour.unpublished` / `tour.hidden` (xóa tour, điểm, chunk, cạnh đồ thị) |
+| R2 | Bộ đánh chỉ mục tiêu thụ `tour.published` (`revision` trùng hoặc cũ hơn thì bỏ qua; `status` khác `public` thì xóa tour khỏi chỉ mục) và `tour.unpublished` / `tour.hidden` (xóa tour, điểm, chunk, cạnh đồ thị) |
 | R3 | Tối đa 1 lần gọi LLM mỗi lượt (giới hạn cứng `MAX_LLM_CALLS_PER_TURN = 2`); Gemini `gemini-2.5-flash`, dự phòng Groq chỉ khi timeout, 429, 5xx (chat chỉ có văn bản) |
 | R4 | Câu hỏi 1–1000 ký tự (`CHAT_MESSAGE_MAX_CHARS`), được làm sạch như nội dung kiểm duyệt; nội dung truy xuất được coi là dữ liệu, không phải lệnh |
 | R5 | Giới hạn gateway: `CHAT_RATE_LIMIT_PER_MIN = 5`, `CHAT_RATE_LIMIT_PER_DAY = 100` mỗi IP (Redis; lỗi Redis thì cho qua); giới hạn toàn hệ thống `CHAT_GLOBAL_RATE_LIMIT_PER_MIN = 2` lượt / phút trên Gemini; vượt mức thì lượt đó chạy trên Groq (nếu có khóa), nếu không thì 429. Kiểm duyệt luôn được ưu tiên: chat không xếp hàng chờ semaphore |
-| R6 | Truy xuất lai: 20 chunk hạt giống theo cosine, mở rộng đồ thị 1–2 bước, xếp hạng `0.6 * vector + 0.2 * đồ thị + 0.2 * khớp bộ lọc`, giữ tối đa 5 mục |
+| R6 | Truy xuất lai: 20 chunk hạt giống theo cosine, mở rộng đồ thị 1–2 bước, xếp hạng `0.6 * vector + 0.2 * đồ thị + 0.2 * khớp bộ lọc`, giữ tối đa 5 mục (`TOP_K`). Câu hỏi "gần đây": tìm địa điểm trong bán kính 500 m (`NEARBY_RADIUS_M`) quanh vị trí gửi kèm, hoặc quanh địa điểm tìm được theo tên khi không có vị trí; vị trí không được lưu |
 | R7 | Trích dẫn: chỉ giữ `[tour:ID]` / `[place:ID]` có trong kết quả truy xuất; id bịa bị xóa khỏi câu trả lời và khỏi lịch sử |
 | R8 | Cả lượt chạy xong rồi mới bắt đầu luồng, nên lỗi trước luồng là JSON (422, 429, 503); token được tách theo khoảng trắng nên dấu trích dẫn không bị cắt đôi |
-| R9 | Bộ nhớ: gửi cho LLM tối đa `CHAT_MEMORY_TURNS = 6` lượt gần nhất; phiên không hoạt động quá `CHAT_SESSION_TTL_HOURS = 24` giờ bị xóa |
-| R10 | Trả lời bằng `vi` hoặc `en` theo ngôn ngữ phát hiện từ câu hỏi |
+| R9 | Bộ nhớ: phiên chỉ giữ (và gửi cho LLM, trả trong lịch sử) `CHAT_MEMORY_TURNS = 6` lượt gần nhất; lượt lỗi (429, 503) không được lưu; phiên không hoạt động quá `CHAT_SESSION_TTL_HOURS = 24` giờ bị xóa |
+| R10 | Trả lời bằng `vi` hoặc `en` theo ngôn ngữ phát hiện từ câu hỏi (nhận ra cả tiếng Việt gõ không dấu) |
 
 ## Hiện thực trong hệ thống
 
@@ -132,7 +132,7 @@ Tourist muốn được gợi ý hoặc giải thích về tour, địa điểm 
 
 ## Date
 
-Tạo: 2026-11-08 · Cập nhật theo hệ thống: 2026-11-08
+Tạo: 2026-11-08 · Cập nhật theo hệ thống: 2026-11-22
 
 ## Activity Diagram
 

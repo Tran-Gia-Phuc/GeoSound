@@ -15,7 +15,7 @@
 |---|---|---|
 | 1 | | (Nền) Khi có sự kiện tour (`tour.ai_rejected`, `tour.approved`, `tour.rejected`, `tour.changes_requested`, `tour.hidden`, `tour.restored`, `tour.reported`), Notification lưu một dòng `in_app_notifications` cho `contributorId` với tiêu đề tiếng Việt và lý do, rồi gửi email cho tác giả (email trong sự kiện, nếu thiếu thì tra Auth theo `contributorId`). Mọi sự kiện trên đều có email, trừ `tour.reported` (chỉ có thông báo trong app). `handleEvent()`, `createStoreInAppNotification()`, `buildInAppNotification()`, `sourceKeyOf()`, `PrismaInAppNotificationRepository.createIfAbsent()`, `buildTourEmail()`, `createContributorLookup()` |
 | 2 | | Client (đã đăng nhập) gọi `GET /api/notifications/unread-count` khi mở app, khi trang được focus và mỗi 60 giây; hiển thị huy hiệu số chưa đọc ("99+" khi trên 99). `UnreadCountProvider`, `getUnreadCount()` → `NotificationController`, `CountUnread.execute()` |
-| 3 | Contributor mở **Thông báo** (`/notifications`). | Client gọi `GET /api/notifications?page=1&limit=20`; hiển thị danh sách mới nhất trước: tiêu đề, lý do, các lý do AI (với `tour.ai_rejected`), thời gian, dấu chưa đọc. *E1, E2* `NotificationsPage`, `listNotifications()` → `ListNotifications.execute()`, `toView()`; `NotificationItem` |
+| 3 | Contributor mở **Thông báo** (`/notifications`). | Client gọi `GET /api/notifications?page=1&limit=20`; hiển thị danh sách mới nhất trước: tiêu đề, lý do, các lý do AI (với `tour.ai_rejected`), thời gian, dấu chưa đọc và nhãn loại (Đã duyệt, Cần sửa AI, Bị từ chối, Cần chỉnh sửa, Báo cáo, Âm thanh AI; các loại khác như tour bị ẩn / hiển thị lại và thông báo tài khoản hiện "Thông báo"). *E1, E2* `NotificationsPage`, `listNotifications()` → `ListNotifications.execute()`, `toView()`; `NotificationItem` |
 | 4 | Contributor lọc "Chưa đọc" hoặc nhấn "Xem thêm". *A1* | Client tải lại với `unread=true` hoặc trang kế tiếp. `listNotifications()` → `ListNotifications.execute()` |
 | 5 | Contributor mở một thông báo. | Client gọi `POST /api/notifications/:id/read` (204), giảm huy hiệu và chuyển tới trang tour trong Studio với lịch sử kiểm duyệt (hoặc `/account` với thông báo tài khoản). *E3* `markNotificationRead()` → `MarkRead.execute()`, `PrismaInAppNotificationRepository.markRead()`; `notificationTarget()` |
 | 6 | Contributor xem trạng thái tour trong Studio (`/studio`, `/studio/tours/:id`). | Hệ thống hiển thị nhãn trạng thái (Nháp, Đang kiểm duyệt AI, Cảnh báo AI, Chờ duyệt, Công khai, Bị từ chối, Cần chỉnh sửa, Truy cập hạn chế, Đang ẩn) và lịch sử thông báo của tour (`GET /api/notifications?tourId=…`, 20 mỗi trang). `StudioToursPage`, `statusMeta()`, `TourModerationHistory` |
@@ -24,17 +24,17 @@
 
 ## Alternative Path
 
-**A1. Đánh dấu tất cả đã đọc** → khi còn thông báo chưa đọc, contributor nhấn "Đánh dấu tất cả đã đọc"; client gọi `POST /api/notifications/read-all`, nhận `{ updated }`, huy hiệu về 0. `markAllNotificationsRead()` → `MarkAllRead.execute()`, `PrismaInAppNotificationRepository.markAllRead()`
+**A1. Đánh dấu tất cả đã đọc** → khi còn thông báo chưa đọc, contributor nhấn "Đánh dấu tất cả đã đọc"; client gọi `POST /api/notifications/read-all`, nhận `{ updated }`, huy hiệu về 0 và hiện *"Đã đánh dấu N thông báo là đã đọc"* (hoặc *"Không còn thông báo chưa đọc"* khi `updated` = 0). `markAllNotificationsRead()` → `MarkAllRead.execute()`, `PrismaInAppNotificationRepository.markAllRead()`
 
 **A2. Mở tour để sửa và gửi lại** → từ trang tour trong Studio, contributor sửa (UC09 / UC10 / UC11) và gửi duyệt lại (UC15).
 
-**A3. Thông báo tài khoản** → khi Admin cảnh báo / tạm khoá / cấm / khôi phục tài khoản (UC21, `account.moderated`), người dùng cũng nhận một thông báo trong app và một email; mở thông báo chuyển tới `/account`. `handleEvent()` (nhánh `account.moderated`), `buildAccountActionEmail()`
+**A3. Thông báo tài khoản** → khi Admin cảnh báo / tạm khoá / cấm / khôi phục tài khoản (UC21, `account.moderated`), người dùng cũng nhận một thông báo trong app và một email (tới email có trong sự kiện, không tra Auth); mở thông báo chuyển tới `/account`. `handleEvent()` (nhánh `account.moderated`), `buildAccountActionEmail()`
 
 ## Exception Path
 
-- **E1.** Không có thông báo nào → *"Chưa có thông báo nào"*.
+- **E1.** Không có thông báo nào → *"Chưa có thông báo nào"* (bộ lọc "Chưa đọc": *"Không có thông báo chưa đọc"*).
 - **E2.** Mất kết nối → *"Không thể kết nối, vui lòng thử lại"*; huy hiệu giữ số cuối cùng đã biết.
-- **E3.** Thông báo của người khác, không tồn tại hoặc id sai → 404 `notification_not_found` *"Không tìm thấy thông báo"*. `NotificationNotFoundError`
+- **E3.** Thông báo của người khác, không tồn tại hoặc id sai → 404 `notification_not_found` *"Không tìm thấy thông báo"*. Khi mở thông báo, client bỏ qua 404 và vẫn chuyển tới trang đích; lỗi khác hiện *"Chưa đánh dấu được thông báo"* (thông báo vẫn chưa đọc) rồi vẫn chuyển trang. `NotificationNotFoundError`, `NotificationsPage.onOpen()`
 - **E4.** Tham số sai (ví dụ `limit` > 50, `tourId` không phải uuid) → 400 `validation_error` *"Tham số không hợp lệ"*.
 - **E5.** Chưa đăng nhập, token sai hoặc phiên đã đăng xuất (UC23) → 401.
 
@@ -57,7 +57,7 @@ Tour của contributor đổi trạng thái do AI hoặc Admin, hoặc bị khá
 
 ## Post Conditions
 
-- Mỗi sự kiện tạo đúng một dòng `in_app_notifications` và một email (gửi lại cùng sự kiện không tạo bản trùng, không gửi lại email).
+- Mỗi sự kiện có người nhận tạo đúng một dòng `in_app_notifications` và một email (trừ `tour.reported`, hoặc khi không tìm được email); gửi lại cùng sự kiện không tạo bản trùng, không gửi lại email.
 - Thông báo đã mở có `read_at`; số chưa đọc được cập nhật.
 - Contributor nắm được trạng thái và lý do; có thể sửa và gửi lại.
 
@@ -66,7 +66,7 @@ Tour của contributor đổi trạng thái do AI hoặc Admin, hoặc bị khá
 - Người dùng chỉ đọc và đánh dấu thông báo của **chính mình**; mọi vai trò đã đăng nhập đều dùng được.
 - Thông báo luôn kèm **lý do cụ thể** khi sự kiện có lý do (`body` tối đa 1000 ký tự; `data.reasons` tối đa 20 lý do AI).
 - Không bao giờ lưu danh tính người báo cáo, email, id Admin hoặc khoá ngoài danh sách cho phép.
-- Chống trùng: `source_key` duy nhất (`<event>:<tourId>:<sha256 payload>`), ghi bằng `skipDuplicates`.
+- Chống trùng: `source_key` duy nhất (`<event>:<tourId>:<sha256 payload>`, `userId` thay cho `tourId` với `account.moderated`), ghi bằng `skipDuplicates`.
 - Lưu thông báo không bao giờ ném lỗi (lỗi chỉ ghi log, email vẫn gửi); dòng trong app được ghi **trước** email.
 - Email: `tour.ai_rejected`, `tour.approved`, `tour.rejected`, `tour.changes_requested`, `tour.hidden`, `tour.restored` có email (kèm lý do khi có); `tour.reported` không có email. Người nhận là email trong sự kiện, nếu thiếu thì tra Auth theo `contributorId`; không tìm được thì bỏ qua email.
 - Phân trang: `limit` 1..50, mặc định 20; `unread` trả về luôn là tổng chưa đọc của người dùng (không đổi theo bộ lọc).
@@ -115,7 +115,7 @@ Tour của contributor đổi trạng thái do AI hoặc Admin, hoặc bị khá
 
 ## Date
 
-Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-22
 
 ## Activity Diagram
 

@@ -73,7 +73,7 @@ Tác giả vi phạm nhiều lần (tour bị ẩn / từ chối, nhiều báo c
 - Cảnh báo **không tự động leo thang** thành khoá; đếm cảnh báo xem ở log UC22.
 - Không cấm chính mình, không tác động admin khác.
 - Ghi có điều kiện theo trạng thái và ngày kết thúc đã đọc.
-- Email gửi thẳng tới `email` của tài khoản trong sự kiện (không dùng `SECURITY_ALERT_TO`, không tra Auth); thông báo trong app (type `account.moderated`, tiêu đề theo hành động, nội dung = lý do) có `sourceKey` nên không bị tạo trùng khi sự kiện gửi lại.
+- Email gửi thẳng tới `email` của tài khoản trong sự kiện (không dùng `SECURITY_ALERT_TO`, không tra Auth); thông báo trong app (type `account.moderated`, tiêu đề theo hành động, nội dung = lý do) có `sourceKey` nên không bị tạo trùng khi sự kiện gửi lại; sự kiện gửi lại cũng không gửi email lần nữa.
 - Dòng log ở Tour có `source_key` = `account.moderated:<userId>:<action>:<at>`; không lưu email hay tên.
 
 ## Hiện thực trong hệ thống
@@ -93,7 +93,7 @@ Tác giả vi phạm nhiều lần (tour bị ẩn / từ chối, nhiều báo c
   - `POST /api/auth/admin/users/:id/ban` `{ reason }`
   - `POST /api/auth/admin/users/:id/restore` `{ reason? }`
   - `GET /api/tours/admin/users/:userId/violations`
-- **Sự kiện (RabbitMQ):** Auth publish `account.moderated` (`userId`, `action`, `reason?`, `until?`, `adminId`, `email`, `fullName`, `at`); consume bởi Notification và Tour.
+- **Sự kiện (RabbitMQ):** Auth publish `account.moderated` (`userId`, `action`, `reason?`, `until?`, `adminId`, `email`, `fullName?`, `at`); consume bởi Notification và Tour.
 - **Dữ liệu:** Auth `users.status`, `users.ban_reason`, `users.suspended_until`, `sessions.revoke_reason`; Tour `admin_actions` (`source_key` chống trùng); Notification bảng thông báo (type `account.moderated`).
 - **Tài liệu thiết kế:** [uc21-account-actions.md](../../02-design/uc21-account-actions.md), [uc22-dashboard-log.md](../../02-design/uc22-dashboard-log.md), [device-sessions.md](../../02-design/device-sessions.md).
 - **Mã nguồn chính:**
