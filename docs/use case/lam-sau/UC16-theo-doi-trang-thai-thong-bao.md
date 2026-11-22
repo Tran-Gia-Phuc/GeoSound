@@ -57,7 +57,7 @@ Tour của contributor đổi trạng thái do AI hoặc Admin, hoặc bị khá
 
 ## Post Conditions
 
-- Mỗi sự kiện tạo đúng một dòng `in_app_notifications` (gửi lại cùng sự kiện không tạo bản trùng).
+- Mỗi sự kiện tạo đúng một dòng `in_app_notifications` và một email (gửi lại cùng sự kiện không tạo bản trùng, không gửi lại email).
 - Thông báo đã mở có `read_at`; số chưa đọc được cập nhật.
 - Contributor nắm được trạng thái và lý do; có thể sửa và gửi lại.
 
