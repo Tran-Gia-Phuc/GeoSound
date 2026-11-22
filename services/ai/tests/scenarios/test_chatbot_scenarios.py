@@ -113,19 +113,45 @@ def test_retriever_returning_nothing_never_calls_the_model():
     assert result["lang"] == "vi"
 
 
-# ---------- known gaps (strict xfail: a fix makes these fail, then drop the mark) ----------
+# ---------- language without accents, weather ----------
 
 
-@pytest.mark.xfail(strict=True, reason="short unaccented Vietnamese is detected as English; "
-                                       "the client sends no language")
-def test_short_unaccented_vietnamese_is_answered_in_vietnamese():
+@pytest.mark.parametrize("message, lang", [
+    ("tour an uong o hoi an", "vi"),          # no function word: one phrase is enough
+    ("dia diem tham quan ha noi", "vi"),
+    ("goi y mua sam o sai gon", "vi"),
+    ("food tour in hoi an", "en"),
+    ("is there a walking tour in da nang", "en"),
+    ("museum and history tours in hanoi", "en"),
+])
+def test_language_without_accents(message, lang):
     agent, _, _ = make_agent(replier)
-    assert run(agent, "s1", "tour an uong o hoi an")["lang"] == "vi"
+    assert run(agent, "s1", message)["lang"] == lang
 
 
-@pytest.mark.xfail(strict=True, reason="weather words other than 'thời tiết'/'weather' "
-                                       "(mưa, nắng, rain) are not out of scope")
-def test_rain_question_is_refused_without_llm():
+@pytest.mark.parametrize("message", [
+    "Hôm nay Hội An có mưa không?",
+    "Đà Nẵng mai có bão không?",
+    "Sài Gòn trưa nay nắng không?",
+    "Is it raining in Hanoi right now?",
+    "will it rain tomorrow in hoi an",
+])
+def test_weather_question_is_refused_without_llm(message):
+    agent, model, retriever = make_agent(replier)
+    result = run(agent, "s1", message)
+    assert result["intent"] == "out_of_scope" and result["finish_reason"] == "refused"
+    assert model.calls == [] and retriever.calls == []
+
+
+@pytest.mark.parametrize("message", [
+    "Tour trong nhà cho ngày mưa ở Hội An",
+    "Đi đâu khi trời mưa ở Hà Nội?",
+    "Hội An nắng đẹp nên chơi gì?",
+    "where to go in hanoi when it rains",
+    "mua do an o cho Hoi An",                  # unaccented "mua" = buy, never weather
+])
+def test_travel_question_mentioning_weather_stays_in_scope(message):
     agent, model, _ = make_agent(replier)
-    result = run(agent, "s1", "Hôm nay Hội An có mưa không?")
-    assert result["intent"] == "out_of_scope" and model.calls == []
+    result = run(agent, "s1", message)
+    assert result["intent"] != "out_of_scope" and result["finish_reason"] == "stop"
+    assert len(model.calls) == 1
