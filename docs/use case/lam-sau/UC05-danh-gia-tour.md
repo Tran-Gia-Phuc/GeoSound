@@ -90,6 +90,7 @@
 | R4 | Chống spam report: Mỗi tài khoản chỉ được gửi tối đa 1 báo cáo cho mỗi bài đánh giá (khóa duy nhất `tour_id, rating_user_id, reporter_id`). |
 | R5 | Ngưỡng cảnh báo tự động (Soft-flag): Khi một bài nhận xét nhận từ 3 báo cáo `PENDING` trở lên từ các tài khoản khác nhau, hệ thống tự động đặt cờ `is_flagged = true` để Admin ưu tiên xử lý. |
 | R6 | Tính toàn vẹn dữ liệu: Khi Admin phê duyệt gỡ bỏ đánh giá vi phạm, điểm trung bình `average_rating` và số lượt `rating_count` của tour phải được cập nhật lại nguyên tử (atomic SQL transaction) giống cơ chế xóa trong UC05. |
+| R7 | Đánh giá đã bị Admin gỡ bỏ không còn được tính: nếu chủ đánh giá chấm lại, bài mới thay thế bài đã gỡ và được tính một lần; nếu chủ đánh giá xóa, server trả 404 và không trừ lại điểm. Thống kê của tác giả (UC17) không hiển thị nhận xét đã bị gỡ. |
 
 ## Hiện thực trong hệ thống (Đề xuất)
 

@@ -98,6 +98,10 @@ function fakeStore() {
     async findByTourAndUser(tourId, userId) { const r = ownRow(tourId, userId); return r && !r.isHidden ? new TourRating(r) : null; },
     async saveForUser({ tourId, userId, userName, stars, comment }) {
       const own = ownRow(tourId, userId);
+      if (own?.isHidden) {
+        Object.assign(own, { stars, comment, userName, isHidden: false, isFlagged: false, createdAt: stamp(), updatedAt: stamp() });
+        return { created: true, rating: new TourRating(own), summary: move(tourId, ratingDelta.created(stars)) };
+      }
       if (own) {
         const old = own.stars;
         Object.assign(own, { stars, comment, userName, updatedAt: stamp() });
@@ -110,7 +114,7 @@ function fakeStore() {
     },
     async deleteForUser(tourId, userId) {
       const own = ownRow(tourId, userId);
-      if (!own) return null;
+      if (!own || own.isHidden) return null;
       ratings.delete(own.id);
       return { summary: move(tourId, ratingDelta.deleted(own.stars)) };
     },
@@ -196,9 +200,9 @@ function fakeStore() {
       }
       return [...byDay.values()].sort((a, b) => a.day.localeCompare(b.day));
     },
-    // like PrismaTourStatsRepository.latestComments: where { tourId, comment not null } (no is_hidden filter)
+    // like PrismaTourStatsRepository.latestComments: where { tourId, comment not null, is_hidden false }
     async latestComments(tourId, { take }) {
-      const rows = [...ratings.values()].filter((r) => r.tourId === tourId && r.comment).sort((a, b) => b.createdAt - a.createdAt);
+      const rows = [...ratings.values()].filter((r) => r.tourId === tourId && r.comment && !r.isHidden).sort((a, b) => b.createdAt - a.createdAt);
       return { items: rows.slice(0, take).map((r) => ({ id: r.id, userName: r.userName, stars: r.stars, comment: r.comment, createdAt: r.createdAt })), total: rows.length };
     },
   };
@@ -424,17 +428,16 @@ test('UC05 resolving an already removed rating again does not move the aggregate
   assert.deepEqual([unknown.status, unknown.body.code], [404, 'rating_report_not_found']);
 }));
 
-// Bug: PrismaTourRatingRepository.#lockOwn ignores is_hidden, so saveForUser edits the hidden row
-// (created:false, still hidden) and moves the aggregate by (new - old) for a rating it no longer counts.
-test.todo('UC05 the owner of a removed rating rates again: aggregate should match the shown ratings', () => withScenario(async (s) => {
+// A removed rating is out of the aggregate: rating again replaces it and counts it once.
+test('UC05 the owner of a removed rating rates again: aggregate should match the shown ratings', () => withScenario(async (s) => {
   const { reportId } = await ratedAndReported(s);
   await s.resolve(reportId, 'REMOVE_RATING');
   await s.rate(U.v1, 4);
   assertAggregateMatchesVisible(s.store);
 }));
 
-// Bug: deleteForUser uses the same #lockOwn, finds the hidden row and subtracts its stars a second time.
-test.todo('UC05 the owner deletes a removed rating: aggregate should not drop a second time', () => withScenario(async (s) => {
+// Deleting a removed rating is 404 and does not subtract its stars a second time.
+test('UC05 the owner deletes a removed rating: aggregate should not drop a second time', () => withScenario(async (s) => {
   const { reportId } = await ratedAndReported(s);
   await s.resolve(reportId, 'REMOVE_RATING');
   await s.unrate(U.v1);
@@ -494,9 +497,8 @@ test('UC17 the stats rating block follows the UC05 aggregate through rate, edit 
   assert.deepEqual(after.distribution, { 1: 0, 2: 0, 3: 0, 4: 1, 5: 1 });
 }));
 
-// Probable bug: PrismaTourStatsRepository.latestComments filters only comment != null, not is_hidden,
-// so a comment the admin removed stays in the author's stats (the distribution already excludes it).
-test.todo('UC17 a comment removed by the admin should leave the author stats comments', () => withScenario(async (s) => {
+// UC05 report doc: UC17 stats leave out comments the admin removed.
+test('UC17 a comment removed by the admin should leave the author stats comments', () => withScenario(async (s) => {
   const { reportId } = await ratedAndReported(s);
   await s.resolve(reportId, 'REMOVE_RATING');
   const { comments } = (await s.stats()).body;

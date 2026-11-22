@@ -68,7 +68,7 @@ export class PrismaTourStatsRepository {
 
   /** Latest ratings that carry a comment (UC05 rows), and how many there are. */
   async latestComments(tourId, { take }) {
-    const where = { tourId, comment: { not: null } };
+    const where = { tourId, comment: { not: null }, isHidden: false };
     const [rows, total] = await Promise.all([
       this.prisma.tourRating.findMany({ where, orderBy: [{ createdAt: 'desc' }, { id: 'asc' }], take }),
       this.prisma.tourRating.count({ where }),

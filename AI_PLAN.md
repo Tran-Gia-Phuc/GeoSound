@@ -190,8 +190,8 @@ the UC docs; write new ones with the `uc-test-writer` agent.
 | UC05, UC17 | seeded aggregate → rate, edit, delete → rating reports → admin remove / dismiss → stats beacons once per device / day, author-only stats | `services/tour/test/uc05-uc17-scenarios.test.js` |
 | UC07, UC08 | create itinerary → add places of public tours only → reorder, remove → share link read-only → other users refused → tour unpublished / hidden later (stops kept as snapshot) → follow view with zones, path, language | `services/tour/test/uc07-uc08-scenarios.test.js` |
 
-Found by these tests, not fixed yet (kept as `test.todo` in `uc05-uc17-scenarios.test.js`):
-1. `prisma-tour-rating-repository.js` `#lockOwn` does not filter `is_hidden`: an owner re-rating a rating the admin removed edits the hidden row and moves the aggregate (average drifts).
-2. Same cause: deleting a removed rating subtracts its stars a second time (`rating_count` too low).
-3. `prisma-tour-stats-repository.js` `latestComments` does not filter `isHidden`: removed comments stay in the author's stats (confirm the wanted behaviour).
+Found by these tests, fixed on branch `fix/rating-removed-rows` (the three `test.todo` are now tests, plus `prisma-tour-rating-repository.test.js`):
+1. `prisma-tour-rating-repository.js` `#lockOwn` does not filter `is_hidden`: an owner re-rating a rating the admin removed edits the hidden row and moves the aggregate (average drifts). Fix: the new rating replaces the removed row and counts once (`created`).
+2. Same cause: deleting a removed rating subtracts its stars a second time (`rating_count` too low). Fix: 404, aggregate untouched.
+3. `prisma-tour-stats-repository.js` `latestComments` does not filter `isHidden`: removed comments stayed in the author's stats, against the UC05 report doc (UC17 leaves them out). Fix: filter `isHidden: false`.
 Also noted: `itinerary-routes.js` imports `../shared` directly (CI rule, section 5 notes); Notification re-sends the email on a redelivered event (in-app row is deduplicated); the shared itinerary view returns `ownerId` to anonymous viewers.
