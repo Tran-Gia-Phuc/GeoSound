@@ -181,7 +181,7 @@ function selectTranslator(env) {
 /**
  * @param {object} env
  * @param {{ publish?, validateEvent?, verifyJwt? }} [shared] functions from ../shared (only index.js imports it);
- *   publish / validateEvent are needed only when an event flag is on, verifyJwt guards the admin routes (UC19)
+ *   publish / validateEvent are needed only when an event flag is on, verifyJwt guards every signed-in route (required)
  */
 export function buildContainer(env = process.env, { publish = null, validateEvent = null, verifyJwt = null } = {}) {
   // UC12 (#425) — listening languages, e.g. SUPPORTED_LANGUAGES=vi,en,fr,id. Empty = the default list.
@@ -384,12 +384,15 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   };
 
   // --- interfaces (controller + router) ---
+  // The core contributor / itinerary routes cannot run unguarded: index.js always passes verifyJwt.
+  if (!verifyJwt) throw new Error('buildContainer needs shared verifyJwt for the guarded routes');
+  const requireContributor = verifyJwt(['contributor']);
   const tourController = new TourController(useCases);
-  const tourRouter = buildTourRouter({ tourController });
+  const tourRouter = buildTourRouter({ tourController, requireContributor });
   const placeController = new PlaceController(placeUseCases);
-  const placeRouter = buildPlaceRouter({ placeController });
+  const placeRouter = buildPlaceRouter({ placeController, requireContributor });
   const routeConfigController = new RouteConfigController(routeConfigUseCases);
-  const routeConfigRouter = buildRouteConfigRouter({ routeConfigController });
+  const routeConfigRouter = buildRouteConfigRouter({ routeConfigController, requireContributor });
   // UC04 / UC12 — a tourist asks for a language: automatic translation (AI), rate limited per IP.
   const translateTourForVisitor = new TranslateTourForVisitor({
     tourRepo,
@@ -407,11 +410,11 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   const publicTourController = new PublicTourController(publicUseCases, { supportedLanguages });
   const publicTourRouter = buildPublicTourRouter({ publicTourController, translateLimiter });
   const languageController = new LanguageController(languageUseCases);
-  const languageRouter = buildLanguageRouter({ languageController });
+  const languageRouter = buildLanguageRouter({ languageController, requireContributor });
   const previewController = new PreviewController(previewUseCases);
-  const previewRouter = buildPreviewRouter({ previewController });
+  const previewRouter = buildPreviewRouter({ previewController, requireContributor });
   const itineraryController = new ItineraryController(itineraryUseCases);
-  const itineraryRouter = buildItineraryRouter({ itineraryController });
+  const itineraryRouter = buildItineraryRouter({ itineraryController, requireAuth: verifyJwt() });
   const exploreController = new ExploreController(exploreUseCases);
   const exploreRouter = buildExploreRouter({ exploreController });
   const publicItineraryRouter = buildPublicItineraryRouter({ exploreController });

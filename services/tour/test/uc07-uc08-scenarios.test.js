@@ -239,6 +239,8 @@ test('UC07 A4: share gives one token, reused; the anonymous link shows the same 
   const owner = await w.uc.get.execute({ ownerId: OWNER, itineraryId: id });
   const shared = await w.uc.shared.execute({ token: 'share-1' });
   assert.equal(shared.shared, true);
+  assert.equal('ownerId' in shared, false); // the public link does not carry the owner's id
+  assert.equal(owner.ownerId, OWNER);
   assert.deepEqual(shared.places, owner.places);
   assert.deepEqual(shared.route, owner.route);
 

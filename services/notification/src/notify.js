@@ -29,7 +29,7 @@ async function handleNewDeviceLogin(mailer, payload, logger, env) {
 
 // UC21 — in-app first (never throws), then the email; SMTP errors propagate like the tour emails.
 async function handleAccountModerated(mailer, payload, logger, deps) {
-  if (deps.storeInApp) await deps.storeInApp(ACCOUNT_MODERATED, payload);
+  if (await isDuplicate(deps.storeInApp, ACCOUNT_MODERATED, payload, logger)) return { skipped: 'duplicate' };
   const email = buildAccountActionEmail(payload);
   if (!email) {
     logger.warn(`[notification] ${ACCOUNT_MODERATED}: hành động không xác định (${payload.action}), bỏ qua email.`);
@@ -42,6 +42,16 @@ async function handleAccountModerated(mailer, payload, logger, deps) {
   const result = await mailer.send({ to: payload.email, ...email });
   logger.log(`[notification] email "${ACCOUNT_MODERATED}" (${payload.action}, userId=${payload.userId}): ${result.status}`);
   return { sent: result };
+}
+
+// A redelivered event (its in-app row already exists) was mailed on the first delivery: do not mail
+// it again. Only the 'duplicate' answer skips the email; a storage failure still sends it.
+async function isDuplicate(storeInApp, event, payload, logger) {
+  if (!storeInApp) return false;
+  const stored = await storeInApp(event, payload);
+  if (stored?.skipped !== 'duplicate') return false;
+  logger.log(`[notification] ${event}: duplicate delivery, email already sent, skipped.`);
+  return true;
 }
 
 // #258 — no contributorEmail in the event: ask Auth by contributorId (best effort, never throws).
@@ -66,7 +76,7 @@ async function contributorEmailOf(payload, lookupEmail, logger) {
 export async function handleEvent(mailer, event, payload = {}, logger = console, env = process.env, deps = {}) {
   if (event === NEW_DEVICE_LOGIN) return handleNewDeviceLogin(mailer, payload, logger, env);
   if (event === ACCOUNT_MODERATED) return handleAccountModerated(mailer, payload, logger, deps);
-  if (deps.storeInApp) await deps.storeInApp(event, payload);
+  if (await isDuplicate(deps.storeInApp, event, payload, logger)) return { skipped: 'duplicate' };
 
   const email = buildTourEmail({ event, payload });
   if (!email) {

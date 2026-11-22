@@ -202,16 +202,16 @@ test('SMTP failure: the in-app row is already stored and the error reaches the b
   assert.equal(w.repo.rows.length, 1);
 });
 
-test('duplicate delivery: one in-app row; the email is sent again (current behaviour); a new event is a new row', async () => {
+test('duplicate delivery: one in-app row and one email; a new event is a new row and a new email', async () => {
   const w = world();
   const payload = { tourId: crypto.randomUUID(), contributorId: AUTHOR, tourTitle: 'A', reason: 'Sửa mô tả', at: at(0) };
   await w.deliver(EVENTS.TOUR_CHANGES_REQUESTED, payload);
-  await w.deliver(EVENTS.TOUR_CHANGES_REQUESTED, { ...payload });
+  assert.deepEqual(await w.deliver(EVENTS.TOUR_CHANGES_REQUESTED, { ...payload }), { skipped: 'duplicate' });
   assert.equal(w.repo.rows.length, 1);
-  // Email has no dedupe: the redelivered message mails the author a second time.
-  assert.equal(w.sent.length, 2);
+  assert.equal(w.sent.length, 1);
   await w.deliver(EVENTS.TOUR_CHANGES_REQUESTED, { ...payload, at: at(1) });
   assert.equal(w.repo.rows.length, 2);
+  assert.equal(w.sent.length, 2);
 });
 
 test('tour.ai_passed (warning) is not a Notification event: nothing stored, nothing sent', async () => {

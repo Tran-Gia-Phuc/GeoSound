@@ -86,8 +86,10 @@ test('handleEvent: in-app row + email to the account email for each action; dupl
   assert.equal(repo.rows.length, 4);
   assert.deepEqual(repo.rows.map((r) => r.data.action), ['warn', 'suspend', 'ban', 'restore']);
 
-  await handleEvent(mailer, ACCOUNT_MODERATED, { ...base, action: 'warn', ...CASES.warn[0] }, silent, env, { storeInApp });
+  const again = await handleEvent(mailer, ACCOUNT_MODERATED, { ...base, action: 'warn', ...CASES.warn[0] }, silent, env, { storeInApp });
+  assert.deepEqual(again, { skipped: 'duplicate' });
   assert.equal(repo.rows.length, 4);
+  assert.equal(sent.length, 4); // the redelivery is not mailed again
 });
 
 test('handleEvent: no email -> in-app only; unknown action -> nothing; SMTP failure keeps the in-app row', async () => {

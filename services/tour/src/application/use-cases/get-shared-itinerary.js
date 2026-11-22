@@ -13,7 +13,8 @@ export class GetSharedItinerary {
   async execute({ token, lang }) {
     const itinerary = await this.itineraryRepo.findByShareToken(token);
     if (!itinerary) throw new ItineraryNotFoundError();
-    const view = buildItineraryView({ itinerary, lang });
+    // Anyone with the link reads this: do not expose the owner's user id.
+    const { ownerId, ...view } = buildItineraryView({ itinerary, lang });
     return { ...view, shared: true };
   }
 }
