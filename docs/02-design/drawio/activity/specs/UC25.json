@@ -1,0 +1,86 @@
+{
+  "uc": "UC25",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. Tourist mở chi tiết một tour công khai có giá. A1.",
+      "alts": ["A1"]
+    },
+    {
+      "id": "s2",
+      "text": "2. Hệ thống hiển thị giá, phần nghe thử điểm đầu tiên và nút “Mua tour”."
+    },
+    {
+      "id": "s3",
+      "text": "3. Tourist nhấn “Mua tour”. E1.",
+      "exceptions": [
+        { "id": "E1", "text": "E1. Chưa đăng nhập → “Bạn cần đăng nhập để mua tour.” và nút “Đăng nhập” (UC#01); API trả 401.", "back": "end" }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s4",
+      "text": "4. Hệ thống hiện hộp thoại “Xác nhận mua tour” (tên tour, giá, thanh toán qua VNPay)."
+    },
+    {
+      "id": "s5",
+      "text": "5. Tourist nhấn “Thanh toán”."
+    },
+    {
+      "id": "s6",
+      "text": "6. Hệ thống (Payment) kiểm tra tour, giá, quyền mua; tạo đơn pending (hết hạn 15 phút) và trả URL VNPay đã ký. E2, E3, E4.",
+      "exceptions": [
+        { "id": "E2", "text": "E2. Tour không còn công khai → 404 “Tour không còn khả dụng”; giá đã đổi → 409 “Giá tour đã thay đổi, vui lòng xem lại”.", "back": "s2" },
+        { "id": "E3", "text": "E3. Đã mua tour này → 409 “Bạn đã mua tour này”; đang có đơn pending → trả lại URL của đơn đó.", "back": "end" },
+        { "id": "E4", "text": "E4. Tourist là tác giả → 403 “Bạn không cần mua tour của chính mình”.", "back": "end" }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s7",
+      "text": "7. Client chuyển Tourist sang trang VNPay."
+    },
+    {
+      "id": "s8",
+      "text": "8. Tourist thanh toán trên trang VNPay. A2, E5.",
+      "alts": ["A2"],
+      "exceptions": [
+        { "id": "E5", "text": "E5. Thanh toán thất bại (thẻ bị từ chối, không đủ số dư, sai OTP) → đơn failed, “Thanh toán không thành công” kèm nút “Thử lại”.", "back": "s3" }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s9",
+      "text": "9. VNPay gọi IPN; hệ thống kiểm tra chữ ký, mã đơn, số tiền, đánh dấu đơn paid và phát payment.completed; Tour ghi quyền truy cập. E6, E7.",
+      "exceptions": [
+        { "id": "E6", "text": "E6. Sai chữ ký → RspCode 97, không đổi đơn; sai số tiền → RspCode 04, đơn failed; mã đơn không tồn tại → RspCode 01.", "back": "end" },
+        { "id": "E7", "text": "E7. IPN gửi lại cho đơn đã paid → RspCode 02, không cấp quyền hay gửi email lần nữa.", "back": "end" }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s10",
+      "text": "10. Trang kết quả hiện “Thanh toán thành công. Bạn đã có thể nghe tour này.” và nút “Bắt đầu nghe”. E8.",
+      "exceptions": [
+        { "id": "E8", "text": "E8. Chưa có IPN → “Đang xác nhận thanh toán…”, hỏi lại mỗi 3 giây trong 1 phút; quá hạn → “Chưa nhận được xác nhận. Kết quả sẽ có trong Thông báo.”", "back": "end" }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s11",
+      "text": "11. Notification lưu thông báo trong app và gửi email biên nhận."
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": ["A1. Tour đã mua, hoặc Tourist là tác giả / Admin: hiện “Đã mua” và nút “Bắt đầu nghe” như tour miễn phí."],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": ["A2.1. Tourist hủy giao dịch trên VNPay.", "A2.2. Đơn chuyển cancelled; trang kết quả hiện “Bạn đã hủy thanh toán.” và nút “Thử lại”."],
+      "to": "s3"
+    }
+  ]
+}
