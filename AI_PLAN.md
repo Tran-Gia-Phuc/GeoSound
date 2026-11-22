@@ -195,3 +195,21 @@ Found by these tests, fixed on branch `fix/rating-removed-rows` (the three `test
 2. Same cause: deleting a removed rating subtracts its stars a second time (`rating_count` too low). Fix: 404, aggregate untouched.
 3. `prisma-tour-stats-repository.js` `latestComments` does not filter `isHidden`: removed comments stayed in the author's stats, against the UC05 report doc (UC17 leaves them out). Fix: filter `isHidden: false`.
 Also noted, fixed on branch `fix/uc-test-findings`: six Tour routers (`tour`, `place`, `route-config`, `language`, `preview`, `itinerary`) imported `../shared` directly, now the container injects the guard (`test/injected-guards.test.js`); Notification re-sent the email on a redelivered event, now skipped when the in-app row already exists; the shared itinerary view returned `ownerId` to anonymous viewers, now removed.
+
+## 8. UC doc sync (2026-11-22)
+
+The UC docs follow the code: run one `uc-doc-auditor` agent per group below, in parallel. Each edits only its UC
+files and `docs/02-design/drawio/activity/specs/UC<NN>.json` and reports the data-flow impact. The main agent
+then regenerates the activity XML (`scripts/diagrams/activity-xml.mjs`), refreshes the ERD snapshot when a table
+changed (`scripts/diagrams/db-snapshot.py`, read-only, then `erd-xml.mjs`), updates the DFD JSON of levels 0 to
+2 (`docs/02-design/drawio/dfd/`, then `dfd-xml.mjs`) and commits.
+
+| Group | UCs |
+| --- | --- |
+| 1 Auth | UC01, UC18, UC21, UC23 |
+| 2 Discovery and playback | UC02, UC03, UC04, UC12, UC13 |
+| 3 Itineraries, restricted tours | UC07, UC08, UC14 |
+| 4 Contributor content | UC09, UC10, UC11, UC15 |
+| 5 Ratings, reports, stats | UC05, UC06, UC17 |
+| 6 Admin | UC19, UC20, UC22 |
+| 7 Notifications, chatbot | UC16, UC24 |
