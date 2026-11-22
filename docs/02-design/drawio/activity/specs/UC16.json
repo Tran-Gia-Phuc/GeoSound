@@ -27,7 +27,7 @@
     },
     {
       "id": "s5",
-      "text": "5. Hệ thống mở trang Thông báo: danh sách mới nhất trước, 20 mục mỗi lần, bộ lọc “Chưa đọc” và nút “Xem thêm”; mỗi thông báo có nhãn loại (Đã duyệt, Cần sửa AI, Bị từ chối, Cần chỉnh sửa, Báo cáo, Âm thanh AI; loại khác hiện “Thông báo”). E1, E4.",
+      "text": "5. Hệ thống mở trang Thông báo: danh sách mới nhất trước, 20 mục mỗi lần, bộ lọc “Chưa đọc” và nút “Xem thêm”; mỗi thông báo có nhãn loại (Đã duyệt, Cần sửa AI, Bị từ chối, Cần chỉnh sửa, Báo cáo, Âm thanh AI, Hệ thống cho thông báo tài khoản; loại khác hiện “Thông báo”). E1, E4.",
       "exceptions": [
         {
           "id": "E1",
