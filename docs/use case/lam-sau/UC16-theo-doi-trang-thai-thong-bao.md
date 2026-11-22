@@ -67,7 +67,7 @@ Tour của contributor đổi trạng thái do AI hoặc Admin, hoặc bị khá
 - Thông báo luôn kèm **lý do cụ thể** khi sự kiện có lý do (`body` tối đa 1000 ký tự; `data.reasons` tối đa 20 lý do AI).
 - Không bao giờ lưu danh tính người báo cáo, email, id Admin hoặc khoá ngoài danh sách cho phép.
 - Chống trùng: `source_key` duy nhất (`<event>:<tourId>:<sha256 payload>`, `userId` thay cho `tourId` với `account.moderated`), ghi bằng `skipDuplicates`.
-- Lưu thông báo không bao giờ ném lỗi (lỗi chỉ ghi log, email vẫn gửi); dòng trong app được ghi **trước** email. Email lỗi SMTP được thử lại 2 lần (sau 2 s và 10 s); vẫn lỗi thì ghi log và bỏ email đó, dòng trong app vẫn còn.
+- Lưu thông báo không bao giờ ném lỗi (lỗi chỉ ghi log, email vẫn gửi); dòng trong app được ghi **trước** email. Email lỗi SMTP được lưu vào bảng `pending_emails` và gửi lại sau 1, 2, 4… phút (tối đa 1 giờ một lần, bỏ sau 8 lần gửi, dòng vẫn giữ để tra lỗi); dòng trong app vẫn còn. Chỉ khi lưu email lỗi cũng thất bại thì sự kiện bị nack như trước.
 - Email: `tour.ai_rejected`, `tour.approved`, `tour.rejected`, `tour.changes_requested`, `tour.hidden`, `tour.restored` có email (kèm lý do khi có); `tour.reported` không có email. Người nhận là email trong sự kiện, nếu thiếu thì tra Auth theo `contributorId`; không tìm được thì bỏ qua email.
 - Phân trang: `limit` 1..50, mặc định 20; `unread` trả về luôn là tổng chưa đọc của người dùng (không đổi theo bộ lọc).
 - Không có web push: client hỏi số chưa đọc mỗi 60 giây.

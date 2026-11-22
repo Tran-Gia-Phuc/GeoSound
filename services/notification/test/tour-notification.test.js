@@ -67,23 +67,31 @@ test('handleEvent skips events without a contributor template', async () => {
   assert.deepEqual(res, { skipped: 'no_template' });
 });
 
-test('handleEvent retries the email, then lets the SMTP error propagate so the broker can nack the message', async () => {
+test('handleEvent without an outbox lets the SMTP error propagate so the broker can nack the message', async () => {
   const failure = new Error('SMTP down');
-  let calls = 0;
-  const mailer = { send: async () => { calls += 1; throw failure; } };
+  const mailer = { send: async () => { throw failure; } };
   await assert.rejects(
-    handleEvent(mailer, 'tour.rejected', { tourId: 't1', contributorEmail: 'c@example.com', reason: 'x' }, silent, {}, { retryDelaysMs: [0, 0] }),
+    handleEvent(mailer, 'tour.rejected', { tourId: 't1', contributorEmail: 'c@example.com', reason: 'x' }, silent),
     (err) => err === failure,
   );
-  assert.equal(calls, 3);
 });
 
-test('handleEvent sends the email once when SMTP recovers on a retry', async () => {
-  let calls = 0;
-  const mailer = { send: async () => { calls += 1; if (calls === 1) throw new Error('SMTP busy'); return { status: 'sent' }; } };
-  const res = await handleEvent(mailer, 'tour.rejected', { tourId: 't1', contributorEmail: 'c@example.com', reason: 'x' }, silent, {}, { retryDelaysMs: [0] });
-  assert.deepEqual(res, { sent: { status: 'sent' } });
-  assert.equal(calls, 2);
+test('handleEvent queues a failed email in the outbox instead of throwing', async () => {
+  const failure = new Error('SMTP down');
+  const queued = [];
+  const mailer = { send: async () => { throw failure; } };
+  const queueEmail = async (event, mail, err) => { queued.push({ event, to: mail.to, subject: mail.subject, err }); };
+  for (const [event, payload] of [
+    ['tour.rejected', { tourId: 't1', contributorEmail: 'c@example.com', reason: 'x' }],
+    ['auth.new_device_login', newDevice],
+  ]) {
+    assert.deepEqual(await handleEvent(mailer, event, payload, silent, {}, { queueEmail }), { sent: { status: 'queued' } });
+  }
+  assert.deepEqual(queued.map((q) => [q.event, q.to, q.err === failure]), [
+    ['tour.rejected', 'c@example.com', true],
+    ['auth.new_device_login', 'an@mail.com', true],
+  ]);
+  assert.ok(queued[0].subject.length > 0);
 });
 
 test('createMailer falls back to a console mailer when SMTP is not configured', async () => {

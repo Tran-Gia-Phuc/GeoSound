@@ -39,7 +39,7 @@
 - **E5.** Hai admin cùng thao tác → một người thắng, người kia nhận 409 `account_state_changed` *"Trạng thái tài khoản vừa được thay đổi, vui lòng tải lại"* (`AccountStateChangedError`).
 - **E6.** Thiếu lý do, lý do quá 1000 ký tự, số ngày không phải 1 / 7 / 30, ngày kết thúc đã qua hoặc quá 365 ngày → 422 `validation_error` (`InvalidSuspensionError` trong `suspensionEnd()`).
 - **E7.** Đăng xuất hoặc gửi sự kiện thất bại → chỉ ghi log, hành động vẫn thành công (`AccountAction.signOutEverywhere()`, `AccountAction.publish()`). Nếu RabbitMQ chưa kết nối, sự kiện bị mất: không có email, thông báo trong app hay dòng log UC22.
-- **E8.** Notification: sự kiện không có `email` → bỏ qua email (thông báo trong app vẫn lưu); lỗi SMTP được thử lại 2 lần như email tour rồi mới ném lại; thông báo trong app đã lưu trước đó.
+- **E8.** Notification: sự kiện không có `email` → bỏ qua email (thông báo trong app vẫn lưu); lỗi SMTP thì email được lưu vào `pending_emails` và gửi lại sau, như email tour; thông báo trong app đã lưu trước đó.
 
 ## Extension Points
 
