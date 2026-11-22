@@ -9,6 +9,8 @@ Automated tests follow **microservices + monolith per service**. Strategy and fo
 | [chatbot-eval.md](chatbot-eval.md) | Chatbot offline evaluation (#189): dataset, command, metrics, fake-model baseline, LangSmith upload |
 | [ai-scenario-tests.md](ai-scenario-tests.md) | AI scenario tests (`services/ai/tests/scenarios/`: provider clients, moderation wiring, chatbot replies), moderation evaluation with a labelled dataset, known gaps |
 
+UC journey tests for the Node services (UC01, UC05 to UC08, UC14 to UC17, UC19 to UC21, UC23): `services/*/test/uc*-scenarios.test.js`. The UC to file map is in `AI_PLAN.md` section 7.
+
 Expected later (not written in init):
 
 - Test plan and cases for the main flows

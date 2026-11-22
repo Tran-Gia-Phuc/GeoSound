@@ -143,6 +143,7 @@ The main agent owns git, the issue, and the final answer to the user. Delegate w
 | `test-runner` | run pytest / `node --test` and report |
 | `contract-reviewer` | read-only review of events, HTTP contract, secrets, git hygiene, before asking the user to push |
 | `docs-writer` | English docs under `docs/` |
+| `uc-test-writer` | UC journey tests for Tour, Auth, Notification, Moderation (`AI_PLAN.md` section 7); tests only, reports bugs without fixing `src/` |
 | `general-purpose` | later use cases (`/uc-task`): Tour, Auth, Notification, Gateway and client code; paste the `uc-task` steps 4, 6 and 7 rules into the prompt |
 
 Typical task (automated by `/ai-task`): dev agent implements (code plus tests) -> `test-runner` -> `contract-reviewer` (fix every FAIL, review again) -> main agent commits, shows `git log --oneline` and waits for the user (or pushes and merges when the user allowed it for that run). Independent tasks run in parallel in git worktrees (`/e/CNPM/git/wt-<N>`).
