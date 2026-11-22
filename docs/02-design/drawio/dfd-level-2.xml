@@ -655,7 +655,7 @@
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
-        <mxCell id="47" edge="1" parent="1" source="17" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Yêu cầu dịch của khách">
+        <mxCell id="47" edge="1" parent="1" source="17" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Yêu cầu dịch của khách,&lt;br&gt;người thử tour hạn chế">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>
@@ -1198,7 +1198,7 @@
         <mxCell id="13" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D11&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Hội thoại chatbot&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;ai_chat.chat_sessions, ai_chat.chat_messages, ai_chat.checkpoints, ai_chat.checkpoint_blobs, ai_chat.checkpoint_writes, ai_chat.checkpoint_migrations&lt;/font&gt;" vertex="1">
           <mxGeometry x="1120" y="1110" width="280" height="106" as="geometry" />
         </mxCell>
-        <mxCell id="15" edge="1" parent="1" source="8" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="tour.published / unpublished">
+        <mxCell id="15" edge="1" parent="1" source="8" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="tour.published / unpublished / hidden">
           <mxGeometry relative="1" as="geometry">
           </mxGeometry>
         </mxCell>

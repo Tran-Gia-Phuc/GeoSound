@@ -974,7 +974,7 @@
         {
           "from": "G2",
           "to": "P44",
-          "label": "Yêu cầu dịch của khách"
+          "label": "Yêu cầu dịch của khách,<br>người thử tour hạn chế"
         }
       ]
     },
@@ -1863,7 +1863,7 @@
         {
           "from": "G4",
           "to": "P91",
-          "label": "tour.published / unpublished"
+          "label": "tour.published / unpublished / hidden"
         },
         {
           "from": "G6",
