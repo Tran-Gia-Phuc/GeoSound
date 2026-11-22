@@ -1681,6 +1681,7 @@
           "h": 78,
           "tables": [
             "notification.in_app_notifications",
+            "notification.pending_emails",
             "notification.notifications"
           ],
           "unused": [
@@ -1728,6 +1729,16 @@
           "from": "P82",
           "to": "SMTP",
           "label": "Email thông báo, cảnh báo"
+        },
+        {
+          "from": "P82",
+          "to": "D9",
+          "label": "Email gửi lỗi, chờ gửi lại"
+        },
+        {
+          "from": "D9",
+          "to": "P82",
+          "label": "Email đến hạn gửi lại"
         },
         {
           "from": "USER",

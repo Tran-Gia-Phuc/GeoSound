@@ -197,6 +197,7 @@
           "h": 78,
           "tables": [
             "notification.in_app_notifications",
+            "notification.pending_emails",
             "notification.notifications"
           ],
           "unused": [

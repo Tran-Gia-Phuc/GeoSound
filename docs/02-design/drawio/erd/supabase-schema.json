@@ -2881,6 +2881,65 @@
     "id"
    ],
    "unique": []
+  },
+  "pending_emails": {
+   "columns": [
+    {
+     "name": "id",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "event",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "to_address",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "subject",
+     "nullable": false,
+     "type": "text"
+    },
+    {
+     "name": "html",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "text",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "attempts",
+     "nullable": false,
+     "type": "integer"
+    },
+    {
+     "name": "next_attempt_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    },
+    {
+     "name": "last_error",
+     "nullable": true,
+     "type": "text"
+    },
+    {
+     "name": "created_at",
+     "nullable": false,
+     "type": "timestamp(3) without time zone"
+    }
+   ],
+   "fks": [],
+   "pk": [
+    "id"
+   ],
+   "unique": []
   }
  },
  "realtime": {

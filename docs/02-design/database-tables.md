@@ -46,6 +46,7 @@ and the LangGraph checkpointer. ERD: [`drawio/erd-geosound.xml`](drawio/erd-geos
 | tour | `tour_review_actions` | Admin review decisions | UC19 |
 | tour | `admin_actions` | Append-only log of every admin action | UC19, UC20, UC21, UC22 |
 | notification | `in_app_notifications` | In-app notifications | UC16, UC21 |
+| notification | `pending_emails` | Emails whose SMTP send failed, resent later | UC16, UC21, UC23 |
 | notification | `notifications` | Early placeholder table, not used by the code | — |
 | moderation | `moderation_cases` | One AI review case per place / tour revision | UC15 |
 | media | `audio_assets` | Declared for TTS audio, not used by the code yet | UC12 |
@@ -419,6 +420,28 @@ Indexes `(target_type, target_id, created_at)`, `(created_at)`, `(admin_id, crea
 | `source_key` | text | no | | unique: a redelivered event adds no row |
 
 Indexes `(user_id, created_at)`, `(user_id, read_at)`, `(user_id, tour_id, created_at)`.
+
+### `pending_emails`
+
+Email outbox (`services/notification/src/application/email-outbox.js`). A send that fails on SMTP is stored here
+instead of throwing (the shared `consume()` drops a failed message and a redelivery skips the email). A sweeper
+resends due rows every 30 s (`EMAIL_RETRY_SWEEP_MS`) with backoff 1, 2, 4 ... minutes, capped at 1 hour; a sent
+row is deleted; after 8 sends the row is given up and kept with its last error.
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | uuid | PK |
+| `event` | text | no | | event that produced the email, e.g. `tour.hidden` |
+| `to_address` | text | no | | recipient email |
+| `subject` | text | no | | |
+| `html` | text | yes | | |
+| `text` | text | yes | | |
+| `attempts` | int | no | 1 | sends tried so far |
+| `next_attempt_at` | timestamp | no | now | claimed with a conditional update (one replica sends a row) |
+| `last_error` | text | yes | | |
+| `created_at` | timestamp | no | now | |
+
+Index `(next_attempt_at)`.
 
 ### `notifications` (unused placeholder)
 
