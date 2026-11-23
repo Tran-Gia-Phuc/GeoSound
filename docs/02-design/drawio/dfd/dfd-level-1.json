@@ -156,10 +156,10 @@
           "h": 78,
           "tables": [
             "tour.tour_ratings",
+            "tour.tour_rating_reports",
             "tour.tour_reports",
             "tour.tour_daily_stats",
-            "tour.tour_activity_marks",
-            "tour.tour_rating_reports"
+            "tour.tour_activity_marks"
           ]
         },
         {
@@ -197,6 +197,7 @@
           "h": 78,
           "tables": [
             "notification.in_app_notifications",
+            "notification.pending_emails",
             "notification.notifications"
           ],
           "unused": [
@@ -562,17 +563,17 @@
         {
           "from": "ADMIN",
           "to": "P6",
-          "label": "Duyệt / từ chối / yêu cầu sửa,<br>xử lý báo cáo, thao tác tài khoản"
+          "label": "Duyệt / từ chối / yêu cầu sửa,<br>xử lý báo cáo tour & đánh giá, thao tác tài khoản"
         },
         {
           "from": "P6",
           "to": "ADMIN",
-          "label": "Hàng chờ, hồ sơ,<br>dashboard, nhật ký"
+          "label": "Hàng chờ, hồ sơ báo cáo,<br>dashboard, nhật ký"
         },
         {
           "from": "P6",
           "to": "D3",
-          "label": "Trạng thái tour"
+          "label": "Trạng thái tour, điểm trung bình"
         },
         {
           "from": "D3",
@@ -593,6 +594,11 @@
           "from": "D6",
           "to": "P6",
           "label": "Báo cáo, số liệu thống kê"
+        },
+        {
+          "from": "P6",
+          "to": "D6",
+          "label": "Ẩn đánh giá, trạng thái báo cáo"
         },
         {
           "from": "P6",
@@ -622,7 +628,7 @@
         {
           "from": "TOURIST",
           "to": "P7",
-          "label": "Đánh giá (gửi / sửa / xoá),<br>báo cáo tour / đánh giá",
+          "label": "Đánh giá (gửi / sửa / xoá),<br>báo cáo tour & đánh giá",
           "via": [
             [
               600,
@@ -734,7 +740,7 @@
         {
           "from": "CONTRIB2",
           "to": "P7",
-          "label": "Chọn tour, khoảng thời gian"
+          "label": "Chọn tour, khoảng thời gian,<br>khiếu nại đánh giá"
         },
         {
           "from": "TOURIST",

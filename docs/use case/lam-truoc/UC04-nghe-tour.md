@@ -68,7 +68,7 @@ Trình phát xem thử (UC13), bản offline (UC03) và lịch trình (UC08) kh�
 - **E3.** Tệp audio thiếu hoặc lỗi → client chuyển sang giọng thiết bị đọc text; vẫn lỗi → mở sheet điểm, hiện text kèm thông báo lỗi. `useAudioController.playTrack()` (`onerror`) → `speak()`; `retry()`
 - **E5.** Dịch tự động lỗi → giữ ngôn ngữ và nội dung đang có, báo: `429` *"Bạn yêu cầu dịch quá nhiều lần…"*, `503` *"Dịch tự động đang bận…"*, `403` *"Tác giả chưa cho phép dịch tự động tour này."*, mất mạng. `translationErrorText()`
 - **E6.** Máy không có giọng đọc cho ngôn ngữ đang chọn (danh sách giọng có, nhưng không giọng nào khớp) → băng *"Máy chưa có giọng đọc English: điểm không có tệp âm thanh chỉ hiện dạng chữ…"*. `useVoiceMissing()`
-- **E4.** Không tải được tour: mất mạng → *"Mất kết nối mạng"*, *"Tour chưa tải về sẽ cần có mạng..."* + **Thử lại**; tour không công khai → `404` *"Tour không tồn tại hoặc chưa công khai."*. Tour đã tải thì mở bản offline `/offline/:tourId/play` (UC03 A3). `TourPlayerPage` (màn lỗi), `loadOfflineDetail()`
+- **E4.** Không tải được tour: mất mạng → *"Mất kết nối mạng"*, *"Tour chưa tải về sẽ cần có mạng..."* + **Thử lại**; tour không công khai → `404` *"Không tìm thấy tour"* / *"Tour không tồn tại hoặc chưa công khai."*. Tour đã tải thì mở bản offline `/offline/:tourId/play` (UC03 A3). `TourPlayerPage` (màn lỗi), `loadOfflineDetail()`
 
 ## Extension Points
 

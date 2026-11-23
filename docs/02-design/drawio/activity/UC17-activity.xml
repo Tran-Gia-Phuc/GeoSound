@@ -35,14 +35,14 @@
         <mxCell id="11" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E4. Tín hiệu không có token và không có mã thiết bị → 400." vertex="1">
           <mxGeometry height="60" width="250" x="355" y="115" as="geometry" />
         </mxCell>
-        <mxCell id="12" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E2. Không phải tác giả và không phải Admin → 403." vertex="1">
-          <mxGeometry height="60" width="250" x="355" y="448" as="geometry" />
+        <mxCell id="12" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E2. Tour không tồn tại → 404; không phải tác giả và không phải Admin → 403." vertex="1">
+          <mxGeometry height="75" width="250" x="355" y="433" as="geometry" />
         </mxCell>
         <mxCell id="13" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E1. Chưa có dữ liệu → “Chưa có dữ liệu thống kê”." vertex="1">
           <mxGeometry height="60" width="250" x="355" y="638" as="geometry" />
         </mxCell>
-        <mxCell id="14" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E3. Bộ lọc sai → 400; mất mạng → thông báo lỗi kèm nút Thử lại." vertex="1">
-          <mxGeometry height="60" width="250" x="355" y="978" as="geometry" />
+        <mxCell id="14" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E3. Thiếu ngày hoặc ngày bắt đầu sau ngày kết thúc → client báo lỗi bộ lọc; server trả 400 khi bộ lọc sai; mất mạng → thông báo lỗi kèm nút Thử lại." vertex="1">
+          <mxGeometry height="105" width="250" x="355" y="933" as="geometry" />
         </mxCell>
         <mxCell id="15" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A2. Tín hiệu không được tính (tour không công khai, trùng trong ngày, vượt 200 tín hiệu mỗi ngày) vẫn trả 204." vertex="1">
           <mxGeometry height="90" width="220" x="-510" y="310" as="geometry" />

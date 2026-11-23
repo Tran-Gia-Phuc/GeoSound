@@ -3,7 +3,7 @@
   "steps": [
     {
       "id": "s1",
-      "text": "1. Admin mở trang “Báo cáo vi phạm”."
+      "text": "1. Admin mở trang “Tour bị báo cáo”."
     },
     {
       "id": "s2",
@@ -11,7 +11,7 @@
       "exceptions": [
         {
           "id": "E1",
-          "text": "E1. Không có tour bị báo cáo → hàng chờ trống.",
+          "text": "E1. Không có tour bị báo cáo → “Không có tour bị báo cáo”.",
           "back": "s1"
         },
         {
@@ -40,11 +40,11 @@
     },
     {
       "id": "s5",
-      "text": "5. Admin chọn “Ẩn tour” và nhập lý do (bắt buộc, 1–1000 ký tự). A1, A2, A3, E5.",
+      "text": "5. Admin chọn “Ẩn tour”, nhập lý do (bắt buộc, 1–1000 ký tự) trong hộp thoại “Ẩn tour này?” và xác nhận. A1, A2, A3, E5.",
       "exceptions": [
         {
           "id": "E5",
-          "text": "E5. Thiếu lý do khi ẩn → 422.",
+          "text": "E5. Thiếu lý do khi ẩn, hoặc lý do quá 1000 ký tự (ẩn, khôi phục, bỏ qua) → 422, lỗi hiện trong hộp thoại.",
           "back": "s5"
         }
       ],
@@ -61,7 +61,7 @@
       "exceptions": [
         {
           "id": "E4",
-          "text": "E4. Trạng thái không cho phép (ẩn tour không công khai, khôi phục tour không bị ẩn, bỏ qua khi không còn báo cáo mở) → 409; hai Admin cùng xử lý thì chỉ một người thắng.",
+          "text": "E4. Trạng thái không cho phép (ẩn tour không công khai, khôi phục tour không bị ẩn, bỏ qua khi không còn báo cáo mở) → 409; hai Admin cùng xử lý thì chỉ một người thắng; client hiện lỗi và tải lại hồ sơ.",
           "back": "end"
         }
       ],
@@ -69,7 +69,7 @@
     },
     {
       "id": "s7",
-      "text": "7. Hệ thống phát tour.hidden (và tour.unpublished để gỡ khỏi chatbot); Notification tạo thông báo và gửi email cho tác giả. E6.",
+      "text": "7. Hệ thống phát tour.hidden (và tour.unpublished để gỡ khỏi chatbot); Notification tạo thông báo và gửi email cho tác giả; client hiện “Đã ẩn tour và thông báo cho tác giả” và tải lại hồ sơ. E6.",
       "exceptions": [
         {
           "id": "E6",
@@ -84,7 +84,7 @@
     {
       "id": "A1",
       "steps": [
-        "A1.1. Admin mở tour đang bị ẩn và chọn “Hiển thị lại” (lý do tùy chọn).",
+        "A1.1. Admin mở hồ sơ tour đang bị ẩn (từ nhật ký hành động hoặc trang tài khoản tác giả), chọn “Khôi phục” và xác nhận “Khôi phục tour?” (lý do tùy chọn).",
         "A1.2. Hệ thống chuyển tour về Công khai (không duyệt lại), ghi log restore_tour, phát tour.restored; tác giả nhận thông báo và email “Tour … đã được hiển thị lại”. E4."
       ],
       "to": "end"
@@ -92,7 +92,7 @@
     {
       "id": "A2",
       "steps": [
-        "A2.1. Admin chọn “Bỏ qua báo cáo” khi tour có báo cáo đang mở.",
+        "A2.1. Admin chọn “Bỏ qua báo cáo” và xác nhận “Bỏ qua các báo cáo?” khi tour có báo cáo đang mở.",
         "A2.2. Hệ thống đánh dấu các báo cáo là đã bỏ qua, xóa bộ đếm, giữ nguyên trạng thái tour, ghi log dismiss_reports; không phát sự kiện. E4."
       ],
       "to": "end"

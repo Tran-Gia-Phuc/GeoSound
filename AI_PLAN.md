@@ -47,7 +47,13 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 | D28 | Signed-in devices (UC23, #247 backend, #248 client) | Design `docs/02-design/device-sessions.md`: `auth.sessions`, `sid` in tokens, refresh rotation with reuse detection, revocation in Redis checked by `verifyJwt`, no business limit (cap `AUTH_MAX_SESSIONS`=100), new-device email (demo inbox `SECURITY_ALERT_TO` in `.env`, never in the repo) |
 
 
-## 3. Current state (2026-11-07)
+## 3. Current state (2026-11-22)
+
+- Since 2026-11-09 the work moved to deployment (PRs #338 to #436: images, Helm chart, Argo CD, sealed secrets, monitoring, alerts; `docs/04-guides/deployment-plan.md`). Schemas are now changed only through Prisma migrations (#352, PR #359): never `prisma db push` (CLAUDE.md section 6).
+- Latest feature: UC05 rating reports (PR #444, docs PRs #440 to #447).
+- UC scenario tests (section 7, 2026-11-22): one journey file per important UC group, on top of the unit tests.
+
+### State on 2026-11-07
 
 - **Phases 1, 2 and 3 work end to end on the real stack** (Supabase, RabbitMQ, real Gemini), checked on 2026-10-30:
   - place moderation (approved / rejected with reasons, publish blocked by a rejected place), tour moderation (`ai_warning` / `pending_review`), edit while in review withdraws to `draft`;
@@ -103,7 +109,7 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | full-flow test | How it was run on 2026-10-30: Tour on a disposable Postgres (`postgis/postgis:16-3.4` on the compose network, `DATABASE_URL` and flags set in a compose override, never in `.env`), a contributor JWT signed inside the tour container with `JWT_ACCESS_SECRET`, calls through the gateway. Never write test data to the shared Supabase schemas of other services |
 | moderation tokens | Moderation calls Gemini through `GeminiClient.generate_json` (default `max_tokens` 2048) with thinking on. Fine for the tested tours; if a large tour (close to 50 places) returns invalid JSON, check `finish_reason=MAX_TOKENS` and set a thinking budget there too |
 | partial PRs | A branch made with `gh issue develop` is linked to the issue, and merging its PR closes the issue even with "Part of #N". For a partial PR create the branch with `git switch -c` and write "Part of #N" |
-| #219 | Schema `ai` is defined in `services/ai/prisma/schema.prisma` (tables) plus `prisma/pre-push.sql` (vector extension, schema `ai`) and `prisma/post-push.sql` (CHECK constraints, HNSW index), pushed with the auth image (`docs/04-guides/supabase-access.md` section 4); pgvector store, e5 embedding runtime in the image, AMQP transport for the indexer. Chat memory (part D): `CHAT_MEMORY_BACKEND=postgres` uses the official `AsyncPostgresSaver` (`langgraph-checkpoint-postgres` 3.2, psycopg 3.3) over `DATABASE_URL_DIRECT_AI`, in its own schema `ai_chat` (created at startup, never in Prisma-managed `ai`), plus `ai_chat.chat_sessions` / `chat_messages` for `at`, citations and TTL; `memory` stays the default. Integration tests need `AI_TEST_DATABASE_URL` (disposable DB) |
+| #219 | Schema `ai` is defined in `services/ai/prisma/schema.prisma` (tables) plus `prisma/pre-push.sql` (vector extension, schema `ai`) and `prisma/post-push.sql` (CHECK constraints, HNSW index), now shipped as Prisma migrations (#352; `docs/04-guides/supabase-access.md` section 4.3); pgvector store, e5 embedding runtime in the image, AMQP transport for the indexer. Chat memory (part D): `CHAT_MEMORY_BACKEND=postgres` uses the official `AsyncPostgresSaver` (`langgraph-checkpoint-postgres` 3.2, psycopg 3.3) over `DATABASE_URL_DIRECT_AI`, in its own schema `ai_chat` (created at startup, never in Prisma-managed `ai`), plus `ai_chat.chat_sessions` / `chat_messages` for `at`, citations and TTL; `memory` stays the default. Integration tests need `AI_TEST_DATABASE_URL` (disposable DB) |
 | follow-ups | (1) Done in #253. (2) Done in #258: Notification asks Auth `GET /internal/users/:id/contact` (header `x-internal-token`, refused through the gateway) when an event has no `contributorEmail` |
 | UC23 | Schema pushed (2026-10-31). Password change while signed in: `POST /api/auth/change-password` (#256). Admin online view: `GET /api/auth/admin/sessions` + heartbeat (#265); since #329 it also counts guests through `POST /api/auth/presence` (Redis `presence:*`, no table). Not built: the UC21 ban call to `RevokeAllSessions` (planned in UC21 #274; the use case is ready in `container.js`), IP location (null resolver). Clients must not refresh in parallel: the web client serialises refreshes across tabs with a Web Lock (reuse of a rotated refresh token signs the session out) |
 
@@ -166,3 +172,46 @@ All answered on 2026-11-03 (L7 to L14). New questions found while building go he
 
 | # | UC | Question | Proposal |
 | --- | --- | --- | --- |
+
+## 7. UC scenario tests (2026-11-22)
+
+Unit tests check one step; these files chain the real use-cases of a whole journey with in-memory fakes
+(no DB, broker, LLM or outside network), so a break between two steps fails a test. They run with the
+normal suites (`node --test`, `pytest tests`) in CI. Add a scenario here when a change alters a flow of
+the UC docs; write new ones with the `uc-test-writer` agent.
+
+| UC | Journey | File |
+| --- | --- | --- |
+| UC15, UC19 | draft → place results → submit (`ai_checking`) → AI result → admin queue → approve / reject / request changes → resubmit; submit blocked by a `checking` / `rejected` place; stale revision ignored | `services/tour/test/uc-scenarios.test.js` |
+| UC06, UC20 | 5 distinct reporters in 7 days flag the tour (still public) → admin hides → restores | `services/tour/test/uc-scenarios.test.js` |
+| UC15 (Moderation) | `*.submitted` → consumer → fake AI HTTP server → `*.ai_passed` / `*.ai_rejected`; 422 = Warning, 503 = retry then `ai_failed` + sweeper, 401 = nothing, duplicate revision, geo + AI merge | `services/moderation/test/uc15-moderation-scenarios.test.js` |
+| UC01, UC23, UC21 | register → OTP → login → reset password; two devices, refresh rotation, reuse detection, revoke; admin suspend / ban revokes all sessions | `services/auth/test/uc-scenarios.test.js` |
+| UC15, UC24 (AI) | provider answers through the real LLM clients, moderation wiring, chatbot replies, labelled moderation dataset | `services/ai/tests/scenarios/` (`docs/03-testing/ai-scenario-tests.md`) |
+| UC14 | restrict with passcode → absent from search, nearby, explore, catalog events → wrong code 403, rate limit 429 → unlock: detail + package for that account only → new passcode drops unlocks → off → UC15 / UC19 → public | `services/tour/test/uc14-restricted-scenarios.test.js` |
+| UC16 | review, report and account events → one in-app row per event (+ email, Auth lookup) → HTTP list, `tourId` filter, unread count, mark read, other users refused | `services/notification/test/uc16-scenarios.test.js` |
+| UC05, UC17 | seeded aggregate → rate, edit, delete → rating reports → admin remove / dismiss → stats beacons once per device / day, author-only stats | `services/tour/test/uc05-uc17-scenarios.test.js` |
+| UC07, UC08 | create itinerary → add places of public tours only → reorder, remove → share link read-only → other users refused → tour unpublished / hidden later (stops kept as snapshot) → follow view with zones, path, language | `services/tour/test/uc07-uc08-scenarios.test.js` |
+
+Found by these tests, fixed on branch `fix/rating-removed-rows` (the three `test.todo` are now tests, plus `prisma-tour-rating-repository.test.js`):
+1. `prisma-tour-rating-repository.js` `#lockOwn` does not filter `is_hidden`: an owner re-rating a rating the admin removed edits the hidden row and moves the aggregate (average drifts). Fix: the new rating replaces the removed row and counts once (`created`).
+2. Same cause: deleting a removed rating subtracts its stars a second time (`rating_count` too low). Fix: 404, aggregate untouched.
+3. `prisma-tour-stats-repository.js` `latestComments` does not filter `isHidden`: removed comments stayed in the author's stats, against the UC05 report doc (UC17 leaves them out). Fix: filter `isHidden: false`.
+Also noted, fixed on branch `fix/uc-test-findings`: six Tour routers (`tour`, `place`, `route-config`, `language`, `preview`, `itinerary`) imported `../shared` directly, now the container injects the guard (`test/injected-guards.test.js`); Notification re-sent the email on a redelivered event, now skipped when the in-app row already exists; the shared itinerary view returned `ownerId` to anonymous viewers, now removed.
+
+## 8. UC doc sync (2026-11-22)
+
+The UC docs follow the code: run one `uc-doc-auditor` agent per group below, in parallel. Each edits only its UC
+files and `docs/02-design/drawio/activity/specs/UC<NN>.json` and reports the data-flow impact. The main agent
+then regenerates the activity XML (`scripts/diagrams/activity-xml.mjs`), refreshes the ERD snapshot when a table
+changed (`scripts/diagrams/db-snapshot.py`, read-only, then `erd-xml.mjs`), updates the DFD JSON of levels 0 to
+2 (`docs/02-design/drawio/dfd/`, then `dfd-xml.mjs`) and commits.
+
+| Group | UCs |
+| --- | --- |
+| 1 Auth | UC01, UC18, UC21, UC23 |
+| 2 Discovery and playback | UC02, UC03, UC04, UC12, UC13 |
+| 3 Itineraries, restricted tours | UC07, UC08, UC14 |
+| 4 Contributor content | UC09, UC10, UC11, UC15 |
+| 5 Ratings, reports, stats | UC05, UC06, UC17 |
+| 6 Admin | UC19, UC20, UC22 |
+| 7 Notifications, chatbot | UC16, UC24 |

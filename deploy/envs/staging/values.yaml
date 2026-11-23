@@ -10,8 +10,10 @@ global:
     tag: sha-ba8649d
 
 # Staging may run without a mail server: OTP codes then go to the pod log (test accounts only).
+# Without the MoMo keys (geosound-payment, UC25) Tour starts and a purchase answers 503.
 optionalSecrets:
   - geosound-smtp
+  - geosound-payment
 
 # Public host (task 2.6): an A record to the VM. Let's Encrypt issues the certificate through the
 # HTTP-01 challenge, so port 80 must stay open.
@@ -24,6 +26,10 @@ smoke:
   enabled: true
 
 services:
+  tour:
+    env:
+      # UC25: MoMo sends the buyer back here and posts the IPN to the same host.
+      PAYMENT_RETURN_URL: https://staging.geosound.example.com/payment/momo
   media:
     env:
       MEDIA_PUBLIC_BASE_URL: https://staging.geosound.example.com/api/media/files

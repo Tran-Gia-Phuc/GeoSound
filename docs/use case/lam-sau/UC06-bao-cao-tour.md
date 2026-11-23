@@ -41,7 +41,7 @@
 
 - **E1.** Chưa đăng nhập → hộp thoại *"Bạn cần đăng nhập để báo cáo tour này."* với nút "Đăng nhập để báo cáo" (UC01); API trả 401 nếu không có token.
 - **E2.** Chưa chọn lý do → *"Vui lòng chọn lý do báo cáo"*; chọn "khác" mà không mô tả → *"Vui lòng mô tả lý do"* (server trả 400 `validation_error`). `reportTourSchema`, `normalizeReportInput()`
-- **E3.** Tác giả báo cáo tour của mình → *"Bạn không thể báo cáo tour của chính mình"* (403 `own_tour`).
+- **E3.** Tác giả xem tour của mình → client ẩn nút "Báo cáo" (`ReportTour`); nếu API vẫn được gọi → 403 `own_tour`, client hiện *"Bạn không thể báo cáo tour của chính mình"*.
 - **E4.** Tour không `public` hoặc không tồn tại → 404 `tour_not_found`.
 - **E5.** Gửi trùng (ví dụ hai tab cùng lúc) → 409 `already_reported`, client hiện trạng thái "đã báo cáo".
 - **E6.** Mất mạng → *"Không thể kết nối, vui lòng thử lại"*. Lỗi phát `tour.reported` chỉ được ghi log, không làm hỏng yêu cầu.

@@ -10,6 +10,9 @@ services:
   moderation:
     env:
       AI_SERVICE_URL: http://ai:3004 # the real AI service, not the stub
+  tour:
+    env:
+      PAYMENT_RETURN_URL: http://localhost:18080/payment/momo # UC25, same host as MEDIA_PUBLIC_BASE_URL
   media:
     env:
       MEDIA_STORAGE: local # no Supabase Storage key: files in the pod's /tmp, lost on restart

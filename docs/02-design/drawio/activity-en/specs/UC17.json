@@ -1,0 +1,91 @@
+{
+  "uc": "UC17",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. When a Tourist views, starts listening to, finishes or downloads a public tour, the client sends an activity signal; the system counts each (tour, user, action, language, day) once and always returns 204. A2, E4.",
+      "exceptions": [
+        {
+          "id": "E4",
+          "text": "E4. A signal with no token and no device ID → 400.",
+          "back": "s1"
+        }
+      ],
+      "alts": [
+        "A2"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s2",
+      "text": "2. The Contributor opens the tour in the Studio and chooses the \"Statistics\" step."
+    },
+    {
+      "id": "s3",
+      "text": "3. The system checks permissions and gets the figures for the last 30 days (default). E2.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. The tour does not exist → 404; neither the author nor an Admin → 403.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s4",
+      "text": "4. The system shows the tiles: Views, Listens, Completions, Completion rate, Downloads; a daily chart and table. E1.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. No data yet → \"No statistics yet\".",
+          "back": "s2"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s5",
+      "text": "5. The system shows the ratings block: average score, count, distribution of 1–5 stars and the 20 newest comments."
+    },
+    {
+      "id": "s6",
+      "text": "6. The Contributor changes the period or the language. A1, E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. A missing date or a start date after the end date → the client reports a filter error; the server returns 400 for an invalid filter; no network → an error message with a Retry button.",
+          "back": "s6"
+        }
+      ],
+      "alts": [
+        "A1",
+        "A3"
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Signals that are not counted (tour not public, duplicate within the day, over 200 signals per day) still return 204."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Filters: 7 / 30 / 90 days or custom (up to 366 days) and by language; the rating block is not filtered."
+      ],
+      "to": "s4"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. The Admin can view the statistics of every tour."
+      ],
+      "to": "end"
+    }
+  ]
+}

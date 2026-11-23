@@ -47,11 +47,11 @@
         <mxCell id="15" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E3. Vượt giới hạn (5 lượt / phút, 100 lượt / ngày mỗi IP) → 429 “Bạn đã hỏi quá nhiều trong thời gian ngắn, vui lòng thử lại sau …”." vertex="1">
           <mxGeometry height="90" width="250" x="355" y="690" as="geometry" />
         </mxCell>
-        <mxCell id="16" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E4. AI đang bận (ưu tiên kiểm duyệt) hoặc vượt hạn mức Gemini mà không có Groq → 429 “Trợ lý đang bận, vui lòng thử lại sau …”; mọi nhà cung cấp LLM lỗi → 503 “Trợ lý tạm thời không phản hồi, vui lòng thử lại sau.”; nội dung bị nhà cung cấp chặn → câu từ chối lịch sự." vertex="1">
-          <mxGeometry height="150" width="250" x="355" y="865" as="geometry" />
+        <mxCell id="16" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E4. AI đang bận (ưu tiên kiểm duyệt) hoặc vượt hạn mức Gemini mà không có Groq → 429 “Trợ lý đang bận, vui lòng thử lại sau …”; mọi nhà cung cấp LLM lỗi hoặc gateway không gọi được AI → 503 “Trợ lý tạm thời không phản hồi, vui lòng thử lại sau.”; nội dung bị nhà cung cấp chặn → câu từ chối lịch sự." vertex="1">
+          <mxGeometry height="165" width="250" x="355" y="850" as="geometry" />
         </mxCell>
-        <mxCell id="17" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E5. Lỗi giữa luồng → “Trợ lý gặp lỗi khi trả lời, vui lòng thử lại.”; mất kết nối → “Mất kết nối, câu trả lời chưa đầy đủ.”; có nút Thử lại." vertex="1">
-          <mxGeometry height="105" width="250" x="355" y="1138" as="geometry" />
+        <mxCell id="17" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="E5. Lỗi giữa luồng → “Trợ lý gặp lỗi khi trả lời, vui lòng thử lại.”; mất kết nối → “Mất kết nối, câu trả lời chưa đầy đủ.”; luồng đóng khi chưa có chữ → “Trợ lý chưa trả lời, vui lòng thử lại.”; không có nút Thử lại (nút này chỉ có khi lỗi trước khi có luồng: mất mạng, 429, 503)." vertex="1">
+          <mxGeometry height="165" width="250" x="355" y="1078" as="geometry" />
         </mxCell>
         <mxCell id="18" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A1. Mở toàn màn hình: từ bảng chat nổi chọn “Mở toàn màn hình” → trang Chat với cùng phiên." vertex="1">
           <mxGeometry height="90" width="220" x="-510" y="180" as="geometry" />
@@ -59,17 +59,17 @@
         <mxCell id="19" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A2. Cuộc trò chuyện mới: Tourist chọn “Cuộc trò chuyện mới”; câu hỏi sau tạo phiên mới." vertex="1">
           <mxGeometry height="75" width="220" x="-910" y="370" as="geometry" />
         </mxCell>
-        <mxCell id="20" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A3.1. Câu hỏi ngoài phạm vi (đặt chỗ, giá, dữ liệu cá nhân) → câu trả lời soạn sẵn, không gọi LLM." vertex="1">
-          <mxGeometry height="90" width="220" x="-1310" y="1150" as="geometry" />
+        <mxCell id="20" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A3.1. Câu hỏi ngoài phạm vi (thời tiết, lập trình / toán, tài chính, chính trị, tin tức, đặt chỗ, giá, dữ liệu cá nhân) và không có từ về du lịch → câu trả lời soạn sẵn, không gọi LLM." vertex="1">
+          <mxGeometry height="135" width="220" x="-1310" y="1150" as="geometry" />
         </mxCell>
         <mxCell id="21" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A3.2. Không tìm thấy tour / địa điểm phù hợp → câu trả lời soạn sẵn, không gọi LLM." vertex="1">
-          <mxGeometry height="75" width="220" x="-1310" y="1290" as="geometry" />
+          <mxGeometry height="75" width="220" x="-1310" y="1335" as="geometry" />
         </mxCell>
         <mxCell id="22" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A3.3. Câu chào hỏi xã giao → trả lời bằng một lần gọi LLM, không tìm trong chỉ mục." vertex="1">
-          <mxGeometry height="75" width="220" x="-1310" y="1415" as="geometry" />
+          <mxGeometry height="75" width="220" x="-1310" y="1460" as="geometry" />
         </mxCell>
-        <mxCell id="23" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A4. Dừng câu trả lời: Tourist bấm “Dừng”; hệ thống hủy luồng, giữ phần đã nhận với nhãn “Đã dừng”." vertex="1">
-          <mxGeometry height="90" width="220" x="-1710" y="1355" as="geometry" />
+        <mxCell id="23" parent="1" style="whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;rounded=1;" value="A4. Dừng câu trả lời: Tourist bấm “Dừng”; hệ thống hủy luồng, giữ phần đã nhận với nhãn “Đã dừng”; lịch sử phiên vẫn có câu trả lời đầy đủ." vertex="1">
+          <mxGeometry height="105" width="220" x="-1710" y="1355" as="geometry" />
         </mxCell>
         <mxCell id="24" edge="1" parent="1" source="3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="4" value="">
           <mxGeometry relative="1" as="geometry" />

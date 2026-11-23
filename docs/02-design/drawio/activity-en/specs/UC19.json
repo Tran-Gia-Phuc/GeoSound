@@ -1,0 +1,114 @@
+{
+  "uc": "UC19",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Admin opens the \"Review tours\" page (queue)."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system returns tours in \"AI Warning\" or \"Pending review\": AI Warning first, then the longest-waiting tours first; each row has the name, status, the number of AI / location reasons, city · tour type and the submission time. E1, E2.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. No tours pending → \"No tours waiting for review\".",
+          "back": "s1"
+        },
+        {
+          "id": "E2",
+          "text": "E2. No valid token → 401; not an Admin → 403, the client shows \"Only administrators can view this page\".",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. The Admin picks a tour."
+    },
+    {
+      "id": "s4",
+      "text": "4. The system shows the read-only record: tour information, moderation reasons (field, category, AI / location source, severity), the places (description, photos, audio, trigger zone, moderation status of each place), the route and the decision history. A1, E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Invalid tour ID format → 400; the tour does not exist → 404, the client shows \"This tour was not found\".",
+          "back": "end"
+        }
+      ],
+      "alts": [
+        "A1"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s5",
+      "text": "5. The Admin chooses \"Approve\" and confirms \"Approve this tour?\". A2, A3.",
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. Reject / request changes without a reason or over 1000 characters → 422 (\"Please enter a reason\" / \"Reason has at most 1000 characters\"), the error shows in the dialog.",
+          "back": "s5"
+        }
+      ],
+      "alts": [
+        "A2",
+        "A3"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. The system moves the tour to \"Public\" with a conditional update statement (only if the tour is still pending), writing the review history and the Admin action log in the same transaction. E4.",
+      "exceptions": [
+        {
+          "id": "E4",
+          "text": "E4. The tour is no longer pending (another Admin decided first) → 409 \"The tour is no longer pending review\" and the record reloads.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s7",
+      "text": "7. The system publishes the tour.approved event (and tour.published for the chatbot); Notification creates an in-app notification and sends an email to the author (UC#16). E6.",
+      "exceptions": [
+        {
+          "id": "E6",
+          "text": "E6. Sending the event fails → only logged; the decision still succeeds.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s8",
+      "text": "8. The client shows \"Tour approved, the tour is now public\" and goes back to the queue; the tour appears in search and can be downloaded."
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1. View the content: the Admin listens to the audio, opens photos and views the route right in the record; the record is read-only, with no content edit buttons."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2.1. The Admin chooses \"Reject\", enters a reason (required, 1–1000 characters) and taps \"Reject tour\". E5.",
+        "A2.2. The system moves the tour to \"Rejected\", stores the reason, writes the log and publishes tour.rejected; the author receives a notification and an email with the reason; the client shows \"Tour rejected\" and goes back to the queue."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3.1. The Admin chooses \"Request changes\", enters a general reason and / or notes per place (at least one field), then taps \"Send change request\". E5.",
+        "A3.2. The system joins them into one reason (\"Place 2 – <name>: <note>\"), moves the tour to \"Needs changes\", writes the log and publishes tour.changes_requested; the author receives \"Tour needs changes\"; the client shows \"Change request sent to the author\" and goes back to the queue."
+      ],
+      "to": "end"
+    }
+  ]
+}

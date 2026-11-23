@@ -57,7 +57,7 @@
       "exceptions": [
         {
           "id": "E4",
-          "text": "E4. AI đang bận (ưu tiên kiểm duyệt) hoặc vượt hạn mức Gemini mà không có Groq → 429 “Trợ lý đang bận, vui lòng thử lại sau …”; mọi nhà cung cấp LLM lỗi → 503 “Trợ lý tạm thời không phản hồi, vui lòng thử lại sau.”; nội dung bị nhà cung cấp chặn → câu từ chối lịch sự.",
+          "text": "E4. AI đang bận (ưu tiên kiểm duyệt) hoặc vượt hạn mức Gemini mà không có Groq → 429 “Trợ lý đang bận, vui lòng thử lại sau …”; mọi nhà cung cấp LLM lỗi hoặc gateway không gọi được AI → 503 “Trợ lý tạm thời không phản hồi, vui lòng thử lại sau.”; nội dung bị nhà cung cấp chặn → câu từ chối lịch sự.",
           "back": "s4"
         }
       ],
@@ -72,7 +72,7 @@
       "exceptions": [
         {
           "id": "E5",
-          "text": "E5. Lỗi giữa luồng → “Trợ lý gặp lỗi khi trả lời, vui lòng thử lại.”; mất kết nối → “Mất kết nối, câu trả lời chưa đầy đủ.”; có nút Thử lại.",
+          "text": "E5. Lỗi giữa luồng → “Trợ lý gặp lỗi khi trả lời, vui lòng thử lại.”; mất kết nối → “Mất kết nối, câu trả lời chưa đầy đủ.”; luồng đóng khi chưa có chữ → “Trợ lý chưa trả lời, vui lòng thử lại.”; không có nút Thử lại (nút này chỉ có khi lỗi trước khi có luồng: mất mạng, 429, 503).",
           "back": "s4"
         }
       ],
@@ -104,7 +104,7 @@
     {
       "id": "A3",
       "steps": [
-        "A3.1. Câu hỏi ngoài phạm vi (đặt chỗ, giá, dữ liệu cá nhân) → câu trả lời soạn sẵn, không gọi LLM.",
+        "A3.1. Câu hỏi ngoài phạm vi (thời tiết, lập trình / toán, tài chính, chính trị, tin tức, đặt chỗ, giá, dữ liệu cá nhân) và không có từ về du lịch → câu trả lời soạn sẵn, không gọi LLM.",
         "A3.2. Không tìm thấy tour / địa điểm phù hợp → câu trả lời soạn sẵn, không gọi LLM.",
         "A3.3. Câu chào hỏi xã giao → trả lời bằng một lần gọi LLM, không tìm trong chỉ mục."
       ],
@@ -113,7 +113,7 @@
     {
       "id": "A4",
       "steps": [
-        "A4. Dừng câu trả lời: Tourist bấm “Dừng”; hệ thống hủy luồng, giữ phần đã nhận với nhãn “Đã dừng”."
+        "A4. Dừng câu trả lời: Tourist bấm “Dừng”; hệ thống hủy luồng, giữ phần đã nhận với nhãn “Đã dừng”; lịch sử phiên vẫn có câu trả lời đầy đủ."
       ],
       "to": "s4"
     }

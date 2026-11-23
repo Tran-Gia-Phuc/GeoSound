@@ -1,0 +1,130 @@
+{
+  "uc": "UC23",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The user goes to Account → \"Signed-in devices\"."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system (Auth) returns the valid sessions: device name (e.g. \"Chrome on Windows\"), location, sign-in time, last activity."
+    },
+    {
+      "id": "s3",
+      "text": "3. The system shows the current device first with the \"This device\" label, the other devices by last activity. E1, E4.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Only the current device → the \"Sign out all other devices\" button is hidden.",
+          "back": "s4"
+        },
+        {
+          "id": "E4",
+          "text": "E4. The list cannot be loaded → \"The device list could not be loaded\" with a Retry button.",
+          "back": "s1"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s4",
+      "text": "4. The user taps \"Sign out device\" on another device. A1, A2.",
+      "alts": [
+        "A1",
+        "A2"
+      ]
+    },
+    {
+      "id": "s5",
+      "text": "5. The system asks \"Sign out of <device name>?\"."
+    },
+    {
+      "id": "s6",
+      "text": "6. The user confirms."
+    },
+    {
+      "id": "s7",
+      "text": "7. The system revokes the session, writes a revocation key in Redis, removes that row from the list and shows \"Signed out <device name>\". E2, E3.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. The device is already signed out / expired or is not one's own → 404; the client shows \"This device has already been signed out\" and reloads the list.",
+          "back": "end"
+        },
+        {
+          "id": "E3",
+          "text": "E3. No network → \"Cannot connect, please try again\"; the other device's session does not change.",
+          "back": "s6"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s8",
+      "text": "8. On the signed-out device, the next request is rejected (401); the client deletes the tokens and goes to Sign in with the message \"The sign-in session has ended on this device\".",
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. A non-Admin viewing online devices → 403.",
+          "back": "end"
+        },
+        {
+          "id": "E6",
+          "text": "E6. Invalid device ID format → 400; invalid or expired token → 401.",
+          "back": "end"
+        },
+        {
+          "id": "E7",
+          "text": "E7. Redis does not respond → the online signal is ignored (still returns 204); the Admin only sees the number of signed-in devices with a note.",
+          "back": "end"
+        }
+      ],
+      "alts": [
+        "A3",
+        "A4",
+        "A5"
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1.1. The user taps \"Sign out all other devices\" and confirms.",
+        "A1.2. The system revokes every session except the current one; the list only has \"This device\"; it shows \"Signed out n devices\"."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Sign out the device in use: the \"Sign out\" button on the Account page revokes the current session (UC#01 A6)."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. The system signs out automatically: password reset (every device), password change (except the current device), suspension / ban (every device, UC#21), over 7 days without activity or 30 days since sign-in, reuse of an old refresh token, more than 100 sessions."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. New device alert: a sign-in on a device that never had a session → Auth publishes auth.new_device_login and Notification sends the email \"New sign-in on <device>\"."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A5",
+      "steps": [
+        "A5.1. Every client (signed in or not) sends an online signal every 60 seconds while the tab is visible or audio is playing, and sends a leave signal when the page closes. E6, E7.",
+        "A5.2. The Admin opens the \"Online devices\" page.",
+        "A5.3. The system shows the number of devices online (signed in and visitors), accounts online, signed-in sessions, devices that visited today / in 7 / 30 days and a table of signed-in devices that are online; it refreshes every 30 seconds. E5."
+      ],
+      "to": "end"
+    }
+  ]
+}

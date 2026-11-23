@@ -53,7 +53,7 @@ Chi tiết: [moderation-architecture.md](../02-design/moderation-architecture.md
 
 | UC | Tên use case | Actor | Priority | Dịch vụ chính | Gộp từ (bản 28) |
 |---|---|---|---|---|---|
-| UC05 | [Đánh giá & nhận xét tour](lam-sau/UC05-danh-gia-tour.md) | Tourist | P0 | Tour | UC08 |
+| UC05 | [Báo cáo & xử lý khiếu nại đánh giá tour](lam-sau/UC05-danh-gia-tour.md) | Tourist / Contributor / Admin | P0 | Tour | UC08 |
 | UC06 | [Báo cáo tour vi phạm](lam-sau/UC06-bao-cao-tour.md) | Tourist | P1 | Tour, Notification | UC09 |
 | UC14 | [Cấu hình truy cập hạn chế bằng passcode](lam-sau/UC14-truy-cap-han-che-passcode.md) | Contributor | P2 | Tour | UC20 |
 | UC16 | [Theo dõi trạng thái & nhận thông báo](lam-sau/UC16-theo-doi-trang-thai-thong-bao.md) | Contributor | P1 | Notification, Tour | UC22 |

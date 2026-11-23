@@ -1,0 +1,129 @@
+{
+  "uc": "UC03",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. On the tour detail page, the Tourist chooses the languages and taps \"Download (n languages)\"."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system checks the network connection. E1.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. No network → \"A network connection (Wi-Fi or mobile data) is needed to download the tour\".",
+          "back": "s1"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. The system gets the file list of the tour package for each language (manifest). E2, E7.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. The tour is no longer public (404) or the language has no translation (400) → error, no download.",
+          "back": "end"
+        },
+        {
+          "id": "E7",
+          "text": "E7. A paid tour (UC#25) the Tourist has not bought → a \"Buy the tour to download\" box replaces the download section; calling the manifest directly: 401 (not signed in) or 402 (not bought).",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s4",
+      "text": "4. The system estimates the size of the files and compares it with the free space on the device. E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Not enough space → \"Not enough storage on the device.\"",
+          "back": "s1"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s5",
+      "text": "5. The system downloads 3 files at a time into browser storage (IndexedDB) and shows the real progress. A1, E4, E5.",
+      "exceptions": [
+        {
+          "id": "E4",
+          "text": "E4. Network lost midway → \"Network connection lost. The downloaded part has been kept.\"",
+          "back": "s1"
+        },
+        {
+          "id": "E5",
+          "text": "E5. A file fails → the package is in an error state; the \"Retry\" button downloads the missing files again.",
+          "back": "s1"
+        }
+      ],
+      "alts": [
+        "A1"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. When done, the system marks the package ready, asks for persistent storage and records a download for the statistics (UC#17)."
+    },
+    {
+      "id": "s7",
+      "text": "7. The system shows the storage used and an \"Open offline version\" button."
+    },
+    {
+      "id": "s8",
+      "text": "8. The Tourist opens Account → Downloaded tours. A2, A3, A4.",
+      "alts": [
+        "A2",
+        "A3",
+        "A4"
+      ]
+    },
+    {
+      "id": "s9",
+      "text": "9. The system lists the downloaded tours, compares versions with the server when online and adds the label \"New version available\" or \"Tour is no longer public\". E6.",
+      "exceptions": [
+        {
+          "id": "E6",
+          "text": "E6. No tours yet → empty list; the browser blocks IndexedDB → the offline feature is reported as unavailable.",
+          "back": "s8"
+        }
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Pause / resume / cancel the download: the downloaded part is kept; an interrupted package shows \"Interrupted\" and resumes from the missing files."
+      ],
+      "to": "s6"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Delete a language or the whole tour: the system deletes the files that belong only to that part and reports the real amount of space freed."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Listen offline: open the offline player (/offline/:tourId/play); GPS and audio run entirely from the downloaded data (UC#04)."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. Update to a new version: download the package again for the latest tour version and replace the old one when done."
+      ],
+      "to": "end"
+    }
+  ]
+}

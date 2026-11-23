@@ -4,7 +4,7 @@
 // Mọi route yêu cầu JWT role=contributor.
 // =========================================================
 import { Router } from 'express';
-import { verifyJwt } from '../../../../shared/middleware/index.js';
+// The contributor guard is injected (container passes shared verifyJwt(['contributor'])): no ../shared import (CI repo layout).
 import { validateBody, validateParams } from '../middleware/validate.js';
 import { tourIdParamSchema } from '../../../application/dtos/place-schemas.js';
 import {
@@ -18,11 +18,11 @@ import {
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-/** @param {{ languageController }} deps */
-export function buildLanguageRouter({ languageController }) {
+/** @param {{ languageController, requireContributor }} deps */
+export function buildLanguageRouter({ languageController, requireContributor }) {
   const r = Router();
 
-  r.use(verifyJwt(['contributor']));
+  r.use(requireContributor);
 
   r.get('/mine/:tourId/languages', validateParams(tourIdParamSchema), wrap(languageController.get));
   r.put('/mine/:tourId/languages', validateParams(tourIdParamSchema), validateBody(setLanguagesSchema), wrap(languageController.set));

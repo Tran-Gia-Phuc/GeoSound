@@ -32,8 +32,8 @@
 ## Exception Path
 
 - **E1.** Tour chưa có dữ liệu (mọi số liệu bằng 0) → *"Chưa có dữ liệu thống kê"*.
-- **E2.** Không phải tác giả và không phải Admin → 403 `not_tour_owner`; client hiển thị thông báo lỗi quyền. `GetTourStats.execute()`, `NotTourOwnerError`
-- **E3.** Bộ lọc sai (`from` sau `to`, quá 366 ngày, ngày sai định dạng) → 400 `validation_error` (`statsQuerySchema`, `resolvePeriod()`); lỗi mạng → *"Không thể kết nối, vui lòng thử lại"* kèm nút "Thử lại".
+- **E2.** Tour không tồn tại → 404 `tour_not_found`; không phải tác giả và không phải Admin → 403 `not_tour_owner`; client hiển thị thông báo lỗi. `GetTourStats.execute()`, `TourNotFoundError`, `NotTourOwnerError`
+- **E3.** Bộ lọc "Tuỳ chọn" thiếu ngày hoặc ngày bắt đầu sau ngày kết thúc → client không gọi API và hiện *"Chọn ngày bắt đầu và ngày kết thúc"* / *"Ngày bắt đầu phải trước hoặc bằng ngày kết thúc"*; server vẫn kiểm tra (`from` sau `to`, quá 366 ngày, ngày sai định dạng) → 400 `validation_error` (`statsQuerySchema`, `resolvePeriod()`); lỗi mạng → *"Không thể kết nối, vui lòng thử lại"* kèm nút "Thử lại".
 - **E4.** Beacon thiếu cả token hợp lệ lẫn `deviceId`, hoặc body sai → 400 `validation_error` (client bỏ qua, không ảnh hưởng khách). `recordActivitySchema`
 
 ## Extension Points
@@ -63,9 +63,9 @@ Contributor muốn đánh giá hiệu quả và cải thiện tour.
 - Người thực hiện: tài khoản khi có access token hợp lệ, nếu không thì `deviceId` của thiết bị (8..100 ký tự); token sai / hết hạn quay về `deviceId`.
 - Một lượt đếm cho mỗi (tour, người, hành động, ngôn ngữ, ngày UTC); ngày UTC kế tiếp đếm lại.
 - Chỉ tour `public` được đếm; tối đa 200 lượt đếm mỗi người mỗi ngày UTC trên mọi tour.
-- Không lưu IP, user agent, id tài khoản hay `deviceId`: `actorKey = sha256(salt + "u:"/"d:" + id)` (salt từ `STATS_ACTOR_SALT`).
+- Không lưu IP, user agent, id tài khoản hay `deviceId`: `actorKey = sha256(salt + "|u:" + userId)` hoặc `sha256(salt + "|d:" + deviceId)` (salt từ `STATS_ACTOR_SALT`).
 - `completionRate` = completions / plays (0 khi chưa có lượt nghe, tối đa 1).
-- `averageRating` / `ratingCount` lấy từ dòng tour (có thể gồm giá trị demo seed); `distribution` chỉ đếm các dòng đánh giá thật; nhận xét không bao giờ kèm id người đánh giá.
+- `averageRating` / `ratingCount` lấy từ dòng tour (có thể gồm giá trị demo seed); `distribution` chỉ đếm các dòng đánh giá thật; `distribution` và nhận xét bỏ qua các đánh giá Admin đã gỡ (`is_hidden = true`, UC05); nhận xét không bao giờ kèm id người đánh giá.
 - Mark cũ hơn 40 ngày được xoá bởi job chạy mỗi giờ; số liệu theo ngày được giữ.
 - Chỉ tác giả của tour (hoặc Admin) xem được thống kê.
 

@@ -13,8 +13,8 @@
 
 | # | Actor Action | System Response |
 |---|---|---|
-| 1 | Admin mở trang **"Hàng chờ kiểm duyệt"** (`/admin/reviews`). | |
-| 2 | | Tour service trả về các tour ở trạng thái `ai_warning` hoặc `pending_review`: `ai_warning` lên đầu, sau đó tour chờ lâu nhất trước (theo thời điểm kết quả AI về). Mỗi dòng có tên, chip trạng thái (AI Warning / Chờ duyệt), thành phố, số lý do AI / vị trí, thời điểm gửi. Danh sách không phân trang. *E1, E2* `ListReviewQueue.execute()`, `sortReviewQueue()` |
+| 1 | Admin mở trang **"Duyệt tour"** (`/admin/reviews`, mục "Duyệt tour" trên thanh điều hướng admin). | |
+| 2 | | Tour service trả về các tour ở trạng thái `ai_warning` hoặc `pending_review`: `ai_warning` lên đầu, sau đó tour chờ lâu nhất trước (theo thời điểm kết quả AI về). Mỗi dòng có tên, chip trạng thái (AI Warning / Chờ duyệt), chip "N lý do AI" (đếm cả lý do AI và lý do kiểm tra vị trí), thành phố · loại tour, "Gửi lúc …". Danh sách không phân trang. *E1, E2* `ListReviewQueue.execute()`, `sortReviewQueue()` |
 | 3 | Admin chọn một tour. | |
 | 4 | | Hệ thống hiển thị hồ sơ chỉ đọc (`/admin/reviews/:tourId`): thông tin tour, lý do kiểm duyệt (trường, loại, nguồn `AI` / `Kiểm tra vị trí`, mức độ), các điểm theo thứ tự (mô tả, ảnh, audio thu âm hoặc ghi chú "Giọng đọc máy (TTS) từ mô tả", vùng kích hoạt, trạng thái kiểm duyệt từng điểm), cấu hình lộ trình và audio chỉ đường, lịch sử quyết định. *A1, E3* `GetReviewDossier.execute()` |
 | 5 | Admin chọn **Duyệt** và xác nhận trong hộp thoại "Duyệt tour này?". *A2, A3* | |
@@ -26,17 +26,17 @@
 
 **A1. Xem trước nội dung** → Admin nghe audio, mở ảnh và xem cấu hình lộ trình ngay trong hồ sơ. Hồ sơ chỉ đọc: không có nút sửa nội dung, đánh giá, báo cáo. Quay về bước 5.
 
-**A2. Từ chối tour** → Admin nhập lý do (bắt buộc, 1 đến 1000 ký tự, nhập tự do) trong hộp thoại "Từ chối tour này?". Tour chuyển sang `rejected`, lý do lưu vào `reviewReason`, ghi log (`reject`, `reject_tour`), phát `tour.rejected`; tác giả nhận thông báo và email kèm lý do. Tác giả có thể sửa và gửi lại (UC15). Use case kết thúc. `RejectTour.execute()`, `EventTourReviewPublisher.rejected()`
+**A2. Từ chối tour** → Admin chọn **Từ chối**, nhập lý do (bắt buộc, 1 đến 1000 ký tự, nhập tự do) trong hộp thoại "Từ chối tour này?" rồi bấm "Từ chối tour". Tour chuyển sang `rejected`, lý do lưu vào `reviewReason`, ghi log (`reject`, `reject_tour`), phát `tour.rejected`; tác giả nhận thông báo và email kèm lý do. Client hiện "Đã từ chối tour" và quay về hàng chờ. Tác giả có thể sửa và gửi lại (UC15). Use case kết thúc. `RejectTour.execute()`, `EventTourReviewPublisher.rejected()`
 
-**A3. Yêu cầu chỉnh sửa** → Admin nhập ghi chú chung và ghi chú cho từng điểm; client ghép thành một lý do ("Điểm 2 – <tên>: <ghi chú>"). Tour chuyển sang `changes_requested` (không công khai), ghi log (`request_changes`, `request_tour_changes`), phát `tour.changes_requested`; tác giả nhận "Tour cần chỉnh sửa" kèm lý do, sửa rồi gửi lại (UC15). Use case kết thúc. `joinChangeRequest()` (client), `RequestTourChanges.execute()`, `EventTourReviewPublisher.changesRequested()`
+**A3. Yêu cầu chỉnh sửa** → Admin chọn **Yêu cầu chỉnh sửa**; trong hộp thoại "Yêu cầu tác giả chỉnh sửa?" nhập "Lý do chung" và/hoặc "Ghi chú theo điểm (không bắt buộc)" (cần ít nhất một ô), bấm "Gửi yêu cầu chỉnh sửa"; client ghép thành một lý do ("Điểm 2 – <tên>: <ghi chú>"). Tour chuyển sang `changes_requested` (không công khai), ghi log (`request_changes`, `request_tour_changes`), phát `tour.changes_requested`; tác giả nhận "Tour cần chỉnh sửa" kèm lý do, sửa rồi gửi lại (UC15). Client hiện "Đã yêu cầu tác giả chỉnh sửa tour" và quay về hàng chờ. Use case kết thúc. `joinChangeRequest()` (client), `RequestTourChanges.execute()`, `EventTourReviewPublisher.changesRequested()`
 
 ## Exception Path
 
-- **E1.** Không có tour nào chờ duyệt → danh sách rỗng.
-- **E2.** Không có token hợp lệ → 401; tài khoản không phải admin → 403.
-- **E3.** `tourId` không phải UUID → 400; tour không tồn tại → 404 (`TourNotFoundError`).
-- **E4.** Tour không còn ở `ai_warning` / `pending_review` (hoặc admin khác đã quyết định trước) → 409 (`TourNotReviewableError`, ném trong `ReviewDecision.decide()`); client hiện "Tour không còn ở trạng thái chờ duyệt" và tải lại hồ sơ.
-- **E5.** Từ chối / yêu cầu chỉnh sửa thiếu lý do hoặc lý do quá 1000 ký tự → 422, lỗi hiện trong hộp thoại.
+- **E1.** Không có tour nào chờ duyệt → danh sách rỗng, client hiện "Không có tour nào chờ duyệt".
+- **E2.** Không có token hợp lệ → 401; tài khoản không phải admin → 403. Client không gọi API với tài khoản không phải admin, chỉ hiện "Chỉ quản trị viên được xem trang này" (`AdminGate`).
+- **E3.** `tourId` không phải UUID → 400 "Mã tour không hợp lệ"; tour không tồn tại → 404 (`TourNotFoundError`); client hiện "Không tìm thấy tour này".
+- **E4.** Tour không còn ở `ai_warning` / `pending_review` (hoặc admin khác đã quyết định trước) → 409 `tour_not_reviewable` (`TourNotReviewableError`, ném trong `ReviewDecision.decide()`; khi thua cuộc đua ghi có điều kiện, thông báo là "Tour vừa được cập nhật bởi thao tác khác, vui lòng tải lại"); client hiện "Tour không còn ở trạng thái chờ duyệt" và tải lại hồ sơ. Hồ sơ của tour không còn chờ duyệt ẩn các nút quyết định và hiện "Tour không còn ở trạng thái chờ duyệt (hiện tại: <trạng thái>)".
+- **E5.** Từ chối / yêu cầu chỉnh sửa thiếu lý do hoặc lý do quá 1000 ký tự → 422 ("Vui lòng nhập lý do" / "Lý do tối đa 1000 ký tự"), lỗi hiện trong hộp thoại. Ở A3 client chặn trước khi gửi: "Vui lòng nhập lý do hoặc ghi chú cho ít nhất một điểm" / "Lý do tối đa 1000 ký tự (tính cả ghi chú từng điểm)".
 - **E6.** Gửi sự kiện thất bại → chỉ ghi log ở Tour, quyết định vẫn thành công (`ReviewDecision.emit()`).
 
 ## Extension Points
@@ -115,7 +115,7 @@ Moderation phát `tour.ai_passed` cho một tour; Tour chuyển tour sang `pendi
 
 ## Date
 
-Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-22
 
 ## Activity Diagram
 
@@ -147,7 +147,7 @@ sequenceDiagram
 
 ## Boundary
 
-- Trang Hàng chờ kiểm duyệt (`/admin/reviews`).
+- Trang Duyệt tour (hàng chờ, `/admin/reviews`).
 - Trang Hồ sơ tour chờ duyệt (`/admin/reviews/:tourId`): lý do AI / vị trí, các điểm, lộ trình, lịch sử.
-- Hộp thoại Duyệt, Từ chối (lý do), Yêu cầu chỉnh sửa (ghi chú chung và từng điểm).
+- Hộp thoại "Duyệt tour này?" (nút "Duyệt và công khai"), "Từ chối tour này?" (lý do), "Yêu cầu tác giả chỉnh sửa?" (lý do chung và ghi chú từng điểm).
 - Trang chủ quản trị (`/admin`) với thanh điều hướng admin.

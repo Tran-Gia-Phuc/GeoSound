@@ -35,18 +35,19 @@
 |---|---|---|
 | A2.1 | Tourist đổi thứ tự điểm bằng nút lên / xuống (thay cho kéo thả, để dễ truy cập). | `PATCH /api/itineraries/:id/items { orderedIds }`; thứ tự được đánh lại 0..n-1, quãng đường được tính lại. `reorderItems()` → `ReorderItineraryItems.execute()` → `Itinerary.reorder()` |
 | A2.2 | Tourist bỏ một điểm. | `DELETE /api/itineraries/:id/items/:itemId` ngay, không hỏi lại; thông báo có nút "Hoàn tác" (thêm lại điểm rồi đưa về vị trí cũ). `removeItem()` → `RemoveItineraryItem.execute()` → `Itinerary.removeItem()` |
-| A2.3 | Tourist đổi tên lịch trình. | `PATCH /api/itineraries/:id { name }`. `renameItinerary()` → `RenameItinerary.execute()` |
-| A2.4 | Tourist xóa cả lịch trình (từ "Lịch trình của tôi"). | `DELETE /api/itineraries/:id`. `deleteItinerary()` → `DeleteItinerary.execute()` |
+| A2.3 | Tourist đổi tên lịch trình (chạm vào tên ở trình sửa, hoặc ở "Lịch trình của tôi"). | `PATCH /api/itineraries/:id { name }`. `renameItinerary()` → `RenameItinerary.execute()` |
+| A2.4 | Tourist xóa cả lịch trình (từ "Lịch trình của tôi") và xác nhận *"Xoá lịch trình “X”?"* → **"Xoá lịch trình"**. | `DELETE /api/itineraries/:id`; liên kết chia sẻ (nếu có) cũng ngừng hoạt động. `deleteItinerary()` → `DeleteItinerary.execute()` |
+| A2.5 | Tourist chọn **"Thêm địa điểm"** ở trình sửa. | Client mở `/?tab=places&addTo=:id` với dải *"Đang thêm địa điểm vào …"*; chạm ＋ thêm thẳng vào lịch trình đó (không mở bảng "Thêm vào…"), **"Xong"** để quay lại. `DiscoverPage` → `addItem()` |
 
-**A3. Tải lịch trình về dùng offline.** Ở trình chỉnh sửa (`/itineraries/:id`), mục **"Tải về để nghe offline"** (giống UC03) tải gói của lịch trình: client gọi `GET /api/itineraries/:id/package?lang=` kèm token (chỉ chủ sở hữu), Tour trả gói cùng dạng UC03 (`detail` = view lịch trình, `assets` = ảnh và audio ghi âm của các điểm, `revision` = thời điểm sửa mới nhất). Gói lưu trong IndexedDB dưới mã `itinerary:<id>`, hiện trong **Tour đã tải** với nhãn "Lịch trình", nghe ở `/offline/itinerary:<id>/play` không cần mạng; không gửi beacon UC17. Gói là ảnh chụp lúc tải: sau khi sửa lịch trình, "Có bản mới" ở Tour đã tải cho tải lại. `OfflineDownload` → `startDownload()` → `fetchTourPackage()` → `ItineraryController.package()` → `GetItineraryPackage.execute()` → `buildItineraryView()`, `buildPackageAssets()`. Nếu lịch trình có điểm thuộc tour có phí (UC25) mà chủ lịch trình chưa mua (và không phải tác giả), Tour trả `402 payment_required` cho tới khi mua đủ các tour đó (`PrismaTourPurchaseRepository.lockedTourIds()`).
+**A3. Tải lịch trình về dùng offline.** Ở trình chỉnh sửa (`/itineraries/:id`), mục **"Tải về để nghe offline"** (giống UC03) tải gói của lịch trình: client gọi `GET /api/itineraries/:id/package?lang=` kèm token (chỉ chủ sở hữu), Tour trả gói cùng dạng UC03 (`detail` = view lịch trình, `assets` = ảnh và audio ghi âm của các điểm, `revision` = thời điểm sửa mới nhất; ngôn ngữ không có ở điểm nào → 400). Gói lưu trong IndexedDB dưới mã `itinerary:<id>`, hiện trong **Tour đã tải** với nhãn "Lịch trình", nghe ở `/offline/itinerary:<id>/play` không cần mạng; không gửi beacon UC17. Gói là ảnh chụp lúc tải: sau khi sửa lịch trình, "Có bản mới" ở Tour đã tải cho tải lại. `OfflineDownload` → `startDownload()` → `fetchTourPackage()` → `ItineraryController.package()` → `GetItineraryPackage.execute()` → `buildItineraryView()`, `buildPackageAssets()`. Nếu lịch trình có điểm thuộc tour có phí (UC25) mà chủ lịch trình chưa mua (và không phải tác giả), Tour trả `402 payment_required` cho tới khi mua đủ các tour đó (`PrismaTourPurchaseRepository.lockedTourIds()`).
 
 **A4. Chia sẻ lịch trình.**
 
 | # | Actor Action | System Response |
 |---|---|---|
 | A4.1 | Tourist mở hộp thoại "Chia sẻ lịch trình" và tạo liên kết. | `POST /api/itineraries/:id/share { enabled: true }` sinh `shareToken` (dùng lại nếu đã có); client hiện liên kết `/shared/:token` và nút Copy. `ShareDialog`, `shareItinerary()` → `ShareItinerary.execute()` → `Itinerary.ensureShareToken()` |
-| A4.2 | Tourist tắt chia sẻ. | `POST .../share { enabled: false }` xóa `shareToken`; liên kết cũ không còn mở được. `ShareItinerary.execute()` → `Itinerary.revokeShare()` |
-| A4.3 | Người nhận mở `/shared/:token`. | `GET /api/itineraries/shared/:token` (công khai, chỉ đọc); người nhận có thể "Đi theo lịch trình này" (UC08). `getSharedItinerary()` → `GetSharedItinerary.execute()` → `PrismaItineraryRepository.findByShareToken()` |
+| A4.2 | Tourist tắt chia sẻ. | `POST .../share { enabled: false }` xóa `shareToken`; liên kết cũ không còn mở được; chia sẻ lại sẽ sinh mã mới. `ShareItinerary.execute()` → `Itinerary.revokeShare()` |
+| A4.3 | Người nhận mở `/shared/:token`. | `GET /api/itineraries/shared/:token` (công khai, chỉ đọc, không trả mã chủ sở hữu); người nhận có thể "Đi theo lịch trình này" (UC08). `getSharedItinerary()` → `GetSharedItinerary.execute()` → `PrismaItineraryRepository.findByShareToken()` |
 
 ## Exception Path
 
@@ -54,7 +55,7 @@
 - **E2.** Chưa đăng nhập → bảng "Thêm vào…" hiện *"Đăng nhập để lưu địa điểm vào lịch trình và mở lại trên mọi thiết bị."*; thao tác thêm được giữ lại qua bước đăng nhập (UC01). API trả 401 nếu không có token. `usePendingAdd()`, `nextWithPendingAdd()`
 - **E3.** Thiếu tên lịch trình → *"Vui lòng đặt tên lịch trình"*; quá 120 ký tự → *"Tên lịch trình tối đa 120 ký tự"* (400). `createItinerarySchema`, `Itinerary.normalizeName()`
 - **E4.** Địa điểm không tồn tại hoặc tour gốc không còn `public` → 404 `place_not_addable` *"Địa điểm không khả dụng để thêm vào lịch trình"*. `AddItineraryItem.execute()` → `PlaceNotAddableError`
-- **E5.** Lịch trình không tồn tại → 404 `itinerary_not_found`; không phải chủ sở hữu → 403 `not_itinerary_owner`; danh sách sắp xếp không khớp các điểm hiện có → 400. `loadOwnedItinerary()`, `Itinerary.reorder()`
+- **E5.** Lịch trình không tồn tại → 404 `itinerary_not_found`; không phải chủ sở hữu → 403 `not_itinerary_owner`; danh sách sắp xếp không khớp các điểm hiện có → 400; bỏ một điểm không có trong lịch trình → 404 `place_not_found` *"Không tìm thấy điểm trong lịch trình"*. `loadOwnedItinerary()`, `Itinerary.reorder()`, `Itinerary.removeItem()`
 
 ## Extension Points
 
@@ -90,8 +91,8 @@ Tourist muốn tự lên kế hoạch chuyến đi từ các địa điểm quan
 | R3 | Chỉ thêm được địa điểm thuộc tour `public` |
 | R4 | Mỗi điểm là snapshot lúc thêm: tọa độ, ảnh, văn bản và audio theo từng ngôn ngữ (`audio_by_lang`), bán kính kích hoạt (mặc định 50 m); tác giả sửa tour gốc không làm đổi lịch trình |
 | R5 | Quãng đường = tổng khoảng cách haversine giữa các điểm liên tiếp; thời gian đi bộ = quãng đường / 1,25 m/s (khoảng 4,5 km/h) |
-| R6 | Mã chia sẻ sinh một lần và dùng lại; liên kết chia sẻ chỉ đọc |
-| R7 | Ngôn ngữ của lịch trình = hợp các ngôn ngữ có ở các điểm; chọn bằng `?lang=` |
+| R6 | Mã chia sẻ được dùng lại cho tới khi thu hồi (thu hồi rồi chia sẻ lại sinh mã mới); liên kết chia sẻ chỉ đọc |
+| R7 | Ngôn ngữ của lịch trình = hợp các ngôn ngữ có ở các điểm; chọn bằng `?lang=` (ngôn ngữ không có thì dùng ngôn ngữ đầu tiên) |
 
 ## Hiện thực trong hệ thống
 
@@ -143,7 +144,7 @@ Tourist muốn tự lên kế hoạch chuyến đi từ các địa điểm quan
 
 ## Date
 
-Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-22
 
 ## Activity Diagram
 

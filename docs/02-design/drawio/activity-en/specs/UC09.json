@@ -1,0 +1,121 @@
+{
+  "uc": "UC09",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Contributor opens the Studio."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system shows the Contributor's tour list with status chips (Draft, AI review in progress, AI Warning, Pending review, Public, Rejected, Needs changes, Restricted access, Hidden). E1, E5.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. No tours yet → \"No tours yet\" and a \"Create tour\" button.",
+          "back": "s1"
+        },
+        {
+          "id": "E5",
+          "text": "E5. List load error → warning and a \"Retry list\" button.",
+          "back": "s1"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. The Contributor taps \"Create tour\". A1, A2, A3.",
+      "alts": [
+        "A1",
+        "A2",
+        "A3"
+      ]
+    },
+    {
+      "id": "s4",
+      "text": "4. The system shows the form: name, description, city, tour type, original language, duration, cover image."
+    },
+    {
+      "id": "s5",
+      "text": "5. The Contributor enters the information and picks a cover image."
+    },
+    {
+      "id": "s6",
+      "text": "6. The system (Media) checks the real image format (magic bytes) and stores the image on Supabase Storage. E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Invalid cover image format → 415 \"Only JPG, PNG, WebP or GIF images are accepted\"; over 8 MB → 413; storage error → 503.",
+          "back": "s5"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s7",
+      "text": "7. The Contributor taps \"Create & add stops\". A4.",
+      "alts": [
+        "A4"
+      ]
+    },
+    {
+      "id": "s8",
+      "text": "8. The system (Tour) validates the data and creates the tour in the Draft status. E2.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. Missing name / original language, invalid language or tour type → 400 (\"Please enter the tour name\", \"Please choose the original language\", \"Unsupported language: xx\").",
+          "back": "s7"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s9",
+      "text": "9. The system moves on to adding stops (UC#10).",
+      "exceptions": [
+        {
+          "id": "E4",
+          "text": "E4. The tour does not exist → 404; someone else's tour → 403.",
+          "back": "end"
+        },
+        {
+          "id": "E6",
+          "text": "E6. Publishing conditions not met → 422 with the list of missing items; status does not allow it → 409.",
+          "back": "s3"
+        }
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Edit a tour: open the tour, edit the information and save; an edited Public tour goes back to Draft and must be submitted for review again. E4."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Delete the tour: the system asks for confirmation, then deletes the tour with its places, route and related translations. E4."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Publish: the system shows a checklist (name, original language, at least 1 place, every place has a description); with moderation enabled, this button is \"Submit for review\" (UC#15). E6."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. \"Save draft & exit\": save the Draft tour and go back to the list."
+      ],
+      "to": "end"
+    }
+  ]
+}

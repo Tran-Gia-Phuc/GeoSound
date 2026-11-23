@@ -29,13 +29,13 @@
 
 **A3. Khách chưa đăng nhập nhấn "Theo dõi"** → client chuyển tới trang đăng nhập rồi quay lại trang tác giả.
 
-**A4. Xem danh sách đang theo dõi** → người đã đăng nhập mở `/account/following`; client gọi `GET /api/auth/me/following` (mới theo dõi nhất trước, 20 mỗi trang). `FollowingPage`, `listFollowing()` → `AuthorController.following()`, `ListFollowing.execute()`, `PrismaFollowRepository.listFollowing()`
+**A4. Xem danh sách đang theo dõi** → người đã đăng nhập mở `/account/following`; client gọi `GET /api/auth/me/following` (mới theo dõi nhất trước, 20 mỗi trang; chỉ liệt kê tác giả còn là contributor đang hoạt động; danh sách trống hiện *"Bạn chưa theo dõi tác giả nào"*). `FollowingPage`, `listFollowing()` → `AuthorController.following()`, `ListFollowing.execute()`, `PrismaFollowRepository.listFollowing()`
 
 **A5. Tác giả xem trang của chính mình** → nút Theo dõi bị ẩn, thay bằng liên kết tới trình sửa hồ sơ.
 
 ## Exception Path
 
-- **E1.** Tác giả chưa có tour công khai → danh sách tour trống (trang vẫn hiển thị).
+- **E1.** Tác giả chưa có tour công khai → danh sách tour trống, hiện *"Tác giả chưa có tour công khai"* (trang vẫn hiển thị).
 - **E2.** Id không tồn tại, không phải contributor, tài khoản bị cấm hoặc đang bị tạm khoá → 404 `author_not_found` *"Không tìm thấy tác giả"*. `AuthorNotFoundError`, `followableAuthorWhere()`
 - **E3.** Dữ liệu hồ sơ không hợp lệ (tên rỗng hoặc quá 120 ký tự, giới thiệu quá 500 ký tự, URL ảnh không được phép) → 400 `validation_error` kèm thông báo tiếng Việt theo trường; tài khoản không còn tồn tại → 404 `user_not_found`. `updateProfileSchema`, `isValidAvatarUrl()`, `UserNotFoundError`
 - **E4.** Tự theo dõi chính mình → 400 `self_follow`; chưa đăng nhập → 401. `SelfFollowError`

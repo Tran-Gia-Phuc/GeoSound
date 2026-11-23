@@ -38,7 +38,7 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | A2.1 | Contributor chọn "Xoá tour" trong trình chỉnh sửa, xác nhận ở hộp thoại. | |
-| A2.2 | | `DELETE /api/tours/mine/:id` xóa tour cùng điểm, route, ngôn ngữ, bản dịch (cascade). Tour công khai biến mất khỏi tìm kiếm (UC02); nếu bật cờ chatbot thì phát `tour.unpublished` (reason `deleted`). Client về `/studio`. `deleteTour()` → `DeleteTour.execute()` → `PrismaTourRepository.delete()` |
+| A2.2 | | `DELETE /api/tours/mine/:id` xóa tour cùng điểm, route, ngôn ngữ, bản dịch, đánh giá và báo cáo, quyền truy cập hạn chế và lượt mở khóa, thống kê (cascade). Tour công khai biến mất khỏi tìm kiếm (UC02); nếu bật cờ chatbot thì phát `tour.unpublished` (reason `deleted`). Client về `/studio`. `deleteTour()` → `DeleteTour.execute()` → `PrismaTourRepository.delete()` |
 
 **A3. Gửi duyệt / xuất bản.** Contributor mở bước Xuất bản (`/studio/tours/:id/publish`) → xem checklist `GET .../readiness` (`GetPublishReadiness.execute()`, `checkPublishReadiness()`) → `POST .../publish` (`PublishTour.execute()`). Khi `MODERATION_EVENTS_ENABLED=true`: tour sang `ai_checking` và phát `tour.submitted` (`submitTourForModeration()` → `EventModerationGateway.submitTour()`, **UC15**). Khi cờ tắt: xuất bản thẳng sang `public` (quyết định D1, `Tour.publish()`, `notifyTourPublished()`). `POST .../unpublish` gỡ tour công khai về `draft` (`UnpublishTour.execute()`).
 
@@ -79,7 +79,7 @@ Contributor muốn tạo tour mới hoặc quản lý / chỉnh sửa tour của
 
 - Tour mới luôn `draft`; chỉ tác giả (`author_id`) thao tác tour của mình.
 - Tên 1–200 ký tự, mô tả tối đa 2000, thành phố tối đa 120, thời lượng là số phút nguyên dương.
-- Ngôn ngữ hỗ trợ: `vi, en, fr, ja, ko, zh`. Loại tour: `walking, driving, cycling, indoor`.
+- Ngôn ngữ hỗ trợ: mặc định `vi, en, fr, ja, ko, zh, es, de, th, ru` (đổi bằng biến `SUPPORTED_LANGUAGES`; client lấy danh sách từ `GET /api/tours/languages`). Loại tour: `walking, driving, cycling, indoor`.
 - Ảnh: JPG/PNG/WebP/GIF tối đa 8 MB; Media kiểm magic bytes, không tin `Content-Type`. Ảnh bìa không nằm trong `tour.submitted` nên không qua kiểm duyệt AI.
 - Sửa tour `public` → về `draft` (phải gửi duyệt / xuất bản lại). Sửa tour `restricted` vẫn giữ `restricted` (UC14).
 - Checklist xuất bản bắt buộc: có tên, ngôn ngữ gốc, ít nhất 1 điểm, mọi điểm có mô tả; khi bật kiểm duyệt thêm: không điểm nào `checking` / `rejected`, tối đa 50 điểm. Ảnh bìa và mô tả tour chỉ là khuyến nghị.
@@ -123,7 +123,7 @@ Contributor muốn tạo tour mới hoặc quản lý / chỉnh sửa tour của
 
 ## Date
 
-Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-22
 
 ## Activity Diagram
 

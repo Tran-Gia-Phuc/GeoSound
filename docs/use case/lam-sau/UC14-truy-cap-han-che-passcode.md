@@ -14,14 +14,14 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | 1 | Tác giả mở bước Xuất bản (`/studio/tours/:id/publish`), khung **"Truy cập hạn chế"**. | |
-| 2 | | Client gọi `GET /api/tours/mine/:tourId/access` → `{ restricted, passcodeSetAt, testers }`. Khung chỉ cho bật khi tour ở `draft`, `rejected` hoặc `changes_requested`. `RestrictedAccessPanel`, `getTourAccess()` → `TourAccessController.get()` → `GetTourAccess.execute()` → `PrismaTourAccessRepository.countGrants()` |
+| 2 | | Client gọi `GET /api/tours/mine/:tourId/access` → `{ restricted, passcodeSetAt, testers }`. Chỉ bật được khi tour ở `draft`, `rejected` hoặc `changes_requested`; ở trạng thái khác khung hiện ghi chú *"Tour đang công khai: hãy gỡ xuống trước khi bật truy cập hạn chế."* hoặc *"Chỉ bật được cho tour Nháp, bị từ chối hoặc cần chỉnh sửa."*. `RestrictedAccessPanel`, `getTourAccess()` → `TourAccessController.get()` → `GetTourAccess.execute()` → `PrismaTourAccessRepository.countGrants()` |
 | 3 | Tác giả nhập passcode và nhấn **"Bật truy cập hạn chế"**. *E1, E2* | |
 | 4 | | `PUT .../access { passcode }`: Tour kiểm passcode, lưu hash scrypt (salt ngẫu nhiên), tăng `passcode_version`, chuyển tour sang `restricted` trong một lệnh UPDATE có điều kiện; trả `changed: 'enabled'`. Không qua Admin. `validatePasscode()`, `setTourPasscode()` → `TourAccessController.set()` → `SetTourPasscode.execute()` → `normalizePasscode()`, `ScryptPasscodeHasher.hash()`, `PrismaTourAccessRepository.setPasscodeIf()` |
-| 5 | | Khung hiện thời điểm bật, số người thử, đường dẫn chia sẻ `/tour/:tourId/unlock` và nút mở bản dành cho người thử. `unlockPath()`, `restrictedPath()` |
+| 5 | | Thông báo *"Đã bật truy cập hạn chế"*; khung hiện nhãn "Đang bật", thời điểm đặt mã, số người thử đã mở khoá, ô **"Liên kết gửi cho người thử"** (`/tour/:tourId/unlock`, nút "Sao chép") và nút "Mở bản người thử thấy". `unlockPath()`, `restrictedPath()` |
 | 6 | Tác giả gửi đường dẫn và passcode cho nhóm thử. | |
-| 7 | Người thử (đã đăng nhập) mở `/tour/:tourId/unlock`. | |
+| 7 | Người thử (đã đăng nhập; chưa đăng nhập thì chuyển tới `/login` trước) mở `/tour/:tourId/unlock`. | |
 | 8 | | Client gọi `GET /api/tours/:id/access/mine`; đã mở khóa (hoặc là tác giả) → chuyển thẳng tới `/tour/:tourId/restricted`. *A2* `UnlockTourPage`, `getMyTourAccess()` → `TourAccessController.mine()` → `GetMyTourAccess.execute()` → `isGrantValid()` |
-| 9 | Người thử nhập passcode. *E3, E4* | |
+| 9 | Người thử nhập passcode và nhấn **"Mở khoá"** (client kiểm cùng quy tắc E1 trước khi gửi). *E3, E4* | |
 | 10 | | `POST /api/tours/:id/unlock`: Tour ghi một lần thử, đếm lần sai trong 15 phút, so hash, lưu `tour_access_grants` (theo tài khoản và phiên bản passcode), trả `{ unlocked: true }`. `unlockTour()` → `TourAccessController.unlock()` → `UnlockTour.execute()` → `PrismaTourAccessRepository.reserveAttempt()`, `ScryptPasscodeHasher.verify()`, `releaseAttempt()`, `saveGrant()` |
 | 11 | | Client mở `/tour/:tourId/restricted` (`GET /api/tours/:id/restricted?lang=`): chi tiết tour có nhãn "Bản thử nghiệm (truy cập hạn chế)", nghe ở `/tour/:tourId/restricted/play`. `TourDetailPage` (`restricted`), `fetchRestrictedTour()` → `TourAccessController.detail()` → `GetRestrictedTour.execute()` → `buildTourDetailView()`; `PlayRestrictedRoute` |
 | 12 | | Use case kết thúc. |
@@ -32,10 +32,10 @@
 
 | # | Actor Action | System Response |
 |---|---|---|
-| A1.1 | Tác giả nhập passcode mới và lưu. | |
-| A1.2 | | `PUT .../access`: hash mới, `passcode_version + 1`, xóa mọi `tour_access_grants`; trả `changed: 'passcode'`. Người thử phải nhập mã mới. `SetTourPasscode.execute()` → `PrismaTourAccessRepository.setPasscodeIf()` |
-| A1.3 | Tác giả chọn tắt chế độ, xác nhận ở hộp thoại. | |
-| A1.4 | | `DELETE .../access`: tour về `draft`, xóa hash, `passcode_version + 1`, xóa grants và attempts. Người thử mất quyền truy cập. `disableTourAccess()` → `TourAccessController.disable()` → `DisableTourAccess.execute()` → `PrismaTourAccessRepository.clearPasscodeIf()` |
+| A1.1 | Tác giả chọn **"Đổi mã truy cập"**, nhập "Mã truy cập mới" và nhấn **"Lưu mã mới"**. | |
+| A1.2 | | `PUT .../access`: hash mới, `passcode_version + 1`, xóa mọi `tour_access_grants`; trả `changed: 'passcode'`; thông báo *"Đã đổi mã truy cập. Người thử cần nhập mã mới."*. `SetTourPasscode.execute()` → `PrismaTourAccessRepository.setPasscodeIf()` |
+| A1.3 | Tác giả chọn **"Tắt truy cập hạn chế"** và xác nhận ở hộp thoại *"Tắt truy cập hạn chế?"* → **"Tắt truy cập"**. | |
+| A1.4 | | `DELETE .../access`: tour về `draft`, xóa hash, `passcode_version + 1`, xóa grants và attempts; thông báo *"Đã tắt truy cập hạn chế. Tour đã về Nháp."*. Người thử mất quyền truy cập. `disableTourAccess()` → `TourAccessController.disable()` → `DisableTourAccess.execute()` → `PrismaTourAccessRepository.clearPasscodeIf()` |
 
 **A2. Người thử đã mở khóa trước đó** → không cần nhập lại, miễn là phiên bản passcode chưa đổi (`isGrantValid()`).
 
@@ -50,8 +50,8 @@
 - **E1.** Passcode không hợp lệ → 400: "Vui lòng nhập mã truy cập", "Mã truy cập không được chứa khoảng trắng", "Mã truy cập phải từ 6 đến 32 ký tự" (client kiểm cùng quy tắc trước khi gửi). `validatePasscode()`, `normalizePasscode()`
 - **E2.** Trạng thái không cho bật (`public`, `ai_checking`, `ai_warning`, `pending_review`, `hidden`, hoặc bị đổi đồng thời) → 409 `tour_not_restrictable`; không phải tác giả → 403 `not_tour_owner`; tắt khi chưa bật → 409 `tour_not_restricted`. `Tour.canRestrict()`, `TourNotRestrictableError`, `TourNotRestrictedError`
 - **E3.** Sai passcode → 403 `wrong_passcode` ("Mã truy cập không đúng"). `WrongPasscodeError`
-- **E4.** Sai quá 5 lần trong 15 phút → 429 `too_many_attempts` ("Bạn đã nhập sai quá nhiều lần, vui lòng thử lại sau 15 phút"), kể cả khi mã đúng. `UnlockTour.execute()`, `unlockWindowStart()`, `TooManyAttemptsError`
-- **E5.** Tour không (còn) ở chế độ hạn chế, hoặc chưa mở khóa khi mở bản thử → 404; `TourDetailPage` chuyển người thử về trang nhập mã. `GetRestrictedTour.execute()`
+- **E4.** Sai quá 5 lần trong 15 phút → 429 `too_many_attempts` ("Bạn đã nhập sai quá nhiều lần, vui lòng thử lại sau 15 phút"): lần thử thứ 6 trong cửa sổ bị chặn kể cả khi mã đúng; lần bị chặn không được đếm thêm. `UnlockTour.execute()`, `unlockWindowStart()`, `TooManyAttemptsError`
+- **E5.** Tour không (còn) ở chế độ hạn chế, hoặc chưa mở khóa khi mở bản thử → 404. Màn nhập mã hiện *"Tour không tồn tại hoặc không ở chế độ truy cập hạn chế"*; `TourDetailPage` chuyển người thử về trang nhập mã kèm *"Mã truy cập đã thay đổi. Hãy nhập mã mới từ tác giả."*. `GetRestrictedTour.execute()`
 - **E6.** Gửi duyệt / xuất bản tour đang hạn chế → 409 `tour_restricted` ("... hãy tắt chế độ này trước khi gửi duyệt"). `PublishTour.execute()`, `TourRestrictedError`
 
 ## Extension Points
@@ -89,7 +89,7 @@ Tác giả muốn thử tour với nhóm nhỏ trước khi công khai.
 - **Màn hình (client):** `/studio/tours/:id/publish` (`features/studio/RestrictedAccessPanel.jsx`); `/tour/:tourId/unlock` (`features/tours/UnlockTourPage.jsx`); `/tour/:tourId/restricted` (`TourDetailPage restricted`); `/tour/:tourId/restricted/play` (`PlayRestrictedRoute`); API `client/src/lib/restricted-access.js`.
 - **API (qua gateway):**
   - Tác giả: `GET|PUT|DELETE /api/tours/mine/:tourId/access`
-  - Người thử: `POST /api/tours/:id/unlock`, `GET /api/tours/:id/access/mine`, `GET /api/tours/:id/restricted?lang=`, `GET /api/tours/:id/restricted/package?lang=` (gói offline, A5)
+  - Người thử: `POST /api/tours/:id/unlock`, `GET /api/tours/:id/access/mine`, `GET /api/tours/:id/restricted?lang=`, `GET /api/tours/:id/restricted/package?lang=` (gói offline, A5), `POST /api/tours/:id/restricted/translations/:lang` (dịch tự động khi nghe bản thử, UC12)
 - **Dữ liệu:** `tour.tours` (`status = restricted`, `passcode_hash`, `passcode_version`, `passcode_set_at`); `tour.tour_access_grants` (unique `tour_id, user_id`, `passcode_version`); `tour.tour_unlock_attempts` (index `tour_id, user_id, created_at`).
 - **Tài liệu thiết kế:** [uc14-restricted-access.md](../../02-design/uc14-restricted-access.md), [offline-download.md](../../02-design/offline-download.md).
 - **Mã nguồn chính:**
@@ -119,7 +119,7 @@ Tác giả muốn thử tour với nhóm nhỏ trước khi công khai.
 
 ## Date
 
-Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-22
 
 ## Activity Diagram
 
