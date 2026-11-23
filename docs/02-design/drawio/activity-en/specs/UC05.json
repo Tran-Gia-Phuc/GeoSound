@@ -1,0 +1,103 @@
+{
+  "uc": "UC05",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Tourist opens the \"Ratings\" section on the tour details and taps the \"Report\" button (flag icon) on another person's comment.",
+      "alts": [
+        "A1"
+      ]
+    },
+    {
+      "id": "s2",
+      "text": "2. The client opens the \"Report a violating rating\" dialog; the Actor picks a reason (Spam/Advertising, Hate speech/Insults, False information/Off-topic, Other) and enters an extra description (optional, at most 500 characters)."
+    },
+    {
+      "id": "s3",
+      "text": "3. The Actor taps \"Send report\"; the client validates it and calls the report API."
+    },
+    {
+      "id": "s4",
+      "text": "4. The server checks: signed in, public tour, the rating is still visible, not reporting one's own rating, has not reported this rating before; valid? E1–E4.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Not signed in → \"Please sign in to report a violation\" and go to sign-in (UC#01) (401).",
+          "back": "s1"
+        },
+        {
+          "id": "E2",
+          "text": "E2. Reporting one's own rating → the button is hidden in the UI; calling the API directly returns 400.",
+          "back": "end"
+        },
+        {
+          "id": "E3",
+          "text": "E3. This rating was already reported (any status) → 409, the dialog shows \"You have already reported this rating\".",
+          "back": "end"
+        },
+        {
+          "id": "E4",
+          "text": "E4. The tour is not public, the rating was deleted or removed, or the reportId does not exist → 404.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s5",
+      "text": "5. The server stores the report in tour_rating_reports (PENDING); if the total number of PENDING reports reaches the threshold N ≥ 3, it sets is_flagged = true automatically (201)."
+    },
+    {
+      "id": "s6",
+      "text": "6. The client closes the modal and shows \"Your report has been sent and is waiting for an administrator to review it.\""
+    },
+    {
+      "id": "s7",
+      "text": "7. The Admin opens the \"Rating complaints\" page (/admin/reports/ratings); the system checks the Admin role and loads the status=pending queue (flagged first, then author complaints, then newest)? A2, E5.",
+      "alts": [
+        "A2"
+      ],
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. The account does not have the Admin role → 403; no token → 401.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s8",
+      "text": "8. The Admin chooses \"Remove rating\" or \"Dismiss report\", enters a handling note (optional) in the confirmation dialog and taps \"Confirm\"."
+    },
+    {
+      "id": "s9",
+      "text": "9. The client calls the report handling API with the action (REMOVE_RATING or DISMISS) and the handling note."
+    },
+    {
+      "id": "s10",
+      "text": "10. The server handles it in one transaction: every PENDING report of the rating changes status; DISMISS → DISMISSED and is_flagged = false; REMOVE_RATING → RESOLVED, sets is_hidden = true and recomputes average_rating and rating_count with atomic SQL (only once)."
+    },
+    {
+      "id": "s11",
+      "text": "11. The client shows \"Report handled successfully\" and refreshes the queue."
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1.1. The tour author (Author) opens the \"Ratings\" section on their own tour details and taps the \"Complain\" button on a comment; the client opens the \"Rating complaint\" dialog.",
+        "A1.2. The Author picks a reason and enters a detailed explanation (optional); the server stores reporter_role = 'AUTHOR' and the Admin queue shows the \"Complaint from the Author\" label."
+      ],
+      "to": "s3"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2.1. The Admin switches between the \"Pending\", \"Removed\" and \"Dismissed\" tabs on /admin/reports/ratings to look up handled reports."
+      ],
+      "to": "end"
+    }
+  ]
+}

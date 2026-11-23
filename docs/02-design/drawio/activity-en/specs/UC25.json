@@ -1,0 +1,127 @@
+{
+  "uc": "UC25",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Tourist opens the details of a priced public tour. A1.",
+      "alts": [
+        "A1"
+      ]
+    },
+    {
+      "id": "s2",
+      "text": "2. The system shows the price, a preview of the first place and the \"Buy tour\" button."
+    },
+    {
+      "id": "s3",
+      "text": "3. The Tourist taps \"Buy tour\". E1.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Not signed in → \"You need to sign in to buy a tour.\" and a \"Sign in\" button (UC#01); the API returns 401.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s4",
+      "text": "4. The system shows the \"Confirm tour purchase\" dialog (tour name, price, payment through VNPay)."
+    },
+    {
+      "id": "s5",
+      "text": "5. The Tourist taps \"Pay\"."
+    },
+    {
+      "id": "s6",
+      "text": "6. The system (Payment) checks the tour, price and purchase eligibility; creates a pending order (expires in 15 minutes) and returns a signed VNPay URL. E2, E3, E4.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. The tour is no longer public → 404 \"The tour is no longer available\"; the price has changed → 409 \"The tour price has changed, please check again\".",
+          "back": "s2"
+        },
+        {
+          "id": "E3",
+          "text": "E3. This tour is already bought → 409 \"You have already bought this tour\"; a pending order exists → its URL is returned again.",
+          "back": "end"
+        },
+        {
+          "id": "E4",
+          "text": "E4. The Tourist is the author → 403 \"You do not need to buy your own tour\".",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s7",
+      "text": "7. The client sends the Tourist to the VNPay page."
+    },
+    {
+      "id": "s8",
+      "text": "8. The Tourist pays on the VNPay page. A2, E5.",
+      "alts": [
+        "A2"
+      ],
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. Payment fails (card declined, insufficient balance, wrong OTP) → the order is failed, \"Payment unsuccessful\" with a \"Try again\" button.",
+          "back": "s3"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s9",
+      "text": "9. VNPay calls the IPN; the system checks the signature, order code and amount, marks the order paid and publishes payment.completed; Tour records the access. E6, E7.",
+      "exceptions": [
+        {
+          "id": "E6",
+          "text": "E6. Wrong signature → RspCode 97, the order is not changed; wrong amount → RspCode 04, the order is failed; unknown order code → RspCode 01.",
+          "back": "end"
+        },
+        {
+          "id": "E7",
+          "text": "E7. IPN resent for an order already paid → RspCode 02, no access is granted and no email is sent again.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s10",
+      "text": "10. The result page shows \"Payment successful. You can now listen to this tour.\" and a \"Start listening\" button. E8.",
+      "exceptions": [
+        {
+          "id": "E8",
+          "text": "E8. No IPN yet → \"Confirming payment…\", asks again every 3 seconds for 1 minute; on timeout → \"No confirmation received yet. The result will appear in Notifications.\"",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s11",
+      "text": "11. Notification stores an in-app notification and sends a receipt email."
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1. The tour is already bought, or the Tourist is the author / Admin: shows \"Purchased\" and the \"Start listening\" button, as for a free tour."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2.1. The Tourist cancels the transaction on VNPay.",
+        "A2.2. The order moves to cancelled; the result page shows \"You cancelled the payment.\" and a \"Try again\" button."
+      ],
+      "to": "s3"
+    }
+  ]
+}

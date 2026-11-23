@@ -1,0 +1,149 @@
+{
+  "uc": "UC15",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. In the Publish step, the Contributor views the checklist of submission conditions. A3.",
+      "alts": [
+        "A3"
+      ]
+    },
+    {
+      "id": "s2",
+      "text": "2. The Contributor taps \"Submit for review\" and confirms."
+    },
+    {
+      "id": "s3",
+      "text": "3. The system (Tour) checks the conditions: complete information, every place has a description, no place is under review or rejected by AI, at most 50 places. E1, E2, E3, E4.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Missing required conditions → 422 \"The tour does not meet the publishing conditions yet\" with the list of failed items and links to where to fix them.",
+          "back": "s2"
+        },
+        {
+          "id": "E2",
+          "text": "E2. Places still under review / rejected by AI, or more than 50 places → the matching checklist item fails.",
+          "back": "s2"
+        },
+        {
+          "id": "E3",
+          "text": "E3. The tour is in Restricted access mode (UC#14) or hidden by the Admin → 409.",
+          "back": "s2"
+        },
+        {
+          "id": "E4",
+          "text": "E4. Not the author → 403; the tour does not exist → 404.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s4",
+      "text": "4. The system moves the tour to \"AI review in progress\" and publishes the tour.submitted event (with the tour content) over RabbitMQ. E5.",
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. The event cannot be published (RabbitMQ error) → logged, the tour stays \"AI review in progress\"; the Contributor can submit again.",
+          "back": "s2"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s5",
+      "text": "5. The client polls the status every 5 seconds and shows \"AI review in progress\". E8.",
+      "exceptions": [
+        {
+          "id": "E8",
+          "text": "E8. The client status poll fails → \"Status could not be updated: …\" with a \"Retry\" button.",
+          "back": "s2"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. Moderation creates a moderation case and runs the location rules G1–G6."
+    },
+    {
+      "id": "s7",
+      "text": "7. Moderation calls the AI service (/moderate/tour, one LLM call for the whole tour); AI returns findings and their severity. E6, E7.",
+      "exceptions": [
+        {
+          "id": "E6",
+          "text": "E6. Temporary AI error (timeout, 429, 503) after 3 attempts, or 401 → no result is published; Moderation retries every 60 seconds.",
+          "back": "s2"
+        },
+        {
+          "id": "E7",
+          "text": "E7. AI returns 422 (invalid input) → a \"needs a human\" Warning for the Admin; if G1 already rejected, Reject wins.",
+          "back": "s2"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s8",
+      "text": "8. Moderation merges the AI result and the location rules (the worst result wins), then publishes tour.ai_passed or tour.ai_rejected. A1, A2.",
+      "alts": [
+        "A1",
+        "A2"
+      ]
+    },
+    {
+      "id": "s9",
+      "text": "9. Pass: Tour moves the tour to \"Pending review\" and into the Admin queue.",
+      "alts": [
+        "A4",
+        "A5",
+        "A6"
+      ]
+    }
+  ],
+  "alts": [
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Preview before submitting (UC#13)."
+      ],
+      "to": "s2"
+    },
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Warning (0.4 ≤ severity < 0.8, or rules G2–G6): the tour moves to \"AI Warning\" and to the top of the Admin queue with reasons."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Reject (severity ≥ 0.8, G1 invalid coordinate, or content blocked by the provider): the tour goes back to Draft with reasons; the author receives an in-app and email notification (UC#16), edits and resubmits."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. Edit the tour during review: the tour goes back to Draft; the AI result for the old version is ignored (revision check)."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A5",
+      "steps": [
+        "A5. Each place was already moderated separately on save (UC#10, place.submitted event, checking both text and up to 5 photos); the tour scan does not rescan the places."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A6",
+      "steps": [
+        "A6. Moderation turned off (MODERATION_EVENTS_ENABLED=false): the \"Publish\" button makes the tour public at once, without AI or Admin."
+      ],
+      "to": "end"
+    }
+  ]
+}

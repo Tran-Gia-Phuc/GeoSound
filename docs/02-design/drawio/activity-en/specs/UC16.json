@@ -1,0 +1,106 @@
+{
+  "uc": "UC16",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. A moderation event occurs (tour.ai_rejected, tour.approved, tour.rejected, tour.changes_requested, tour.hidden, tour.restored, tour.reported)."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system (Notification) first stores an in-app notification for the author, then sends an email (except tour.reported); the email comes from the event or is looked up in Auth by author ID."
+    },
+    {
+      "id": "s3",
+      "text": "3. When the app opens, when the tab is shown again and every 60 seconds, the system updates the unread count on the bell (above 99 shows \"99+\"). E2.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. No network → the bell keeps the last known count.",
+          "back": "s3"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s4",
+      "text": "4. The Contributor taps the bell."
+    },
+    {
+      "id": "s5",
+      "text": "5. The system opens the Notifications page: newest first, 20 items at a time, an \"Unread\" filter and a \"Show more\" button; each notification has a type label (Approved, AI changes needed, Rejected, Needs changes, Report, AI audio, System for account notifications; other types show \"Notification\"). E1, E4.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. No notifications yet → \"No notifications yet\" (Unread filter: \"No unread notifications\").",
+          "back": "s4"
+        },
+        {
+          "id": "E4",
+          "text": "E4. Invalid pagination parameters → 400 \"Invalid parameter\".",
+          "back": "s4"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. The Contributor picks a notification. A1.",
+      "alts": [
+        "A1"
+      ]
+    },
+    {
+      "id": "s7",
+      "text": "7. The system marks the notification as read and opens the matching tour in the Studio (or the Account page for account notifications, A3). E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. The notification does not exist or is not one's own → 404; the client ignores the error and still opens the target page.",
+          "back": "s8"
+        }
+      ],
+      "alts": [
+        "A3"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s8",
+      "text": "8. The Studio shows the tour's current status (9 statuses) with the reason and the tour's notification history. A2.",
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. No valid token → 401.",
+          "back": "end"
+        }
+      ],
+      "alts": [
+        "A2"
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Mark all as read: the Contributor taps \"Mark all as read\"; the bell count goes to 0 and \"Marked N notifications as read\" is shown."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Account notifications (warning, suspension, ban, restore – UC#21) open the Account page."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. The tour is rejected or needs changes: the Contributor edits the tour according to the reason (UC#09–UC#12) and resubmits (UC#15)."
+      ],
+      "to": "end"
+    }
+  ]
+}

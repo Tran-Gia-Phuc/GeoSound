@@ -1,0 +1,131 @@
+{
+  "uc": "UC07",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Tourist opens the Places tab on the Explore page. A1.",
+      "alts": [
+        "A1"
+      ]
+    },
+    {
+      "id": "s2",
+      "text": "2. The system shows the list of places that belong to public tours. E1.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. No places yet → empty list.",
+          "back": "s1"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. The Tourist opens a place's details."
+    },
+    {
+      "id": "s4",
+      "text": "4. The Tourist taps \"Add to itinerary\". E2.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. Not signed in → \"Sign in to save places…\" and go to Sign in (UC#01), then come back to continue adding.",
+          "back": "s4"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s5",
+      "text": "5. The system opens a picker with the Tourist's itineraries and a button to create a new one. E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Itinerary name empty or too long → \"Please name the itinerary\" / \"Itinerary name has at most 120 characters\".",
+          "back": "s4"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. The Tourist picks an itinerary or creates a new one (enters a name)."
+    },
+    {
+      "id": "s7",
+      "text": "7. The system adds the place at the end of the itinerary and stores a snapshot of the place's name and coordinates. E4.",
+      "exceptions": [
+        {
+          "id": "E4",
+          "text": "E4. The place no longer belongs to a public tour → 404 \"Place is not available to add to an itinerary\".",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s8",
+      "text": "8. The Tourist opens the itinerary to order it. A2.",
+      "alts": [
+        "A2"
+      ]
+    },
+    {
+      "id": "s9",
+      "text": "9. The system shows the map, the total distance, the estimated walking time and the distance of each leg."
+    },
+    {
+      "id": "s10",
+      "text": "10. The Tourist shares or starts following the itinerary (UC#08). A3, A4.",
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. The itinerary does not exist (404), belongs to someone else (403), the place is not in the itinerary (404) or the data is invalid (400) → an error is shown.",
+          "back": "end"
+        }
+      ],
+      "alts": [
+        "A3",
+        "A4"
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Find and filter places by keyword, city, place type."
+      ],
+      "to": "s2"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2.1. Reorder places with the up / down buttons; the distance is recomputed.",
+        "A2.2. Remove a place at once, with an \"Undo\" button.",
+        "A2.3. Rename the itinerary (in the editor or in \"My itineraries\").",
+        "A2.4. Delete the whole itinerary after confirming \"Delete itinerary\"; the share link stops working.",
+        "A2.5. \"Add places\": open Explore, tap ＋ to add directly to the itinerary, \"Done\" to go back."
+      ],
+      "to": "s9"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Download the itinerary offline: download a package with the itinerary's places (as in UC#03)."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4.1. Create the share link /shared/:token (the code is reused if it exists), Copy button.",
+        "A4.2. Revoke sharing: the old link stops working; sharing again creates a new code.",
+        "A4.3. The recipient opens the link to view it (no sign-in needed) and follows it (UC#08 A2)."
+      ],
+      "to": "end"
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "uc": "UC13",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. In the Publish step, the Contributor taps \"Preview as a tourist\". E1.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. The tour has no places → 422 \"Cannot preview yet: the tour needs at least one stop\" with an \"Add stop\" button; an unconfigured route / zone does not block (it is generated).",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s2",
+      "text": "2. The system (Tour) checks the author's rights and builds the data like the public page (places, photos, translations, route, effective zones). E2.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. Someone else's tour → 403; the tour does not exist → 404.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. The system opens the player in \"Preview — simulated walk\" mode, with the simulated position at the start of the route; no real GPS needed."
+    },
+    {
+      "id": "s4",
+      "text": "4. The Contributor starts the simulated walk (chooses a speed) or taps the map to move the position. A1.",
+      "alts": [
+        "A1"
+      ]
+    },
+    {
+      "id": "s5",
+      "text": "5. When the position enters a trigger zone, the system plays that place as in UC#04 (higher priority zone first; recorded audio or the device's voice), shows the text, photos, the \"next stop\" suggestion and direction audio. E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. The browser blocks sound or has no voice for the language → reports it and lets the user play again (as in UC#04).",
+          "back": "s4"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. The Contributor checks the content and changes the language if needed. A3.",
+      "alts": [
+        "A3"
+      ]
+    },
+    {
+      "id": "s7",
+      "text": "7. The Contributor taps \"Back to the Publish step\" or \"Back to the editor\". A2.",
+      "alts": [
+        "A2"
+      ]
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Preview place by place: pick a place in the list to listen, without using the position."
+      ],
+      "to": "s6"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Change the listening language: the system reloads the preview in another language."
+      ],
+      "to": "s6"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. An error is found → fix it at once: the edit button on a place opens UC#10; the route / zone is fixed in UC#11; translations are fixed in UC#12."
+      ],
+      "to": "end"
+    }
+  ]
+}

@@ -1,0 +1,125 @@
+{
+  "uc": "UC21",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Admin opens the \"Accounts\" page, searches by email or name, filters by role and status."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system returns the account list (20 items per page). E2.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. No valid token → 401; not an Admin → 403; invalid parameters → 400.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. The Admin picks an account."
+    },
+    {
+      "id": "s4",
+      "text": "4. The system shows the account information and the number of signed-in sessions (Auth) with the violation history (Tour): tour count by status, hidden / rejected tours with reasons, reports received, the 20 latest actions. E1.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. The account does not exist → 404 \"Account not found\".",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s5",
+      "text": "5. The Admin chooses \"Warn\", \"Suspend\" (1 / 7 / 30 days or an end date, up to 365 days) or \"Ban\", enters a reason (1–1000 characters) and confirms. A1, A2, E6.",
+      "exceptions": [
+        {
+          "id": "E6",
+          "text": "E6. Missing reason or invalid period → 422.",
+          "back": "s5"
+        }
+      ],
+      "alts": [
+        "A1",
+        "A2"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. The system (Auth) checks the target account is not oneself, not an Admin and not already banned; it updates the status with a conditional statement. E3, E4, E5.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Acting on oneself → 403 \"You cannot act on your own account\"; the target account is an Admin → 403.",
+          "back": "end"
+        },
+        {
+          "id": "E4",
+          "text": "E4. The account is already banned (when banning / suspending) or not restricted (when restoring) → 409.",
+          "back": "end"
+        },
+        {
+          "id": "E5",
+          "text": "E5. The status was just changed by another Admin → 409 \"The account status has just changed, please reload\".",
+          "back": "s5"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s7",
+      "text": "7. For suspension / ban, the system revokes every sign-in session of the account (effective at once, UC#23). E7.",
+      "exceptions": [
+        {
+          "id": "E7",
+          "text": "E7. A failed device sign-out or event publish is only logged.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s8",
+      "text": "8. The system publishes account.moderated; Notification creates an in-app notification, then sends an email; Tour writes the action log. E8.",
+      "exceptions": [
+        {
+          "id": "E8",
+          "text": "E8. No email → the email is skipped, the in-app notification is still stored.",
+          "back": "end"
+        }
+      ],
+      "alts": [
+        "A3"
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Restore: the Admin chooses \"Restore\" for a suspended or banned account (reason optional); the account returns to Active. E4."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Suspend again (the new period replaces the old one) or ban a suspended account."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. The suspension period ends: the account is treated as Active on its own, with no Admin action needed."
+      ],
+      "to": "end"
+    }
+  ]
+}

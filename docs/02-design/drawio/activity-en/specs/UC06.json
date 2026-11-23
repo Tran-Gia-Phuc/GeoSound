@@ -1,0 +1,80 @@
+{
+  "uc": "UC06",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Tourist opens a public tour's details and chooses \"Report\"."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system checks whether the Tourist has already reported this tour and shows a form with the reasons: False information, Offensive, Spam, Copyright violation, Other. A1.",
+      "alts": [
+        "A1"
+      ]
+    },
+    {
+      "id": "s3",
+      "text": "3. The Tourist picks a reason, enters a note (required for \"Other\", up to 500 characters) and taps \"Send report\". E1, E2.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Not signed in → 401 \"You need to sign in to report this tour.\"",
+          "back": "s3"
+        },
+        {
+          "id": "E2",
+          "text": "E2. No reason chosen → \"Please choose a report reason\"; \"Other\" without a note → \"Please describe the reason\".",
+          "back": "s3"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s4",
+      "text": "4. The system (Tour) checks that the tour is public, the Tourist is not the author and has never reported this tour. E3, E4, E5.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. The Tourist is the author → the client hides the \"Report\" button; calling the API directly → 403 \"You cannot report your own tour\".",
+          "back": "end"
+        },
+        {
+          "id": "E4",
+          "text": "E4. The tour is not public or does not exist → 404.",
+          "back": "end"
+        },
+        {
+          "id": "E5",
+          "text": "E5. This tour was already reported (for example sent from two tabs) → 409, the client shows the \"already reported\" state.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s5",
+      "text": "5. The system saves the report and increases the tour's open report count; when 5 different accounts reach it within 7 days, the tour is flagged for the Admin."
+    },
+    {
+      "id": "s6",
+      "text": "6. The system publishes the tour.reported event (without the reporter's identity); Notification creates an in-app notification for the author (no email). E6.",
+      "exceptions": [
+        {
+          "id": "E6",
+          "text": "E6. No network → \"Cannot connect, please try again\"; a failed event publish is only logged, the report is still saved.",
+          "back": "s3"
+        }
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1. The Tourist has already reported this tour: the system shows \"You have already reported this tour\" instead of the form."
+      ],
+      "to": "end"
+    }
+  ]
+}

@@ -1,0 +1,172 @@
+{
+  "uc": "UC04",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Tourist taps \"Start the tour\"."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system loads the tour details for the language; a route or zone that is not configured is generated. E4.",
+      "exceptions": [
+        {
+          "id": "E4",
+          "text": "E4. The tour cannot be loaded → an error message and a retry button.",
+          "back": "s1"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. The system asks for location permission and shows the map with the current position, the places and the route. E1, E2.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. No location permission → \"No location permission yet…\", suggests enabling the permission or switching to remote listening.",
+          "back": "s1"
+        },
+        {
+          "id": "E2",
+          "text": "E2. Weak GPS (accuracy > 50 m or no new position for 12 seconds) → weak signal warning; places can still be picked manually.",
+          "back": "s1"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s4",
+      "text": "4. The Tourist moves."
+    },
+    {
+      "id": "s5",
+      "text": "5. The system compares the position with the trigger zones on the device itself (no server call while moving)."
+    },
+    {
+      "id": "s6",
+      "text": "6. The Tourist enters the trigger zone of a place."
+    },
+    {
+      "id": "s7",
+      "text": "7. The system plays the place's recorded audio automatically; if there is none, it reads the description with the device's voice; it records a listen (UC#17). A1, A2, E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Broken audio file → read the description with the device's voice; if that fails, show only the text.",
+          "back": "s8"
+        }
+      ],
+      "alts": [
+        "A1",
+        "A2"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s8",
+      "text": "8. The system shows the place info panel: text and photos."
+    },
+    {
+      "id": "s9",
+      "text": "9. The Tourist enters a direction audio zone."
+    },
+    {
+      "id": "s10",
+      "text": "10. The system plays the directions when no place audio is playing."
+    },
+    {
+      "id": "s11",
+      "text": "11. The system shows the \"Next stop\" suggestion for the next place."
+    },
+    {
+      "id": "s12",
+      "text": "12. The Tourist uses the controls: play / pause, seek ±15 seconds, previous / next place, change language. A3.",
+      "alts": [
+        "A3"
+      ]
+    },
+    {
+      "id": "s13",
+      "text": "13. The Tourist reaches the last place. A4.",
+      "alts": [
+        "A4"
+      ]
+    },
+    {
+      "id": "s14",
+      "text": "14. The system records a completion and shows the end dialog with a \"Rate the tour\" button (UC#05).",
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. Automatic translation fails: too many requests (429), AI unavailable (503) or the author has turned off automatic translation (403) → keep the current language.",
+          "back": "end"
+        },
+        {
+          "id": "E6",
+          "text": "E6. The device has no voice for the language → reports the missing voice and still shows the text.",
+          "back": "s13"
+        }
+      ],
+      "alts": [
+        "A5",
+        "A6",
+        "A7"
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Several zones overlap: the system plays the place with the highest priority."
+      ],
+      "to": "s8"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Entering another place's zone while audio is playing: a new place with higher priority interrupts and plays at once; with lower or equal priority it waits until the current audio ends."
+      ],
+      "to": "s8"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Pick a place manually: tap a place in the list to listen at once."
+      ],
+      "to": "s8"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. Progress is saved on the device (localStorage): reopening the tour shows \"You have listened to x/n places\" and lets the Tourist continue."
+      ],
+      "to": "s13"
+    },
+    {
+      "id": "A5",
+      "steps": [
+        "A5.1. The Tourist chooses the \"Listen remotely\" mode.",
+        "A5.2. The system stops GPS tracking and shows the place list.",
+        "A5.3. The Tourist picks the place to listen to.",
+        "A5.4. The system plays the place's audio as in steps 7 – 8."
+      ],
+      "to": "s7"
+    },
+    {
+      "id": "A6",
+      "steps": [
+        "A6. Report a violating tour right from the player (UC#06)."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A7",
+      "steps": [
+        "A7. Request automatic translation into a language the author has not enabled (if the author allows it): the system translates with AI once, stores it and adds the \"Automatic translation\" label with a \"View original\" button. E5."
+      ],
+      "to": "end"
+    }
+  ]
+}

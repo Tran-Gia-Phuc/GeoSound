@@ -1,0 +1,105 @@
+{
+  "uc": "UC18",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Tourist picks the author name on the tour details (UC#02)."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system (Auth) returns the author's public profile and (Tour) the list of the author's latest public tours. E1, E2.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. The author has no public tours → empty tour list.",
+          "back": "s1"
+        },
+        {
+          "id": "E2",
+          "text": "E2. Not a Contributor, banned or suspended → 404 \"Author not found\".",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. The system shows the avatar (or initials when there is no photo), name, bio, join date, follower count and tours. A5.",
+      "alts": [
+        "A5"
+      ]
+    },
+    {
+      "id": "s4",
+      "text": "4. The Tourist taps \"Follow\". A2, A3.",
+      "alts": [
+        "A2",
+        "A3"
+      ]
+    },
+    {
+      "id": "s5",
+      "text": "5. The system updates the button on the screen at once, saves the follow relation and returns the new follower count. E4, E5.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Invalid profile → 400; the account does not exist → 404.",
+          "back": "end"
+        },
+        {
+          "id": "E4",
+          "text": "E4. Following oneself → 400; not signed in → 401.",
+          "back": "s4"
+        },
+        {
+          "id": "E5",
+          "text": "E5. No network → the follow button is reverted and a connection error is shown.",
+          "back": "s4"
+        }
+      ],
+      "alts": [
+        "A1",
+        "A4"
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A5",
+      "steps": [
+        "A5. The author views their own page: an \"Edit profile\" link is shown instead of the follow button."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Unfollow: the Tourist taps \"Following\"; the system deletes the follow relation."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. A visitor who is not signed in taps \"Follow\" → goes to the Sign in page."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A1",
+      "steps": [
+        "A1.1. The Contributor opens Account → \"Profile\", edits the full name (1–120 characters), bio (up to 500 characters) and uploads an avatar.",
+        "A1.2. The system uploads the image to Media, saves the profile and reports success. Users who are not Contributors can also edit their profile. E3."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. Following list: Account → \"Following\" (20 items per page)."
+      ],
+      "to": "end"
+    }
+  ]
+}
