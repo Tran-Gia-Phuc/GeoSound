@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram name="DFD level 1" id="dfd-0">
+    <mxGraphModel dx="2400" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="30" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=28;fontStyle=1;" value="DFD level 1 (human actors only) – GeoSound" vertex="1">
+          <mxGeometry x="-60" y="-130" width="900" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="2" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;1.0&lt;/b&gt;&lt;br&gt;Accounts &amp; sign-in sessions (UC01, UC18, UC23)" vertex="1">
+          <mxGeometry x="700" y="990" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="3" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;2.0&lt;/b&gt;&lt;br&gt;Find, view, listen &amp; download tours (UC02–UC04)" vertex="1">
+          <mxGeometry x="700" y="330" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="4" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;3.0&lt;/b&gt;&lt;br&gt;Personal itineraries (UC07, UC08)" vertex="1">
+          <mxGeometry x="700" y="0" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="5" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;7.0&lt;/b&gt;&lt;br&gt;Ratings, reports &amp; statistics (UC05, UC06, UC17)" vertex="1">
+          <mxGeometry x="700" y="660" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="6" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;4.0&lt;/b&gt;&lt;br&gt;Tour content management (UC09–UC14)" vertex="1">
+          <mxGeometry x="1400" y="0" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="7" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;5.0&lt;/b&gt;&lt;br&gt;Automatic AI moderation (UC15)" vertex="1">
+          <mxGeometry x="1400" y="330" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="8" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;6.0&lt;/b&gt;&lt;br&gt;Tour review, violations &amp; monitoring (UC19–UC22)" vertex="1">
+          <mxGeometry x="1400" y="990" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="9" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;8.0&lt;/b&gt;&lt;br&gt;Notifications (UC16)" vertex="1">
+          <mxGeometry x="1400" y="660" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="10" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;9.0&lt;/b&gt;&lt;br&gt;AI travel assistant (UC24)" vertex="1">
+          <mxGeometry x="1400" y="1320" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="11" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D1&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Accounts, sessions, author follows&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;app_auth.users, app_auth.sessions, app_auth.author_follows&lt;/font&gt;" vertex="1">
+          <mxGeometry x="300" y="1010" width="280" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="12" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D2&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;OTP &amp; revoked sessions (Redis, not a table)" vertex="1">
+          <mxGeometry x="1010" y="1010" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="13" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D12&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Offline packages on the device (IndexedDB, not a table)" vertex="1">
+          <mxGeometry x="300" y="240" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="14" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D3&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Tours &amp; tour content&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;tour.tours, tour.places, tour.route_configs, tour.tour_languages, tour.place_translations, tour.forbidden_zones, tour.tour_access_grants, tour.tour_unlock_attempts&lt;/font&gt;" vertex="1">
+          <mxGeometry x="1010" y="430" width="280" height="106" as="geometry" />
+        </mxCell>
+        <mxCell id="15" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D4&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Media files (images, audio – file storage)&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;media.audio_assets (not used)&lt;/font&gt;" vertex="1">
+          <mxGeometry x="1010" y="250" width="280" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="16" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D5&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Itineraries&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;tour.itineraries, tour.itinerary_items&lt;/font&gt;" vertex="1">
+          <mxGeometry x="300" y="50" width="280" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="17" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D6&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Ratings, reports, statistics&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;tour.tour_ratings, tour.tour_rating_reports, tour.tour_reports, tour.tour_daily_stats, tour.tour_activity_marks&lt;/font&gt;" vertex="1">
+          <mxGeometry x="300" y="720" width="280" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="18" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D7&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Admin log&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;tour.admin_actions, tour.tour_review_actions&lt;/font&gt;" vertex="1">
+          <mxGeometry x="1010" y="1130" width="280" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="19" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D8&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Moderation cases&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;moderation.moderation_cases&lt;/font&gt;" vertex="1">
+          <mxGeometry x="1720" y="550" width="280" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="20" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D9&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Notifications&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;notification.in_app_notifications, notification.pending_emails, notification.notifications (not used)&lt;/font&gt;" vertex="1">
+          <mxGeometry x="1720" y="680" width="280" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="21" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D10&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Chatbot knowledge index&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;ai.index_meta, ai.tour_index, ai.nodes, ai.edges, ai.chunks&lt;/font&gt;" vertex="1">
+          <mxGeometry x="1010" y="1320" width="280" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="22" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=8;" value="&lt;b&gt;D11&lt;/b&gt;&amp;nbsp;&amp;nbsp;│&amp;nbsp;&amp;nbsp;Chatbot conversations&lt;br&gt;&lt;font style=&quot;font-size: 10px; color: #555555;&quot;&gt;ai_chat.chat_sessions, ai_chat.chat_messages, ai_chat.checkpoints, ai_chat.checkpoint_blobs, ai_chat.checkpoint_writes, ai_chat.checkpoint_migrations&lt;/font&gt;" vertex="1">
+          <mxGeometry x="1720" y="1390" width="280" height="106" as="geometry" />
+        </mxCell>
+        <mxCell id="23" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="User (Tourist / Contributor / Admin)" vertex="1">
+          <mxGeometry x="-60" y="1100" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="24" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Tourist" vertex="1">
+          <mxGeometry x="-60" y="280" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="25" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Contributor" vertex="1">
+          <mxGeometry x="2120" y="-40" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="26" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Admin" vertex="1">
+          <mxGeometry x="2120" y="1280" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="27" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Tourist *" vertex="1">
+          <mxGeometry x="1385" y="1560" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="28" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Contributor *" vertex="1">
+          <mxGeometry x="-60" y="610" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="29" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="User (notification recipient) *" vertex="1">
+          <mxGeometry x="2120" y="890" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="31" edge="1" parent="1" source="23" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Sign-up, sign-in, OTP,&lt;br&gt;profile, follow authors">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="412" y="1150" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="32" edge="1" parent="1" source="2" target="23" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Token, device list,&lt;br&gt;author page">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="403" y="1060" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="33" edge="1" parent="1" source="2" target="11" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Accounts, sessions">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="613" y="1015" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="34" edge="1" parent="1" source="11" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Account data">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="607" y="1104" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="35" edge="1" parent="1" source="2" target="12" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="OTP, revoked sessions">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="969" y="1097" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="36" edge="1" parent="1" source="12" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="OTP to verify">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="961" y="1008" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="37" edge="1" parent="1" source="2" target="9" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="New-device sign-in,&lt;br&gt;account actions, recipient email">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="38" edge="1" parent="1" source="8" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Warn / suspend / ban command">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1130" y="1025" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="39" edge="1" parent="1" source="2" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Account list,&lt;br&gt;account action events">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1130" y="1115" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="40" edge="1" parent="1" source="24" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Keywords, filters, tour choice,&lt;br&gt;GPS position, access code">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="402" y="410" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="41" edge="1" parent="1" source="3" target="24" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour list, map, tour details,&lt;br&gt;narration, audio">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="413" y="320" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="42" edge="1" parent="1" source="14" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Public tours, places,&lt;br&gt;routes, translations">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="43" edge="1" parent="1" source="15" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Images, audio">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="44" edge="1" parent="1" source="3" target="13" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour package">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="628" y="296" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="45" edge="1" parent="1" source="13" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Downloaded tours">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="592" y="379" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="46" edge="1" parent="1" source="3" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Views / listens /&lt;br&gt;completions / downloads">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="47" edge="1" parent="1" source="3" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="New-language translation request">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="960" y="230" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="48" edge="1" parent="1" source="24" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Create, edit, share itineraries">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="421" y="243" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="49" edge="1" parent="1" source="4" target="24" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Itineraries, distance,&lt;br&gt;share link">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="394" y="157" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="50" edge="1" parent="1" source="4" target="16" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Itineraries, places (snapshot)">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="610" y="36" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="51" edge="1" parent="1" source="16" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Itineraries">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="610" y="126" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="52" edge="1" parent="1" source="14" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Places of public tours">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="53" edge="1" parent="1" source="4" target="13" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Itinerary package">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="54" edge="1" parent="1" source="25" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tours, places, images, audio, route,&lt;br&gt;languages, passcode, submit for review">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1843" y="-5" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="55" edge="1" parent="1" source="6" target="25" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour status,&lt;br&gt;checklist, preview">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1852" y="85" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="56" edge="1" parent="1" source="6" target="14" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour content">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1280" y="253" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="57" edge="1" parent="1" source="14" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tours, forbidden zones">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1350" y="310" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="58" edge="1" parent="1" source="6" target="15" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Image, audio files">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="59" edge="1" parent="1" source="6" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Content submitted for moderation">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1435" y="245" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="60" edge="1" parent="1" source="7" target="6" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Moderation result">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1525" y="245" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="61" edge="1" parent="1" source="15" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Stop images">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="62" edge="1" parent="1" source="7" target="19" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Moderation case">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1651" y="537" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="63" edge="1" parent="1" source="19" target="7" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Cases to retry">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1689" y="455" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="64" edge="1" parent="1" source="7" target="9" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tours rejected by AI">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="65" edge="1" parent="1" source="26" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Approve / reject / request changes,&lt;br&gt;handle tour &amp; rating reports, account actions">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1862" y="1152" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="66" edge="1" parent="1" source="8" target="26" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Queue, report files,&lt;br&gt;dashboard, log">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1833" y="1238" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="67" edge="1" parent="1" source="8" target="14" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour status, average rating">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1354" y="754" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="68" edge="1" parent="1" source="14" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tours to review / reported">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1276" y="799" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="69" edge="1" parent="1" source="8" target="18" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Admin action">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1303" y="1073" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="70" edge="1" parent="1" source="18" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Log">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1327" y="1159" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="71" edge="1" parent="1" source="17" target="8" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Reports, statistics">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="947" y="958" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="72" edge="1" parent="1" source="8" target="17" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Hide rating, report status">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="973" y="871" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="73" edge="1" parent="1" source="8" target="9" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Review decision, hide tour">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="74" edge="1" parent="1" source="8" target="10" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tour approved / hidden">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="75" edge="1" parent="1" source="6" target="10" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Tour published / unpublished">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1640" y="80" /><mxPoint x="1640" y="1400" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="76" edge="1" parent="1" source="24" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Ratings (post / edit / delete),&lt;br&gt;reports on tours &amp; ratings">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="385" y="569" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="77" edge="1" parent="1" source="5" target="24" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour ratings,&lt;br&gt;my ratings">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="430" y="491" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="78" edge="1" parent="1" source="5" target="17" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Ratings, reports, counts">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="607" y="705" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="79" edge="1" parent="1" source="17" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Figures">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="613" y="794" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="80" edge="1" parent="1" source="5" target="14" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Average rating, report flag">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="81" edge="1" parent="1" source="5" target="28" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour statistics">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="413" y="650" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="82" edge="1" parent="1" source="28" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Rating dispute">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="402" y="740" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="83" edge="1" parent="1" source="5" target="9" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" value="Reported tour">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="84" edge="1" parent="1" source="9" target="20" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Notifications">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1672" y="774" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="85" edge="1" parent="1" source="20" target="9" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Unread notifications">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1668" y="685" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="86" edge="1" parent="1" source="27" target="10" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Question, position">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1525" y="1500" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="87" edge="1" parent="1" source="10" target="27" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Answer + sources">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1435" y="1500" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="88" edge="1" parent="1" source="10" target="21" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour index">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1321" y="1335" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="89" edge="1" parent="1" source="21" target="10" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Relevant passages">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1309" y="1424" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="90" edge="1" parent="1" source="10" target="22" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Messages, citations">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1665" y="1466" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="91" edge="1" parent="1" source="22" target="10" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Conversation history">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1675" y="1377" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="92" edge="1" parent="1" source="9" target="29" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="In-app notifications, unread count">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1836" y="879" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="93" edge="1" parent="1" source="29" target="9" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Open, mark as read">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="1859" y="791" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="94" edge="1" parent="1" source="28" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour choice, time period">
+          <mxGeometry x="-0.35" relative="1" as="geometry">
+            <Array as="points"><mxPoint x="402" y="740" /></Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

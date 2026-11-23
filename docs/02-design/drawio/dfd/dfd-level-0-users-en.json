@@ -1,0 +1,73 @@
+{
+  "pages": [
+    {
+      "name": "DFD level 0",
+      "title": "DFD level 0 (context diagram, human actors only) – GeoSound",
+      "nodes": [
+        {
+          "id": "SYS",
+          "kind": "process",
+          "label": "0 | GeoSound system (travel audio guide)",
+          "x": 820,
+          "y": 420,
+          "w": 260,
+          "h": 260
+        },
+        {
+          "id": "TOURIST",
+          "kind": "entity",
+          "label": "Tourist",
+          "x": 120,
+          "y": 160
+        },
+        {
+          "id": "CONTRIB",
+          "kind": "entity",
+          "label": "Contributor",
+          "x": 120,
+          "y": 860
+        },
+        {
+          "id": "ADMIN",
+          "kind": "entity",
+          "label": "Admin",
+          "x": 1590,
+          "y": 510
+        }
+      ],
+      "flows": [
+        {
+          "from": "TOURIST",
+          "to": "SYS",
+          "label": "Sign-up / sign-in, OTP<br>Keywords, filters, tour choice, GPS position, access code<br>Request to translate into a new language<br>Itineraries, ratings (post / edit / delete), reports on tours & ratings<br>Questions for the AI assistant<br>Open notifications, mark as read"
+        },
+        {
+          "from": "SYS",
+          "to": "TOURIST",
+          "label": "Tour list, map, tour details, narration, audio<br>Offline tour / itinerary packages<br>My ratings<br>AI answers with sources<br>Notifications, device list"
+        },
+        {
+          "from": "CONTRIB",
+          "to": "SYS",
+          "label": "Tours, stops, images, audio<br>Route, trigger zones, languages, auto-translate switch, passcode<br>Submit for review<br>Tour and statistics period; rating disputes; read notifications"
+        },
+        {
+          "from": "SYS",
+          "to": "CONTRIB",
+          "label": "Tour status, moderation result<br>Preview, statistics, ratings<br>In-app notifications"
+        },
+        {
+          "from": "ADMIN",
+          "to": "SYS",
+          "label": "Approve / reject / request changes<br>Handle tour & rating reports, warn / suspend / ban accounts<br>Dashboard period, log filters"
+        },
+        {
+          "from": "SYS",
+          "to": "ADMIN",
+          "label": "Review queue, tour & rating report files<br>Dashboard, log, online devices"
+        }
+      ]
+    }
+  ],
+  "unusedLabel": "not used"
+}
