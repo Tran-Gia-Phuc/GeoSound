@@ -7,7 +7,7 @@ global:
   image:
     # Written on branch staging by the CI job promote after every build (task 3.2). Do not edit it
     # on develop: the develop -> staging pull request would then conflict with the bot commits.
-    tag: sha-50a0230
+    tag: sha-35579e0
 
 # Staging may run without a mail server: OTP codes then go to the pod log (test accounts only).
 # Without the MoMo keys (geosound-payment, UC25) Tour starts and a purchase answers 503.
