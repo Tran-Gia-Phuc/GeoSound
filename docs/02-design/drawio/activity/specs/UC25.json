@@ -3,84 +3,191 @@
   "steps": [
     {
       "id": "s1",
-      "text": "1. Tourist mở chi tiết một tour công khai có giá. A1.",
-      "alts": ["A1"]
+      "text": "1. Tác giả mở bước “Xuất bản” trong Studio, khung “Giá tải về offline”, nhập giá và nhấn “Lưu giá”. E1.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Giá không hợp lệ (âm, lẻ, dưới 1 000 hoặc trên 50 000 000) → 400; không phải tác giả → 403.",
+          "back": "s1"
+        }
+      ],
+      "decision": true,
+      "alts": [
+        "A8"
+      ]
     },
     {
       "id": "s2",
-      "text": "2. Hệ thống hiển thị giá, phần nghe thử điểm đầu tiên và nút “Mua tour”."
+      "text": "2. Hệ thống (Tour) chỉ ghi giá, không đổi trạng thái tour, không gửi kiểm duyệt lại; trả giá, số lượt bán và doanh thu."
     },
     {
       "id": "s3",
-      "text": "3. Tourist nhấn “Mua tour”. E1.",
-      "exceptions": [
-        { "id": "E1", "text": "E1. Chưa đăng nhập → “Bạn cần đăng nhập để mua tour.” và nút “Đăng nhập” (UC#01); API trả 401.", "back": "end" }
-      ],
-      "decision": true
+      "text": "3. Khách mở chi tiết một tour công khai có giá."
     },
     {
       "id": "s4",
-      "text": "4. Hệ thống hiện hộp thoại “Xác nhận mua tour” (tên tour, giá, thanh toán qua VNPay)."
+      "text": "4. Hệ thống thay mục tải về bằng khung “Mua tour để tải về” (giá, “Nghe trực tuyến vẫn miễn phí”) và kiểm tra khách đã mua chưa. A1, A2, A3.",
+      "decision": true,
+      "alts": [
+        "A1",
+        "A2",
+        "A3"
+      ]
     },
     {
       "id": "s5",
-      "text": "5. Tourist nhấn “Thanh toán”."
+      "text": "5. Khách nhấn “Mua với MoMo”."
     },
     {
       "id": "s6",
-      "text": "6. Hệ thống (Payment) kiểm tra tour, giá, quyền mua; tạo đơn pending (hết hạn 15 phút) và trả URL VNPay đã ký. E2, E3, E4.",
+      "text": "6. Hệ thống tạo đơn “Đang chờ” (số tiền = giá hiện tại), gọi MoMo tạo thanh toán có chữ ký HMAC SHA256 và trả đường dẫn thanh toán. E2, E3, E4.",
       "exceptions": [
-        { "id": "E2", "text": "E2. Tour không còn công khai → 404 “Tour không còn khả dụng”; giá đã đổi → 409 “Giá tour đã thay đổi, vui lòng xem lại”.", "back": "s2" },
-        { "id": "E3", "text": "E3. Đã mua tour này → 409 “Bạn đã mua tour này”; đang có đơn pending → trả lại URL của đơn đó.", "back": "end" },
-        { "id": "E4", "text": "E4. Tourist là tác giả → 403 “Bạn không cần mua tour của chính mình”.", "back": "end" }
+        {
+          "id": "E2",
+          "text": "E2. Tour miễn phí → 400; tác giả tự mua tour của mình → 400; tour không còn công khai → 404.",
+          "back": "end"
+        },
+        {
+          "id": "E3",
+          "text": "E3. Đã mua rồi → 409; client tải lại trạng thái và hiện mục tải về.",
+          "back": "s4"
+        },
+        {
+          "id": "E4",
+          "text": "E4. Chưa cấu hình khóa MoMo, hoặc MoMo từ chối / không phản hồi → 503 “Thanh toán MoMo đang tạm thời không khả dụng”; đơn thành “Thất bại”.",
+          "back": "end"
+        }
       ],
       "decision": true
     },
     {
       "id": "s7",
-      "text": "7. Client chuyển Tourist sang trang VNPay."
+      "text": "7. Trình duyệt chuyển sang trang thanh toán của MoMo."
     },
     {
       "id": "s8",
-      "text": "8. Tourist thanh toán trên trang VNPay. A2, E5.",
-      "alts": ["A2"],
-      "exceptions": [
-        { "id": "E5", "text": "E5. Thanh toán thất bại (thẻ bị từ chối, không đủ số dư, sai OTP) → đơn failed, “Thanh toán không thành công” kèm nút “Thử lại”.", "back": "s3" }
-      ],
-      "decision": true
+      "text": "8. Khách thanh toán trên trang MoMo (ví, ATM hoặc thẻ test của sandbox). A4.",
+      "decision": true,
+      "alts": [
+        "A4"
+      ]
     },
     {
       "id": "s9",
-      "text": "9. VNPay gọi IPN; hệ thống kiểm tra chữ ký, mã đơn, số tiền, đánh dấu đơn paid và phát payment.completed; Tour ghi quyền truy cập. E6, E7.",
+      "text": "9. MoMo gửi IPN tới Tour; hệ thống kiểm chữ ký và số tiền rồi đặt đơn “Đã thanh toán”. E5.",
       "exceptions": [
-        { "id": "E6", "text": "E6. Sai chữ ký → RspCode 97, không đổi đơn; sai số tiền → RspCode 04, đơn failed; mã đơn không tồn tại → RspCode 01.", "back": "end" },
-        { "id": "E7", "text": "E7. IPN gửi lại cho đơn đã paid → RspCode 02, không cấp quyền hay gửi email lần nữa.", "back": "end" }
+        {
+          "id": "E5",
+          "text": "E5. IPN sai chữ ký, sai partnerCode hoặc sai số tiền → 400, đơn không đổi; đơn không tồn tại → 404.",
+          "back": "s10"
+        }
       ],
       "decision": true
     },
     {
       "id": "s10",
-      "text": "10. Trang kết quả hiện “Thanh toán thành công. Bạn đã có thể nghe tour này.” và nút “Bắt đầu nghe”. E8.",
-      "exceptions": [
-        { "id": "E8", "text": "E8. Chưa có IPN → “Đang xác nhận thanh toán…”, hỏi lại mỗi 3 giây trong 1 phút; quá hạn → “Chưa nhận được xác nhận. Kết quả sẽ có trong Thông báo.”", "back": "end" }
-      ],
-      "decision": true
+      "text": "10. MoMo đưa khách về trang kết quả; trang hỏi trạng thái đơn mỗi 2 giây (tối đa 1 phút), Tour tự hỏi MoMo khi đơn còn chờ. A5.",
+      "decision": true,
+      "alts": [
+        "A5"
+      ]
     },
     {
       "id": "s11",
-      "text": "11. Notification lưu thông báo trong app và gửi email biên nhận."
+      "text": "11. Hệ thống hiển thị “Thanh toán thành công” và nút “Về trang tour để tải”."
+    },
+    {
+      "id": "s12",
+      "text": "12. Khách về trang tour và tải như UC#03."
+    },
+    {
+      "id": "s13",
+      "text": "13. Hệ thống kiểm quyền tải (tác giả hoặc có đơn đã thanh toán) rồi trả gói offline. E6. A6, A7, A9.",
+      "exceptions": [
+        {
+          "id": "E6",
+          "text": "E6. Tải gói tour có phí khi chưa đăng nhập → 401; đã đăng nhập nhưng chưa mua → 402.",
+          "back": "s4"
+        },
+        {
+          "id": "E7",
+          "text": "E7. Xem lịch sử khi chưa đăng nhập → 401; trang giao dịch quản trị với tài khoản không phải admin → 403; bộ lọc sai → 400.",
+          "back": "end"
+        }
+      ],
+      "decision": true,
+      "alts": [
+        "A6",
+        "A7",
+        "A9"
+      ]
     }
   ],
   "alts": [
     {
       "id": "A1",
-      "steps": ["A1. Tour đã mua, hoặc Tourist là tác giả / Admin: hiện “Đã mua” và nút “Bắt đầu nghe” như tour miễn phí."],
-      "to": "end"
+      "steps": [
+        "A1. Tour miễn phí (giá 0): không có khung mua, mục “Tải về để nghe offline” như UC#03."
+      ],
+      "to": "s12"
     },
     {
       "id": "A2",
-      "steps": ["A2.1. Tourist hủy giao dịch trên VNPay.", "A2.2. Đơn chuyển cancelled; trang kết quả hiện “Bạn đã hủy thanh toán.” và nút “Thử lại”."],
-      "to": "s3"
+      "steps": [
+        "A2. Chưa đăng nhập: khung hiện giá và nút “Đăng nhập để mua”; đăng nhập xong khách quay lại trang tour."
+      ],
+      "to": "s4"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Tác giả hoặc khách đã mua: hiện “Tour của bạn” / “Bạn đã mua tour này” và mục tải về bình thường."
+      ],
+      "to": "s12"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. Thanh toán thất bại hoặc khách huỷ: đơn thành “Thất bại”, trang kết quả báo chưa thành công và nút “Quay lại tour”; khách có thể mua lại."
+      ],
+      "to": "s4"
+    },
+    {
+      "id": "A5",
+      "steps": [
+        "A5. MoMo chưa xác nhận sau 1 phút: trang báo “MoMo chưa xác nhận thanh toán” với nút “Kiểm tra lại”."
+      ],
+      "to": "s10"
+    },
+    {
+      "id": "A6",
+      "steps": [
+        "A6. Lịch trình có điểm thuộc tour có phí chưa mua: tải gói lịch trình bị từ chối 402 cho tới khi mua các tour đó."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A7",
+      "steps": [
+        "A7.1. Khách mở Tài khoản → “Lịch sử giao dịch”.",
+        "A7.2. Hệ thống liệt kê mọi đơn của tài khoản (tối đa 50, mới nhất trước): tour, số tiền, trạng thái, thời gian, mã đơn, mã MoMo; đơn đang chờ có nút “Kiểm tra lại”. E7."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A8",
+      "steps": [
+        "A8. Tour đã có lượt bán: khung giá hiện danh sách “Đơn đã bán” (người mua rút gọn 6 ký tự, ngày, số tiền)."
+      ],
+      "to": "s2"
+    },
+    {
+      "id": "A9",
+      "steps": [
+        "A9.1. Admin mở khu quản trị → “Giao dịch”.",
+        "A9.2. Hệ thống hiện tổng đã thu và số đơn thành công, danh sách mọi đơn (lọc theo trạng thái, 20 đơn mỗi trang), người mua dẫn tới trang tài khoản (UC#21). E7."
+      ],
+      "to": "end"
     }
   ]
 }

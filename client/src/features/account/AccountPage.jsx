@@ -82,6 +82,14 @@ export default function AccountPage() {
             </span>
             <Icon name="chevron-left" size={16} className="menu__chev" />
           </Link>
+          <Link className="menu__item" to="/account/purchases">
+            <Icon name="clock" size={20} />
+            <span>
+              Lịch sử giao dịch
+              <span className="muted small menu__sub">Các lần mua tour qua MoMo</span>
+            </span>
+            <Icon name="chevron-left" size={16} className="menu__chev" />
+          </Link>
           <Link className="menu__item" to="/itineraries">
             <Icon name="route" size={20} /> <span>Lịch trình của tôi</span>
             <Icon name="chevron-left" size={16} className="menu__chev" />

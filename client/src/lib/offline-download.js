@@ -1,6 +1,7 @@
 // =========================================================
 // UC03 offline download (#103, #104, #161) — transfers of tour packages.
-//   fetchTourPackage(tourId, lang) -> GET /api/tours/:id/package?lang= (public, no account)
+//   fetchTourPackage(tourId, lang) -> GET /api/tours/:id/package?lang= (public; a paid tour (UC25) needs
+//   the author or a buyer, so the token is sent when signed in)
 //   restricted tour (UC14, decision L9) -> GET /api/tours/:id/restricted/package?lang= (signed in,
 //   unlocked tester or owner); the package keeps `restricted: true` and sends no UC17 beacon.
 //   startDownload / resumeDownload / pauseDownload / cancelDownload / retry (= resume)
@@ -15,6 +16,7 @@
 // =========================================================
 import { api, fetchAsset } from './api.js';
 import { recordTourActivity } from './tour-stats.js';
+import { getAccessToken } from './token-store.js';
 import {
   getPackage,
   updatePackage,
@@ -66,7 +68,8 @@ export function fetchTourPackage(tourId, lang, { restricted = false, ...opts } =
     return api.get(`/api/itineraries/${encodeURIComponent(itineraryId)}/package${q}`, { ...opts, auth: true });
   }
   const path = restricted ? 'restricted/package' : 'package';
-  return api.get(`/api/tours/${encodeURIComponent(tourId)}/${path}${q}`, restricted ? { ...opts, auth: true } : opts);
+  // UC25: signed in -> send the token so a paid tour the user bought (or wrote) is allowed.
+  return api.get(`/api/tours/${encodeURIComponent(tourId)}/${path}${q}`, { ...opts, auth: restricted || !!getAccessToken() });
 }
 
 /** Browser quota: { quota, usage, available } or null when the browser does not tell. */

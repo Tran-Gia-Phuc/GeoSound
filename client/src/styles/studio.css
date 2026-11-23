@@ -1336,3 +1336,61 @@
 .place-form__moderation--warning { border-color: var(--warning); }
 .place-form__moderation p { margin: 0; }
 .place-form__moderation-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+
+/* UC25 — paid orders under the Studio price panel */
+.sales-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+}
+.sales-list__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.sales-list__row strong {
+  margin-left: auto;
+}
+
+/* UC25 — /account/purchases */
+.purchases {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.purchase {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.purchase__head {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+}
+.purchase__title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.purchase__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+}
+.purchase__amount {
+  color: var(--fg);
+}
+.purchases__empty {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}

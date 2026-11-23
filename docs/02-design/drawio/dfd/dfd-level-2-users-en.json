@@ -327,6 +327,13 @@
           "label": "4.0 | Tour content management",
           "x": 1440,
           "y": 580
+        },
+        {
+          "id": "G10",
+          "kind": "ghost",
+          "label": "10.0 | Paid tour payment",
+          "x": 410,
+          "y": 900
         }
       ],
       "flows": [
@@ -363,7 +370,7 @@
         {
           "from": "P22",
           "to": "TOURIST",
-          "label": "Tour details"
+          "label": "Tour details, offline download price"
         },
         {
           "from": "TOURIST",
@@ -444,6 +451,16 @@
           "from": "P22",
           "to": "G4",
           "label": "New-language translation request"
+        },
+        {
+          "from": "P24",
+          "to": "G10",
+          "label": "Request to download a paid tour package"
+        },
+        {
+          "from": "G10",
+          "to": "P24",
+          "label": "Allowed / sign-in needed / purchase needed"
         }
       ]
     },
@@ -555,6 +572,13 @@
           "y": 110,
           "w": 280,
           "h": 50
+        },
+        {
+          "id": "G10",
+          "kind": "ghost",
+          "label": "10.0 | Paid tour payment",
+          "x": 930,
+          "y": -250
         }
       ],
       "flows": [
@@ -672,6 +696,16 @@
           "from": "P35",
           "to": "D12",
           "label": "Itinerary package"
+        },
+        {
+          "from": "P35",
+          "to": "G10",
+          "label": "Itinerary with a paid tour"
+        },
+        {
+          "from": "G10",
+          "to": "P35",
+          "label": "Allowed / purchase needed"
         }
       ]
     },
@@ -796,6 +830,20 @@
           "label": "2.0 | Find, view, listen & download tours",
           "x": 850,
           "y": 1250
+        },
+        {
+          "id": "P48",
+          "kind": "process",
+          "label": "4.8 | Set the offline download price (UC25)",
+          "x": 1200,
+          "y": 1320
+        },
+        {
+          "id": "CONTRIB3",
+          "kind": "entity",
+          "label": "Contributor *",
+          "x": 1650,
+          "y": 1360
         }
       ],
       "flows": [
@@ -925,6 +973,21 @@
           "from": "G2",
           "to": "P44",
           "label": "Translation requests from visitors,<br>restricted tour testers"
+        },
+        {
+          "from": "CONTRIB3",
+          "to": "P48",
+          "label": "Price: 0 (free) or<br>1,000–50,000,000 ₫"
+        },
+        {
+          "from": "P48",
+          "to": "CONTRIB3",
+          "label": "Current price"
+        },
+        {
+          "from": "P48",
+          "to": "D3",
+          "label": "Tour price (status unchanged)"
         }
       ]
     },
@@ -1448,12 +1511,12 @@
         {
           "from": "TOURIST",
           "to": "P71",
-          "label": "Stars, comment, edit / delete,<br>view my ratings"
+          "label": "Stars, comment, edit / delete, report a rating,<br>view my ratings"
         },
         {
           "from": "P71",
           "to": "D6",
-          "label": "Rating"
+          "label": "Ratings, rating reports"
         },
         {
           "from": "D6",
@@ -1859,6 +1922,230 @@
           "from": "P93",
           "to": "P96",
           "label": "Out of scope → canned answer, no LLM call"
+        }
+      ]
+    },
+    {
+      "name": "10.0 Payment",
+      "title": "DFD level 2 (human actors only) – Process 10.0 Paid tour payment (UC25)",
+      "nodes": [
+        {
+          "id": "P101",
+          "kind": "process",
+          "label": "10.1 | Create a MoMo payment order",
+          "x": 400,
+          "y": 40
+        },
+        {
+          "id": "P102",
+          "kind": "process",
+          "label": "10.2 | Receive the result (IPN / MoMo query)",
+          "x": 920,
+          "y": 40
+        },
+        {
+          "id": "P103",
+          "kind": "process",
+          "label": "10.3 | Check the right to download a paid package",
+          "x": 920,
+          "y": 560
+        },
+        {
+          "id": "P104",
+          "kind": "process",
+          "label": "10.4 | Transaction history (buyer, author, admin)",
+          "x": 400,
+          "y": 560
+        },
+        {
+          "id": "TOURIST",
+          "kind": "entity",
+          "label": "Tourist (signed in)",
+          "x": -60,
+          "y": 300
+        },
+        {
+          "id": "TOURIST2",
+          "kind": "entity",
+          "label": "Tourist *",
+          "x": 1440,
+          "y": 80
+        },
+        {
+          "id": "CONTRIB",
+          "kind": "entity",
+          "label": "Contributor",
+          "x": -60,
+          "y": 620
+        },
+        {
+          "id": "ADMIN",
+          "kind": "entity",
+          "label": "Admin",
+          "x": -60,
+          "y": 860
+        },
+        {
+          "id": "G2",
+          "kind": "ghost",
+          "label": "2.0 | Find, view, listen & download tours",
+          "x": 1440,
+          "y": 520
+        },
+        {
+          "id": "G3",
+          "kind": "ghost",
+          "label": "3.0 | Itineraries",
+          "x": 1440,
+          "y": 760
+        },
+        {
+          "id": "D13",
+          "kind": "store",
+          "label": "D13 | Tour purchases",
+          "x": 600,
+          "y": 330,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "tour.tour_purchases"
+          ]
+        },
+        {
+          "id": "D3",
+          "kind": "store",
+          "label": "D3 | Tours & tour content",
+          "x": 1120,
+          "y": 330,
+          "w": 280,
+          "h": 106,
+          "tables": [
+            "tour.tours",
+            "tour.places",
+            "tour.route_configs",
+            "tour.tour_languages",
+            "tour.place_translations",
+            "tour.forbidden_zones",
+            "tour.tour_access_grants",
+            "tour.tour_unlock_attempts"
+          ]
+        }
+      ],
+      "flows": [
+        {
+          "from": "TOURIST",
+          "to": "P101",
+          "label": "Choose a tour to buy"
+        },
+        {
+          "from": "D3",
+          "to": "P101",
+          "label": "Public tour, price, author"
+        },
+        {
+          "from": "D13",
+          "to": "P101",
+          "label": "Paid order (blocks buying again)"
+        },
+        {
+          "from": "P101",
+          "to": "D13",
+          "label": "New order (pending, amount)"
+        },
+        {
+          "from": "P101",
+          "to": "TOURIST",
+          "label": "Redirect to the MoMo page"
+        },
+        {
+          "from": "TOURIST2",
+          "to": "P102",
+          "label": "Order id (return page)"
+        },
+        {
+          "from": "P102",
+          "to": "TOURIST2",
+          "label": "Pending / paid / failed"
+        },
+        {
+          "from": "D13",
+          "to": "P102",
+          "label": "Pending order"
+        },
+        {
+          "from": "P102",
+          "to": "D13",
+          "label": "paid / failed, MoMo transaction id"
+        },
+        {
+          "from": "G2",
+          "to": "P103",
+          "label": "Request to download a paid tour package"
+        },
+        {
+          "from": "P103",
+          "to": "G2",
+          "label": "Allowed / 401 / 402"
+        },
+        {
+          "from": "G3",
+          "to": "P103",
+          "label": "Itinerary package with a paid tour"
+        },
+        {
+          "from": "P103",
+          "to": "G3",
+          "label": "Allowed / 402"
+        },
+        {
+          "from": "D13",
+          "to": "P103",
+          "label": "Paid order"
+        },
+        {
+          "from": "D3",
+          "to": "P103",
+          "label": "Price, author"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P104",
+          "label": "View transaction history"
+        },
+        {
+          "from": "P104",
+          "to": "TOURIST",
+          "label": "My orders (any status)"
+        },
+        {
+          "from": "CONTRIB",
+          "to": "P104",
+          "label": "Choose own tour"
+        },
+        {
+          "from": "P104",
+          "to": "CONTRIB",
+          "label": "Orders sold (buyer anonymised)"
+        },
+        {
+          "from": "ADMIN",
+          "to": "P104",
+          "label": "Status filter, page"
+        },
+        {
+          "from": "P104",
+          "to": "ADMIN",
+          "label": "All transactions, paid order count, revenue"
+        },
+        {
+          "from": "D13",
+          "to": "P104",
+          "label": "Orders"
+        },
+        {
+          "from": "D3",
+          "to": "P104",
+          "label": "Tour title"
         }
       ]
     }

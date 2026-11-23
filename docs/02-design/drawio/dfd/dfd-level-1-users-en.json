@@ -1,4 +1,5 @@
 {
+  "unusedLabel": "not used",
   "pages": [
     {
       "name": "DFD level 1",
@@ -285,6 +286,32 @@
           "label": "User (notification recipient) *",
           "x": 2120,
           "y": 890
+        },
+        {
+          "id": "P10",
+          "kind": "process",
+          "label": "10.0 | Paid tour payment (UC25)",
+          "x": 340,
+          "y": 420
+        },
+        {
+          "id": "D13",
+          "kind": "store",
+          "label": "D13 | Tour purchases",
+          "x": 340,
+          "y": 590,
+          "w": 200,
+          "h": 64,
+          "tables": [
+            "tour.tour_purchases"
+          ]
+        },
+        {
+          "id": "ADMIN2",
+          "kind": "entity",
+          "label": "Admin *",
+          "x": -360,
+          "y": 540
         }
       ],
       "flows": [
@@ -412,7 +439,7 @@
         {
           "from": "CONTRIB",
           "to": "P4",
-          "label": "Tours, places, images, audio, route,<br>languages, passcode, submit for review"
+          "label": "Tours, places, images, audio, route,<br>languages, passcode, download price, submit for review"
         },
         {
           "from": "P4",
@@ -532,12 +559,24 @@
         {
           "from": "TOURIST",
           "to": "P7",
-          "label": "Ratings (post / edit / delete),<br>reports on tours & ratings"
+          "label": "Ratings (post / edit / delete),<br>reports on tours & ratings",
+          "via": [
+            [
+              600,
+              375
+            ]
+          ]
         },
         {
           "from": "P7",
           "to": "TOURIST",
-          "label": "Tour ratings,<br>my ratings"
+          "label": "Tour ratings,<br>my ratings",
+          "via": [
+            [
+              625,
+              350
+            ]
+          ]
         },
         {
           "from": "P7",
@@ -558,11 +597,6 @@
           "from": "P7",
           "to": "CONTRIB2",
           "label": "Tour statistics"
-        },
-        {
-          "from": "CONTRIB2",
-          "to": "P7",
-          "label": "Rating dispute"
         },
         {
           "from": "P7",
@@ -622,7 +656,78 @@
         {
           "from": "CONTRIB2",
           "to": "P7",
-          "label": "Tour choice, time period"
+          "label": "Tour choice, time period,<br>rating disputes"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P10",
+          "label": "Buy a tour, order id,<br>view history"
+        },
+        {
+          "from": "P10",
+          "to": "TOURIST",
+          "label": "Payment link, order status,<br>transaction history"
+        },
+        {
+          "from": "P10",
+          "to": "D13",
+          "label": "Orders, status"
+        },
+        {
+          "from": "D13",
+          "to": "P10",
+          "label": "Existing orders"
+        },
+        {
+          "from": "D3",
+          "to": "P10",
+          "label": "Tour, price, author",
+          "via": [
+            [
+              960,
+              600
+            ]
+          ]
+        },
+        {
+          "from": "P2",
+          "to": "P10",
+          "label": "Download a paid tour package"
+        },
+        {
+          "from": "P10",
+          "to": "P2",
+          "label": "Allowed / purchase needed"
+        },
+        {
+          "from": "P3",
+          "to": "P10",
+          "label": "Itinerary package with a paid tour"
+        },
+        {
+          "from": "P10",
+          "to": "P3",
+          "label": "Allowed / purchase needed"
+        },
+        {
+          "from": "CONTRIB2",
+          "to": "P10",
+          "label": "Choose own tour"
+        },
+        {
+          "from": "P10",
+          "to": "CONTRIB2",
+          "label": "Orders sold"
+        },
+        {
+          "from": "ADMIN2",
+          "to": "P10",
+          "label": "Status filter, page"
+        },
+        {
+          "from": "P10",
+          "to": "ADMIN2",
+          "label": "All transactions, revenue"
         }
       ],
       "checkTables": true
@@ -639,6 +744,5 @@
       "ai",
       "ai_chat"
     ]
-  },
-  "unusedLabel": "not used"
+  }
 }

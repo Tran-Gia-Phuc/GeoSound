@@ -3,52 +3,58 @@
   "steps": [
     {
       "id": "s1",
-      "text": "1. The Tourist opens the details of a priced public tour. A1.",
+      "text": "1. The author opens the \"Publish\" step in the Studio, the \"Offline download price\" box, enters a price and presses \"Save price\". E1.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Invalid price (negative, fractional, under 1,000 or over 50,000,000) → 400; not the author → 403.",
+          "back": "s1"
+        }
+      ],
+      "decision": true,
       "alts": [
-        "A1"
+        "A8"
       ]
     },
     {
       "id": "s2",
-      "text": "2. The system shows the price, a preview of the first place and the \"Buy tour\" button."
+      "text": "2. The system (Tour) only stores the price: the tour status does not change and the tour is not sent for review again; it returns the price, the number of sales and the revenue."
     },
     {
       "id": "s3",
-      "text": "3. The Tourist taps \"Buy tour\". E1.",
-      "exceptions": [
-        {
-          "id": "E1",
-          "text": "E1. Not signed in → \"You need to sign in to buy a tour.\" and a \"Sign in\" button (UC#01); the API returns 401.",
-          "back": "end"
-        }
-      ],
-      "decision": true
+      "text": "3. The Tourist opens the details of a priced public tour."
     },
     {
       "id": "s4",
-      "text": "4. The system shows the \"Confirm tour purchase\" dialog (tour name, price, payment through VNPay)."
+      "text": "4. The system replaces the download section with a \"Buy the tour to download\" box (price, \"Listening online stays free\") and checks whether the Tourist has already bought it. A1, A2, A3.",
+      "decision": true,
+      "alts": [
+        "A1",
+        "A2",
+        "A3"
+      ]
     },
     {
       "id": "s5",
-      "text": "5. The Tourist taps \"Pay\"."
+      "text": "5. The Tourist presses \"Pay with MoMo\"."
     },
     {
       "id": "s6",
-      "text": "6. The system (Payment) checks the tour, price and purchase eligibility; creates a pending order (expires in 15 minutes) and returns a signed VNPay URL. E2, E3, E4.",
+      "text": "6. The system creates a \"Pending\" order (amount = current price), asks MoMo to create a payment signed with HMAC SHA256 and returns the payment link. E2, E3, E4.",
       "exceptions": [
         {
           "id": "E2",
-          "text": "E2. The tour is no longer public → 404 \"The tour is no longer available\"; the price has changed → 409 \"The tour price has changed, please check again\".",
-          "back": "s2"
-        },
-        {
-          "id": "E3",
-          "text": "E3. This tour is already bought → 409 \"You have already bought this tour\"; a pending order exists → its URL is returned again.",
+          "text": "E2. Free tour → 400; the author buys their own tour → 400; the tour is no longer public → 404.",
           "back": "end"
         },
         {
+          "id": "E3",
+          "text": "E3. Already bought → 409; the client reloads the status and shows the download section.",
+          "back": "s4"
+        },
+        {
           "id": "E4",
-          "text": "E4. The Tourist is the author → 403 \"You do not need to buy your own tour\".",
+          "text": "E4. MoMo keys not configured, or MoMo refuses / does not answer → 503 \"MoMo payment is temporarily unavailable\"; the order becomes \"Failed\".",
           "back": "end"
         }
       ],
@@ -56,72 +62,132 @@
     },
     {
       "id": "s7",
-      "text": "7. The client sends the Tourist to the VNPay page."
+      "text": "7. The browser goes to the MoMo payment page."
     },
     {
       "id": "s8",
-      "text": "8. The Tourist pays on the VNPay page. A2, E5.",
+      "text": "8. The Tourist pays on the MoMo page (wallet, ATM or a sandbox test card). A4.",
+      "decision": true,
       "alts": [
-        "A2"
-      ],
-      "exceptions": [
-        {
-          "id": "E5",
-          "text": "E5. Payment fails (card declined, insufficient balance, wrong OTP) → the order is failed, \"Payment unsuccessful\" with a \"Try again\" button.",
-          "back": "s3"
-        }
-      ],
-      "decision": true
+        "A4"
+      ]
     },
     {
       "id": "s9",
-      "text": "9. VNPay calls the IPN; the system checks the signature, order code and amount, marks the order paid and publishes payment.completed; Tour records the access. E6, E7.",
+      "text": "9. MoMo sends an IPN to Tour; the system checks the signature and the amount, then sets the order to \"Paid\". E5.",
       "exceptions": [
         {
-          "id": "E6",
-          "text": "E6. Wrong signature → RspCode 97, the order is not changed; wrong amount → RspCode 04, the order is failed; unknown order code → RspCode 01.",
-          "back": "end"
-        },
-        {
-          "id": "E7",
-          "text": "E7. IPN resent for an order already paid → RspCode 02, no access is granted and no email is sent again.",
-          "back": "end"
+          "id": "E5",
+          "text": "E5. IPN with a wrong signature, partnerCode or amount → 400, order unchanged; unknown order → 404.",
+          "back": "s10"
         }
       ],
       "decision": true
     },
     {
       "id": "s10",
-      "text": "10. The result page shows \"Payment successful. You can now listen to this tour.\" and a \"Start listening\" button. E8.",
-      "exceptions": [
-        {
-          "id": "E8",
-          "text": "E8. No IPN yet → \"Confirming payment…\", asks again every 3 seconds for 1 minute; on timeout → \"No confirmation received yet. The result will appear in Notifications.\"",
-          "back": "end"
-        }
-      ],
-      "decision": true
+      "text": "10. MoMo sends the Tourist back to the result page; the page asks for the order status every 2 seconds (at most 1 minute), and Tour queries MoMo itself while the order is pending. A5.",
+      "decision": true,
+      "alts": [
+        "A5"
+      ]
     },
     {
       "id": "s11",
-      "text": "11. Notification stores an in-app notification and sends a receipt email."
+      "text": "11. The system shows \"Payment successful\" and a \"Back to the tour to download\" button."
+    },
+    {
+      "id": "s12",
+      "text": "12. The Tourist goes back to the tour page and downloads it as in UC#03."
+    },
+    {
+      "id": "s13",
+      "text": "13. The system checks the right to download (author, or a paid order) and returns the offline package. E6. A6, A7, A9.",
+      "exceptions": [
+        {
+          "id": "E6",
+          "text": "E6. Downloading a paid tour package while not signed in → 401; signed in but not bought → 402.",
+          "back": "s4"
+        },
+        {
+          "id": "E7",
+          "text": "E7. Viewing the history while not signed in → 401; the admin transactions page with a non-admin account → 403; invalid filter → 400.",
+          "back": "end"
+        }
+      ],
+      "decision": true,
+      "alts": [
+        "A6",
+        "A7",
+        "A9"
+      ]
     }
   ],
   "alts": [
     {
       "id": "A1",
       "steps": [
-        "A1. The tour is already bought, or the Tourist is the author / Admin: shows \"Purchased\" and the \"Start listening\" button, as for a free tour."
+        "A1. Free tour (price 0): no buy box, the \"Download to listen offline\" section as in UC#03."
       ],
-      "to": "end"
+      "to": "s12"
     },
     {
       "id": "A2",
       "steps": [
-        "A2.1. The Tourist cancels the transaction on VNPay.",
-        "A2.2. The order moves to cancelled; the result page shows \"You cancelled the payment.\" and a \"Try again\" button."
+        "A2. Not signed in: the box shows the price and a \"Sign in to buy\" button; after signing in the Tourist comes back to the tour page."
       ],
-      "to": "s3"
+      "to": "s4"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. The author or a Tourist who has bought it: shows \"Your tour\" / \"You bought this tour\" and the normal download section."
+      ],
+      "to": "s12"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. Payment failed or cancelled by the Tourist: the order becomes \"Failed\", the result page says the payment did not go through, with a \"Back to the tour\" button; the Tourist can buy again."
+      ],
+      "to": "s4"
+    },
+    {
+      "id": "A5",
+      "steps": [
+        "A5. MoMo has not confirmed after 1 minute: the page shows \"MoMo has not confirmed the payment yet\" with a \"Check again\" button."
+      ],
+      "to": "s10"
+    },
+    {
+      "id": "A6",
+      "steps": [
+        "A6. An itinerary with a place from an unbought paid tour: downloading the itinerary package is refused with 402 until those tours are bought."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A7",
+      "steps": [
+        "A7.1. The Tourist opens Account → \"Transaction history\".",
+        "A7.2. The system lists every order of the account (at most 50, newest first): tour, amount, status, time, order id, MoMo id; a pending order has a \"Check again\" button. E7."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A8",
+      "steps": [
+        "A8. The tour already has sales: the price box shows the \"Orders sold\" list (buyer shortened to 6 characters, date, amount)."
+      ],
+      "to": "s2"
+    },
+    {
+      "id": "A9",
+      "steps": [
+        "A9.1. The admin opens the admin area → \"Transactions\".",
+        "A9.2. The system shows the total collected and the number of successful orders, and the list of every order (status filter, 20 orders per page); the buyer links to the account page (UC#21). E7."
+      ],
+      "to": "end"
     }
   ]
 }

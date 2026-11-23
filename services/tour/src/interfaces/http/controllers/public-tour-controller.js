@@ -49,6 +49,7 @@ export class PublicTourController {
     const pkg = await this.uc.getTourPackage.execute({
       id: req.validatedParams.id,
       lang: req.validatedQuery.lang,
+      userId: req.user?.sub ?? null, // UC25: optional sign-in (paid tours)
     });
     res.json(pkg);
   }

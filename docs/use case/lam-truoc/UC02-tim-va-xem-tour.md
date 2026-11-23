@@ -38,7 +38,7 @@
 
 **A5. Hành động khác ở chi tiết tour.**
 - Nghe thử một điểm (▶) ngay trong danh sách điểm; chạm điểm → mở trình phát tại điểm đó (`?stop=`).
-- "Tải về để nghe offline" → UC03 (`OfflineDownload`).
+- "Tải về để nghe offline" → UC03 (`OfflineDownload`). Tour có giá tải về (UC25) hiện khung **"Mua tour để tải về"** (`PurchaseGate`) thay cho mục này cho tới khi khách mua; xem chi tiết và nghe trực tuyến vẫn miễn phí.
 - "Báo cáo" → UC06 (`ReportTour`); đánh giá → UC05 (`RatingsSection`); tên tác giả → UC18 (`/authors/:id`).
 
 ## Exception Path
@@ -50,7 +50,7 @@
 
 ## Extension Points
 
-- UC03 – Quản lý tour offline; UC04 – Nghe tour; UC05 – Đánh giá; UC06 – Báo cáo tour; UC07 – Lịch trình cá nhân (tab Địa điểm); UC18 – Trang tác giả.
+- UC03 – Quản lý tour offline; UC04 – Nghe tour; UC05 – Đánh giá; UC06 – Báo cáo tour; UC07 – Lịch trình cá nhân (tab Địa điểm); UC18 – Trang tác giả; UC25 – Mua tour có phí để tải về.
 
 ## Triggers
 

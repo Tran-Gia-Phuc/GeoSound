@@ -19,11 +19,16 @@
     },
     {
       "id": "s3",
-      "text": "3. The system gets the file list of the tour package for each language (manifest). E2.",
+      "text": "3. The system gets the file list of the tour package for each language (manifest). E2, E7.",
       "exceptions": [
         {
           "id": "E2",
           "text": "E2. The tour is no longer public (404) or the language has no translation (400) → error, no download.",
+          "back": "end"
+        },
+        {
+          "id": "E7",
+          "text": "E7. A paid tour (UC#25) the Tourist has not bought → a \"Buy the tour to download\" box replaces the download section; calling the manifest directly: 401 (not signed in) or 402 (not bought).",
           "back": "end"
         }
       ],

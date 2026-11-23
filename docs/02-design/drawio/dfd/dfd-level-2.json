@@ -343,6 +343,13 @@
           "label": "4.0 | Quản lý nội dung tour",
           "x": 1440,
           "y": 580
+        },
+        {
+          "id": "G10",
+          "kind": "ghost",
+          "label": "10.0 | Thanh toán tour trả phí",
+          "x": 410,
+          "y": 900
         }
       ],
       "flows": [
@@ -379,7 +386,7 @@
         {
           "from": "P22",
           "to": "TOURIST",
-          "label": "Chi tiết tour"
+          "label": "Chi tiết tour, giá tải offline"
         },
         {
           "from": "TOURIST",
@@ -460,6 +467,16 @@
           "from": "P22",
           "to": "G4",
           "label": "Yêu cầu dịch ngôn ngữ mới"
+        },
+        {
+          "from": "P24",
+          "to": "G10",
+          "label": "Yêu cầu tải gói tour trả phí"
+        },
+        {
+          "from": "G10",
+          "to": "P24",
+          "label": "Cho tải / cần đăng nhập / cần mua"
         }
       ]
     },
@@ -571,6 +588,13 @@
           "y": 110,
           "w": 280,
           "h": 50
+        },
+        {
+          "id": "G10",
+          "kind": "ghost",
+          "label": "10.0 | Thanh toán tour trả phí",
+          "x": 930,
+          "y": -250
         }
       ],
       "flows": [
@@ -688,6 +712,16 @@
           "from": "P35",
           "to": "D12",
           "label": "Gói lịch trình"
+        },
+        {
+          "from": "P35",
+          "to": "G10",
+          "label": "Lịch trình có tour trả phí"
+        },
+        {
+          "from": "G10",
+          "to": "P35",
+          "label": "Cho tải / cần mua"
         }
       ]
     },
@@ -826,6 +860,20 @@
           "label": "2.0 | Tìm, xem, nghe & tải tour",
           "x": 850,
           "y": 1250
+        },
+        {
+          "id": "P48",
+          "kind": "process",
+          "label": "4.8 | Đặt giá tải offline (UC25)",
+          "x": 1200,
+          "y": 1320
+        },
+        {
+          "id": "CONTRIB3",
+          "kind": "entity",
+          "label": "Contributor *",
+          "x": 1650,
+          "y": 1360
         }
       ],
       "flows": [
@@ -975,6 +1023,21 @@
           "from": "G2",
           "to": "P44",
           "label": "Yêu cầu dịch của khách,<br>người thử tour hạn chế"
+        },
+        {
+          "from": "CONTRIB3",
+          "to": "P48",
+          "label": "Giá: 0 (miễn phí) hoặc<br>1 000–50 000 000 ₫"
+        },
+        {
+          "from": "P48",
+          "to": "CONTRIB3",
+          "label": "Giá hiện tại"
+        },
+        {
+          "from": "P48",
+          "to": "D3",
+          "label": "Giá tour (không đổi trạng thái)"
         }
       ]
     },
@@ -1515,12 +1578,12 @@
         {
           "from": "TOURIST",
           "to": "P71",
-          "label": "Số sao, nhận xét, sửa / xóa,<br>xem đánh giá của tôi"
+          "label": "Số sao, nhận xét, sửa / xóa, báo cáo đánh giá,<br>xem đánh giá của tôi"
         },
         {
           "from": "P71",
           "to": "D6",
-          "label": "Đánh giá"
+          "label": "Đánh giá, báo cáo đánh giá"
         },
         {
           "from": "D6",
@@ -1955,6 +2018,257 @@
           "from": "P93",
           "to": "P96",
           "label": "Ngoài phạm vi → trả lời mẫu, không gọi LLM"
+        }
+      ]
+    },
+    {
+      "name": "10.0 Thanh toán",
+      "title": "DFD cấp 2 – 10.0 Thanh toán tour trả phí (UC25)",
+      "nodes": [
+        {
+          "id": "P101",
+          "kind": "process",
+          "label": "10.1 | Tạo đơn thanh toán MoMo",
+          "x": 400,
+          "y": 40
+        },
+        {
+          "id": "P102",
+          "kind": "process",
+          "label": "10.2 | Nhận kết quả (IPN / truy vấn MoMo)",
+          "x": 920,
+          "y": 40
+        },
+        {
+          "id": "P103",
+          "kind": "process",
+          "label": "10.3 | Kiểm tra quyền tải gói trả phí",
+          "x": 920,
+          "y": 560
+        },
+        {
+          "id": "P104",
+          "kind": "process",
+          "label": "10.4 | Lịch sử giao dịch (người mua, tác giả, admin)",
+          "x": 400,
+          "y": 560
+        },
+        {
+          "id": "TOURIST",
+          "kind": "entity",
+          "label": "Khách du lịch (đã đăng nhập)",
+          "x": -60,
+          "y": 300
+        },
+        {
+          "id": "TOURIST2",
+          "kind": "entity",
+          "label": "Khách du lịch *",
+          "x": 1440,
+          "y": 80
+        },
+        {
+          "id": "CONTRIB",
+          "kind": "entity",
+          "label": "Người đăng nội dung (Contributor)",
+          "x": -60,
+          "y": 620
+        },
+        {
+          "id": "ADMIN",
+          "kind": "entity",
+          "label": "Quản trị viên (Admin)",
+          "x": -60,
+          "y": 860
+        },
+        {
+          "id": "MOMO",
+          "kind": "entity",
+          "label": "Cổng thanh toán MoMo (sandbox)",
+          "x": 650,
+          "y": -200
+        },
+        {
+          "id": "G2",
+          "kind": "ghost",
+          "label": "2.0 | Tìm, xem, nghe & tải tour",
+          "x": 1440,
+          "y": 520
+        },
+        {
+          "id": "G3",
+          "kind": "ghost",
+          "label": "3.0 | Lịch trình",
+          "x": 1440,
+          "y": 760
+        },
+        {
+          "id": "D13",
+          "kind": "store",
+          "label": "D13 | Giao dịch mua tour",
+          "x": 600,
+          "y": 330,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "tour.tour_purchases"
+          ]
+        },
+        {
+          "id": "D3",
+          "kind": "store",
+          "label": "D3 | Tour & nội dung tour",
+          "x": 1120,
+          "y": 330,
+          "w": 280,
+          "h": 106,
+          "tables": [
+            "tour.tours",
+            "tour.places",
+            "tour.route_configs",
+            "tour.tour_languages",
+            "tour.place_translations",
+            "tour.forbidden_zones",
+            "tour.tour_access_grants",
+            "tour.tour_unlock_attempts"
+          ]
+        }
+      ],
+      "flows": [
+        {
+          "from": "TOURIST",
+          "to": "P101",
+          "label": "Chọn mua tour"
+        },
+        {
+          "from": "D3",
+          "to": "P101",
+          "label": "Tour công khai, giá, tác giả"
+        },
+        {
+          "from": "D13",
+          "to": "P101",
+          "label": "Đơn đã thanh toán (chặn mua lại)"
+        },
+        {
+          "from": "P101",
+          "to": "D13",
+          "label": "Đơn mới (pending, số tiền)"
+        },
+        {
+          "from": "P101",
+          "to": "MOMO",
+          "label": "Yêu cầu tạo đơn (ký HMAC SHA256)"
+        },
+        {
+          "from": "MOMO",
+          "to": "P101",
+          "label": "payUrl"
+        },
+        {
+          "from": "P101",
+          "to": "TOURIST",
+          "label": "Chuyển sang trang MoMo"
+        },
+        {
+          "from": "MOMO",
+          "to": "P102",
+          "label": "IPN kết quả (ký HMAC)"
+        },
+        {
+          "from": "P102",
+          "to": "MOMO",
+          "label": "Truy vấn trạng thái đơn"
+        },
+        {
+          "from": "TOURIST2",
+          "to": "P102",
+          "label": "Mã đơn (trang trả về)"
+        },
+        {
+          "from": "P102",
+          "to": "TOURIST2",
+          "label": "Chờ / đã thanh toán / thất bại"
+        },
+        {
+          "from": "D13",
+          "to": "P102",
+          "label": "Đơn đang chờ"
+        },
+        {
+          "from": "P102",
+          "to": "D13",
+          "label": "paid / failed, mã giao dịch MoMo"
+        },
+        {
+          "from": "G2",
+          "to": "P103",
+          "label": "Yêu cầu tải gói tour trả phí"
+        },
+        {
+          "from": "P103",
+          "to": "G2",
+          "label": "Cho tải / 401 / 402"
+        },
+        {
+          "from": "G3",
+          "to": "P103",
+          "label": "Gói lịch trình có tour trả phí"
+        },
+        {
+          "from": "P103",
+          "to": "G3",
+          "label": "Cho tải / 402"
+        },
+        {
+          "from": "D13",
+          "to": "P103",
+          "label": "Đơn đã thanh toán"
+        },
+        {
+          "from": "D3",
+          "to": "P103",
+          "label": "Giá, tác giả"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P104",
+          "label": "Xem lịch sử giao dịch"
+        },
+        {
+          "from": "P104",
+          "to": "TOURIST",
+          "label": "Đơn của tôi (mọi trạng thái)"
+        },
+        {
+          "from": "CONTRIB",
+          "to": "P104",
+          "label": "Chọn tour của mình"
+        },
+        {
+          "from": "P104",
+          "to": "CONTRIB",
+          "label": "Đơn đã bán (người mua ẩn danh)"
+        },
+        {
+          "from": "ADMIN",
+          "to": "P104",
+          "label": "Lọc trạng thái, trang"
+        },
+        {
+          "from": "P104",
+          "to": "ADMIN",
+          "label": "Mọi giao dịch, số đơn đã thu, doanh thu"
+        },
+        {
+          "from": "D13",
+          "to": "P104",
+          "label": "Đơn hàng"
+        },
+        {
+          "from": "D3",
+          "to": "P104",
+          "label": "Tên tour"
         }
       ]
     }

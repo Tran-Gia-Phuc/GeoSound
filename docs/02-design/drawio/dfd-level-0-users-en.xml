@@ -20,32 +20,32 @@
         <mxCell id="5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="Admin" vertex="1">
           <mxGeometry x="1590" y="510" width="190" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="7" edge="1" parent="1" source="3" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Sign-up / sign-in, OTP&lt;br&gt;Keywords, filters, tour choice, GPS position, access code&lt;br&gt;Request to translate into a new language&lt;br&gt;Itineraries, ratings (post / edit / delete), reports on tours &amp; ratings&lt;br&gt;Questions for the AI assistant&lt;br&gt;Open notifications, mark as read">
+        <mxCell id="7" edge="1" parent="1" source="3" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Sign-up / sign-in, OTP&lt;br&gt;Keywords, filters, tour choice, GPS position, access code&lt;br&gt;Request to translate into a new language&lt;br&gt;Itineraries, ratings (post / edit / delete), reports on tours &amp; ratings&lt;br&gt;Questions for the AI assistant&lt;br&gt;Open notifications, mark as read&lt;br&gt;Buy a paid tour, view transaction history">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="563" y="416" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="8" edge="1" parent="1" source="2" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour list, map, tour details, narration, audio&lt;br&gt;Offline tour / itinerary packages&lt;br&gt;My ratings&lt;br&gt;AI answers with sources&lt;br&gt;Notifications, device list">
+        <mxCell id="8" edge="1" parent="1" source="2" target="3" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour list, map, tour details, narration, audio&lt;br&gt;Offline tour / itinerary packages&lt;br&gt;My ratings&lt;br&gt;AI answers with sources&lt;br&gt;Notifications, device list&lt;br&gt;MoMo payment link, order status, transaction history">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="602" y="334" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="9" edge="1" parent="1" source="4" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tours, stops, images, audio&lt;br&gt;Route, trigger zones, languages, auto-translate switch, passcode&lt;br&gt;Submit for review&lt;br&gt;Tour and statistics period; rating disputes; read notifications">
+        <mxCell id="9" edge="1" parent="1" source="4" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tours, stops, images, audio&lt;br&gt;Route, trigger zones, languages, auto-translate switch, passcode, offline download price&lt;br&gt;Submit for review&lt;br&gt;Tour and statistics period; rating disputes; read notifications">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="602" y="766" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="10" edge="1" parent="1" source="2" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour status, moderation result&lt;br&gt;Preview, statistics, ratings&lt;br&gt;In-app notifications">
+        <mxCell id="10" edge="1" parent="1" source="2" target="4" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Tour status, moderation result&lt;br&gt;Preview, statistics, ratings&lt;br&gt;In-app notifications&lt;br&gt;Orders sold for the tour">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="563" y="684" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="11" edge="1" parent="1" source="5" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Approve / reject / request changes&lt;br&gt;Handle tour &amp; rating reports, warn / suspend / ban accounts&lt;br&gt;Dashboard period, log filters">
+        <mxCell id="11" edge="1" parent="1" source="5" target="2" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Approve / reject / request changes&lt;br&gt;Handle tour &amp; rating reports, warn / suspend / ban accounts&lt;br&gt;Dashboard period, log filters&lt;br&gt;Transaction filters">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="1318" y="505" /></Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="12" edge="1" parent="1" source="2" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Review queue, tour &amp; rating report files&lt;br&gt;Dashboard, log, online devices">
+        <mxCell id="12" edge="1" parent="1" source="2" target="5" style="html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;curved=1;" value="Review queue, tour &amp; rating report files&lt;br&gt;Dashboard, log, online devices&lt;br&gt;Transaction list, revenue">
           <mxGeometry x="-0.35" relative="1" as="geometry">
             <Array as="points"><mxPoint x="1318" y="595" /></Array>
           </mxGeometry>

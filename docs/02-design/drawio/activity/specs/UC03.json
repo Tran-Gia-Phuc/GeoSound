@@ -19,11 +19,16 @@
     },
     {
       "id": "s3",
-      "text": "3. Hệ thống lấy danh sách tệp của gói tour theo từng ngôn ngữ (manifest). E2.",
+      "text": "3. Hệ thống lấy danh sách tệp của gói tour theo từng ngôn ngữ (manifest). E2, E7.",
       "exceptions": [
         {
           "id": "E2",
           "text": "E2. Tour không còn công khai (404) hoặc ngôn ngữ chưa có bản dịch (400) → báo lỗi, không tải.",
+          "back": "end"
+        },
+        {
+          "id": "E7",
+          "text": "E7. Tour có phí (UC#25) mà khách chưa mua → khung “Mua tour để tải về” thay cho mục tải; gọi thẳng manifest: 401 (chưa đăng nhập) hoặc 402 (chưa mua).",
           "back": "end"
         }
       ],

@@ -1,8 +1,8 @@
 # Danh sách Use Case – Hệ thống GeoSound (audio guide du lịch)
 
 > Nguồn: [ustory.md](ustory.md). Đánh số UC theo **flow người dùng**: Tài khoản → Khách du lịch (Tourist) → Người đăng nội dung (Contributor) → Admin.
-> Tổng **25 use case**: 23 UC gốc (đã gộp từ bản 28), **UC24 – Hỏi đáp với trợ lý AI** (thêm ngày 2026-11-08) và **UC25 – Thanh toán tour trả phí** (đề xuất ngày 2026-11-22, chưa triển khai).
-> **Cập nhật 2026-11-08:** 24 UC đầu (UC01–UC24) đã hiện thực (backend và màn hình). Mỗi file UC mô tả đúng hành vi của hệ thống hiện tại. Mục **"Hiện thực trong hệ thống"** của từng file liệt kê dịch vụ, màn hình, API, sự kiện và dữ liệu; mục **Sequence Diagram** dùng Mermaid.
+> Tổng **25 use case**: 23 UC gốc (đã gộp từ bản 28), **UC24 – Hỏi đáp với trợ lý AI** (thêm ngày 2026-11-08) và **UC25 – Mua tour có phí để tải về** (thêm ngày 2026-11-18).
+> **Cập nhật 2026-11-08:** cả 24 UC đã hiện thực (backend và màn hình). Mỗi file UC mô tả đúng hành vi của hệ thống hiện tại. Mục **"Hiện thực trong hệ thống"** của từng file liệt kê dịch vụ, màn hình, API, sự kiện và dữ liệu; mục **Sequence Diagram** dùng Mermaid.
 
 ## Tổ chức thư mục
 
@@ -11,7 +11,7 @@ Hai thư mục giữ theo **thứ tự triển khai ban đầu**, không còn ma
 | Thư mục | Nội dung |
 |---|---|
 | `lam-truoc/` | **14 UC làm đợt 1**: danh sách chọn ban đầu, thêm UC08 cho trọn nhánh lịch trình và UC23 (thêm 2026-10-30) |
-| `lam-sau/` | **11 UC làm đợt 2**: 9 UC còn lại (xong 2026-11-03 → 2026-11-08), UC24 và UC25 (đề xuất, chưa triển khai) |
+| `lam-sau/` | **11 UC làm đợt 2**: 9 UC còn lại (xong 2026-11-03 → 2026-11-08), UC24 và UC25 |
 
 ## Phân biệt Use Case vs Action
 
@@ -63,7 +63,7 @@ Chi tiết: [moderation-architecture.md](../02-design/moderation-architecture.md
 | UC21 | [Quản lý tài khoản vi phạm](lam-sau/UC21-quan-ly-tai-khoan-vi-pham.md) | Admin | P2 | Auth, Tour, Notification | UC27 |
 | UC22 | [Dashboard thống kê & log](lam-sau/UC22-dashboard-thong-ke-log.md) | Admin | P2 | Tour, Auth | UC28 |
 | UC24 | [Hỏi đáp với trợ lý du lịch AI (chatbot)](lam-sau/UC24-hoi-dap-tro-ly-ai.md) | Tourist + AI | P1 | AI, Gateway | mới (2026-11-08) |
-| UC25 | [Thanh toán tour trả phí](lam-sau/UC25-thanh-toan-tour.md) (đề xuất, chưa triển khai) | Tourist + VNPay | P3 | Payment (mới), Tour, Notification | mới (2026-11-22) |
+| UC25 | [Mua tour có phí để tải về (thanh toán MoMo)](lam-sau/UC25-mua-tour-thanh-toan.md) | Tourist + Contributor + Admin + MoMo | P2 | Tour | mới (2026-11-18) |
 
 ## 6 nhóm đã gộp
 
@@ -86,3 +86,4 @@ Chi tiết: [moderation-architecture.md](../02-design/moderation-architecture.md
 - **Vùng cấm:** không dùng turf.js; Tour kiểm tra polygon khi lưu điểm. Luật route G1–G6 chạy ở Moderation.
 - **TTS:** chưa có render TTS phía server. Điểm không có audio ghi âm được đọc bằng giọng của thiết bị (Web Speech). Gói offline chỉ chứa text, ảnh và audio ghi âm.
 - **Chatbot:** thêm UC24.
+- **Thanh toán:** thêm UC25 (MoMo sandbox, chỉ thu phí gói tải về offline). Lịch sử giao dịch của khách (`/account/purchases`), đơn đã bán của tác giả (Studio) và trang **"Giao dịch"** của Admin (`/admin/payments`) nằm trong UC25, không tách UC riêng.

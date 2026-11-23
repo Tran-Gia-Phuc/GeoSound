@@ -254,3 +254,59 @@ export class RatingReportNotFoundError extends AppError {
     super(message, { status: 404, code: 'rating_report_not_found' });
   }
 }
+
+// UC25 (#446) — paid offline package: sign-in needed (lenient optional auth gave no user).
+export class LoginRequiredError extends AppError {
+  constructor(message = 'Vui lòng đăng nhập để tải tour có phí') {
+    super(message, { status: 401, code: 'login_required' });
+  }
+}
+
+// UC25 — paid offline package not bought by this account.
+export class PaymentRequiredError extends AppError {
+  constructor(message = 'Bạn cần mua tour này để tải về nghe offline') {
+    super(message, { status: 402, code: 'payment_required' });
+  }
+}
+
+// UC25 — buying a free tour.
+export class TourFreeError extends AppError {
+  constructor(message = 'Tour này miễn phí, bạn có thể tải ngay') {
+    super(message, { status: 400, code: 'tour_free' });
+  }
+}
+
+// UC25 — the author buying their own tour.
+export class OwnTourPurchaseError extends AppError {
+  constructor(message = 'Bạn là tác giả của tour này, không cần mua') {
+    super(message, { status: 400, code: 'own_tour' });
+  }
+}
+
+// UC25 — the account already has a paid purchase of the tour.
+export class AlreadyPurchasedError extends AppError {
+  constructor(message = 'Bạn đã mua tour này rồi') {
+    super(message, { status: 409, code: 'already_purchased' });
+  }
+}
+
+// UC25 — MoMo is not configured, unreachable or refused the order.
+export class PaymentUnavailableError extends AppError {
+  constructor(message = 'Thanh toán MoMo đang tạm thời không khả dụng, vui lòng thử lại sau') {
+    super(message, { status: 503, code: 'payment_unavailable' });
+  }
+}
+
+// UC25 — unknown order id.
+export class OrderNotFoundError extends AppError {
+  constructor(message = 'Không tìm thấy đơn thanh toán') {
+    super(message, { status: 404, code: 'order_not_found' });
+  }
+}
+
+// UC25 — MoMo IPN with a bad signature, partner code or amount.
+export class InvalidPaymentNotificationError extends AppError {
+  constructor(message = 'Thông báo thanh toán không hợp lệ') {
+    super(message, { status: 400, code: 'invalid_signature' });
+  }
+}
