@@ -143,9 +143,11 @@ services:
       DATABASE_URL_DIRECT_AI: DATABASE_URL_DIRECT_AI
     secrets: [geosound-jwt, geosound-infra, geosound-ai]
     metrics: true
+    # Loading the fp32 e5-small ONNX model (first chat, first indexed tour) peaks at about
+    # 1.5 GiB (measured on staging, #463); 1Gi was OOMKilled on every chat.
     resources:
-      requests: { cpu: 200m, memory: 512Mi }
-      limits: { cpu: "1", memory: 1Gi }
+      requests: { cpu: 200m, memory: 1Gi }
+      limits: { cpu: "1", memory: 2Gi }
     probes:
       # Measured: about 30 s to the first /healthz at 1 CPU (model load). 180 s (6x) leaves room
       # for a throttled CPU on a busy node; a healthy pod passes as soon as it answers.
