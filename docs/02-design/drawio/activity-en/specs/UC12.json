@@ -1,0 +1,112 @@
+{
+  "uc": "UC12",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Contributor opens the \"Languages\" step."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system shows the original language, the chosen secondary languages, the voices, each place's translations and the progress (\"n/n places translated\")."
+    },
+    {
+      "id": "s3",
+      "text": "3. The Contributor chooses the secondary languages and voices (male / female, optional region) and taps \"Save & create translations\"."
+    },
+    {
+      "id": "s4",
+      "text": "4. The system normalises the language list (removes duplicates and the original language) and deletes removed languages with their translations."
+    },
+    {
+      "id": "s5",
+      "text": "5. The system translates in batches through AI (up to 20 passages per call), only for places with no translation or an outdated one; manual edits are kept. E1.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. AI translation error (timeout, 5xx, wrong number of translations) → 503 \"Automatic translation failed, please try again\".",
+          "back": "s3"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. The system stores the translations of every place in every language and returns the new configuration."
+    },
+    {
+      "id": "s7",
+      "text": "7. The Contributor opens the tab of a secondary language and previews a place. A1.",
+      "alts": [
+        "A1"
+      ]
+    },
+    {
+      "id": "s8",
+      "text": "8. The Contributor fixes a wrong translation (proper names, terms) and saves that row. A2.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. Language code outside the supported set → 400 \"Unsupported language: xx\"; editing a language that is not configured → 400 \"Language is not configured for the tour\"; editing the original language → edit it in UC#10.",
+          "back": "s8"
+        },
+        {
+          "id": "E3",
+          "text": "E3. The browser cannot play → \"The preview could not be played. The translation is kept; you can try again.\"",
+          "back": "s8"
+        }
+      ],
+      "alts": [
+        "A2",
+        "A3",
+        "A4",
+        "A5",
+        "A6"
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Preview: the system reads the translation with the device's voice (Web Speech), label \"Preview with the device voice · no audio file yet\". E3."
+      ],
+      "to": "s8"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Edit a translation: the translation is marked \"edited by hand\" and is kept on later saves. E2."
+      ],
+      "to": "s8"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Remove a secondary language: the system deletes the language and its translations."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. The original description changes (UC#10): the system translates that place again; manual edits are kept but get a \"Needs review\" chip."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A5",
+      "steps": [
+        "A5. A tourist requests automatic translation into a language that is not enabled (UC#04 A7): the translation is stored separately and shown in the Languages step; if the author enables that language, the translation is reused without calling AI again."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A6",
+      "steps": [
+        "A6. The \"Allow tourists to request automatic translation\" switch: when off, tourists cannot request languages outside the list and the existing automatic translations are hidden."
+      ],
+      "to": "end"
+    }
+  ]
+}

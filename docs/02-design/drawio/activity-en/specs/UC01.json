@@ -1,0 +1,152 @@
+{
+  "uc": "UC01",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The actor opens the \"Sign in\" page (without an account, chooses \"Sign up\"). A1.",
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. Invalid email format → \"Invalid email\".",
+          "back": "s1"
+        },
+        {
+          "id": "E6",
+          "text": "E6. Weak password → \"Password must have at least 8 characters\" / \"Password must contain both letters and digits\".",
+          "back": "s1"
+        },
+        {
+          "id": "E7",
+          "text": "E7. Email already has an account → \"The account is already registered\" (409).",
+          "back": "s1"
+        },
+        {
+          "id": "E8",
+          "text": "E8. Wrong OTP → \"Invalid OTP, please try again\".",
+          "back": "s1"
+        },
+        {
+          "id": "E9",
+          "text": "E9. OTP expired → \"The verification session has expired, please start again\" (410).",
+          "back": "end"
+        }
+      ],
+      "alts": [
+        "A1"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s2",
+      "text": "2. The system shows a form with Email, Password and a \"Forgot password\" link. A2.",
+      "alts": [
+        "A2"
+      ]
+    },
+    {
+      "id": "s3",
+      "text": "3. The actor enters the email and password and taps \"Sign in\". E1.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Empty field → \"Please enter your email\" / \"Please enter your password\".",
+          "back": "s3"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s4",
+      "text": "4. The system sends the sign-in request with the device identifier (deviceId)."
+    },
+    {
+      "id": "s5",
+      "text": "5. The system (Auth) normalises the email, checks the account status and matches the password (bcrypt). E2, E3, E4.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. Wrong email or password → \"Incorrect email or password\"; after 5 failures in a row, sign-in for the account is locked for 15 minutes (423).",
+          "back": "s3"
+        },
+        {
+          "id": "E3",
+          "text": "E3. The account is banned → \"The account has been locked, please contact the Admin\".",
+          "back": "end"
+        },
+        {
+          "id": "E4",
+          "text": "E4. Account temporarily suspended (suspended, UC#21) → \"The account is suspended until <time date>\".",
+          "back": "s3"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. The system creates a sign-in session for the device and returns the access token and refresh token; for a new device it sends a sign-in alert (UC#23)."
+    },
+    {
+      "id": "s7",
+      "text": "7. The system redirects: to the page in the ?next= parameter if present; otherwise Contributor → Studio, Tourist and Admin → home page.",
+      "alts": [
+        "A3",
+        "A4",
+        "A5",
+        "A6"
+      ]
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1.1. The Actor chooses \"Sign up\" and picks the account type (Tourist / Contributor).",
+        "A1.2. The system shows the form: Full name, Email, Password, Confirm password.",
+        "A1.3. The actor enters the information and taps \"Continue\". E5, E6.",
+        "A1.4. The system checks the email is not registered yet, stores the sign-up data temporarily (Redis) and sends a 6-digit OTP code by email. E7.",
+        "A1.5. The actor enters the OTP code. A3.",
+        "A1.6. The system verifies the OTP, creates the account, signs the user in and redirects by role. E8, E9."
+      ],
+      "to": "s1"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2.1. The actor chooses \"Forgot password\" and enters the email.",
+        "A2.2. The system always returns the same message (it does not reveal whether the email exists); if the account exists, it sends an OTP code by email.",
+        "A2.3. The Actor enters the OTP and a new password. A3, E6.",
+        "A2.4. The system verifies the OTP, changes the password and signs out every signed-in device; the Actor signs in again with the new password. E8, E9."
+      ],
+      "to": "s1"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3.1. The actor taps \"Resend OTP\" (enabled only after 30 seconds).",
+        "A3.2. The system sends a new code (the old code stops working) and extends the validity by another 120 seconds."
+      ],
+      "to": "s1"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. The access token expires during use: the client refreshes the session with the refresh token (the token is rotated) and resends the request; if the refresh fails, it goes back to the Sign in page."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A5",
+      "steps": [
+        "A5. Change the password while signed in: Account → \"Change password\", enter the current password and the new password (at least 8 characters, letters and digits, different from the old one)."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A6",
+      "steps": [
+        "A6. Sign out: the system revokes the current device's session and deletes the tokens on the device."
+      ],
+      "to": "end"
+    }
+  ]
+}

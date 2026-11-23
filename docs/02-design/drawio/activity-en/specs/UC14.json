@@ -1,0 +1,145 @@
+{
+  "uc": "UC14",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Contributor opens the tour's \"Publish\" step in the Studio, the \"Restricted access\" panel."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system shows the access status and the passcode field (it can only be enabled when the tour is Draft, Rejected or Needs changes)."
+    },
+    {
+      "id": "s3",
+      "text": "3. The Contributor enters a passcode and taps \"Enable restricted access\". E1.",
+      "decision": true,
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Empty passcode → \"Please enter the access code\"; contains spaces → \"The access code must not contain spaces\"; wrong length → \"The access code must have 6 to 32 characters\" (400).",
+          "back": "s3"
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "text": "4. The system (Tour) stores the passcode as a hash (scrypt), increases the passcode version and moves the tour to \"Restricted\" with a conditional update statement. E2.",
+      "decision": true,
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. The tour is not in a status that allows enabling → 409; not the author → 403; disabling a tour that is not restricted → 409.",
+          "back": "end"
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "text": "5. The system shows \"Restricted access enabled\", the number of testers who have unlocked it and the /tour/:id/unlock link to copy. A1, A3, A4.",
+      "decision": true,
+      "alts": [
+        "A1",
+        "A3",
+        "A4"
+      ],
+      "exceptions": [
+        {
+          "id": "E6",
+          "text": "E6. Submitting for review or publishing while the tour is restricted → 409 \"… please turn off this mode before submitting for review\".",
+          "back": "end"
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "text": "6. The Contributor sends the link and passcode to the test group."
+    },
+    {
+      "id": "s7",
+      "text": "7. The tester opens /tour/:id/unlock (signing in first if not signed in)."
+    },
+    {
+      "id": "s8",
+      "text": "8. The system checks whether the tester has already unlocked it. A2.",
+      "alts": [
+        "A2"
+      ]
+    },
+    {
+      "id": "s9",
+      "text": "9. The tester enters the passcode and taps \"Unlock\"."
+    },
+    {
+      "id": "s10",
+      "text": "10. The system records the attempt, counts failures in 15 minutes, compares the hash and stores access by passcode version. E3, E4.",
+      "decision": true,
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Wrong passcode → 403 \"Incorrect access code\".",
+          "back": "s9"
+        },
+        {
+          "id": "E4",
+          "text": "E4. 5 failures in 15 minutes → 429 \"You have entered a wrong code too many times, please try again in 15 minutes\", even when the code is right.",
+          "back": "s9"
+        }
+      ]
+    },
+    {
+      "id": "s11",
+      "text": "11. The system opens the tour page with the \"Trial version (restricted access)\" label; the tester listens to the tour as in UC#04. E5, A5.",
+      "decision": true,
+      "alts": [
+        "A5"
+      ],
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. The tour is no longer restricted or the code has changed → 404; back to the code entry page \"The access code has changed…\".",
+          "back": "s9"
+        }
+      ]
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1.1. The Contributor chooses \"Change access code\", enters a new code and taps \"Save new code\".",
+        "A1.2. The system increases the version and deletes all old access; testers must enter the new code.",
+        "A1.3. The Contributor chooses \"Disable restricted access\" and confirms \"Disable access\".",
+        "A1.4. The system moves the tour back to Draft and deletes the access records and attempts."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. The tester has already unlocked with the current passcode version (or is the author) → goes straight to the trial version."
+      ],
+      "to": "s11"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Edit the tour content while restricted: the tour stays \"Restricted\" and testers see the new content."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. To make it public: the Contributor disables restricted access (A1.3), then submits for review (UC#15)."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A5",
+      "steps": [
+        "A5. Offline download: the tester downloads the trial version to the device as in UC#03; the download is not counted in the statistics."
+      ],
+      "to": "end"
+    }
+  ]
+}

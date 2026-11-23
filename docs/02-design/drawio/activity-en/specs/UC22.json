@@ -1,0 +1,101 @@
+{
+  "uc": "UC22",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Admin opens the \"Dashboard\" page."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system computes the figures for the last 7 days (default): tours pending review (Pending review, AI Warning, total), average review time (hours), tours reported in the period, tours with open reports, top 5 authors, Admin action count by type; the client shows the figure tiles (linking to the UC#19 / UC#20 queues) and a horizontal bar chart of actions. A1, A3, E1, E2.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. No data yet → the figures are 0 and \"No data yet\" is shown; empty log → \"No actions yet\" / \"No matching actions\".",
+          "back": "s1"
+        },
+        {
+          "id": "E2",
+          "text": "E2. Invalid period (from date not before to date, over 366 days, invalid format) → 400; the client reports the error before calling the API.",
+          "back": "s1"
+        }
+      ],
+      "alts": [
+        "A1",
+        "A3"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. The Admin opens the \"Action log\"."
+    },
+    {
+      "id": "s4",
+      "text": "4. The system returns the newest log rows first (20 per page): time, action, target (tour or account, with a link), acting Admin, reason. E6.",
+      "exceptions": [
+        {
+          "id": "E6",
+          "text": "E6. An account.moderated event with an invalid format or a write error → only logged and acked; a redelivered event adds no row.",
+          "back": "s4"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s5",
+      "text": "5. The Admin filters by action type, target, administrator ID and date range, then taps \"Filter\". A2, E4, E5.",
+      "exceptions": [
+        {
+          "id": "E4",
+          "text": "E4. No valid token → 401; not an Admin → 403.",
+          "back": "end"
+        },
+        {
+          "id": "E5",
+          "text": "E5. Calls to edit / delete data → 405 \"View only; this data cannot be edited or deleted\".",
+          "back": "s5"
+        }
+      ],
+      "alts": [
+        "A2"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. The system shows the matching rows, paginated. E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Invalid filter or a log row ID that is not a UUID → 400; the log row does not exist → 404 \"Log record not found\".",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Change the period: \"7 days\", \"30 days\" or \"Custom\" (From date, To date, \"Apply\"); the system recomputes the figures."
+      ],
+      "to": "s3"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Go on from the dashboard: pick a top contributor to open the account page (UC#21), pick the pending / reports tile to open the UC#19 / UC#20 queue."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. View a log row's details: the system shows the full log row, including the attached data."
+      ],
+      "to": "end"
+    }
+  ]
+}

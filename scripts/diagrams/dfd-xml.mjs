@@ -12,6 +12,7 @@
 // Optional top-level "tableCheck": { "snapshot": "<path from repo root>", "schemas": [...] }: on every page with
 // "checkTables": true, the stores must cover each table of those schemas exactly once.
 // The script refuses overlapping nodes and lists flows whose straight line crosses another node.
+// Optional top-level "unusedLabel": text after a table listed in a store's "unused" (default "không dùng").
 // Usage: node scripts/diagrams/dfd-xml.mjs <spec.json> <out.xml>
 // =========================================================
 import fs from 'node:fs';
@@ -29,12 +30,12 @@ const FLOW = 'html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-function nodeValue(n) {
+function nodeValue(n, unusedLabel = 'không dùng') {
   if (n.kind === 'store') {
     const [code, ...rest] = n.label.split('|');
     const head = `<b>${code.trim()}</b>&nbsp;&nbsp;│&nbsp;&nbsp;${rest.join('|').trim()}`;
     return n.tables?.length
-      ? `${head}<br><font style="font-size: 10px; color: #555555;">${n.tables.map((t) => (n.unused?.includes(t) ? `${t} (không dùng)` : t)).join(', ')}</font>`
+      ? `${head}<br><font style="font-size: 10px; color: #555555;">${n.tables.map((t) => (n.unused?.includes(t) ? `${t} (${unusedLabel})` : t)).join(', ')}</font>`
       : head;
   }
   if (n.kind === 'process' || n.kind === 'ghost') {
@@ -92,7 +93,7 @@ export function buildDfdXml(spec, { warn = console.warn } = {}) {
       const id = nid();
       nodes.set(n.id, { ...n, cid: id, w, h, cx: n.x + w / 2, cy: n.y + h / 2 });
       cells.push(
-        `        <mxCell id="${id}" parent="1" style="${STYLE[n.kind]}" value="${esc(nodeValue(n))}" vertex="1">\n` +
+        `        <mxCell id="${id}" parent="1" style="${STYLE[n.kind]}" value="${esc(nodeValue(n, spec.unusedLabel))}" vertex="1">\n` +
           `          <mxGeometry x="${n.x}" y="${n.y}" width="${w}" height="${h}" as="geometry" />\n        </mxCell>`,
       );
     }
