@@ -296,7 +296,8 @@ services:
   ai:
     port: 3004
     replicas: 1
-    resources: { requests: { cpu: 200m, memory: 512Mi }, limits: { cpu: "1", memory: 1Gi } }
+    # 2Gi since #463: loading the embedding model peaks at about 1.5 GiB (1Gi was OOMKilled).
+    resources: { requests: { cpu: 200m, memory: 1Gi }, limits: { cpu: "1", memory: 2Gi } }
     secrets: [geosound-db, geosound-infra, geosound-ai]
   # auth, media, notification, client follow the same shape
 ```

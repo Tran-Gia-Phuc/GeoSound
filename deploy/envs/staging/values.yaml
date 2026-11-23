@@ -34,6 +34,7 @@ services:
     env:
       MEDIA_PUBLIC_BASE_URL: https://staging.geosound.example.com/api/media/files
   ai:
+    # Memory as in the chart (#463): the embedding model load peaks at about 1.5 GiB.
     resources:
-      requests: { cpu: 100m, memory: 512Mi }
-      limits: { cpu: "1", memory: 1Gi }
+      requests: { cpu: 100m, memory: 1Gi }
+      limits: { cpu: "1", memory: 2Gi }
