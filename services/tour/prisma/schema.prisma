@@ -51,6 +51,9 @@ model Tour {
   // UC12 / UC04: tourists may ask for a language the author did not turn on; the place descriptions
   // are then translated on demand (place_translations.text_source = auto). The author can turn it off.
   autoTranslate   Boolean   @default(true) @map("auto_translate")
+  // UC25 (#446): price of the offline package in VND (0 = free, else 1 000 to 50 000 000). Written
+  // without moving updated_at (no new moderation, no "Có bản mới"). Listening online stays free.
+  price           Int       @default(0)
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -410,4 +413,24 @@ model PlaceTranslation {
   @@unique([placeId, languageCode])
   @@index([languageCode])
   @@map("place_translations")
+}
+
+// UC25 (#446) — one row per MoMo order (id = the MoMo orderId). No foreign key to tours: a paid order
+// stays when the tour is deleted (payment record). status pending -> paid | failed, written only with
+// a conditional UPDATE; a late success after failed still becomes paid.
+model TourPurchase {
+  id         String    @id @default(uuid())
+  tourId     String    @map("tour_id")
+  userId     String    @map("user_id")
+  amount     Int
+  status     String    @default("pending")
+  provider   String    @default("momo")
+  transId    String?   @map("trans_id")
+  resultCode Int?      @map("result_code")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  paidAt     DateTime? @map("paid_at")
+
+  @@index([tourId, userId, status])
+  @@index([userId])
+  @@map("tour_purchases")
 }

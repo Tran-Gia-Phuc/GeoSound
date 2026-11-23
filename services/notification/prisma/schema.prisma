@@ -42,3 +42,22 @@ model InAppNotification {
   @@index([userId, tourId, createdAt]) // #297: Studio history of one tour (GET /?tourId=)
   @@map("in_app_notifications")
 }
+
+// Emails whose SMTP send failed. The shared consume() drops a failed message and a redelivery skips
+// the email (duplicate in-app row), so the worker keeps the email here and a sweeper resends it with
+// backoff. Sent rows are deleted; a row with attempts >= the limit is given up and kept for inspection.
+model PendingEmail {
+  id            String   @id @default(uuid())
+  event         String                              // event that produced the email, e.g. "tour.hidden"
+  to            String   @map("to_address")
+  subject       String
+  html          String?
+  text          String?
+  attempts      Int      @default(1)                // sends tried so far (the first one included)
+  nextAttemptAt DateTime @default(now()) @map("next_attempt_at")
+  lastError     String?  @map("last_error")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([nextAttemptAt])
+  @@map("pending_emails")
+}

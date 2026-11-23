@@ -13,8 +13,9 @@ Reading the diagrams:
   (or to the end).
 
 The content follows the Focused use case specs of the PRD
-([../../../01-requirements/GeoSound-PRD.docx](../../../01-requirements/GeoSound-PRD.docx), section 2.3, as of
-2026-11-16): one main-flow box per Basic Course step, one box per alternative step, one box per exception. The XML is
+([../../../01-requirements/GeoSound-PRD-final.docx](../../../01-requirements/GeoSound-PRD-final.docx), section 2.3, as of
+2026-11-16): one main-flow box per Basic Course step, one box per alternative step, one box per exception. UC25 (tour payment, added 2026-11-18, not in that PRD) and the UC03 paid-tour exception E7
+follow [`../../../use case/lam-sau/UC25-mua-tour-thanh-toan.md`](../../../use%20case/lam-sau/UC25-mua-tour-thanh-toan.md). The XML is
 generated from small JSON specs in `specs/` by `scripts/diagrams/activity-xml.mjs`:
 
 ```

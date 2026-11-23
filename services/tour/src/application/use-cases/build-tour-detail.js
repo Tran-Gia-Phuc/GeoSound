@@ -96,6 +96,8 @@ export function buildTourDetailView({ tour, places, route = null, langs = [], tr
     languageKinds,
     translatableLanguages,
     autoTranslate,
+    // UC25 (#446): 0 = free offline package; > 0 = the package must be bought (listening stays free).
+    price: tour.price ?? 0,
     voiceLabel,
     places: places.map((p) => localizePlace(p, selectedLanguage, source, txByPlace.get(p.id))),
     // Route cho bản đồ chi tiết + vùng kích hoạt cho trình phát (UC11).

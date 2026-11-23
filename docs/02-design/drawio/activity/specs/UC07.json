@@ -81,7 +81,7 @@
       "exceptions": [
         {
           "id": "E5",
-          "text": "E5. Lịch trình không tồn tại (404), của người khác (403) hoặc dữ liệu sai (400) → báo lỗi.",
+          "text": "E5. Lịch trình không tồn tại (404), của người khác (403), điểm không có trong lịch trình (404) hoặc dữ liệu sai (400) → báo lỗi.",
           "back": "end"
         }
       ],
@@ -103,7 +103,11 @@
     {
       "id": "A2",
       "steps": [
-        "A2. Chỉnh lịch trình: đổi thứ tự bằng nút lên / xuống, xóa điểm (có hoàn tác), đổi tên hoặc xóa cả lịch trình."
+        "A2.1. Đổi thứ tự điểm bằng nút lên / xuống; quãng đường được tính lại.",
+        "A2.2. Bỏ một điểm ngay, có nút “Hoàn tác”.",
+        "A2.3. Đổi tên lịch trình (ở trình sửa hoặc ở “Lịch trình của tôi”).",
+        "A2.4. Xóa cả lịch trình sau khi xác nhận “Xoá lịch trình”; liên kết chia sẻ ngừng hoạt động.",
+        "A2.5. “Thêm địa điểm”: mở Khám phá, chạm ＋ thêm thẳng vào lịch trình, “Xong” để quay lại."
       ],
       "to": "s9"
     },
@@ -117,7 +121,9 @@
     {
       "id": "A4",
       "steps": [
-        "A4. Chia sẻ: hệ thống tạo liên kết /shared/:token; Tourist có thể thu hồi liên kết; người nhận mở liên kết để xem (không cần đăng nhập) và đi theo (UC#08 A2)."
+        "A4.1. Tạo liên kết chia sẻ /shared/:token (dùng lại mã nếu đã có), nút Copy.",
+        "A4.2. Thu hồi chia sẻ: liên kết cũ ngừng hoạt động; chia sẻ lại sinh mã mới.",
+        "A4.3. Người nhận mở liên kết để xem (không cần đăng nhập) và đi theo (UC#08 A2)."
       ],
       "to": "end"
     }

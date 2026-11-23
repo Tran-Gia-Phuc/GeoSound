@@ -14,7 +14,7 @@
 | # | Actor Action | System Response |
 |---|---|---|
 | 1 | Tourist mở app (màn **Khám phá** `/`). | |
-| 2 | | Client hiện ô tìm kiếm, chuyển tab [Tour \| Địa điểm], chip thành phố, mục "Gần bạn" (nếu đã có quyền vị trí), "Mở gần đây" (lưu trên máy) và danh sách **Phổ biến** (`GET /api/tours?sort=popular`). `DiscoverPage`, `searchTours()` |
+| 2 | | Client hiện ô tìm kiếm, chuyển tab [Tour \| Địa điểm], chip thành phố, mục "Gần bạn" (nếu đã có quyền vị trí), "Nghe tiếp" (các tour đã mở trình phát, lưu trên máy) và danh sách **Phổ biến** (`GET /api/tours?sort=popular`). `DiscoverPage`, `searchTours()` |
 | 3 | Tourist gõ từ khoá / chọn thành phố / mở "Lọc" để chọn ngôn ngữ, loại tour. *A1, A2* | |
 | 4 | | Client tự tìm sau 300 ms (không cần nút "Tìm"), gọi `GET /api/tours?q=&city=&language=&type=&sort=`; toàn bộ tiêu chí nằm trên URL. `useDebounced()`, `searchTours()` |
 | 5 | | Tour trả danh sách tour **`public`** khớp: ảnh bìa, tên, thành phố, loại, thời lượng, số điểm, điểm đánh giá, nhãn giọng (`human` / `tts`), tác giả. *E1, E2* `PublicTourController.search()` → `SearchTours.execute()`, `PrismaTourRepository.searchPublicPage()`, `voiceLabelFor()` |
@@ -28,7 +28,7 @@
 
 ## Alternative Path
 
-**A1. Sắp xếp.** Tourist chọn chip *Phổ biến* (mặc định), *Đánh giá cao*, *Mới nhất* hoặc *Gần tôi*. *Gần tôi* xin quyền vị trí rồi gửi `lat`, `lng`; Tour xếp theo khoảng cách từ người dùng tới điểm đầu của tour. Quay về bước 5. `useCoords()`; `PrismaTourRepository.orderBy()`, `PrismaTourRepository.listPublicIds()` + `PrismaPlaceRepository.anchorsByTours()` + `haversineMeters()`
+**A1. Sắp xếp.** Tourist chọn chip *Phổ biến* (mặc định), *Đánh giá cao*, *Mới nhất* hoặc *Gần tôi* (tab *Địa điểm*: *Mới cập nhật* hoặc *Gần tôi*). *Gần tôi* xin quyền vị trí rồi gửi `lat`, `lng`; Tour xếp theo khoảng cách từ người dùng tới điểm đầu của tour. Quay về bước 5. `useCoords()`; `PrismaTourRepository.orderBy()`, `PrismaTourRepository.listPublicIds()` + `PrismaPlaceRepository.anchorsByTours()` + `haversineMeters()`
 
 **A2. Xem dạng bản đồ.** Tourist chuyển sang *Bản đồ* (`?view=map`): tour được ghim tại điểm xuất phát (`anchor`), địa điểm ghim tại chỗ. Chạm ghim để mở chi tiết. `DiscoverMap`
 
@@ -38,19 +38,19 @@
 
 **A5. Hành động khác ở chi tiết tour.**
 - Nghe thử một điểm (▶) ngay trong danh sách điểm; chạm điểm → mở trình phát tại điểm đó (`?stop=`).
-- "Tải về để nghe offline" → UC03 (`OfflineDownload`).
+- "Tải về để nghe offline" → UC03 (`OfflineDownload`). Tour có giá tải về (UC25) hiện khung **"Mua tour để tải về"** (`PurchaseGate`) thay cho mục này cho tới khi khách mua; xem chi tiết và nghe trực tuyến vẫn miễn phí.
 - "Báo cáo" → UC06 (`ReportTour`); đánh giá → UC05 (`RatingsSection`); tên tác giả → UC18 (`/authors/:id`).
 
 ## Exception Path
 
 - **E1.** Không có kết quả → *"Không tìm thấy tour phù hợp"* (hoặc *"... địa điểm ..."*), gợi ý *"Thử từ khoá khác, bỏ bớt bộ lọc, hoặc dùng “Gần tôi”"* và nút *"Xoá tìm kiếm & bộ lọc"*. `Empty` (`DiscoverPage.jsx`)
 - **E2.** Mất mạng → *"Mất kết nối mạng"*; tour đã tải vẫn mở được ở `/offline` (UC03).
-- **E3.** Tour không còn công khai (nháp, ẩn, hạn chế, đã xoá) → `404` *"Tour không còn khả dụng"*, nút quay lại danh sách. Mã tour sai định dạng → `400`. `PrismaTourRepository.findPublicById()`, `TourNotFoundError`, `detailParamSchema`
+- **E3.** Tour không còn công khai (nháp, ẩn, hạn chế, đã xoá) → `404` *"Tour không còn khả dụng"*, nút *"Về Khám phá"*. Mã tour sai định dạng → `400`. `PrismaTourRepository.findPublicById()`, `TourNotFoundError`, `detailParamSchema`
 - **E4.** Chọn *Gần tôi* nhưng không có / từ chối quyền vị trí → không sắp theo khoảng cách; thiếu `lat`, `lng` thì Tour trả `400` *"Sắp xếp \"gần tôi\" cần vị trí (lat, lng)"*. `searchQuerySchema`
 
 ## Extension Points
 
-- UC03 – Quản lý tour offline; UC04 – Nghe tour; UC05 – Đánh giá; UC06 – Báo cáo tour; UC07 – Lịch trình cá nhân (tab Địa điểm); UC18 – Trang tác giả.
+- UC03 – Quản lý tour offline; UC04 – Nghe tour; UC05 – Đánh giá; UC06 – Báo cáo tour; UC07 – Lịch trình cá nhân (tab Địa điểm); UC18 – Trang tác giả; UC25 – Mua tour có phí để tải về.
 
 ## Triggers
 
@@ -75,6 +75,7 @@ Tourist muốn tìm tour hoặc địa điểm tại nơi mình đến.
 | Chỉ hiển thị tour `public` | `draft`, `ai_checking`, `ai_warning`, `pending_review`, `rejected`, `changes_requested`, `restricted`, `hidden` không xuất hiện |
 | Từ khoá | Tìm trong tên và mô tả, không phân biệt hoa thường, tối đa 200 ký tự |
 | Thành phố | So khớp đúng tên (không phân biệt hoa thường) |
+| Ngôn ngữ (bộ lọc) | Lọc theo ngôn ngữ gốc của tour (`original_language`) |
 | Loại tour | `walking`, `driving`, `cycling`, `indoor` |
 | Sắp xếp `popular` | Số lượt đánh giá, rồi điểm trung bình, rồi mới nhất |
 | Phân trang | `limit` tối đa 50 (client dùng 12) |

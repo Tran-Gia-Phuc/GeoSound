@@ -2,7 +2,8 @@
 // UC16 (#270) — store one in-app notification from a consumed event.
 // Never throws: shared consume() nacks a throwing handler WITHOUT requeue, so throwing would not
 // retry anything and would only stop the email that follows. A storage failure is logged and the
-// email still goes out. A duplicate delivery (same sourceKey) is ignored by the repository.
+// email still goes out. A duplicate delivery (same sourceKey) is ignored by the repository, and
+// handleEvent then skips the email too (it went out on the first delivery).
 // =========================================================
 import { buildInAppNotification } from '../domain/in-app-notification.js';
 

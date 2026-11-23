@@ -4,7 +4,7 @@
 // Mọi route yêu cầu JWT role=contributor.
 // =========================================================
 import { Router } from 'express';
-import { verifyJwt } from '../../../../shared/middleware/index.js';
+// The contributor guard is injected (container passes shared verifyJwt(['contributor'])): no ../shared import (CI repo layout).
 import { validateBody, validateParams } from '../middleware/validate.js';
 import {
   addPlaceSchema,
@@ -16,11 +16,11 @@ import {
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-/** @param {{ placeController }} deps */
-export function buildPlaceRouter({ placeController }) {
+/** @param {{ placeController, requireContributor }} deps */
+export function buildPlaceRouter({ placeController, requireContributor }) {
   const r = Router();
 
-  r.use(verifyJwt(['contributor']));
+  r.use(requireContributor);
 
   r.post('/mine/:tourId/places', validateParams(tourIdParamSchema), validateBody(addPlaceSchema), wrap(placeController.add));
   r.get('/mine/:tourId/places', validateParams(tourIdParamSchema), wrap(placeController.list));

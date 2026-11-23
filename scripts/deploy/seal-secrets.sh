@@ -19,6 +19,11 @@
 # REDIS_PASSWORD if wanted). Without RABBITMQ_URL / REDIS_URL in the file, the app URLs are built
 # from them (amqp://<user>:<pass>@rabbitmq:5672, redis://[:<pass>@]redis:6379), so the broker and
 # the apps can never disagree.
+#
+# SEAL_ONLY="<name> ..." seals only the named secrets, e.g. to add one secret to a running
+# environment without resealing the others:
+#   SEAL_ONLY=geosound-payment sh scripts/deploy/seal-secrets.sh staging /path/to/staging.env
+# The required-key check then covers only the keys of those secrets.
 set -eu
 
 [ $# -eq 2 ] || { echo "usage: $0 <env> <env-file>" >&2; exit 2; }
@@ -32,8 +37,9 @@ CERT=${SEALED_CERT:-deploy/envs/$ENV/sealed-secrets.pem}
 CR=$(printf '\r')
 umask 077
 
-# Keys of every secret (plan section 8.4, plus geosound-broker of task 2.3).
-SECRETS="geosound-db geosound-jwt geosound-infra geosound-ai geosound-smtp geosound-storage geosound-broker"
+# Keys of every secret (plan section 8.4, plus geosound-broker of task 2.3 and geosound-payment
+# of UC25).
+SECRETS="geosound-db geosound-jwt geosound-infra geosound-ai geosound-smtp geosound-storage geosound-broker geosound-payment"
 keys_of() {
   case $1 in
     geosound-db)
@@ -46,8 +52,23 @@ keys_of() {
     geosound-smtp) echo SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_FROM ;;
     geosound-storage) echo SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY SUPABASE_STORAGE_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY ;;
     geosound-broker) echo RABBITMQ_DEFAULT_USER RABBITMQ_DEFAULT_PASS REDIS_PASSWORD ;;
+    # UC25 tour payment (MoMo API v2), read by tour only. MOMO_ENDPOINT is not secret: env values.
+    geosound-payment) echo MOMO_PARTNER_CODE MOMO_ACCESS_KEY MOMO_SECRET_KEY ;;
   esac
 }
+if [ -n "${SEAL_ONLY:-}" ]; then
+  for name in $SEAL_ONLY; do
+    case " $SECRETS " in
+      *" $name "*) ;;
+      *) echo "[seal] SEAL_ONLY: unknown secret $name (known: $SECRETS)" >&2; exit 2 ;;
+    esac
+  done
+  SECRETS=$SEAL_ONLY
+fi
+# Keys of the secrets sealed by this run.
+SELECTED=" $(for name in $SECRETS; do keys_of "$name"; done | tr '
+' ' ') "
+selected() { case $SELECTED in *" $1 "*) return 0 ;; esac; return 1; }
 # Without these the apps do not start.
 REQUIRED="DATABASE_URL_AUTH DATABASE_URL_TOUR DATABASE_URL_MODERATION DATABASE_URL_AI
   DATABASE_URL_MEDIA DATABASE_URL_NOTIFICATION JWT_ACCESS_SECRET JWT_REFRESH_SECRET
@@ -91,13 +112,16 @@ get() {
 present() { in_file "$1" || [ -n "$(get "$1")" ]; }
 
 # Check everything before sealing anything.
-if ! in_file RABBITMQ_URL && in_file RABBITMQ_DEFAULT_USER; then
+if selected RABBITMQ_URL && ! in_file RABBITMQ_URL && in_file RABBITMQ_DEFAULT_USER; then
   url_safe RABBITMQ_DEFAULT_USER
   url_safe RABBITMQ_DEFAULT_PASS
 fi
-if ! in_file REDIS_URL && [ -n "$(get REDIS_PASSWORD)" ]; then url_safe REDIS_PASSWORD; fi
+if selected REDIS_URL && ! in_file REDIS_URL && [ -n "$(get REDIS_PASSWORD)" ]; then
+  url_safe REDIS_PASSWORD
+fi
 missing=""
 for k in $REQUIRED; do
+  selected "$k" || continue
   [ -n "$(get "$k")" ] || missing="$missing $k"
 done
 if [ -n "$missing" ]; then
@@ -139,6 +163,7 @@ for name in $SECRETS; do
   echo "[seal] $name:$keys -> $OUT/$name.yaml"
 done
 
+[ -z "${SEAL_ONLY:-}" ] || exit 0 # the notes below are about a full environment
 case " $(ls "$OUT") " in
   *geosound-broker.yaml*) ;;
   *) echo "[seal] note: no geosound-broker; the chart's RabbitMQ and Redis need it unless rabbitmq.enabled and redis.enabled are false" ;;

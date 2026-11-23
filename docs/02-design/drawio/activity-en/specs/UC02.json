@@ -1,0 +1,126 @@
+{
+  "uc": "UC02",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Tourist opens the Explore page (/)."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system shows the search box, the [Tours | Places] tabs, the city picker (\"Featured destinations\" list), the [List | Map] toggle and the \"Continue listening\" (recently opened tours), \"Near you\" and \"Popular\" sections."
+    },
+    {
+      "id": "s3",
+      "text": "3. The Tourist enters a keyword or opens the \"Filters\" panel (City, Original language, Tour type) and taps \"Show results\"; \"Clear filters\" restores the defaults. A1, A2.",
+      "alts": [
+        "A1",
+        "A2"
+      ]
+    },
+    {
+      "id": "s4",
+      "text": "4. The system searches automatically 300 ms after the last keystroke."
+    },
+    {
+      "id": "s5",
+      "text": "5. The system (Tour) returns only tours in the Public status with the number of places, duration and rating; results are paginated with a numbered pager. E1, E2.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. No results → \"No matching tours found\" (or \"places\") with a \"Clear search & filters\" button.",
+          "back": "s3"
+        },
+        {
+          "id": "E2",
+          "text": "E2. No network → \"Network connection lost\"; downloaded tours can still be opened in Account → Downloaded tours (UC#03).",
+          "back": "s3"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. The Tourist picks a tour."
+    },
+    {
+      "id": "s7",
+      "text": "7. The system shows the details: cover image, description, route map, place list, author (UC#18), ratings (UC#05), the \"Human voice\" / \"Device voice\" label. E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. The tour is no longer public or does not exist → 404 \"The tour is no longer available\".",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s8",
+      "text": "8. The Tourist chooses a listening language. A3.",
+      "alts": [
+        "A3"
+      ]
+    },
+    {
+      "id": "s9",
+      "text": "9. The system returns the tour content in the chosen language."
+    },
+    {
+      "id": "s10",
+      "text": "10. The Tourist taps \"Preview\" or \"Start the tour\". A4, A5.",
+      "alts": [
+        "A4",
+        "A5"
+      ]
+    },
+    {
+      "id": "s11",
+      "text": "11. The system opens the player (UC#04).",
+      "exceptions": [
+        {
+          "id": "E4",
+          "text": "E4. Choosing \"Near me\" without location permission → asks for location permission and keeps the previous sort order.",
+          "back": "s3"
+        }
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Sort results: the Tours tab has Popular, Top rated, Newest, Near me; the Places tab has Recently updated, Near me (needs location permission). E4."
+      ],
+      "to": "s5"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. View results on the map: choose \"Map\"; each tour / place is a numbered pin; tap a pin to see a summary card and open the details. Results without a location show no pin."
+      ],
+      "to": "s5"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Change language: only languages that every place of the tour has a translation for are shown; if the author enabled automatic translation for tourists, another language can be requested (UC#04 A7)."
+      ],
+      "to": "s9"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. Places tab: find individual stops of public tours to view them or add them to an itinerary (UC#07)."
+      ],
+      "to": "s5"
+    },
+    {
+      "id": "A5",
+      "steps": [
+        "A5. Other actions on the detail page: download the tour offline (UC#03), report a violation (UC#06), view / write a rating (UC#05), open the author page and follow (UC#18)."
+      ],
+      "to": "end"
+    }
+  ]
+}

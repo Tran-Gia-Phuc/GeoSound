@@ -2,6 +2,8 @@
 
 | File | Content |
 | --- | --- |
-| [GeoSound-PRD.docx](GeoSound-PRD.docx) | PRD (Vietnamese, Word): product requirements, actors (Bảng 2.1), the 24 use cases (Bảng 2.2), a Focused spec table for every use case UC#01 to UC#24 (section 2.3), component / deployment / ERD notes. Matches the system as of 2026-11-16 (Discover redesign, my ratings page, notification badges, CI/CD with Argo CD and monitoring included). The diagrams (use case, component, deployment, ERD, activity) still need to be redrawn by hand. |
+| [GeoSound-PRD-final.docx](GeoSound-PRD-final.docx) | Final PRD (Vietnamese, Word): product requirements, actors, the use cases with a Focused spec table for each, component / deployment / ERD notes. Replaces the earlier `GeoSound-PRD.docx`. |
+| [GeoSound-PRD-final-en.docx](GeoSound-PRD-final-en.docx) | English translation of the final PRD. |
+| [GeoSound-PRD-final.pdf](GeoSound-PRD-final.pdf) | PDF export of the final Vietnamese PRD. |
 
 The detailed use case files, kept in sync with the code, are in [../use case](../use%20case/).

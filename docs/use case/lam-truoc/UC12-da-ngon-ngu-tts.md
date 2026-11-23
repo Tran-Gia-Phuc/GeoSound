@@ -15,7 +15,7 @@
 |---|---|---|
 | 1 | Contributor mở bước **Ngôn ngữ** (`/studio/tours/:id/languages`). | |
 | 2 | | Client gọi `GET .../languages`: ngôn ngữ gốc, ngôn ngữ phụ đã chọn, giọng, bản dịch từng điểm và tiến độ ("n/n điểm đã dịch"). `getLanguageConfig()` → `LanguageController.get()` → `GetLanguageConfig.execute()` → `buildLanguageConfig()` |
-| 3 | Contributor chọn các ngôn ngữ phụ và giọng (nam / nữ, vùng miền tùy chọn), nhấn **Lưu**. | |
+| 3 | Contributor chọn các ngôn ngữ phụ và giọng (nam / nữ, vùng miền tùy chọn), nhấn **Lưu & tạo bản dịch**. | |
 | 4 | | `PUT .../languages { secondary, voice }`: Tour chuẩn hóa mã ngôn ngữ (bỏ trùng, bỏ ngôn ngữ gốc), đồng bộ `tour_languages`, xóa ngôn ngữ bị gỡ cùng bản dịch của nó. `setTourLanguages()` → `LanguageController.set()` → `SetTourLanguages.execute()` → `PrismaTourLanguageRepository.upsertMany()`, `deleteLanguages()` |
 | 5 | | Tour dịch theo lô: mỗi ngôn ngữ phụ một lượt gọi AI `POST /translate` (tối đa 20 đoạn mỗi request, ngữ cảnh = tên tour và thành phố), **chỉ các điểm chưa có bản dịch hoặc bản dịch đã cũ** (mô tả đổi sau lần dịch trước, so bằng `source_hash`); bản còn đúng và bản đã chỉnh tay được giữ. *E1* `EnsureTranslations.execute()` → `AiTranslator.translateMany()` → AI `translate()` |
 | 6 | | Tour lưu `place_translations` cho mọi điểm × mọi ngôn ngữ (`text_source = source | machine | edited`, `source_hash`), render lại TTS theo giọng đã chọn và trả cấu hình mới. `PlaceholderTtsSynthesizer.synthesize()`, `PrismaPlaceTranslationRepository.upsert()` |

@@ -1,13 +1,13 @@
 # GeoSound database tables (for the ERD)
 
-Every table of the database as it is on Supabase (snapshot of 2026-11-09,
+Every table of the database as it is on Supabase (snapshot of 2026-11-20,
 [`drawio/erd/supabase-schema.json`](drawio/erd/supabase-schema.json), made by `scripts/diagrams/db-snapshot.py`).
 The tables come from `services/<svc>/prisma/schema.prisma`, the chat memory tables of `services/ai/app/chatbot/memory.py`
 and the LangGraph checkpointer. ERD: [`drawio/erd-geosound.xml`](drawio/erd-geosound.xml).
 
-**The database has 75 tables:**
+**The database has 77 tables:**
 
-- **34 GeoSound tables**, in the schemas of the services (section 1): `app_auth` 3, `tour` 16, `notification` 2,
+- **36 GeoSound tables**, in the schemas of the services (section 1): `app_auth` 3, `tour` 18, `notification` 2,
   `moderation` 1, `media` 1, `ai` 5, `ai_chat` 6. They are on page 1 of the ERD.
 - **41 Supabase platform tables**, made and managed by Supabase itself: `auth` 27 (Supabase Auth), `storage` 10,
   `realtime` 3, `vault` 1. GeoSound never reads or writes them. They are on page 2 of the ERD. Do not mix up Supabase's
@@ -35,10 +35,12 @@ and the LangGraph checkpointer. ERD: [`drawio/erd-geosound.xml`](drawio/erd-geos
 | tour | `tour_languages` | Languages of a tour and TTS voice | UC12 |
 | tour | `place_translations` | Text (and TTS URL) of a stop per language | UC12 |
 | tour | `forbidden_zones` | Polygons where a stop may not be placed (seed data) | UC10 |
-| tour | `tour_ratings` | One rating per account and tour | UC05 |
+| tour | `tour_ratings` | One rating per account and tour, with moderation flags | UC05 |
+| tour | `tour_rating_reports` | Abuse reports and author disputes of a rating, reviewed by an admin | UC05 |
 | tour | `tour_reports` | One community report per account and tour | UC06, UC20 |
 | tour | `tour_access_grants` | Unlocks of a restricted tour per tester | UC14 |
 | tour | `tour_unlock_attempts` | Wrong passcode attempts (rate limit) | UC14 |
+| tour | `tour_purchases` | MoMo orders of paid tours (added 2026-11-18) | UC25 |
 | tour | `tour_daily_stats` | Daily counters per tour and language | UC17 |
 | tour | `tour_activity_marks` | Dedup marks for the counters | UC17 |
 | tour | `itineraries` | Personal itineraries | UC07 |
@@ -46,6 +48,7 @@ and the LangGraph checkpointer. ERD: [`drawio/erd-geosound.xml`](drawio/erd-geos
 | tour | `tour_review_actions` | Admin review decisions | UC19 |
 | tour | `admin_actions` | Append-only log of every admin action | UC19, UC20, UC21, UC22 |
 | notification | `in_app_notifications` | In-app notifications | UC16, UC21 |
+| notification | `pending_emails` | Emails whose SMTP send failed, resent later | UC16, UC21, UC23 |
 | notification | `notifications` | Early placeholder table, not used by the code | — |
 | moderation | `moderation_cases` | One AI review case per place / tour revision | UC15 |
 | media | `audio_assets` | Declared for TTS audio, not used by the code yet | UC12 |
@@ -76,9 +79,11 @@ erDiagram
   tours ||--o{ tour_languages : "has"
   places ||--o{ place_translations : "has"
   tours ||--o{ tour_ratings : "has"
+  tour_ratings ||--o{ tour_rating_reports : "has"
   tours ||--o{ tour_reports : "has"
   tours ||--o{ tour_access_grants : "has"
   tours ||--o{ tour_unlock_attempts : "has"
+  tours ||..o{ tour_purchases : "tour_id"
   tours ||--o{ tour_daily_stats : "has"
   tours ||--o{ tour_activity_marks : "has"
   itineraries ||--o{ itinerary_items : "has"
@@ -86,8 +91,11 @@ erDiagram
   users ||..o{ tours : "author_id"
   users ||..o{ itineraries : "owner_id"
   users ||..o{ tour_ratings : "user_id"
+  users ||..o{ tour_rating_reports : "reporter_id"
+  tours ||..o{ tour_rating_reports : "tour_id"
   users ||..o{ tour_reports : "reporter_id"
   users ||..o{ tour_access_grants : "user_id"
+  users ||..o{ tour_purchases : "user_id"
   places ||..o{ itinerary_items : "place_id (snapshot)"
   tours ||..o{ tour_review_actions : "tour_id"
   users ||..o{ admin_actions : "admin_id / target_id"
@@ -185,6 +193,7 @@ Unique `(follower_id, author_id)`; index `(author_id)`.
 | `passcode_version` | int | no | 0 | bumped on passcode change / off |
 | `passcode_set_at` | timestamp | yes | | |
 | `auto_translate` | bool | no | true | lets tourists ask for an automatic translation into a language the author did not turn on (UC04 A7, UC12 A6) |
+| `price` | int | no | 0 | download price in VND, 0 = free, else 1 000 to 50 000 000 (UC25) |
 | `created_at`, `updated_at` | timestamp | no | now | `updated_at` = moderation and catalog revision |
 
 Indexes: `(author_id)`, `(status)`, `(status, city)`.
@@ -274,9 +283,29 @@ Index `(active)`. No relation: checked against every saved stop.
 | `user_name` | text | no | reviewer name at rating time |
 | `stars` | int | no | 1..5 |
 | `comment` | text | yes | max 1000 |
+| `is_flagged` | boolean | no | default false; has an open abuse report |
+| `is_hidden` | boolean | no | default false; hidden by an admin |
 | `created_at`, `updated_at` | timestamp | no | |
 
 Unique `(tour_id, user_id)`; indexes `(tour_id, created_at)`, `(user_id)`.
+
+### `tour_rating_reports`
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | uuid | PK |
+| `tour_id` | uuid | no | | soft ref → `tours.id` |
+| `rating_id` | uuid | no | | FK → `tour_ratings.id`, cascade |
+| `rating_user_id` | uuid | no | | author of the reported rating |
+| `reporter_id` | uuid | no | | soft ref → `app_auth.users.id` |
+| `reporter_role` | text | no | | `TOURIST` \| `AUTHOR` (author dispute) |
+| `reason_type` | text | no | | `SPAM`, `OFFENSIVE`, `MISLEADING`, `OTHER` |
+| `description` | text | yes | | |
+| `status` | text | no | `PENDING` | `PENDING` \| `RESOLVED` \| `DISMISSED` |
+| `admin_note`, `resolved_by` | text | yes | | set by the admin who handles it |
+| `created_at`, `updated_at` | timestamp | no | now | |
+
+Unique `(tour_id, rating_user_id, reporter_id)`; indexes `(status, created_at)`, `(rating_id)`. Migration `20261117000000_rating_reports`.
 
 ### `tour_reports`
 
@@ -314,6 +343,23 @@ Unique `(tour_id, user_id)`; index `(user_id)`.
 | `created_at` | timestamp | no | 5 wrong attempts per 15 minutes |
 
 Index `(tour_id, user_id, created_at)`.
+
+### `tour_purchases` (UC25)
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| `id` | uuid | no | PK, also the MoMo `orderId` / `requestId` |
+| `tour_id` | uuid | no | soft ref → `tours.id` (no FK: orders stay as payment records) |
+| `user_id` | uuid | no | soft ref → `auth.users.id` (buyer) |
+| `amount` | int | no | VND, the tour price when the order was made |
+| `status` | text | no | `pending`, `paid`, `failed` (default `pending`) |
+| `provider` | text | no | `momo` |
+| `trans_id` | text | yes | MoMo transaction id |
+| `result_code` | int | yes | last MoMo `resultCode` |
+| `created_at` | timestamp | no | |
+| `paid_at` | timestamp | yes | |
+
+Indexes `(tour_id, user_id, status)`, `(user_id)`. Migration `20261118000000_tour_purchases`.
 
 ### `tour_daily_stats`
 
@@ -419,6 +465,28 @@ Indexes `(target_type, target_id, created_at)`, `(created_at)`, `(admin_id, crea
 | `source_key` | text | no | | unique: a redelivered event adds no row |
 
 Indexes `(user_id, created_at)`, `(user_id, read_at)`, `(user_id, tour_id, created_at)`.
+
+### `pending_emails`
+
+Email outbox (`services/notification/src/application/email-outbox.js`). A send that fails on SMTP is stored here
+instead of throwing (the shared `consume()` drops a failed message and a redelivery skips the email). A sweeper
+resends due rows every 30 s (`EMAIL_RETRY_SWEEP_MS`) with backoff 1, 2, 4 ... minutes, capped at 1 hour; a sent
+row is deleted; after 8 sends the row is given up and kept with its last error.
+
+| Column | Type | Null | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | uuid | PK |
+| `event` | text | no | | event that produced the email, e.g. `tour.hidden` |
+| `to_address` | text | no | | recipient email |
+| `subject` | text | no | | |
+| `html` | text | yes | | |
+| `text` | text | yes | | |
+| `attempts` | int | no | 1 | sends tried so far |
+| `next_attempt_at` | timestamp | no | now | claimed with a conditional update (one replica sends a row) |
+| `last_error` | text | yes | | |
+| `created_at` | timestamp | no | now | |
+
+Index `(next_attempt_at)`.
 
 ### `notifications` (unused placeholder)
 

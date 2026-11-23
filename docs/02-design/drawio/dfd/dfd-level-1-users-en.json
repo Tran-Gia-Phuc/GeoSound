@@ -1,0 +1,748 @@
+{
+  "unusedLabel": "not used",
+  "pages": [
+    {
+      "name": "DFD level 1",
+      "title": "DFD level 1 (human actors only) – GeoSound",
+      "nodes": [
+        {
+          "id": "P1",
+          "kind": "process",
+          "label": "1.0 | Accounts & sign-in sessions (UC01, UC18, UC23)",
+          "x": 700,
+          "y": 990
+        },
+        {
+          "id": "P2",
+          "kind": "process",
+          "label": "2.0 | Find, view, listen & download tours (UC02–UC04)",
+          "x": 700,
+          "y": 330
+        },
+        {
+          "id": "P3",
+          "kind": "process",
+          "label": "3.0 | Personal itineraries (UC07, UC08)",
+          "x": 700,
+          "y": 0
+        },
+        {
+          "id": "P7",
+          "kind": "process",
+          "label": "7.0 | Ratings, reports & statistics (UC05, UC06, UC17)",
+          "x": 700,
+          "y": 660
+        },
+        {
+          "id": "P4",
+          "kind": "process",
+          "label": "4.0 | Tour content management (UC09–UC14)",
+          "x": 1400,
+          "y": 0
+        },
+        {
+          "id": "P5",
+          "kind": "process",
+          "label": "5.0 | Automatic AI moderation (UC15)",
+          "x": 1400,
+          "y": 330
+        },
+        {
+          "id": "P6",
+          "kind": "process",
+          "label": "6.0 | Tour review, violations & monitoring (UC19–UC22)",
+          "x": 1400,
+          "y": 990
+        },
+        {
+          "id": "P8",
+          "kind": "process",
+          "label": "8.0 | Notifications (UC16)",
+          "x": 1400,
+          "y": 660
+        },
+        {
+          "id": "P9",
+          "kind": "process",
+          "label": "9.0 | AI travel assistant (UC24)",
+          "x": 1400,
+          "y": 1320
+        },
+        {
+          "id": "D1",
+          "kind": "store",
+          "label": "D1 | Accounts, sessions, author follows",
+          "x": 300,
+          "y": 1010,
+          "w": 280,
+          "h": 78,
+          "tables": [
+            "app_auth.users",
+            "app_auth.sessions",
+            "app_auth.author_follows"
+          ]
+        },
+        {
+          "id": "D2",
+          "kind": "store",
+          "label": "D2 | OTP & revoked sessions (Redis, not a table)",
+          "x": 1010,
+          "y": 1010,
+          "w": 280,
+          "h": 50
+        },
+        {
+          "id": "D12",
+          "kind": "store",
+          "label": "D12 | Offline packages on the device (IndexedDB, not a table)",
+          "x": 300,
+          "y": 240,
+          "w": 280,
+          "h": 50
+        },
+        {
+          "id": "D3",
+          "kind": "store",
+          "label": "D3 | Tours & tour content",
+          "x": 1010,
+          "y": 430,
+          "w": 280,
+          "h": 106,
+          "tables": [
+            "tour.tours",
+            "tour.places",
+            "tour.route_configs",
+            "tour.tour_languages",
+            "tour.place_translations",
+            "tour.forbidden_zones",
+            "tour.tour_access_grants",
+            "tour.tour_unlock_attempts"
+          ]
+        },
+        {
+          "id": "D4",
+          "kind": "store",
+          "label": "D4 | Media files (images, audio – file storage)",
+          "x": 1010,
+          "y": 250,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "media.audio_assets"
+          ],
+          "unused": [
+            "media.audio_assets"
+          ]
+        },
+        {
+          "id": "D5",
+          "kind": "store",
+          "label": "D5 | Itineraries",
+          "x": 300,
+          "y": 50,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "tour.itineraries",
+            "tour.itinerary_items"
+          ]
+        },
+        {
+          "id": "D6",
+          "kind": "store",
+          "label": "D6 | Ratings, reports, statistics",
+          "x": 300,
+          "y": 720,
+          "w": 280,
+          "h": 78,
+          "tables": [
+            "tour.tour_ratings",
+            "tour.tour_rating_reports",
+            "tour.tour_reports",
+            "tour.tour_daily_stats",
+            "tour.tour_activity_marks"
+          ]
+        },
+        {
+          "id": "D7",
+          "kind": "store",
+          "label": "D7 | Admin log",
+          "x": 1010,
+          "y": 1130,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "tour.admin_actions",
+            "tour.tour_review_actions"
+          ]
+        },
+        {
+          "id": "D8",
+          "kind": "store",
+          "label": "D8 | Moderation cases",
+          "x": 1720,
+          "y": 550,
+          "w": 280,
+          "h": 64,
+          "tables": [
+            "moderation.moderation_cases"
+          ]
+        },
+        {
+          "id": "D9",
+          "kind": "store",
+          "label": "D9 | Notifications",
+          "x": 1720,
+          "y": 680,
+          "w": 280,
+          "h": 78,
+          "tables": [
+            "notification.in_app_notifications",
+            "notification.pending_emails",
+            "notification.notifications"
+          ],
+          "unused": [
+            "notification.notifications"
+          ]
+        },
+        {
+          "id": "D10",
+          "kind": "store",
+          "label": "D10 | Chatbot knowledge index",
+          "x": 1010,
+          "y": 1320,
+          "w": 280,
+          "h": 78,
+          "tables": [
+            "ai.index_meta",
+            "ai.tour_index",
+            "ai.nodes",
+            "ai.edges",
+            "ai.chunks"
+          ]
+        },
+        {
+          "id": "D11",
+          "kind": "store",
+          "label": "D11 | Chatbot conversations",
+          "x": 1720,
+          "y": 1390,
+          "w": 280,
+          "h": 106,
+          "tables": [
+            "ai_chat.chat_sessions",
+            "ai_chat.chat_messages",
+            "ai_chat.checkpoints",
+            "ai_chat.checkpoint_blobs",
+            "ai_chat.checkpoint_writes",
+            "ai_chat.checkpoint_migrations"
+          ]
+        },
+        {
+          "id": "USER",
+          "kind": "entity",
+          "label": "User (Tourist / Contributor / Admin)",
+          "x": -60,
+          "y": 1100
+        },
+        {
+          "id": "TOURIST",
+          "kind": "entity",
+          "label": "Tourist",
+          "x": -60,
+          "y": 280
+        },
+        {
+          "id": "CONTRIB",
+          "kind": "entity",
+          "label": "Contributor",
+          "x": 2120,
+          "y": -40
+        },
+        {
+          "id": "ADMIN",
+          "kind": "entity",
+          "label": "Admin",
+          "x": 2120,
+          "y": 1280
+        },
+        {
+          "id": "TOURIST2",
+          "kind": "entity",
+          "label": "Tourist *",
+          "x": 1385,
+          "y": 1560
+        },
+        {
+          "id": "CONTRIB2",
+          "kind": "entity",
+          "label": "Contributor *",
+          "x": -60,
+          "y": 610
+        },
+        {
+          "id": "USER2",
+          "kind": "entity",
+          "label": "User (notification recipient) *",
+          "x": 2120,
+          "y": 890
+        },
+        {
+          "id": "P10",
+          "kind": "process",
+          "label": "10.0 | Paid tour payment (UC25)",
+          "x": 340,
+          "y": 420
+        },
+        {
+          "id": "D13",
+          "kind": "store",
+          "label": "D13 | Tour purchases",
+          "x": 340,
+          "y": 590,
+          "w": 200,
+          "h": 64,
+          "tables": [
+            "tour.tour_purchases"
+          ]
+        },
+        {
+          "id": "ADMIN2",
+          "kind": "entity",
+          "label": "Admin *",
+          "x": -360,
+          "y": 540
+        }
+      ],
+      "flows": [
+        {
+          "from": "USER",
+          "to": "P1",
+          "label": "Sign-up, sign-in, OTP,<br>profile, follow authors"
+        },
+        {
+          "from": "P1",
+          "to": "USER",
+          "label": "Token, device list,<br>author page"
+        },
+        {
+          "from": "P1",
+          "to": "D1",
+          "label": "Accounts, sessions"
+        },
+        {
+          "from": "D1",
+          "to": "P1",
+          "label": "Account data"
+        },
+        {
+          "from": "P1",
+          "to": "D2",
+          "label": "OTP, revoked sessions"
+        },
+        {
+          "from": "D2",
+          "to": "P1",
+          "label": "OTP to verify"
+        },
+        {
+          "from": "P1",
+          "to": "P8",
+          "label": "New-device sign-in,<br>account actions, recipient email"
+        },
+        {
+          "from": "P6",
+          "to": "P1",
+          "label": "Warn / suspend / ban command"
+        },
+        {
+          "from": "P1",
+          "to": "P6",
+          "label": "Account list,<br>account action events"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P2",
+          "label": "Keywords, filters, tour choice,<br>GPS position, access code"
+        },
+        {
+          "from": "P2",
+          "to": "TOURIST",
+          "label": "Tour list, map, tour details,<br>narration, audio"
+        },
+        {
+          "from": "D3",
+          "to": "P2",
+          "label": "Public tours, places,<br>routes, translations"
+        },
+        {
+          "from": "D4",
+          "to": "P2",
+          "label": "Images, audio"
+        },
+        {
+          "from": "P2",
+          "to": "D12",
+          "label": "Tour package"
+        },
+        {
+          "from": "D12",
+          "to": "P2",
+          "label": "Downloaded tours"
+        },
+        {
+          "from": "P2",
+          "to": "P7",
+          "label": "Views / listens /<br>completions / downloads"
+        },
+        {
+          "from": "P2",
+          "to": "P4",
+          "label": "New-language translation request",
+          "via": [
+            [
+              960,
+              230
+            ]
+          ]
+        },
+        {
+          "from": "TOURIST",
+          "to": "P3",
+          "label": "Create, edit, share itineraries"
+        },
+        {
+          "from": "P3",
+          "to": "TOURIST",
+          "label": "Itineraries, distance,<br>share link"
+        },
+        {
+          "from": "P3",
+          "to": "D5",
+          "label": "Itineraries, places (snapshot)"
+        },
+        {
+          "from": "D5",
+          "to": "P3",
+          "label": "Itineraries"
+        },
+        {
+          "from": "D3",
+          "to": "P3",
+          "label": "Places of public tours"
+        },
+        {
+          "from": "P3",
+          "to": "D12",
+          "label": "Itinerary package"
+        },
+        {
+          "from": "CONTRIB",
+          "to": "P4",
+          "label": "Tours, places, images, audio, route,<br>languages, passcode, download price, submit for review"
+        },
+        {
+          "from": "P4",
+          "to": "CONTRIB",
+          "label": "Tour status,<br>checklist, preview"
+        },
+        {
+          "from": "P4",
+          "to": "D3",
+          "label": "Tour content"
+        },
+        {
+          "from": "D3",
+          "to": "P4",
+          "label": "Tours, forbidden zones"
+        },
+        {
+          "from": "P4",
+          "to": "D4",
+          "label": "Image, audio files"
+        },
+        {
+          "from": "P4",
+          "to": "P5",
+          "label": "Content submitted for moderation"
+        },
+        {
+          "from": "P5",
+          "to": "P4",
+          "label": "Moderation result"
+        },
+        {
+          "from": "D4",
+          "to": "P5",
+          "label": "Stop images"
+        },
+        {
+          "from": "P5",
+          "to": "D8",
+          "label": "Moderation case"
+        },
+        {
+          "from": "D8",
+          "to": "P5",
+          "label": "Cases to retry"
+        },
+        {
+          "from": "P5",
+          "to": "P8",
+          "label": "Tours rejected by AI"
+        },
+        {
+          "from": "ADMIN",
+          "to": "P6",
+          "label": "Approve / reject / request changes,<br>handle tour & rating reports, account actions"
+        },
+        {
+          "from": "P6",
+          "to": "ADMIN",
+          "label": "Queue, report files,<br>dashboard, log"
+        },
+        {
+          "from": "P6",
+          "to": "D3",
+          "label": "Tour status, average rating"
+        },
+        {
+          "from": "D3",
+          "to": "P6",
+          "label": "Tours to review / reported"
+        },
+        {
+          "from": "P6",
+          "to": "D7",
+          "label": "Admin action"
+        },
+        {
+          "from": "D7",
+          "to": "P6",
+          "label": "Log"
+        },
+        {
+          "from": "D6",
+          "to": "P6",
+          "label": "Reports, statistics"
+        },
+        {
+          "from": "P6",
+          "to": "D6",
+          "label": "Hide rating, report status"
+        },
+        {
+          "from": "P6",
+          "to": "P8",
+          "label": "Review decision, hide tour"
+        },
+        {
+          "from": "P6",
+          "to": "P9",
+          "label": "Tour approved / hidden"
+        },
+        {
+          "from": "P4",
+          "to": "P9",
+          "label": "Tour published / unpublished",
+          "via": [
+            [
+              1640,
+              80
+            ],
+            [
+              1640,
+              1400
+            ]
+          ]
+        },
+        {
+          "from": "TOURIST",
+          "to": "P7",
+          "label": "Ratings (post / edit / delete),<br>reports on tours & ratings",
+          "via": [
+            [
+              600,
+              375
+            ]
+          ]
+        },
+        {
+          "from": "P7",
+          "to": "TOURIST",
+          "label": "Tour ratings,<br>my ratings",
+          "via": [
+            [
+              625,
+              350
+            ]
+          ]
+        },
+        {
+          "from": "P7",
+          "to": "D6",
+          "label": "Ratings, reports, counts"
+        },
+        {
+          "from": "D6",
+          "to": "P7",
+          "label": "Figures"
+        },
+        {
+          "from": "P7",
+          "to": "D3",
+          "label": "Average rating, report flag"
+        },
+        {
+          "from": "P7",
+          "to": "CONTRIB2",
+          "label": "Tour statistics"
+        },
+        {
+          "from": "P7",
+          "to": "P8",
+          "label": "Reported tour"
+        },
+        {
+          "from": "P8",
+          "to": "D9",
+          "label": "Notifications"
+        },
+        {
+          "from": "D9",
+          "to": "P8",
+          "label": "Unread notifications"
+        },
+        {
+          "from": "TOURIST2",
+          "to": "P9",
+          "label": "Question, position"
+        },
+        {
+          "from": "P9",
+          "to": "TOURIST2",
+          "label": "Answer + sources"
+        },
+        {
+          "from": "P9",
+          "to": "D10",
+          "label": "Tour index"
+        },
+        {
+          "from": "D10",
+          "to": "P9",
+          "label": "Relevant passages"
+        },
+        {
+          "from": "P9",
+          "to": "D11",
+          "label": "Messages, citations"
+        },
+        {
+          "from": "D11",
+          "to": "P9",
+          "label": "Conversation history"
+        },
+        {
+          "from": "P8",
+          "to": "USER2",
+          "label": "In-app notifications, unread count"
+        },
+        {
+          "from": "USER2",
+          "to": "P8",
+          "label": "Open, mark as read"
+        },
+        {
+          "from": "CONTRIB2",
+          "to": "P7",
+          "label": "Tour choice, time period,<br>rating disputes"
+        },
+        {
+          "from": "TOURIST",
+          "to": "P10",
+          "label": "Buy a tour, order id,<br>view history"
+        },
+        {
+          "from": "P10",
+          "to": "TOURIST",
+          "label": "Payment link, order status,<br>transaction history"
+        },
+        {
+          "from": "P10",
+          "to": "D13",
+          "label": "Orders, status"
+        },
+        {
+          "from": "D13",
+          "to": "P10",
+          "label": "Existing orders"
+        },
+        {
+          "from": "D3",
+          "to": "P10",
+          "label": "Tour, price, author",
+          "via": [
+            [
+              960,
+              600
+            ]
+          ]
+        },
+        {
+          "from": "P2",
+          "to": "P10",
+          "label": "Download a paid tour package"
+        },
+        {
+          "from": "P10",
+          "to": "P2",
+          "label": "Allowed / purchase needed"
+        },
+        {
+          "from": "P3",
+          "to": "P10",
+          "label": "Itinerary package with a paid tour"
+        },
+        {
+          "from": "P10",
+          "to": "P3",
+          "label": "Allowed / purchase needed"
+        },
+        {
+          "from": "CONTRIB2",
+          "to": "P10",
+          "label": "Choose own tour"
+        },
+        {
+          "from": "P10",
+          "to": "CONTRIB2",
+          "label": "Orders sold"
+        },
+        {
+          "from": "ADMIN2",
+          "to": "P10",
+          "label": "Status filter, page"
+        },
+        {
+          "from": "P10",
+          "to": "ADMIN2",
+          "label": "All transactions, revenue"
+        }
+      ],
+      "checkTables": true
+    }
+  ],
+  "tableCheck": {
+    "snapshot": "docs/02-design/drawio/erd/supabase-schema.json",
+    "schemas": [
+      "app_auth",
+      "tour",
+      "notification",
+      "moderation",
+      "media",
+      "ai",
+      "ai_chat"
+    ]
+  }
+}

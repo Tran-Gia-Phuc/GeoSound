@@ -39,11 +39,11 @@
 - **E5.** Hai admin cùng thao tác → một người thắng, người kia nhận 409 `account_state_changed` *"Trạng thái tài khoản vừa được thay đổi, vui lòng tải lại"* (`AccountStateChangedError`).
 - **E6.** Thiếu lý do, lý do quá 1000 ký tự, số ngày không phải 1 / 7 / 30, ngày kết thúc đã qua hoặc quá 365 ngày → 422 `validation_error` (`InvalidSuspensionError` trong `suspensionEnd()`).
 - **E7.** Đăng xuất hoặc gửi sự kiện thất bại → chỉ ghi log, hành động vẫn thành công (`AccountAction.signOutEverywhere()`, `AccountAction.publish()`). Nếu RabbitMQ chưa kết nối, sự kiện bị mất: không có email, thông báo trong app hay dòng log UC22.
-- **E8.** Notification: sự kiện không có `email` → bỏ qua email (thông báo trong app vẫn lưu); lỗi SMTP được ném lại như email tour, nhưng thông báo trong app đã lưu trước đó.
+- **E8.** Notification: sự kiện không có `email` → bỏ qua email (thông báo trong app vẫn lưu); lỗi SMTP thì email được lưu vào `pending_emails` và gửi lại sau, như email tour; thông báo trong app đã lưu trước đó.
 
 ## Extension Points
 
-- UC01 – Xác thực tài khoản (đăng nhập bị chặn); UC20 – Xử lý báo cáo & vi phạm (A3); UC22 – Dashboard thống kê & log; UC23 – Thiết bị đang đăng nhập (thu hồi phiên).
+- UC01 – Xác thực tài khoản (đăng nhập bị chặn); UC20 – Xử lý báo cáo & vi phạm (A3); UC22 – Dashboard thống kê & log; UC23 – Thiết bị đang đăng nhập (thu hồi phiên); UC25 – trang **"Giao dịch"** (`/admin/payments`) mở chi tiết tài khoản người mua.
 
 ## Triggers
 
@@ -73,7 +73,7 @@ Tác giả vi phạm nhiều lần (tour bị ẩn / từ chối, nhiều báo c
 - Cảnh báo **không tự động leo thang** thành khoá; đếm cảnh báo xem ở log UC22.
 - Không cấm chính mình, không tác động admin khác.
 - Ghi có điều kiện theo trạng thái và ngày kết thúc đã đọc.
-- Email gửi thẳng tới `email` của tài khoản trong sự kiện (không dùng `SECURITY_ALERT_TO`, không tra Auth); thông báo trong app (type `account.moderated`, tiêu đề theo hành động, nội dung = lý do) có `sourceKey` nên không bị tạo trùng khi sự kiện gửi lại.
+- Email gửi thẳng tới `email` của tài khoản trong sự kiện (không dùng `SECURITY_ALERT_TO`, không tra Auth); thông báo trong app (type `account.moderated`, tiêu đề theo hành động, nội dung = lý do) có `sourceKey` nên không bị tạo trùng khi sự kiện gửi lại; sự kiện gửi lại cũng không gửi email lần nữa.
 - Dòng log ở Tour có `source_key` = `account.moderated:<userId>:<action>:<at>`; không lưu email hay tên.
 
 ## Hiện thực trong hệ thống
@@ -93,7 +93,7 @@ Tác giả vi phạm nhiều lần (tour bị ẩn / từ chối, nhiều báo c
   - `POST /api/auth/admin/users/:id/ban` `{ reason }`
   - `POST /api/auth/admin/users/:id/restore` `{ reason? }`
   - `GET /api/tours/admin/users/:userId/violations`
-- **Sự kiện (RabbitMQ):** Auth publish `account.moderated` (`userId`, `action`, `reason?`, `until?`, `adminId`, `email`, `fullName`, `at`); consume bởi Notification và Tour.
+- **Sự kiện (RabbitMQ):** Auth publish `account.moderated` (`userId`, `action`, `reason?`, `until?`, `adminId`, `email`, `fullName?`, `at`); consume bởi Notification và Tour.
 - **Dữ liệu:** Auth `users.status`, `users.ban_reason`, `users.suspended_until`, `sessions.revoke_reason`; Tour `admin_actions` (`source_key` chống trùng); Notification bảng thông báo (type `account.moderated`).
 - **Tài liệu thiết kế:** [uc21-account-actions.md](../../02-design/uc21-account-actions.md), [uc22-dashboard-log.md](../../02-design/uc22-dashboard-log.md), [device-sessions.md](../../02-design/device-sessions.md).
 - **Mã nguồn chính:**

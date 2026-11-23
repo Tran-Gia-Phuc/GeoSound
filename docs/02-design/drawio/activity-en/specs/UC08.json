@@ -1,0 +1,92 @@
+{
+  "uc": "UC08",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Tourist opens the itinerary and taps \"Follow itinerary\" in the bottom bar. A2.",
+      "alts": [
+        "A2"
+      ]
+    },
+    {
+      "id": "s2",
+      "text": "2. No location permission yet → the system shows the \"Automatic listening by location\" dialog (first time only)."
+    },
+    {
+      "id": "s3",
+      "text": "3. The Tourist chooses \"Allow & start\". A1.",
+      "alts": [
+        "A1"
+      ]
+    },
+    {
+      "id": "s4",
+      "text": "4. The system opens the player (/itinerary/:id/go?mode=gps), loads the itinerary, asks for location permission and shows the map with the position, the places in order and the trigger zones. E1, E2.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. The browser blocks location permission or the device does not support it → \"Location is not available\", suggesting \"Preview each place\".",
+          "back": "s3"
+        },
+        {
+          "id": "E2",
+          "text": "E2. Weak GPS → weak signal warning.",
+          "back": "s3"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s5",
+      "text": "5. The Tourist moves."
+    },
+    {
+      "id": "s6",
+      "text": "6. On entering a place's zone, the system plays the place's audio automatically (recorded audio or the device's voice) with text and photos."
+    },
+    {
+      "id": "s7",
+      "text": "7. The Tourist uses the controls: play / pause, previous / next place."
+    },
+    {
+      "id": "s8",
+      "text": "8. At the last place, the system shows the completion dialog.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. The itinerary does not exist (404), belongs to someone else (403) or the user is not signed in → error / go to Sign in.",
+          "back": "end"
+        },
+        {
+          "id": "E4",
+          "text": "E4. The share link has been revoked → reports that the link is no longer valid.",
+          "back": "end"
+        },
+        {
+          "id": "E5",
+          "text": "E5. No network → open the downloaded itinerary package in Account → Downloaded tours (UC#03).",
+          "back": "s7"
+        }
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A2",
+      "steps": [
+        "A2.1. The recipient opens /shared/:token (no sign-in needed) and chooses \"Follow itinerary\" or \"Preview\".",
+        "A2.2. The system loads the shared itinerary and uses the same player, read-only. E4."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A1",
+      "steps": [
+        "A1.1. The Tourist chooses \"Preview\" (or \"Preview each place\", or taps a place).",
+        "A1.2. The system opens the player with ?mode=remote and plays the selected place, no GPS needed."
+      ],
+      "to": "s7"
+    }
+  ]
+}

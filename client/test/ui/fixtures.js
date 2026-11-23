@@ -173,6 +173,8 @@ export async function fixtures(page) {
       });
     if (path.endsWith('/languages')) return json(route, { config: languages });
     if (path.endsWith('/preview')) return json(route, { tour });
+    // UC25: free tour by default (price 0, nothing sold).
+    if (path.endsWith('/price')) return json(route, { price: 0, paidCount: 0, revenue: 0 });
     return json(route, { error: 'Unexpected fixture request: ' + method + ' ' + path }, 404);
   });
   await page.route('**/server.arcgisonline.com/**', (route) => route.abort());

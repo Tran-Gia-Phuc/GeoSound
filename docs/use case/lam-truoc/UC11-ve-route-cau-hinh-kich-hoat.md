@@ -36,7 +36,7 @@
 
 ## Exception Path
 
-- **E1.** Vùng không hợp lệ → 400 `validation_error`: "Bán kính vùng kích hoạt phải lớn hơn 0", "Đa giác chưa khép kín (cần ít nhất 3 đỉnh)", "Loại vùng kích hoạt không hợp lệ (tròn hoặc đa giác)". `saveRouteConfigSchema`, `ActivationZone`
+- **E1.** Vùng không hợp lệ → 400 `validation_error`: "Bán kính vùng kích hoạt phải lớn hơn 0", "Đa giác chưa khép kín (cần ít nhất 3 đỉnh)", "Loại vùng kích hoạt không hợp lệ (tròn hoặc đa giác)". `saveRouteConfigSchema`, `ActivationZone`. Client chặn trước khi gửi: "Bán kính vùng của “X” phải lớn hơn 0", "Mỗi audio chỉ đường cần có nhãn (vd: Ngã tư Trần Phú)", "Hãy chạm bản đồ để đặt vị trí cho “X”" (`RouteConfigPage`).
 - **E2.** Trigger trỏ tới điểm không thuộc tour → "Vùng kích hoạt trỏ tới điểm không thuộc tour"; hai vùng cho một điểm → "Mỗi điểm chỉ có một vùng kích hoạt". Gợi ý trống → "Gợi ý cần có text hoặc audio". `SaveRouteConfig.execute()`, `saveRouteConfigSchema`
 - **E3.** Tour không tồn tại → 404 `tour_not_found`; tour của người khác → 403 `not_tour_owner`. `TourNotFoundError`, `NotTourOwnerError`
 
@@ -63,7 +63,7 @@ Contributor muốn chỉnh cách audio tự phát theo vị trí cho tour.
 ## Reference: Business Rules
 
 - Mặc định khi chưa cấu hình: route nối các điểm theo thứ tự; mỗi điểm một vùng tròn **50 m** (`DEFAULT_ZONE_RADIUS_METERS`), ưu tiên 0, không gợi ý.
-- Vùng kích hoạt: tròn (`center`, `radiusMeters` > 0, tối đa 100 km ở API) hoặc đa giác (GeoJSON Polygon khép kín, ≥ 3 đỉnh phân biệt). Studio chỉ chỉnh vùng tròn; vùng đa giác đã lưu được giữ nguyên.
+- Vùng kích hoạt: tròn (`center`, `radiusMeters` > 0, tối đa 100 km ở API) hoặc đa giác (GeoJSON Polygon khép kín, ≥ 3 đỉnh phân biệt). Studio chỉ chỉnh vùng tròn; vùng đa giác đã lưu được giữ nguyên, trừ khi contributor bấm "Chuyển sang vùng tròn".
 - Độ ưu tiên: số nguyên 0–1000 (Studio dùng 0 / 10 / 20); số lớn thắng khi chồng vùng.
 - Giới hạn: path tối đa 5000 đỉnh, tối đa 500 trigger và 500 audio chỉ đường; gợi ý và lời nhắc tối đa 500 ký tự, nhãn tối đa 200.
 - Audio chỉ đường không có file → trình phát đọc lời nhắc (hoặc nhãn) bằng giọng của thiết bị.
@@ -101,7 +101,7 @@ Contributor muốn chỉnh cách audio tự phát theo vị trí cho tour.
 
 ## Date
 
-Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-08
+Tạo: 2026-10-18 · Cập nhật theo hệ thống: 2026-11-22
 
 ## Activity Diagram
 

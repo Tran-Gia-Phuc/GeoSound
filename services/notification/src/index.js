@@ -34,6 +34,7 @@ import { createMailer } from './services/mailer.js';
 import { handleEvent } from './notify.js';
 import { contributorLookupFromEnv } from './services/contributor-lookup.js';
 import { buildContainer } from './container.js';
+import { startEmailSweeper } from './application/email-outbox.js';
 
 // UC23 — reject access tokens of signed-out sessions (key revoked:sid:<sid>, written by Auth).
 // No offline queue: while Redis is down the check fails at once and verifyJwt fails open.
@@ -56,7 +57,10 @@ const shutdown = createShutdown({ service: 'notification' });
 const metrics = createMetrics({ service: 'notification' });
 useRabbitMetrics(metrics);
 const prisma = new PrismaClient();
-const { notificationRouter, storeInApp } = buildContainer({ prisma, requireAuth: verifyJwt([]) });
+const mailer = createMailer();
+const { notificationRouter, storeInApp, emailOutbox } = buildContainer({ prisma, requireAuth: verifyJwt([]), mailer });
+// Failed emails (pending_emails) are resent every EMAIL_RETRY_SWEEP_MS (default 30 s).
+const emailSweeper = startEmailSweeper({ outbox: emailOutbox, intervalMs: Number(process.env.EMAIL_RETRY_SWEEP_MS) || 30000 });
 
 const app = express();
 // No app-wide express.json() in this service: metrics come first.
@@ -83,7 +87,7 @@ const server = app.listen(PORT, () => console.log(`[notification] http :${PORT}`
 
 // Requests in flight and the emails being sent finish, then the broker, the database and Redis close.
 shutdown
-  .add('stop intake', () => Promise.all([closeServer(server), stopConsuming({ timeoutMs: 20000 })]), {
+  .add('stop intake', () => Promise.all([closeServer(server), stopConsuming({ timeoutMs: 20000 }), emailSweeper.stop()]), {
     timeoutMs: 22000,
   })
   .add('rabbitmq', closeRabbit, { timeoutMs: 2000 })
@@ -92,7 +96,6 @@ shutdown
 
 async function startWorker() {
   await connect();
-  const mailer = createMailer();
   // #258 — tour events carry only contributorId: the email is looked up in Auth.
   const lookupEmail = contributorLookupFromEnv();
   if (!lookupEmail) console.warn('[notification] AUTH_SERVICE_URL / INTERNAL_SERVICE_TOKEN missing: no contributor email lookup');
@@ -110,8 +113,8 @@ async function startWorker() {
       EVENTS.AUTH_NEW_DEVICE_LOGIN, // UC23 / R10 — new-device sign-in alert
       EVENTS.ACCOUNT_MODERATED, // UC21 — admin warned / suspended / banned / restored the account
     ],
-    // storeInApp never throws; email errors still propagate exactly as before.
-    (event, payload) => handleEvent(mailer, event, payload, console, process.env, { lookupEmail, storeInApp }),
+    // storeInApp never throws; a failed email goes to the outbox (it throws only if that store fails).
+    (event, payload) => handleEvent(mailer, event, payload, console, process.env, { lookupEmail, storeInApp, queueEmail: emailOutbox.enqueue }),
   );
   console.log('[notification] worker started');
 }

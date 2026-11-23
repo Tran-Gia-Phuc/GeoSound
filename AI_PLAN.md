@@ -47,7 +47,13 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 | D28 | Signed-in devices (UC23, #247 backend, #248 client) | Design `docs/02-design/device-sessions.md`: `auth.sessions`, `sid` in tokens, refresh rotation with reuse detection, revocation in Redis checked by `verifyJwt`, no business limit (cap `AUTH_MAX_SESSIONS`=100), new-device email (demo inbox `SECURITY_ALERT_TO` in `.env`, never in the repo) |
 
 
-## 3. Current state (2026-11-07)
+## 3. Current state (2026-11-22)
+
+- Since 2026-11-09 the work moved to deployment (PRs #338 to #436: images, Helm chart, Argo CD, sealed secrets, monitoring, alerts; `docs/04-guides/deployment-plan.md`). Schemas are now changed only through Prisma migrations (#352, PR #359): never `prisma db push` (CLAUDE.md section 6).
+- Latest feature: UC05 rating reports (PR #444, docs PRs #440 to #447).
+- UC scenario tests (section 7, 2026-11-22): one journey file per important UC group, on top of the unit tests.
+
+### State on 2026-11-07
 
 - **Phases 1, 2 and 3 work end to end on the real stack** (Supabase, RabbitMQ, real Gemini), checked on 2026-10-30:
   - place moderation (approved / rejected with reasons, publish blocked by a rejected place), tour moderation (`ai_warning` / `pending_review`), edit while in review withdraws to `draft`;
@@ -63,7 +69,7 @@ Everything is additive and behind a feature flag, so nothing breaks for other te
 - Nothing waits for other owners. With moderation on, a tour stops at `pending_review` until an admin decides through `/api/tours/admin/reviews` (UC#19, #243). The Supabase password shared in chat must be reset by the project owner.
 - Never run real Gemini without an explicit request.
 
-- Use case docs (2026-11-08, branch `docs/use-cases-sync`): all 23 UC files under `docs/use case/` were rewritten from the real code (Maturity `Implemented`, a "Hiện thực trong hệ thống" section with services, screens, API, events and tables, and a Mermaid sequence diagram). New **UC24 – Hỏi đáp với trợ lý du lịch AI** (`lam-sau/UC24-hoi-dap-tro-ly-ai.md`). The index `00-danh-sach-use-case.md` lists 24 UCs; the folders `lam-truoc` / `lam-sau` now only mean build order. Decision (user, 2026-11-08): the docs follow the current code; gaps are written as "Giới hạn đã biết" in the UC files.
+- Use case docs (2026-11-08, branch `docs/use-cases-sync`): all 23 UC files under `docs/use case/` were rewritten from the real code (Maturity `Implemented`, a "Hiện thực trong hệ thống" section with services, screens, API, events and tables, and a Mermaid sequence diagram). New **UC24 – Hỏi đáp với trợ lý du lịch AI** (`lam-sau/UC24-hoi-dap-tro-ly-ai.md`). The index `00-danh-sach-use-case.md` lists 24 UCs (25 since UC25 payment, 2026-11-18); the folders `lam-truoc` / `lam-sau` now only mean build order. Decision (user, 2026-11-08): the docs follow the current code; gaps are written as "Giới hạn đã biết" in the UC files.
   - Every UC file also names the real code: function names at the end of each system step and a **Mã nguồn chính** table (step, function / class, repo-relative file); all cited paths exist (checked 2026-11-08).
   - Design notes fixed to match the code: `chatbot-architecture.md` (indexer flag, per-IP rate limit, `tour.published`), `device-sessions.md` 5.6, `notification-otp-design.md` (Auth sends the OTP email), `uc14-restricted-access.md` section 5 (no offline download for testers, see L9).
   - Gaps kept as current behaviour (code not changed): `tts.render.completed` is never published; UC21 rows reach the UC22 log only when a Tour broker flag is on.
@@ -103,7 +109,7 @@ Known limits: an event arriving while a DB is down is acked and lost (no DLQ); a
 | full-flow test | How it was run on 2026-10-30: Tour on a disposable Postgres (`postgis/postgis:16-3.4` on the compose network, `DATABASE_URL` and flags set in a compose override, never in `.env`), a contributor JWT signed inside the tour container with `JWT_ACCESS_SECRET`, calls through the gateway. Never write test data to the shared Supabase schemas of other services |
 | moderation tokens | Moderation calls Gemini through `GeminiClient.generate_json` (default `max_tokens` 2048) with thinking on. Fine for the tested tours; if a large tour (close to 50 places) returns invalid JSON, check `finish_reason=MAX_TOKENS` and set a thinking budget there too |
 | partial PRs | A branch made with `gh issue develop` is linked to the issue, and merging its PR closes the issue even with "Part of #N". For a partial PR create the branch with `git switch -c` and write "Part of #N" |
-| #219 | Schema `ai` is defined in `services/ai/prisma/schema.prisma` (tables) plus `prisma/pre-push.sql` (vector extension, schema `ai`) and `prisma/post-push.sql` (CHECK constraints, HNSW index), pushed with the auth image (`docs/04-guides/supabase-access.md` section 4); pgvector store, e5 embedding runtime in the image, AMQP transport for the indexer. Chat memory (part D): `CHAT_MEMORY_BACKEND=postgres` uses the official `AsyncPostgresSaver` (`langgraph-checkpoint-postgres` 3.2, psycopg 3.3) over `DATABASE_URL_DIRECT_AI`, in its own schema `ai_chat` (created at startup, never in Prisma-managed `ai`), plus `ai_chat.chat_sessions` / `chat_messages` for `at`, citations and TTL; `memory` stays the default. Integration tests need `AI_TEST_DATABASE_URL` (disposable DB) |
+| #219 | Schema `ai` is defined in `services/ai/prisma/schema.prisma` (tables) plus `prisma/pre-push.sql` (vector extension, schema `ai`) and `prisma/post-push.sql` (CHECK constraints, HNSW index), now shipped as Prisma migrations (#352; `docs/04-guides/supabase-access.md` section 4.3); pgvector store, e5 embedding runtime in the image, AMQP transport for the indexer. Chat memory (part D): `CHAT_MEMORY_BACKEND=postgres` uses the official `AsyncPostgresSaver` (`langgraph-checkpoint-postgres` 3.2, psycopg 3.3) over `DATABASE_URL_DIRECT_AI`, in its own schema `ai_chat` (created at startup, never in Prisma-managed `ai`), plus `ai_chat.chat_sessions` / `chat_messages` for `at`, citations and TTL; `memory` stays the default. Integration tests need `AI_TEST_DATABASE_URL` (disposable DB) |
 | follow-ups | (1) Done in #253. (2) Done in #258: Notification asks Auth `GET /internal/users/:id/contact` (header `x-internal-token`, refused through the gateway) when an event has no `contributorEmail` |
 | UC23 | Schema pushed (2026-10-31). Password change while signed in: `POST /api/auth/change-password` (#256). Admin online view: `GET /api/auth/admin/sessions` + heartbeat (#265); since #329 it also counts guests through `POST /api/auth/presence` (Redis `presence:*`, no table). Not built: the UC21 ban call to `RevokeAllSessions` (planned in UC21 #274; the use case is ready in `container.js`), IP location (null resolver). Clients must not refresh in parallel: the web client serialises refreshes across tabs with a Web Lock (reuse of a rotated refresh token signs the session out) |
 
@@ -136,6 +142,7 @@ Second wave (asked 2026-11-08), one branch and PR each, closing the `[Frontend A
 | 10 | UC15 submit a tour for review: checklist, "Gửi duyệt", AI pass / warning / rejected / changes requested states, forbidden-zone details, long-running `ai_checking` polling, place moderation chips | #109 to #114, #137 | client (Tour only if a field is missing) | `feature/uc15-submission-ui` | done (PR #314) |
 | 11 | UC19 admin review screens: queue, read-only dossier and preview, approve, reject with reason, request changes | #122 to #126 | client (backend #243 exists) | `feature/uc19-admin-review-ui` | done (PR #310) |
 | 12 | Offline download (UC03): package manifest, download with progress, pause / resume, library, delete one language, insufficient storage; UC17 `download` beacon | #103, #104, #158 to #161 | Tour (package API), client | `feature/offline-download` | done (PR #311; table fix #313) |
+| 13 | UC25 buy a tour to download it offline (MoMo sandbox): tour price, purchase, IPN + status query, paid package check, Studio price panel, return page; transaction history: buyer list `/account/purchases`, author sales list in the Studio price panel, admin list of all orders `/admin/payments` | (none) | Tour (schema `tour`: `tours.price`, `tour_purchases`), client | `feature/uc25-tour-payment` (#446) | done on the branch, not pushed (2026-11-18; history and admin list 2026-11-20): Tour tests 307 passed, Playwright 307 passed, image checked on a disposable Postgres; real MoMo sandbox payment paid (status query path, local stack); Supabase baselined (all six schemas) and `20261118000000_tour_purchases` applied, `migrate check` no drift |
 
 ### 6.2 Decisions (L = later UCs)
 
@@ -157,6 +164,7 @@ Second wave (asked 2026-11-08), one branch and PR each, closing the `[Frontend A
 | L14 | UC22 log (Q13, Q14) | One append-only table `admin_actions` in Tour for UC19, UC20 and UC21 actions; Auth publishes an event for each account action and Tour records it. Top contributor = most public tours with average rating >= 4 and no hidden tour in the period |
 | L15 | UC15 / UC19 (2026-11-08) | The user builds the UC15 submission screens and the UC19 admin review screens (were Frontend A) so a tour can go author -> AI -> admin in the UI. With `MODERATION_EVENTS_ENABLED=true` the Studio publish action submits for review (`ai_checking`); without it, it publishes directly as before |
 | L16 | Offline download (2026-11-08) | A package = tour content for one language + images + human-recorded audio files; stops without audio are read by the device voice. Stored in IndexedDB with per-asset transfer state (pause / resume / recovery), images shared between languages are reference-counted, sizes come from the stored bytes. A package is ready only when every asset is stored; then the UC17 `download` beacon is sent once. The service worker of the production build makes `/offline` open without network (the Vite dev server in Docker has no service worker) |
+| L17 | UC25 payment (2026-11-18) | The author sets a price per tour (0 = free, else 1 000 to 50 000 000 VND, no new moderation). Listening online stays free; only the offline package of a paid tour needs a purchase (the author always gets it). Payment = MoMo API v2 sandbox (`captureWallet` / `payWithMethod`, HMAC SHA256), one `tour_purchases` row per order; the result comes from the IPN and from the MoMo query API when the buyer returns (the IPN cannot reach localhost). History (2026-11-20, inside UC25, no new UC): the buyer sees every own order, the author sees the paid orders of an own tour (buyer id shortened), the admin sees all orders with paid total and revenue. No refund, no payout, no events. Design: `docs/02-design/uc25-tour-payment.md` |
 
 ### 6.3 Open questions (ask in the `uc-task` gate, then move the answer to 6.2)
 
@@ -164,3 +172,46 @@ All answered on 2026-11-03 (L7 to L14). New questions found while building go he
 
 | # | UC | Question | Proposal |
 | --- | --- | --- | --- |
+
+## 7. UC scenario tests (2026-11-22)
+
+Unit tests check one step; these files chain the real use-cases of a whole journey with in-memory fakes
+(no DB, broker, LLM or outside network), so a break between two steps fails a test. They run with the
+normal suites (`node --test`, `pytest tests`) in CI. Add a scenario here when a change alters a flow of
+the UC docs; write new ones with the `uc-test-writer` agent.
+
+| UC | Journey | File |
+| --- | --- | --- |
+| UC15, UC19 | draft → place results → submit (`ai_checking`) → AI result → admin queue → approve / reject / request changes → resubmit; submit blocked by a `checking` / `rejected` place; stale revision ignored | `services/tour/test/uc-scenarios.test.js` |
+| UC06, UC20 | 5 distinct reporters in 7 days flag the tour (still public) → admin hides → restores | `services/tour/test/uc-scenarios.test.js` |
+| UC15 (Moderation) | `*.submitted` → consumer → fake AI HTTP server → `*.ai_passed` / `*.ai_rejected`; 422 = Warning, 503 = retry then `ai_failed` + sweeper, 401 = nothing, duplicate revision, geo + AI merge | `services/moderation/test/uc15-moderation-scenarios.test.js` |
+| UC01, UC23, UC21 | register → OTP → login → reset password; two devices, refresh rotation, reuse detection, revoke; admin suspend / ban revokes all sessions | `services/auth/test/uc-scenarios.test.js` |
+| UC15, UC24 (AI) | provider answers through the real LLM clients, moderation wiring, chatbot replies, labelled moderation dataset | `services/ai/tests/scenarios/` (`docs/03-testing/ai-scenario-tests.md`) |
+| UC14 | restrict with passcode → absent from search, nearby, explore, catalog events → wrong code 403, rate limit 429 → unlock: detail + package for that account only → new passcode drops unlocks → off → UC15 / UC19 → public | `services/tour/test/uc14-restricted-scenarios.test.js` |
+| UC16 | review, report and account events → one in-app row per event (+ email, Auth lookup) → HTTP list, `tourId` filter, unread count, mark read, other users refused | `services/notification/test/uc16-scenarios.test.js` |
+| UC05, UC17 | seeded aggregate → rate, edit, delete → rating reports → admin remove / dismiss → stats beacons once per device / day, author-only stats | `services/tour/test/uc05-uc17-scenarios.test.js` |
+| UC07, UC08 | create itinerary → add places of public tours only → reorder, remove → share link read-only → other users refused → tour unpublished / hidden later (stops kept as snapshot) → follow view with zones, path, language | `services/tour/test/uc07-uc08-scenarios.test.js` |
+
+Found by these tests, fixed on branch `fix/rating-removed-rows` (the three `test.todo` are now tests, plus `prisma-tour-rating-repository.test.js`):
+1. `prisma-tour-rating-repository.js` `#lockOwn` does not filter `is_hidden`: an owner re-rating a rating the admin removed edits the hidden row and moves the aggregate (average drifts). Fix: the new rating replaces the removed row and counts once (`created`).
+2. Same cause: deleting a removed rating subtracts its stars a second time (`rating_count` too low). Fix: 404, aggregate untouched.
+3. `prisma-tour-stats-repository.js` `latestComments` does not filter `isHidden`: removed comments stayed in the author's stats, against the UC05 report doc (UC17 leaves them out). Fix: filter `isHidden: false`.
+Also noted, fixed on branch `fix/uc-test-findings`: six Tour routers (`tour`, `place`, `route-config`, `language`, `preview`, `itinerary`) imported `../shared` directly, now the container injects the guard (`test/injected-guards.test.js`); Notification re-sent the email on a redelivered event, now skipped when the in-app row already exists; the shared itinerary view returned `ownerId` to anonymous viewers, now removed.
+
+## 8. UC doc sync (2026-11-22)
+
+The UC docs follow the code: run one `uc-doc-auditor` agent per group below, in parallel. Each edits only its UC
+files and `docs/02-design/drawio/activity/specs/UC<NN>.json` and reports the data-flow impact. The main agent
+then regenerates the activity XML (`scripts/diagrams/activity-xml.mjs`), refreshes the ERD snapshot when a table
+changed (`scripts/diagrams/db-snapshot.py`, read-only, then `erd-xml.mjs`), updates the DFD JSON of levels 0 to
+2 (`docs/02-design/drawio/dfd/`, then `dfd-xml.mjs`) and commits.
+
+| Group | UCs |
+| --- | --- |
+| 1 Auth | UC01, UC18, UC21, UC23 |
+| 2 Discovery and playback | UC02, UC03, UC04, UC12, UC13 |
+| 3 Itineraries, restricted tours | UC07, UC08, UC14 |
+| 4 Contributor content | UC09, UC10, UC11, UC15 |
+| 5 Ratings, reports, stats | UC05, UC06, UC17 |
+| 6 Admin | UC19, UC20, UC22 |
+| 7 Notifications, chatbot | UC16, UC24 |

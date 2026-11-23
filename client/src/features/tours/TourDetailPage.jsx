@@ -35,6 +35,7 @@ import { usePendingAdd } from '../../hooks/usePendingAdd.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { recordTourActivity } from '../../lib/tour-stats.js';
 import OfflineDownload from '../offline/OfflineDownload.jsx';
+import PurchaseGate from '../payment/PurchaseGate.jsx';
 
 // Mở thẳng bằng link chia sẻ (không có lịch sử) → về Khám phá.
 import './detail-a.css';
@@ -347,8 +348,12 @@ export default function TourDetailPage({ restricted = false }) {
           </div>
         )}
 
-        {/* UC03: offline package of the public tour (not for the restricted test version) */}
-        {hasPlaces ? <OfflineDownload key={tour.id} tour={tour} restricted={!!restricted} /> : null}
+        {/* UC03: offline package of the tour. UC25: a paid tour needs the author or a buyer. */}
+        {hasPlaces ? (
+          <PurchaseGate tour={tour} restricted={!!restricted}>
+            <OfflineDownload key={tour.id} tour={tour} restricted={!!restricted} />
+          </PurchaseGate>
+        ) : null}
 
       </aside>
 

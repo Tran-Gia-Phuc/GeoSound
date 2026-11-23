@@ -1,0 +1,108 @@
+{
+  "uc": "UC20",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Admin opens the \"Reported tours\" page."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system returns tours with open reports, sorted by report count descending, flagged tours first, then oldest reports first (20 items per page). E1, E2.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. No reported tours → \"No reported tours\".",
+          "back": "s1"
+        },
+        {
+          "id": "E2",
+          "text": "E2. No valid token → 401; not an Admin → 403; invalid pagination parameters → 400.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s3",
+      "text": "3. The Admin picks a tour."
+    },
+    {
+      "id": "s4",
+      "text": "4. The system shows the record: tour summary, links to the public page and the author's account (UC#21), open reports (reason, note, time, reporter ID), the number of dismissed / resolved reports and the Admin action history. E3.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Invalid tour ID format → 400; the tour does not exist → 404.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s5",
+      "text": "5. The Admin chooses \"Hide tour\", enters a reason (required, 1–1000 characters) in the \"Hide this tour?\" dialog and confirms. A1, A2, A3, E5.",
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. Missing reason when hiding, or a reason over 1000 characters (hide, restore, dismiss) → 422, the error shows in the dialog.",
+          "back": "s5"
+        }
+      ],
+      "alts": [
+        "A1",
+        "A2",
+        "A3"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. In one transaction, the system moves the tour Public → Hidden, marks the open reports as resolved, clears the counter and the flag, and writes the hide_tour log. E4.",
+      "exceptions": [
+        {
+          "id": "E4",
+          "text": "E4. The status does not allow it (hiding a tour that is not public, restoring a tour that is not hidden, dismissing when no reports are open) → 409; when two Admins act at the same time, only one wins; the client shows the error and reloads the record.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s7",
+      "text": "7. The system publishes tour.hidden (and tour.unpublished to remove it from the chatbot); Notification creates a notification and sends an email to the author; the client shows \"Tour hidden and the author notified\" and reloads the record. E6.",
+      "exceptions": [
+        {
+          "id": "E6",
+          "text": "E6. A failed event publish is only logged; the decision is still saved.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1.1. The Admin opens the record of a hidden tour (from the action log or the author's account page), chooses \"Restore\" and confirms \"Restore the tour?\" (reason optional).",
+        "A1.2. The system moves the tour back to Public (no new review), writes the restore_tour log and publishes tour.restored; the author receives a notification and an email \"Tour … is visible again\". E4."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2.1. The Admin chooses \"Dismiss reports\" and confirms \"Dismiss the reports?\" when the tour has open reports.",
+        "A2.2. The system marks the reports as dismissed, clears the counter, keeps the tour status and writes the dismiss_reports log; no event is published. E4."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Handle the author's account: the Admin opens the author's account page and performs UC#21."
+      ],
+      "to": "end"
+    }
+  ]
+}

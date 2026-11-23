@@ -85,6 +85,16 @@ _VI_FUNCTION_WORDS = _pattern(fold(w) for w in [
     "cam on",
 ])
 
+# Folded multi-word Vietnamese phrases that never occur in English text: one is
+# enough ("tour an uong o hoi an" has no function word). Single folded words
+# stay out ("an", "cho", "may" are also English).
+_VI_PHRASES = _pattern([
+    "an uong", "mon an", "do an", "am thuc", "du lich", "tham quan", "dia diem",
+    "di choi", "cho choi", "choi gi", "di bo", "xe dap", "bao tang", "nha tho",
+    "lich su", "di tich", "di san", "kien truc", "canh dep", "van hoa", "mua sam",
+    "gia dinh", "tre em", "thanh pho", "goi y", "ve dem", "buoi toi",
+])
+
 _SMALLTALK = Keywords([
     "hi", "hello", "hey", "good morning", "good afternoon", "good evening",
     "thanks", "thank you", "bye", "goodbye", "how are you", "who are you",
@@ -94,8 +104,9 @@ _SMALLTALK = Keywords([
 ])
 
 _OUT_OF_SCOPE = Keywords([
-    # weather
-    "weather", "forecast", "temperature", "thời tiết", "dự báo", "nhiệt độ",
+    # weather ("mưa" / "nắng" are matched only with accents: "mua" is also "mua" = buy)
+    "weather", "forecast", "temperature", "rain", "raining", "storm",
+    "thời tiết", "dự báo", "nhiệt độ", "mưa", "nắng", "bão", "độ ẩm",
     # coding, maths, homework
     "code", "coding", "program", "programming", "python", "javascript", "java",
     "sql", "algorithm", "debug", "math", "equation", "homework",
@@ -130,6 +141,8 @@ _DOMAIN = Keywords([
     "địa điểm", "tham quan", "du lịch", "đi chơi", "bảo tàng", "chùa", "đền",
     "nhà thờ", "ẩm thực", "món ăn", "ăn uống", "đi bộ", "xe đạp", "lịch sử",
     "kiến trúc", "di tích", "cảnh đẹp", "chỗ chơi",
+    # travel questions that mention the weather stay in scope ("đi đâu khi trời mưa")
+    "đi đâu", "chơi gì", "where to go", "things to do",
 ])
 
 _HERE = Keywords(["here", "đây", "mình đang ở"])
@@ -186,7 +199,10 @@ _DANGLING_MARKER = re.compile(
 def detect_language(text: str) -> Literal["vi", "en"]:
     if _VI_CHARS.search(text):
         return "vi"
-    return "vi" if len(_VI_FUNCTION_WORDS.findall(fold(text))) >= 2 else "en"
+    folded = fold(text)
+    if _VI_PHRASES.search(folded):
+        return "vi"
+    return "vi" if len(_VI_FUNCTION_WORDS.findall(folded)) >= 2 else "en"
 
 
 def find_city(text: str, aliases: dict[str, str] | None = None) -> str | None:

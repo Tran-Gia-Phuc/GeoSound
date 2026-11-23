@@ -3,29 +3,29 @@
   "steps": [
     {
       "id": "s1",
-      "text": "1. Tourist mở lịch trình và nhấn “Đi theo lịch trình”. A2.",
+      "text": "1. Tourist mở lịch trình và nhấn “Đi theo lịch trình” ở thanh dưới. A2.",
       "alts": [
         "A2"
       ]
     },
     {
       "id": "s2",
-      "text": "2. Hệ thống mở trình phát của lịch trình (/itinerary/:id/go)."
+      "text": "2. Chưa có quyền vị trí → hệ thống hiện hộp thoại “Nghe tự động theo vị trí” (chỉ lần đầu)."
     },
     {
       "id": "s3",
-      "text": "3. Tourist chọn chế độ GPS. A1.",
+      "text": "3. Tourist chọn “Cho phép & bắt đầu”. A1.",
       "alts": [
         "A1"
       ]
     },
     {
       "id": "s4",
-      "text": "4. Hệ thống xin quyền vị trí và hiển thị bản đồ với vị trí, các điểm theo thứ tự và vùng kích hoạt. E1, E2.",
+      "text": "4. Hệ thống mở trình phát (/itinerary/:id/go?mode=gps), tải lịch trình, xin quyền vị trí và hiển thị bản đồ với vị trí, các điểm theo thứ tự và vùng kích hoạt. E1, E2.",
       "exceptions": [
         {
           "id": "E1",
-          "text": "E1. Chưa cấp quyền vị trí → hướng dẫn bật quyền hoặc chuyển sang nghe từng điểm.",
+          "text": "E1. Trình duyệt chặn quyền vị trí hoặc thiết bị không hỗ trợ → “Chưa dùng được vị trí”, gợi ý “Nghe thử từng điểm”.",
           "back": "s3"
         },
         {
@@ -75,14 +75,16 @@
     {
       "id": "A2",
       "steps": [
-        "A2. Đi theo lịch trình được chia sẻ: mở liên kết /shared/:token/go, không cần đăng nhập. E4."
+        "A2.1. Người nhận mở /shared/:token (không cần đăng nhập) và chọn “Đi theo lịch trình” hoặc “Nghe thử”.",
+        "A2.2. Hệ thống tải lịch trình được chia sẻ và dùng cùng trình phát, chỉ đọc. E4."
       ],
       "to": "end"
     },
     {
       "id": "A1",
       "steps": [
-        "A1. Nghe từng điểm (không cần GPS): chọn điểm trong danh sách để nghe."
+        "A1.1. Tourist chọn “Nghe thử” (hoặc “Nghe thử từng điểm”, hoặc chạm một điểm).",
+        "A1.2. Hệ thống mở trình phát ?mode=remote và phát điểm được chọn, không cần GPS."
       ],
       "to": "s7"
     }

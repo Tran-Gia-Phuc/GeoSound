@@ -26,7 +26,7 @@
 
 **A1. Xem thử từng điểm** → chế độ "Xem thử từng điểm" (remote): chọn điểm trong danh sách để nghe, không dùng vị trí (`startRemote()`).
 
-**A2. Phát hiện lỗi → sửa ngay** → nút sửa trên một điểm mở `/studio/tours/:id/places?edit=<placeId>` (UC10); route / vùng sửa ở UC11, bản dịch ở UC12 (`PreviewTourRoute`, prop `editPlaceHref`).
+**A2. Phát hiện lỗi → sửa ngay** → nút *"Sửa điểm này"* trên một điểm mở `/studio/tours/:id/places?edit=<placeId>` (UC10); route / vùng sửa ở UC11, bản dịch ở UC12 (`PreviewTourRoute`, prop `editPlaceHref`).
 
 **A3. Đổi ngôn ngữ nghe** → client gọi lại preview với `?lang=` khác (`previewTour(tourId, lang)`).
 
@@ -54,7 +54,7 @@ Contributor muốn kiểm tra trải nghiệm tour trước khi gửi duyệt / 
 
 ## Post Conditions
 
-- Không có thay đổi dữ liệu: preview chỉ đọc, không đổi trạng thái tour, không ghi vào "mở gần đây" (`remember = false`), luôn bắt đầu tiến độ mới (`freshProgress`), không gửi lượt nghe vào thống kê UC17 (`recordStats` tắt).
+- Không có thay đổi dữ liệu: preview chỉ đọc, không đổi trạng thái tour, không ghi vào mục "Nghe tiếp" (`remember = false`), luôn bắt đầu tiến độ mới (`freshProgress`), không gửi lượt nghe vào thống kê UC17 (`recordStats` tắt).
 
 ## Reference: Business Rules
 

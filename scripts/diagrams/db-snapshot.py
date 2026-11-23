@@ -27,6 +27,7 @@ async def main():
       where i.indisunique and not i.indisprimary and n.nspname not in ('pg_catalog','information_schema','pg_toast')""")
     out = {}
     for r in cols:
+        if r['tb'] == '_prisma_migrations': continue  # Prisma's migration log, not part of the data model
         t = out.setdefault(r['s'], {}).setdefault(r['tb'], {"columns": [], "pk": [], "unique": [], "fks": []})
         t["columns"].append({"name": r['col'], "type": r['typ'], "nullable": r['nullable']})
     for r in cons:

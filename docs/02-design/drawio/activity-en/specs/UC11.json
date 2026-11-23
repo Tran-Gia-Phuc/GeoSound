@@ -1,0 +1,101 @@
+{
+  "uc": "UC11",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Contributor opens the \"Trigger zones\" step."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system returns the effective configuration (saved parts, defaults for missing parts) and draws the route, the places and the trigger circles on the map."
+    },
+    {
+      "id": "s3",
+      "text": "3. The Contributor picks a place and drags the radius slider (10–300 m); the circle follows."
+    },
+    {
+      "id": "s4",
+      "text": "4. The Contributor sets the priority: Normal / High / Very high. A2.",
+      "alts": [
+        "A2"
+      ]
+    },
+    {
+      "id": "s5",
+      "text": "5. The Contributor (optionally) enters a \"next stop\" suggestion as text and / or uploads audio."
+    },
+    {
+      "id": "s6",
+      "text": "6. The Contributor (optionally) adds direction audio: sets the centre on the map, radius 10–150 m, a label, a prompt or an audio file. A3.",
+      "alts": [
+        "A3"
+      ]
+    },
+    {
+      "id": "s7",
+      "text": "7. The Contributor (optionally) taps \"Reconnect in place order\". A1.",
+      "alts": [
+        "A1"
+      ]
+    },
+    {
+      "id": "s8",
+      "text": "8. The Contributor taps \"Save\" (the save bar shows only when there are changes). A4.",
+      "alts": [
+        "A4"
+      ]
+    },
+    {
+      "id": "s9",
+      "text": "9. The system checks each zone, that each zone points to a place of the tour and that each place has only one zone, then saves the configuration. E1, E2, E3.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Invalid zone → 400: \"The trigger zone radius must be greater than 0\", \"The polygon is not closed (at least 3 vertices needed)\".",
+          "back": "s8"
+        },
+        {
+          "id": "E2",
+          "text": "E2. A zone points to a place outside the tour → \"Trigger zone points to a place that is not in the tour\"; two zones for one place → \"Each place has only one trigger zone\"; empty suggestion → \"The suggestion needs text or audio\".",
+          "back": "s8"
+        },
+        {
+          "id": "E3",
+          "text": "E3. The tour does not exist → 404; someone else's tour → 403.",
+          "back": "end"
+        }
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Priority is stored as 0 / 10 / 20; at run time, the zone with higher priority wins when they overlap."
+      ],
+      "to": "s5"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Add / edit / delete direction audio; direction audio without a file reads the prompt with the device's voice."
+      ],
+      "to": "s7"
+    },
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Rebuild the route: the system joins the place coordinates in order; an empty route is joined automatically on playback."
+      ],
+      "to": "s8"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. Leaving the screen with unsaved changes: the system asks for confirmation before leaving."
+      ],
+      "to": "end"
+    }
+  ]
+}

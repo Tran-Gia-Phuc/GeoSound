@@ -67,13 +67,31 @@ test('handleEvent skips events without a contributor template', async () => {
   assert.deepEqual(res, { skipped: 'no_template' });
 });
 
-test('handleEvent lets SMTP errors propagate so the broker can nack the message', async () => {
+test('handleEvent without an outbox lets the SMTP error propagate so the broker can nack the message', async () => {
   const failure = new Error('SMTP down');
   const mailer = { send: async () => { throw failure; } };
   await assert.rejects(
     handleEvent(mailer, 'tour.rejected', { tourId: 't1', contributorEmail: 'c@example.com', reason: 'x' }, silent),
     (err) => err === failure,
   );
+});
+
+test('handleEvent queues a failed email in the outbox instead of throwing', async () => {
+  const failure = new Error('SMTP down');
+  const queued = [];
+  const mailer = { send: async () => { throw failure; } };
+  const queueEmail = async (event, mail, err) => { queued.push({ event, to: mail.to, subject: mail.subject, err }); };
+  for (const [event, payload] of [
+    ['tour.rejected', { tourId: 't1', contributorEmail: 'c@example.com', reason: 'x' }],
+    ['auth.new_device_login', newDevice],
+  ]) {
+    assert.deepEqual(await handleEvent(mailer, event, payload, silent, {}, { queueEmail }), { sent: { status: 'queued' } });
+  }
+  assert.deepEqual(queued.map((q) => [q.event, q.to, q.err === failure]), [
+    ['tour.rejected', 'c@example.com', true],
+    ['auth.new_device_login', 'an@mail.com', true],
+  ]);
+  assert.ok(queued[0].subject.length > 0);
 });
 
 test('createMailer falls back to a console mailer when SMTP is not configured', async () => {

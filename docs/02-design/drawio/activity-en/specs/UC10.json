@@ -1,0 +1,144 @@
+{
+  "uc": "UC10",
+  "steps": [
+    {
+      "id": "s1",
+      "text": "1. The Contributor taps \"Add stop\"."
+    },
+    {
+      "id": "s2",
+      "text": "2. The system shows the map and the list of existing places."
+    },
+    {
+      "id": "s3",
+      "text": "3. The Contributor searches an address. A1, E1.",
+      "exceptions": [
+        {
+          "id": "E1",
+          "text": "E1. Address not found → \"No matching address found\"; geocoding service error → 503.",
+          "back": "s3"
+        }
+      ],
+      "alts": [
+        "A1"
+      ],
+      "decision": true
+    },
+    {
+      "id": "s4",
+      "text": "4. The system finds the coordinates through the geocoding service (Nominatim, called through the gateway) and places a pin."
+    },
+    {
+      "id": "s5",
+      "text": "5. The Contributor enters the name, place type, description, adds photos (with captions) and recorded audio if any. E3, E4.",
+      "exceptions": [
+        {
+          "id": "E3",
+          "text": "E3. Missing required field → \"Please enter the place name\" / \"Description is required\".",
+          "back": "s5"
+        },
+        {
+          "id": "E4",
+          "text": "E4. Invalid file format (415) or file too large (413).",
+          "back": "s5"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s6",
+      "text": "6. The system (Media) checks and stores the files and returns their URLs."
+    },
+    {
+      "id": "s7",
+      "text": "7. The Contributor taps \"Save\"."
+    },
+    {
+      "id": "s8",
+      "text": "8. The system (Tour) checks whether the position is inside a forbidden zone. E2.",
+      "exceptions": [
+        {
+          "id": "E2",
+          "text": "E2. The position is inside a forbidden zone → 422 \"The position is inside a forbidden zone (<name>), please move it outside\".",
+          "back": "s7"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s9",
+      "text": "9. The system saves the place at the end of the list; a place with recorded audio is \"human voice\", the rest are read with the device's voice."
+    },
+    {
+      "id": "s10",
+      "text": "10. With moderation enabled, the system sends the place to Moderation (place.submitted event) so AI checks the text and photos. E5.",
+      "exceptions": [
+        {
+          "id": "E5",
+          "text": "E5. Place moderation result: rejected by AI → \"Rejected\" chip with the reason, must be edited; GIF images or images over 3 MB cannot be checked → Warning for the Admin to review; temporary AI error → wait for the system to retry.",
+          "back": "s11"
+        }
+      ],
+      "decision": true
+    },
+    {
+      "id": "s11",
+      "text": "11. The system shows the place's moderation status chip."
+    },
+    {
+      "id": "s12",
+      "text": "12. The Contributor repeats to add other places. A2, A3.",
+      "exceptions": [
+        {
+          "id": "E6",
+          "text": "E6. The place / tour does not exist (404) or is not one's own (403).",
+          "back": "end"
+        }
+      ],
+      "alts": [
+        "A2",
+        "A3",
+        "A4",
+        "A5"
+      ],
+      "decision": true
+    }
+  ],
+  "alts": [
+    {
+      "id": "A1",
+      "steps": [
+        "A1. Drop a pin directly on the map instead of searching an address."
+      ],
+      "to": "s5"
+    },
+    {
+      "id": "A2",
+      "steps": [
+        "A2. Reorder the places."
+      ],
+      "to": "s12"
+    },
+    {
+      "id": "A3",
+      "steps": [
+        "A3. Edit or delete a place (deletion asks for confirmation). E6."
+      ],
+      "to": "s12"
+    },
+    {
+      "id": "A4",
+      "steps": [
+        "A4. Edit a place of a tour that is pending review / public: the tour goes back to Draft and must be submitted for review again."
+      ],
+      "to": "end"
+    },
+    {
+      "id": "A5",
+      "steps": [
+        "A5. Add a place or change a description: the system translates that place again into the enabled secondary languages (UC#12)."
+      ],
+      "to": "s11"
+    }
+  ]
+}

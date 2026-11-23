@@ -170,6 +170,22 @@ import { AdminInsightController } from './interfaces/http/controllers/admin-insi
 import { buildAdminInsightRouter } from './interfaces/http/routes/admin-insight-routes.js';
 import { TourAccessController } from './interfaces/http/controllers/tour-access-controller.js';
 import { buildTourAccessRouter } from './interfaces/http/routes/tour-access-routes.js';
+// UC25 (#446) — buy a paid tour to download it offline (MoMo sandbox).
+import { PrismaTourPurchaseRepository } from './infrastructure/persistence/prisma-tour-purchase-repository.js';
+import { MomoClient } from './infrastructure/payment/momo-client.js';
+import {
+  GetTourPrice,
+  SetTourPrice,
+  StartTourPurchase,
+  GetMyPurchase,
+  GetPaymentStatus,
+  HandleMomoIpn,
+  ListMyPurchases,
+  ListTourSales,
+  ListAllPurchases,
+} from './application/use-cases/tour-payment.js';
+import { TourPaymentController } from './interfaces/http/controllers/tour-payment-controller.js';
+import { buildTourPaymentRouter } from './interfaces/http/routes/tour-payment-routes.js';
 
 // Dịch thật qua AI service khi có khoá Gemini (hoặc ép bằng TRANSLATOR=ai|echo).
 function selectTranslator(env) {
@@ -181,7 +197,7 @@ function selectTranslator(env) {
 /**
  * @param {object} env
  * @param {{ publish?, validateEvent?, verifyJwt? }} [shared] functions from ../shared (only index.js imports it);
- *   publish / validateEvent are needed only when an event flag is on, verifyJwt guards the admin routes (UC19)
+ *   publish / validateEvent are needed only when an event flag is on, verifyJwt guards every signed-in route (required)
  */
 export function buildContainer(env = process.env, { publish = null, validateEvent = null, verifyJwt = null } = {}) {
   // UC12 (#425) — listening languages, e.g. SUPPORTED_LANGUAGES=vi,en,fr,id. Empty = the default list.
@@ -195,6 +211,9 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   const adminActionRepo = new PrismaAdminActionRepository(prisma);
   const tourRepo = new PrismaTourRepository(prisma, { actionLog: adminActionRepo });
   const placeRepo = new PrismaPlaceRepository(prisma);
+  // UC25 (#446) — purchases; momo = null without MOMO_* keys (purchase answers 503).
+  const purchaseRepo = new PrismaTourPurchaseRepository(prisma);
+  const momo = MomoClient.fromEnv(env);
   // Vùng cấm (E2): kiểm điểm trong polygon vùng cấm đang bật.
   const zoneRepo = new PrismaForbiddenZoneRepository(prisma);
   const zoneChecker = new PolygonZoneChecker({ zoneRepo });
@@ -278,6 +297,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
       routeConfigRepo,
       tourLanguageRepo,
       placeTranslationRepo,
+      purchaseRepo,
     }),
   };
   const previewUseCases = {
@@ -304,7 +324,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     createItinerary: new CreateItinerary({ itineraryRepo }),
     listMyItineraries: new ListMyItineraries({ itineraryRepo }),
     getItinerary: new GetItinerary({ itineraryRepo }),
-    getItineraryPackage: new GetItineraryPackage({ itineraryRepo }),
+    getItineraryPackage: new GetItineraryPackage({ itineraryRepo, purchaseRepo }),
     renameItinerary: new RenameItinerary({ itineraryRepo }),
     deleteItinerary: new DeleteItinerary({ itineraryRepo }),
     addItineraryItem: new AddItineraryItem({ itineraryRepo, placeRepo, tourRepo, tourLanguageRepo, placeTranslationRepo }),
@@ -384,12 +404,15 @@ export function buildContainer(env = process.env, { publish = null, validateEven
   };
 
   // --- interfaces (controller + router) ---
+  // The core contributor / itinerary routes cannot run unguarded: index.js always passes verifyJwt.
+  if (!verifyJwt) throw new Error('buildContainer needs shared verifyJwt for the guarded routes');
+  const requireContributor = verifyJwt(['contributor']);
   const tourController = new TourController(useCases);
-  const tourRouter = buildTourRouter({ tourController });
+  const tourRouter = buildTourRouter({ tourController, requireContributor });
   const placeController = new PlaceController(placeUseCases);
-  const placeRouter = buildPlaceRouter({ placeController });
+  const placeRouter = buildPlaceRouter({ placeController, requireContributor });
   const routeConfigController = new RouteConfigController(routeConfigUseCases);
-  const routeConfigRouter = buildRouteConfigRouter({ routeConfigController });
+  const routeConfigRouter = buildRouteConfigRouter({ routeConfigController, requireContributor });
   // UC04 / UC12 — a tourist asks for a language: automatic translation (AI), rate limited per IP.
   const translateTourForVisitor = new TranslateTourForVisitor({
     tourRepo,
@@ -405,13 +428,17 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     windowMs: Number(env.TRANSLATE_RATE_WINDOW_MS) || 10 * 60 * 1000,
   });
   const publicTourController = new PublicTourController(publicUseCases, { supportedLanguages });
-  const publicTourRouter = buildPublicTourRouter({ publicTourController, translateLimiter });
+  const publicTourRouter = buildPublicTourRouter({
+    publicTourController,
+    translateLimiter,
+    optionalAuth: verifyJwt ? optionalAuth(verifyJwt()) : undefined,
+  });
   const languageController = new LanguageController(languageUseCases);
-  const languageRouter = buildLanguageRouter({ languageController });
+  const languageRouter = buildLanguageRouter({ languageController, requireContributor });
   const previewController = new PreviewController(previewUseCases);
-  const previewRouter = buildPreviewRouter({ previewController });
+  const previewRouter = buildPreviewRouter({ previewController, requireContributor });
   const itineraryController = new ItineraryController(itineraryUseCases);
-  const itineraryRouter = buildItineraryRouter({ itineraryController });
+  const itineraryRouter = buildItineraryRouter({ itineraryController, requireAuth: verifyJwt() });
   const exploreController = new ExploreController(exploreUseCases);
   const exploreRouter = buildExploreRouter({ exploreController });
   const publicItineraryRouter = buildPublicItineraryRouter({ exploreController });
@@ -487,6 +514,26 @@ export function buildContainer(env = process.env, { publish = null, validateEven
       })
     : null;
 
+  // UC25 (#446) — tour price (Studio), purchase, MoMo IPN and status.
+  const tourPaymentRouter = verifyJwt
+    ? buildTourPaymentRouter({
+        tourPaymentController: new TourPaymentController({
+          getTourPrice: new GetTourPrice({ tourRepo, purchaseRepo }),
+          setTourPrice: new SetTourPrice({ tourRepo, purchaseRepo }),
+          startTourPurchase: new StartTourPurchase({ tourRepo, purchaseRepo, momo }),
+          getMyPurchase: new GetMyPurchase({ tourRepo, purchaseRepo }),
+          getPaymentStatus: new GetPaymentStatus({ purchaseRepo, momo }),
+          handleMomoIpn: new HandleMomoIpn({ purchaseRepo, momo }),
+          listMyPurchases: new ListMyPurchases({ purchaseRepo }),
+          listTourSales: new ListTourSales({ tourRepo, purchaseRepo }),
+          listAllPurchases: new ListAllPurchases({ purchaseRepo }),
+        }),
+        requireAuth: verifyJwt(),
+        requireContributor: verifyJwt(['contributor']),
+        requireAdmin: verifyJwt(['admin']),
+      })
+    : null;
+
   // UC21 / UC22 (#275) — account.moderated -> admin log (queue tour.admin-log), whenever the broker is
   // loaded (publish and validateEvent come from ../shared only then).
   const accountModeratedHandler =
@@ -524,6 +571,7 @@ export function buildContainer(env = process.env, { publish = null, validateEven
     adminReportRouter,
     adminInsightRouter,
     tourAccessRouter,
+    tourPaymentRouter,
     moderationResultHandler,
     accountModeratedHandler,
     purgeActivityMarks,

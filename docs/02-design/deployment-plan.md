@@ -327,6 +327,9 @@ Non-secret settings go to a ConfigMap generated from values (thresholds, timeout
 | `geosound-smtp` | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` |
 | `geosound-storage` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` |
 | `geosound-broker` | `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS`, `REDIS_PASSWORD` (optional); read by the RabbitMQ and Redis pods only (task 2.3) |
+| `geosound-payment` | `MOMO_PARTNER_CODE`, `MOMO_ACCESS_KEY`, `MOMO_SECRET_KEY`; read by `tour` only (UC25 tour payment, MoMo API v2). Optional in staging: without it Tour starts and a purchase answers 503 |
+
+The non-secret payment settings are `tour` env values: `PAYMENT_RETURN_URL` (the client page `/payment/momo` of the environment's own host, set in each `deploy/envs/<env>/values.yaml`, and in `deploy/local/values*.yaml` for the laptop staging), `MOMO_IPN_URL` (default `<origin of PAYMENT_RETURN_URL>/api/tours/payments/momo/ipn`, so it must be a host MoMo can reach) and `MOMO_ENDPOINT` (default the sandbox `https://test-payment.momo.vn`). The laptop staging has no public host, so no IPN arrives there: the return page asks MoMo for the status instead. Before production: seal `geosound-payment` (it is required there), set `PAYMENT_RETURN_URL` in `deploy/envs/prod/values.yaml`, and set `MOMO_ENDPOINT` to the live endpoint with live merchant keys.
 
 How secrets get into the cluster, in order of preference:
 

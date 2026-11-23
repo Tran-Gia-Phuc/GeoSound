@@ -1,0 +1,72 @@
+{
+  "pages": [
+    {
+      "name": "DFD cấp 0",
+      "title": "DFD cấp 0 (sơ đồ ngữ cảnh, chỉ tác nhân người dùng) – GeoSound",
+      "nodes": [
+        {
+          "id": "SYS",
+          "kind": "process",
+          "label": "0 | Hệ thống GeoSound (audio guide du lịch)",
+          "x": 820,
+          "y": 420,
+          "w": 260,
+          "h": 260
+        },
+        {
+          "id": "TOURIST",
+          "kind": "entity",
+          "label": "Khách du lịch",
+          "x": 120,
+          "y": 160
+        },
+        {
+          "id": "CONTRIB",
+          "kind": "entity",
+          "label": "Người đăng nội dung (Contributor)",
+          "x": 120,
+          "y": 860
+        },
+        {
+          "id": "ADMIN",
+          "kind": "entity",
+          "label": "Quản trị viên (Admin)",
+          "x": 1590,
+          "y": 510
+        }
+      ],
+      "flows": [
+        {
+          "from": "TOURIST",
+          "to": "SYS",
+          "label": "Đăng ký / đăng nhập, OTP<br>Từ khóa, bộ lọc, chọn tour, vị trí GPS, mã truy cập<br>Yêu cầu dịch sang ngôn ngữ mới<br>Lịch trình, đánh giá (gửi / sửa / xoá), báo cáo tour & đánh giá vi phạm<br>Câu hỏi cho trợ lý AI<br>Mở, đánh dấu thông báo đã đọc<br>Mua tour trả phí, xem lịch sử giao dịch"
+        },
+        {
+          "from": "SYS",
+          "to": "TOURIST",
+          "label": "Danh sách, bản đồ, chi tiết tour, thuyết minh, audio<br>Gói tour / lịch trình offline<br>Đánh giá của tôi<br>Câu trả lời AI kèm nguồn<br>Thông báo, danh sách thiết bị<br>Link thanh toán MoMo, trạng thái đơn, lịch sử giao dịch"
+        },
+        {
+          "from": "CONTRIB",
+          "to": "SYS",
+          "label": "Tour, điểm dừng, ảnh, audio<br>Route, vùng kích hoạt, ngôn ngữ, công tắc dịch tự động, passcode, giá tải offline<br>Yêu cầu gửi duyệt<br>Chọn tour, kỳ thống kê; khiếu nại đánh giá; đọc thông báo"
+        },
+        {
+          "from": "SYS",
+          "to": "CONTRIB",
+          "label": "Trạng thái tour, kết quả kiểm duyệt<br>Bản xem thử, thống kê, đánh giá<br>Thông báo trong app<br>Đơn đã bán của tour"
+        },
+        {
+          "from": "ADMIN",
+          "to": "SYS",
+          "label": "Quyết định duyệt / từ chối / yêu cầu sửa<br>Xử lý báo cáo tour & đánh giá, cảnh cáo / tạm khóa / cấm tài khoản<br>Khoảng thời gian dashboard, bộ lọc nhật ký<br>Bộ lọc giao dịch"
+        },
+        {
+          "from": "SYS",
+          "to": "ADMIN",
+          "label": "Hàng chờ duyệt, hồ sơ báo cáo tour & đánh giá<br>Dashboard, nhật ký, thiết bị online<br>Danh sách giao dịch, doanh thu"
+        }
+      ]
+    }
+  ]
+}

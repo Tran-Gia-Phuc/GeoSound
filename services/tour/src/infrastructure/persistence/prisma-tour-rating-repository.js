@@ -25,7 +25,7 @@ export class PrismaTourRatingRepository {
 
   async #lockOwn(tx, tourId, userId) {
     const rows = await tx.$queryRaw(Prisma.sql`
-      SELECT id, stars FROM ${this.ratingsTable}
+      SELECT id, stars, is_hidden AS "isHidden" FROM ${this.ratingsTable}
        WHERE tour_id = ${tourId} AND user_id = ${userId}
          FOR UPDATE`);
     return rows[0] ?? null;
@@ -54,10 +54,19 @@ export class PrismaTourRatingRepository {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const own = await this.#lockOwn(tx, tourId, userId);
-        if (own) {
+        if (own && !own.isHidden) {
           const row = await tx.tourRating.update({ where: { id: own.id }, data: { stars, comment, userName } });
           const summary = await this.#moveAggregate(tx, tourId, ratingDelta.updated(own.stars, stars));
           return { created: false, rating: toEntity(row), summary };
+        }
+        if (own) {
+          // Removed by an admin: already out of the aggregate, so the new rating replaces it and counts again.
+          const row = await tx.tourRating.update({
+            where: { id: own.id },
+            data: { stars, comment, userName, isHidden: false, isFlagged: false, createdAt: new Date() },
+          });
+          const summary = await this.#moveAggregate(tx, tourId, ratingDelta.created(stars));
+          return { created: true, rating: toEntity(row), summary };
         }
         const row = await tx.tourRating.create({ data: { tourId, userId, userName, stars, comment } });
         const summary = await this.#moveAggregate(tx, tourId, ratingDelta.created(stars));
@@ -73,7 +82,7 @@ export class PrismaTourRatingRepository {
   async deleteForUser(tourId, userId) {
     return this.prisma.$transaction(async (tx) => {
       const own = await this.#lockOwn(tx, tourId, userId);
-      if (!own) return null;
+      if (!own || own.isHidden) return null; // a removed rating is already out of the aggregate
       await tx.tourRating.delete({ where: { id: own.id } });
       return { summary: await this.#moveAggregate(tx, tourId, ratingDelta.deleted(own.stars)) };
     });
